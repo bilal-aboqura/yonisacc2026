@@ -1,0 +1,197 @@
+{
+  "common": {
+    "appName": "Mohaseby",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "print": "Print",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "yes": "Yes",
+    "no": "No",
+    "all": "All",
+    "none": "None",
+    "submit": "Submit",
+    "reset": "Reset",
+    "view": "View",
+    "download": "Download",
+    "upload": "Upload",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "pricing": "Pricing",
+    "testimonials": "Testimonials",
+    "contact": "Contact",
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard",
+    "logout": "Logout"
+  },
+  "landing": {
+    "hero": {
+      "title": "Complete Accounting Software",
+      "subtitle": "Manage your business efficiently with a comprehensive accounting system supporting sales, inventory, and HR",
+      "cta": "Start Free Now",
+      "demo": "Watch Demo"
+    },
+    "features": {
+      "title": "Powerful Features for Your Business",
+      "subtitle": "Everything you need in one place",
+      "invoices": {
+        "title": "Invoices & Sales",
+        "description": "Create professional invoices and manage sales and purchases easily"
+      },
+      "inventory": {
+        "title": "Inventory Management",
+        "description": "Track products and warehouses with automatic alerts"
+      },
+      "accounting": {
+        "title": "Accounting",
+        "description": "Journal entries, trial balance, and comprehensive financial reports"
+      },
+      "hr": {
+        "title": "Human Resources",
+        "description": "Manage employees, payroll, attendance, and advances"
+      },
+      "reports": {
+        "title": "Reports",
+        "description": "Detailed reports exportable in multiple formats"
+      },
+      "multiUser": {
+        "title": "Multi-User",
+        "description": "Multi-level permissions for your team"
+      },
+      "branches": {
+        "title": "Multiple Branches",
+        "description": "Manage multiple branches with separate inventory"
+      },
+      "security": {
+        "title": "Security",
+        "description": "Protect your data with highest security standards"
+      }
+    },
+    "activities": {
+      "title": "Supports All Business Types",
+      "commercial": "Commercial",
+      "services": "Services",
+      "industrial": "Industrial",
+      "contracting": "Contracting"
+    },
+    "pricing": {
+      "title": "Choose Your Plan",
+      "subtitle": "Competitive prices for all sizes",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "popular": "Most Popular",
+      "choosePlan": "Choose Plan",
+      "currentPlan": "Current Plan",
+      "features": "Features:",
+      "invoices": "invoices",
+      "entries": "entries",
+      "users": "users",
+      "branches": "branches",
+      "unlimited": "Unlimited",
+      "allFeatures": "All Features",
+      "basicFeatures": "Basic Features",
+      "noHR": "Without HR",
+      "withHR": "With HR",
+      "prioritySupport": "Priority Support"
+    },
+    "testimonials": {
+      "title": "What Our Customers Say",
+      "subtitle": "Real reviews from real users"
+    },
+    "contact": {
+      "title": "Contact Us",
+      "subtitle": "We're here to help",
+      "name": "Full Name",
+      "email": "Email",
+      "phone": "Phone Number",
+      "message": "Message",
+      "send": "Send Message",
+      "success": "Your message was sent successfully!",
+      "bankInfo": "Bank Transfer Information",
+      "bankName": "Bank Name",
+      "accountName": "Account Holder Name",
+      "accountNumber": "Account Number",
+      "iban": "IBAN"
+    },
+    "cta": {
+      "title": "Start Your Journey Now",
+      "subtitle": "Try the software for free without a credit card",
+      "button": "Create Free Account"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "email": "Email",
+      "password": "Password",
+      "remember": "Remember me",
+      "forgot": "Forgot password?",
+      "submit": "Login",
+      "noAccount": "Don't have an account?",
+      "register": "Register now"
+    },
+    "register": {
+      "title": "Create New Account",
+      "fullName": "Full Name",
+      "email": "Email",
+      "phone": "Phone Number",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "companyName": "Company Name",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "login": "Login"
+    },
+    "otp": {
+      "title": "Phone Verification",
+      "subtitle": "Enter the code sent to your phone",
+      "resend": "Resend Code",
+      "verify": "Verify"
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "overview": "Overview",
+    "totalRevenue": "Total Revenue",
+    "totalInvoices": "Total Invoices",
+    "activeSubscriptions": "Active Subscriptions",
+    "totalUsers": "Total Users",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "appearance": "Appearance",
+    "language": "Language",
+    "theme": "Theme",
+    "lightMode": "Light",
+    "darkMode": "Dark",
+    "system": "System",
+    "arabic": "العربية",
+    "english": "English"
+  },
+  "footer": {
+    "copyright": "All rights reserved",
+    "privacy": "Privacy Policy",
+    "terms": "Terms & Conditions"
+  }
+}
