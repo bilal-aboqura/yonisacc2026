@@ -1,0 +1,382 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowRight, Save, Package, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
+
+interface Category {
+  id: string;
+  name: string;
+  name_en: string | null;
+}
+
+const CreateProduct = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+
+  const [name, setName] = useState("");
+  const [nameEn, setNameEn] = useState("");
+  const [sku, setSku] = useState("");
+  const [barcode, setBarcode] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [unit, setUnit] = useState("piece");
+  const [purchasePrice, setPurchasePrice] = useState(0);
+  const [salePrice, setSalePrice] = useState(0);
+  const [taxRate, setTaxRate] = useState(15);
+  const [minStock, setMinStock] = useState(0);
+  const [maxStock, setMaxStock] = useState(0);
+  const [description, setDescription] = useState("");
+  const [isService, setIsService] = useState(false);
+  const [isActive, setIsActive] = useState(true);
+
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  const units = [
+    { value: "piece", label: "قطعة" },
+    { value: "kg", label: "كيلوغرام" },
+    { value: "g", label: "غرام" },
+    { value: "liter", label: "لتر" },
+    { value: "meter", label: "متر" },
+    { value: "box", label: "كرتون" },
+    { value: "pack", label: "عبوة" },
+  ];
+
+  useEffect(() => {
+    if (user) {
+      fetchInitialData();
+    }
+  }, [user]);
+
+  const fetchInitialData = async () => {
+    try {
+      const { data: companyData, error: companyError } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("owner_id", user?.id)
+        .single();
+
+      if (companyError) throw companyError;
+      setCompanyId(companyData.id);
+
+      const { data: categoriesData } = await supabase
+        .from("product_categories")
+        .select("id, name, name_en")
+        .eq("company_id", companyData.id)
+        .eq("is_active", true)
+        .order("name");
+
+      setCategories(categoriesData || []);
+    } catch (error: any) {
+      console.error("Error fetching data:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ في تحميل البيانات",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!companyId) return;
+
+    if (!name.trim()) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال اسم المنتج",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("products").insert({
+        company_id: companyId,
+        name: name.trim(),
+        name_en: nameEn.trim() || null,
+        sku: sku.trim() || null,
+        barcode: barcode.trim() || null,
+        category_id: categoryId || null,
+        unit,
+        purchase_price: purchasePrice,
+        sale_price: salePrice,
+        tax_rate: taxRate,
+        min_stock: minStock,
+        max_stock: maxStock || null,
+        description: description.trim() || null,
+        is_service: isService,
+        is_active: isActive,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "تم الحفظ",
+        description: "تم إضافة المنتج بنجاح",
+      });
+
+      navigate("/client/inventory");
+    } catch (error: any) {
+      console.error("Error saving product:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ في حفظ المنتج",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 rtl max-w-3xl">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/client/inventory")}>
+            <ArrowRight className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">منتج جديد</h1>
+            <p className="text-muted-foreground">إضافة منتج أو خدمة جديدة</p>
+          </div>
+        </div>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+          <Save className="h-4 w-4 ml-2" />
+          حفظ المنتج
+        </Button>
+      </div>
+
+      {/* Basic Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            البيانات الأساسية
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>اسم المنتج (عربي) *</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="اسم المنتج بالعربي"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>اسم المنتج (إنجليزي)</Label>
+              <Input
+                value={nameEn}
+                onChange={(e) => setNameEn(e.target.value)}
+                placeholder="Product name in English"
+                dir="ltr"
+              />
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>رمز المنتج (SKU)</Label>
+              <Input
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                placeholder="PRD-001"
+                className="font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>الباركود</Label>
+              <Input
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                placeholder="1234567890123"
+                className="font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>الوحدة</Label>
+              <Select value={unit} onValueChange={setUnit}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {units.map((u) => (
+                    <SelectItem key={u.value} value={u.value}>
+                      {u.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>التصنيف</Label>
+            <Select value={categoryId || "__none__"} onValueChange={(v) => setCategoryId(v === "__none__" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="اختر التصنيف" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">بدون تصنيف</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>الوصف</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="وصف المنتج..."
+              rows={3}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pricing */}
+      <Card>
+        <CardHeader>
+          <CardTitle>الأسعار والضريبة</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>سعر الشراء</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={purchasePrice || ""}
+                onChange={(e) => setPurchasePrice(Number(e.target.value))}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>سعر البيع</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={salePrice || ""}
+                onChange={(e) => setSalePrice(Number(e.target.value))}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>نسبة الضريبة %</Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={taxRate}
+                onChange={(e) => setTaxRate(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          {salePrice > 0 && purchasePrice > 0 && (
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                هامش الربح: <span className="font-bold text-primary">
+                  {((salePrice - purchasePrice) / purchasePrice * 100).toFixed(1)}%
+                </span>
+                {" "}({(salePrice - purchasePrice).toFixed(2)} ر.س)
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Stock */}
+      <Card>
+        <CardHeader>
+          <CardTitle>إعدادات المخزون</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>الحد الأدنى للمخزون</Label>
+              <Input
+                type="number"
+                min="0"
+                value={minStock}
+                onChange={(e) => setMinStock(Number(e.target.value))}
+                placeholder="0"
+              />
+              <p className="text-xs text-muted-foreground">تنبيه عند وصول المخزون لهذا الحد</p>
+            </div>
+            <div className="space-y-2">
+              <Label>الحد الأقصى للمخزون</Label>
+              <Input
+                type="number"
+                min="0"
+                value={maxStock || ""}
+                onChange={(e) => setMaxStock(Number(e.target.value))}
+                placeholder="غير محدد"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+            <div>
+              <Label className="text-base">خدمة (بدون مخزون)</Label>
+              <p className="text-sm text-muted-foreground">
+                تفعيل هذا الخيار للخدمات التي لا تحتاج تتبع مخزون
+              </p>
+            </div>
+            <Switch checked={isService} onCheckedChange={setIsService} />
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+            <div>
+              <Label className="text-base">منتج نشط</Label>
+              <p className="text-sm text-muted-foreground">
+                المنتجات غير النشطة لن تظهر في الفواتير
+              </p>
+            </div>
+            <Switch checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default CreateProduct;
