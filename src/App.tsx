@@ -30,6 +30,12 @@ import CreatePurchaseInvoice from "./pages/client/CreatePurchaseInvoice";
 import CreateJournalEntry from "./pages/client/CreateJournalEntry";
 import CreateAccount from "./pages/client/CreateAccount";
 import CreateTreasuryTransaction from "./pages/client/CreateTreasuryTransaction";
+import CreateProduct from "./pages/client/CreateProduct";
+import OpeningBalances from "./pages/client/OpeningBalances";
+import IncomeStatement from "./pages/client/reports/IncomeStatement";
+import BalanceSheet from "./pages/client/reports/BalanceSheet";
+import CashFlow from "./pages/client/reports/CashFlow";
+import TrialBalance from "./pages/client/reports/TrialBalance";
 
 // Owner Portal
 import OwnerLayout from "./components/owner/OwnerLayout";
@@ -72,9 +78,15 @@ const App = () => (
               <Route path="treasury" element={<ClientTreasury />} />
               <Route path="treasury/new" element={<CreateTreasuryTransaction />} />
               <Route path="inventory" element={<ClientInventory />} />
+              <Route path="inventory/new" element={<CreateProduct />} />
               <Route path="contacts" element={<ClientContacts />} />
               <Route path="contacts/new" element={<CreateContact />} />
               <Route path="reports" element={<ClientReports />} />
+              <Route path="reports/income-statement" element={<IncomeStatement />} />
+              <Route path="reports/balance-sheet" element={<BalanceSheet />} />
+              <Route path="reports/cash-flow" element={<CashFlow />} />
+              <Route path="reports/trial-balance" element={<TrialBalance />} />
+              <Route path="accounts/opening-balances" element={<OpeningBalances />} />
               <Route path="analytics" element={<ClientAnalytics />} />
               <Route path="settings" element={<ClientSettings />} />
             </Route>

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import {
 
 const ClientReports = () => {
   const { isRTL } = useLanguage();
+  const navigate = useNavigate();
   const Arrow = isRTL ? ArrowLeft : ArrowRight;
 
   const reports = [
@@ -26,21 +28,25 @@ const ClientReports = () => {
           title: isRTL ? "قائمة الدخل" : "Income Statement",
           description: isRTL ? "الإيرادات والمصروفات وصافي الربح" : "Revenue, expenses, and net profit",
           icon: TrendingUp,
+          path: "/client/reports/income-statement",
         },
         {
           title: isRTL ? "الميزانية العمومية" : "Balance Sheet",
           description: isRTL ? "الأصول والخصوم وحقوق الملكية" : "Assets, liabilities, and equity",
           icon: BarChart3,
+          path: "/client/reports/balance-sheet",
         },
         {
           title: isRTL ? "التدفقات النقدية" : "Cash Flow",
           description: isRTL ? "حركة النقدية الداخلة والخارجة" : "Cash inflows and outflows",
           icon: Wallet,
+          path: "/client/reports/cash-flow",
         },
         {
           title: isRTL ? "ميزان المراجعة" : "Trial Balance",
           description: isRTL ? "أرصدة جميع الحسابات" : "All account balances",
           icon: FileText,
+          path: "/client/reports/trial-balance",
         },
       ],
     },
@@ -107,6 +113,7 @@ const ClientReports = () => {
               <Card
                 key={reportIndex}
                 className="hover:border-primary/50 transition-colors cursor-pointer group"
+                onClick={() => (report as any).path && navigate((report as any).path)}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
