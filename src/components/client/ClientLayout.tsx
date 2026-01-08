@@ -134,7 +134,7 @@ const ClientLayout = () => {
   );
 
   return (
-    <div className={`min-h-screen bg-muted/30 flex ${isRTL ? "flex-row-reverse" : ""}`}>
+    <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-muted/30 flex">
       {/* Desktop Sidebar */}
       <aside
         className={cn(
