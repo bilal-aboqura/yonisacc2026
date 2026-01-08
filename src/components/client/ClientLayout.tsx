@@ -65,25 +65,13 @@ const ClientLayout = () => {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="p-4 border-b flex items-center justify-between">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-primary" />
+      <div className="h-16 px-4 border-b flex items-center">
+        <div className="flex items-center gap-2">
+          <Building2 className="h-6 w-6 text-primary shrink-0" />
+          {!collapsed && (
             <span className="font-bold text-lg text-foreground">محاسبي</span>
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className="hidden md:flex"
-        >
-          {collapsed ? (
-            isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
-          ) : (
-            isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />
           )}
-        </Button>
+        </div>
       </div>
 
       {/* Menu Items */}
@@ -112,24 +100,6 @@ const ClientLayout = () => {
         </nav>
       </ScrollArea>
 
-      {/* Footer */}
-      <div className="p-2 border-t space-y-2">
-        <div className={cn("flex gap-2", collapsed ? "flex-col items-center" : "")}>
-          <LanguageToggle />
-          <ThemeToggle />
-        </div>
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full gap-3 text-destructive hover:text-destructive hover:bg-destructive/10",
-            collapsed ? "justify-center px-2" : "justify-start"
-          )}
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-5 w-5" />
-          {!collapsed && <span className="text-start">{isRTL ? "تسجيل الخروج" : "Logout"}</span>}
-        </Button>
-      </div>
     </div>
   );
 
@@ -155,7 +125,8 @@ const ClientLayout = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Top Bar */}
-        <header className="h-16 border-b bg-card px-4 flex items-center justify-between md:justify-end">
+        <header className="h-16 border-b bg-card px-4 flex items-center justify-between">
+          {/* Mobile Menu Button */}
           <Button
             variant="ghost"
             size="icon"
@@ -164,9 +135,34 @@ const ClientLayout = () => {
           >
             <Menu className="h-6 w-6" />
           </Button>
-          <div className="flex items-center gap-2 md:hidden">
+
+          {/* Desktop: Collapse Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden md:flex"
+          >
+            {collapsed ? (
+              isRTL ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />
+            ) : (
+              isRTL ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />
+            )}
+          </Button>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
             <LanguageToggle />
             <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={handleSignOut}
+              title={isRTL ? "تسجيل الخروج" : "Logout"}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </header>
 
