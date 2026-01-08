@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { Menu, X } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Menu, LogOut, LayoutDashboard } from "lucide-react";
 
 export const Header = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
@@ -17,10 +21,16 @@ export const Header = () => {
     { href: "#contact", label: t("nav.contact") },
   ];
 
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <header className="sticky top-0 z-50 glass border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gradient">{t("common.appName")}</h1>
+        <h1 className="text-2xl font-bold text-gradient cursor-pointer" onClick={() => navigate("/")}>
+          {t("common.appName")}
+        </h1>
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
@@ -41,8 +51,27 @@ export const Header = () => {
           
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-2">
-            <Button variant="ghost">{t("nav.login")}</Button>
-            <Button className="gradient-primary text-white">{t("nav.register")}</Button>
+            {user ? (
+              <>
+                <Button variant="ghost" onClick={() => navigate("/dashboard")} className="gap-2">
+                  <LayoutDashboard className="h-4 w-4" />
+                  {t("nav.dashboard")}
+                </Button>
+                <Button variant="outline" onClick={handleSignOut} className="gap-2">
+                  <LogOut className="h-4 w-4" />
+                  {t("nav.logout")}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => navigate("/auth")}>
+                  {t("nav.login")}
+                </Button>
+                <Button className="gradient-primary text-white" onClick={() => navigate("/auth")}>
+                  {t("nav.register")}
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu */}
@@ -65,8 +94,42 @@ export const Header = () => {
                   </a>
                 ))}
                 <div className="flex flex-col gap-3 mt-4">
-                  <Button variant="outline" className="w-full">{t("nav.login")}</Button>
-                  <Button className="gradient-primary text-white w-full">{t("nav.register")}</Button>
+                  {user ? (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        className="w-full gap-2" 
+                        onClick={() => { navigate("/dashboard"); setIsOpen(false); }}
+                      >
+                        <LayoutDashboard className="h-4 w-4" />
+                        {t("nav.dashboard")}
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full gap-2" 
+                        onClick={() => { handleSignOut(); setIsOpen(false); }}
+                      >
+                        <LogOut className="h-4 w-4" />
+                        {t("nav.logout")}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        className="w-full" 
+                        onClick={() => { navigate("/auth"); setIsOpen(false); }}
+                      >
+                        {t("nav.login")}
+                      </Button>
+                      <Button 
+                        className="gradient-primary text-white w-full" 
+                        onClick={() => { navigate("/auth"); setIsOpen(false); }}
+                      >
+                        {t("nav.register")}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </SheetContent>
