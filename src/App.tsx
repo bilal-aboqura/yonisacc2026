@@ -10,6 +10,20 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import CompanyRegistration from "./pages/CompanyRegistration";
 
+// Client Portal
+import ClientLayout from "./components/client/ClientLayout";
+import ClientDashboard from "./pages/client/ClientDashboard";
+import ClientSales from "./pages/client/ClientSales";
+import ClientPurchases from "./pages/client/ClientPurchases";
+import ClientJournal from "./pages/client/ClientJournal";
+import ClientAccounts from "./pages/client/ClientAccounts";
+import ClientTreasury from "./pages/client/ClientTreasury";
+import ClientInventory from "./pages/client/ClientInventory";
+import ClientContacts from "./pages/client/ClientContacts";
+import ClientReports from "./pages/client/ClientReports";
+import ClientAnalytics from "./pages/client/ClientAnalytics";
+import ClientSettings from "./pages/client/ClientSettings";
+
 // Owner Portal
 import OwnerLayout from "./components/owner/OwnerLayout";
 import OwnerDashboard from "./pages/owner/OwnerDashboard";
@@ -35,6 +49,21 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/register-company" element={<CompanyRegistration />} />
+            
+            {/* Client Portal Routes */}
+            <Route path="/client" element={<ClientLayout />}>
+              <Route index element={<ClientDashboard />} />
+              <Route path="sales" element={<ClientSales />} />
+              <Route path="purchases" element={<ClientPurchases />} />
+              <Route path="journal" element={<ClientJournal />} />
+              <Route path="accounts" element={<ClientAccounts />} />
+              <Route path="treasury" element={<ClientTreasury />} />
+              <Route path="inventory" element={<ClientInventory />} />
+              <Route path="contacts" element={<ClientContacts />} />
+              <Route path="reports" element={<ClientReports />} />
+              <Route path="analytics" element={<ClientAnalytics />} />
+              <Route path="settings" element={<ClientSettings />} />
+            </Route>
             
             {/* Owner Portal Routes */}
             <Route path="/owner" element={<OwnerLayout />}>
