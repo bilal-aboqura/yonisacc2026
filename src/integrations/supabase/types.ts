@@ -77,6 +77,78 @@ export type Database = {
           },
         ]
       }
+      bank_accounts: {
+        Row: {
+          account_id: string | null
+          account_number: string | null
+          bank_name: string
+          bank_name_en: string | null
+          branch_name: string | null
+          company_id: string
+          created_at: string
+          currency: string | null
+          current_balance: number | null
+          iban: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          opening_balance: number | null
+          swift_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          account_number?: string | null
+          bank_name: string
+          bank_name_en?: string | null
+          branch_name?: string | null
+          company_id: string
+          created_at?: string
+          currency?: string | null
+          current_balance?: number | null
+          iban?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          opening_balance?: number | null
+          swift_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          account_number?: string | null
+          bank_name?: string
+          bank_name_en?: string | null
+          branch_name?: string | null
+          company_id?: string
+          created_at?: string
+          currency?: string | null
+          current_balance?: number | null
+          iban?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          opening_balance?: number | null
+          swift_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_accounts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           address: string | null
@@ -214,6 +286,167 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          cash_account_id: string | null
+          company_id: string
+          created_at: string
+          default_branch_id: string | null
+          default_payment_terms: number | null
+          default_tax_rate: number | null
+          default_warehouse_id: string | null
+          id: string
+          inventory_account_id: string | null
+          invoice_prefix: string | null
+          journal_prefix: string | null
+          next_invoice_number: number | null
+          next_journal_number: number | null
+          next_payment_number: number | null
+          next_purchase_number: number | null
+          next_quote_number: number | null
+          next_receipt_number: number | null
+          payables_account_id: string | null
+          payment_prefix: string | null
+          purchase_prefix: string | null
+          purchases_account_id: string | null
+          quote_prefix: string | null
+          receipt_prefix: string | null
+          receivables_account_id: string | null
+          sales_account_id: string | null
+          updated_at: string
+          vat_account_id: string | null
+        }
+        Insert: {
+          cash_account_id?: string | null
+          company_id: string
+          created_at?: string
+          default_branch_id?: string | null
+          default_payment_terms?: number | null
+          default_tax_rate?: number | null
+          default_warehouse_id?: string | null
+          id?: string
+          inventory_account_id?: string | null
+          invoice_prefix?: string | null
+          journal_prefix?: string | null
+          next_invoice_number?: number | null
+          next_journal_number?: number | null
+          next_payment_number?: number | null
+          next_purchase_number?: number | null
+          next_quote_number?: number | null
+          next_receipt_number?: number | null
+          payables_account_id?: string | null
+          payment_prefix?: string | null
+          purchase_prefix?: string | null
+          purchases_account_id?: string | null
+          quote_prefix?: string | null
+          receipt_prefix?: string | null
+          receivables_account_id?: string | null
+          sales_account_id?: string | null
+          updated_at?: string
+          vat_account_id?: string | null
+        }
+        Update: {
+          cash_account_id?: string | null
+          company_id?: string
+          created_at?: string
+          default_branch_id?: string | null
+          default_payment_terms?: number | null
+          default_tax_rate?: number | null
+          default_warehouse_id?: string | null
+          id?: string
+          inventory_account_id?: string | null
+          invoice_prefix?: string | null
+          journal_prefix?: string | null
+          next_invoice_number?: number | null
+          next_journal_number?: number | null
+          next_payment_number?: number | null
+          next_purchase_number?: number | null
+          next_quote_number?: number | null
+          next_receipt_number?: number | null
+          payables_account_id?: string | null
+          payment_prefix?: string | null
+          purchase_prefix?: string | null
+          purchases_account_id?: string | null
+          quote_prefix?: string | null
+          receipt_prefix?: string | null
+          receivables_account_id?: string | null
+          sales_account_id?: string | null
+          updated_at?: string
+          vat_account_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_cash_account_id_fkey"
+            columns: ["cash_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_default_branch_id_fkey"
+            columns: ["default_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_default_warehouse_id_fkey"
+            columns: ["default_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_inventory_account_id_fkey"
+            columns: ["inventory_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_payables_account_id_fkey"
+            columns: ["payables_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_purchases_account_id_fkey"
+            columns: ["purchases_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_receivables_account_id_fkey"
+            columns: ["receivables_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_sales_account_id_fkey"
+            columns: ["sales_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_settings_vat_account_id_fkey"
+            columns: ["vat_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -318,6 +551,56 @@ export type Database = {
           },
         ]
       }
+      fiscal_periods: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          company_id: string
+          created_at: string
+          end_date: string
+          id: string
+          is_closed: boolean | null
+          name: string
+          name_en: string | null
+          period_type: string
+          start_date: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          is_closed?: boolean | null
+          name: string
+          name_en?: string | null
+          period_type?: string
+          start_date: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          company_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_closed?: boolean | null
+          name?: string
+          name_en?: string | null
+          period_type?: string
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_periods_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           description: string | null
@@ -374,6 +657,80 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_payments: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          reference_number: string | null
+          treasury_transaction_id: string | null
+        }
+        Insert: {
+          amount?: number
+          bank_account_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          reference_number?: string | null
+          treasury_transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          reference_number?: string | null
+          treasury_transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_payments_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_payments_treasury_transaction_id_fkey"
+            columns: ["treasury_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "treasury_transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -622,6 +979,95 @@ export type Database = {
           },
         ]
       }
+      price_list_items: {
+        Row: {
+          created_at: string
+          id: string
+          min_quantity: number | null
+          price: number
+          price_list_id: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          min_quantity?: number | null
+          price?: number
+          price_list_id: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          min_quantity?: number | null
+          price?: number
+          price_list_id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_list_items_price_list_id_fkey"
+            columns: ["price_list_id"]
+            isOneToOne: false
+            referencedRelation: "price_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_list_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_lists: {
+        Row: {
+          company_id: string
+          created_at: string
+          discount_percent: number | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          name_en: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          discount_percent?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          name_en?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          discount_percent?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          name_en?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_lists_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_categories: {
         Row: {
           company_id: string
@@ -828,6 +1274,86 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          from_warehouse_id: string | null
+          id: string
+          movement_date: string
+          movement_type: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          reference_id: string | null
+          reference_type: string | null
+          unit_cost: number | null
+          warehouse_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          from_warehouse_id?: string | null
+          id?: string
+          movement_date?: string
+          movement_type: string
+          notes?: string | null
+          product_id: string
+          quantity?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          unit_cost?: number | null
+          warehouse_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          from_warehouse_id?: string | null
+          id?: string
+          movement_date?: string
+          movement_type?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          unit_cost?: number | null
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_from_warehouse_id_fkey"
+            columns: ["from_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscription_plans: {
         Row: {
@@ -1100,6 +1626,44 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      units: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          symbol: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          symbol?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          symbol?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
