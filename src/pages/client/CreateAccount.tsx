@@ -270,12 +270,16 @@ const CreateAccount = () => {
 
           <div className="space-y-2">
             <Label>الحساب الرئيسي</Label>
-            <Select value={parentId} onValueChange={setParentId} disabled={!accountType}>
+            <Select 
+              value={parentId || "__none__"} 
+              onValueChange={(v) => setParentId(v === "__none__" ? "" : v)} 
+              disabled={!accountType}
+            >
               <SelectTrigger>
                 <SelectValue placeholder={accountType ? "اختر الحساب الرئيسي (اختياري)" : "اختر نوع الحساب أولاً"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">بدون حساب رئيسي</SelectItem>
+                <SelectItem value="__none__">بدون حساب رئيسي</SelectItem>
                 {filteredParents.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
                     {account.code} - {account.name}
