@@ -39,6 +39,7 @@
     "contact": "Contact",
     "login": "Login",
     "register": "Register",
+    "registerCompany": "Register Company",
     "dashboard": "Dashboard",
     "logout": "Logout"
   },
