@@ -23,6 +23,7 @@ import ClientContacts from "./pages/client/ClientContacts";
 import ClientReports from "./pages/client/ClientReports";
 import ClientAnalytics from "./pages/client/ClientAnalytics";
 import ClientSettings from "./pages/client/ClientSettings";
+import CreateSalesInvoice from "./pages/client/CreateSalesInvoice";
 
 // Owner Portal
 import OwnerLayout from "./components/owner/OwnerLayout";
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/client" element={<ClientLayout />}>
               <Route index element={<ClientDashboard />} />
               <Route path="sales" element={<ClientSales />} />
+              <Route path="sales/new" element={<CreateSalesInvoice />} />
               <Route path="purchases" element={<ClientPurchases />} />
               <Route path="journal" element={<ClientJournal />} />
               <Route path="accounts" element={<ClientAccounts />} />
