@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import CompanyRegistration from "./pages/CompanyRegistration";
 
 // Owner Portal
 import OwnerLayout from "./components/owner/OwnerLayout";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/register-company" element={<CompanyRegistration />} />
             
             {/* Owner Portal Routes */}
             <Route path="/owner" element={<OwnerLayout />}>
