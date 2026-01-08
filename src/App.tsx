@@ -24,6 +24,7 @@ import ClientReports from "./pages/client/ClientReports";
 import ClientAnalytics from "./pages/client/ClientAnalytics";
 import ClientSettings from "./pages/client/ClientSettings";
 import CreateSalesInvoice from "./pages/client/CreateSalesInvoice";
+import CreateContact from "./pages/client/CreateContact";
 
 // Owner Portal
 import OwnerLayout from "./components/owner/OwnerLayout";
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="treasury" element={<ClientTreasury />} />
               <Route path="inventory" element={<ClientInventory />} />
               <Route path="contacts" element={<ClientContacts />} />
+              <Route path="contacts/new" element={<CreateContact />} />
               <Route path="reports" element={<ClientReports />} />
               <Route path="analytics" element={<ClientAnalytics />} />
               <Route path="settings" element={<ClientSettings />} />
