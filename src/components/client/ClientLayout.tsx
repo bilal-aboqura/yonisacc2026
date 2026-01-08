@@ -96,15 +96,15 @@ const ClientLayout = () => {
                 key={item.path}
                 variant={isActive ? "secondary" : "ghost"}
                 className={cn(
-                  "w-full gap-3 h-11",
-                  collapsed ? "justify-center px-2" : "justify-start",
+                  "w-full gap-3 h-11 flex-row",
+                  collapsed ? "justify-center px-2" : "justify-end flex-row-reverse",
                   isActive && "bg-primary/10 text-primary"
                 )}
                 onClick={() => handleNavigate(item.path)}
               >
                 <item.icon className="h-5 w-5 shrink-0" />
                 {!collapsed && (
-                  <span className="truncate text-start">{isRTL ? item.label : item.labelEn}</span>
+                  <span className="truncate flex-1 text-start">{isRTL ? item.label : item.labelEn}</span>
                 )}
               </Button>
             );
