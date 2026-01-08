@@ -1,10 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Wallet, Plus, ArrowUpRight, ArrowDownRight, Building2, CreditCard } from "lucide-react";
+import { Wallet, Plus, ArrowUpRight, ArrowDownRight, Building2 } from "lucide-react";
 
 const ClientTreasury = () => {
   const { isRTL } = useLanguage();
+  const navigate = useNavigate();
 
   const accounts = [
     {
@@ -36,17 +38,17 @@ const ClientTreasury = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/client/treasury/new?type=receipt")}>
             <ArrowUpRight className="h-4 w-4" />
             {isRTL ? "سند قبض" : "Receipt"}
           </Button>
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/client/treasury/new?type=payment")}>
             <ArrowDownRight className="h-4 w-4" />
             {isRTL ? "سند صرف" : "Payment"}
           </Button>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => navigate("/client/treasury/new?type=deposit")}>
             <Plus className="h-4 w-4" />
-            {isRTL ? "حساب جديد" : "New Account"}
+            {isRTL ? "إيداع / سحب" : "Deposit / Withdraw"}
           </Button>
         </div>
       </div>

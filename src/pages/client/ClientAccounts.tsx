@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ interface Account {
 
 const ClientAccounts = () => {
   const { isRTL } = useLanguage();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedAccounts, setExpandedAccounts] = useState<string[]>([]);
 
@@ -198,7 +200,7 @@ const ClientAccounts = () => {
             {isRTL ? "هيكل الحسابات المحاسبية للشركة" : "Company's accounting structure"}
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => navigate("/client/accounts/new")}>
           <Plus className="h-4 w-4" />
           {isRTL ? "حساب جديد" : "New Account"}
         </Button>

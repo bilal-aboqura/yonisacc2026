@@ -26,6 +26,10 @@ import ClientSettings from "./pages/client/ClientSettings";
 import CreateSalesInvoice from "./pages/client/CreateSalesInvoice";
 import CreateContact from "./pages/client/CreateContact";
 import ViewInvoice from "./pages/client/ViewInvoice";
+import CreatePurchaseInvoice from "./pages/client/CreatePurchaseInvoice";
+import CreateJournalEntry from "./pages/client/CreateJournalEntry";
+import CreateAccount from "./pages/client/CreateAccount";
+import CreateTreasuryTransaction from "./pages/client/CreateTreasuryTransaction";
 
 // Owner Portal
 import OwnerLayout from "./components/owner/OwnerLayout";
@@ -60,9 +64,13 @@ const App = () => (
               <Route path="sales/new" element={<CreateSalesInvoice />} />
               <Route path="sales/:id" element={<ViewInvoice />} />
               <Route path="purchases" element={<ClientPurchases />} />
+              <Route path="purchases/new" element={<CreatePurchaseInvoice />} />
               <Route path="journal" element={<ClientJournal />} />
+              <Route path="journal/new" element={<CreateJournalEntry />} />
               <Route path="accounts" element={<ClientAccounts />} />
+              <Route path="accounts/new" element={<CreateAccount />} />
               <Route path="treasury" element={<ClientTreasury />} />
+              <Route path="treasury/new" element={<CreateTreasuryTransaction />} />
               <Route path="inventory" element={<ClientInventory />} />
               <Route path="contacts" element={<ClientContacts />} />
               <Route path="contacts/new" element={<CreateContact />} />
