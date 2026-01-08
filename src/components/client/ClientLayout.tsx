@@ -96,15 +96,15 @@ const ClientLayout = () => {
                 key={item.path}
                 variant={isActive ? "secondary" : "ghost"}
                 className={cn(
-                  "w-full justify-start gap-3 h-11",
-                  collapsed && "justify-center px-2",
+                  "w-full gap-3 h-11",
+                  collapsed ? "justify-center px-2" : "justify-start",
                   isActive && "bg-primary/10 text-primary"
                 )}
                 onClick={() => handleNavigate(item.path)}
               >
                 <item.icon className="h-5 w-5 shrink-0" />
                 {!collapsed && (
-                  <span className="truncate">{isRTL ? item.label : item.labelEn}</span>
+                  <span className="truncate text-start">{isRTL ? item.label : item.labelEn}</span>
                 )}
               </Button>
             );
@@ -121,13 +121,13 @@ const ClientLayout = () => {
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10",
-            collapsed && "justify-center px-2"
+            "w-full gap-3 text-destructive hover:text-destructive hover:bg-destructive/10",
+            collapsed ? "justify-center px-2" : "justify-start"
           )}
           onClick={handleSignOut}
         >
           <LogOut className="h-5 w-5" />
-          {!collapsed && <span>{isRTL ? "تسجيل الخروج" : "Logout"}</span>}
+          {!collapsed && <span className="text-start">{isRTL ? "تسجيل الخروج" : "Logout"}</span>}
         </Button>
       </div>
     </div>
