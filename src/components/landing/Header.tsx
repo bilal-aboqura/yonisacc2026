@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, LogOut, LayoutDashboard, Building2 } from "lucide-react";
 
 export const Header = () => {
   const { t } = useTranslation();
@@ -53,11 +53,15 @@ export const Header = () => {
           <div className="hidden md:flex items-center gap-2">
             {user ? (
               <>
+                <Button variant="outline" onClick={() => navigate("/register-company")} className="gap-2">
+                  <Building2 className="h-4 w-4" />
+                  {t("nav.registerCompany")}
+                </Button>
                 <Button variant="ghost" onClick={() => navigate("/dashboard")} className="gap-2">
                   <LayoutDashboard className="h-4 w-4" />
                   {t("nav.dashboard")}
                 </Button>
-                <Button variant="outline" onClick={handleSignOut} className="gap-2">
+                <Button variant="ghost" onClick={handleSignOut} className="gap-2">
                   <LogOut className="h-4 w-4" />
                   {t("nav.logout")}
                 </Button>
@@ -67,8 +71,8 @@ export const Header = () => {
                 <Button variant="ghost" onClick={() => navigate("/auth")}>
                   {t("nav.login")}
                 </Button>
-                <Button className="gradient-primary text-white" onClick={() => navigate("/auth")}>
-                  {t("nav.register")}
+                <Button className="gradient-primary text-white" onClick={() => navigate("/register-company")}>
+                  {t("nav.registerCompany")}
                 </Button>
               </>
             )}
@@ -97,6 +101,14 @@ export const Header = () => {
                   {user ? (
                     <>
                       <Button 
+                        variant="default" 
+                        className="w-full gap-2 gradient-primary text-white" 
+                        onClick={() => { navigate("/register-company"); setIsOpen(false); }}
+                      >
+                        <Building2 className="h-4 w-4" />
+                        {t("nav.registerCompany")}
+                      </Button>
+                      <Button 
                         variant="outline" 
                         className="w-full gap-2" 
                         onClick={() => { navigate("/dashboard"); setIsOpen(false); }}
@@ -123,10 +135,11 @@ export const Header = () => {
                         {t("nav.login")}
                       </Button>
                       <Button 
-                        className="gradient-primary text-white w-full" 
-                        onClick={() => { navigate("/auth"); setIsOpen(false); }}
+                        className="gradient-primary text-white w-full gap-2" 
+                        onClick={() => { navigate("/register-company"); setIsOpen(false); }}
                       >
-                        {t("nav.register")}
+                        <Building2 className="h-4 w-4" />
+                        {t("nav.registerCompany")}
                       </Button>
                     </>
                   )}

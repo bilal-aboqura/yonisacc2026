@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/useLanguage";
 import { ArrowLeft, ArrowRight, Play, Sparkles } from "lucide-react";
@@ -6,6 +7,7 @@ import { ArrowLeft, ArrowRight, Play, Sparkles } from "lucide-react";
 export const HeroSection = () => {
   const { t } = useTranslation();
   const { isRTL } = useLanguage();
+  const navigate = useNavigate();
   const Arrow = isRTL ? ArrowLeft : ArrowRight;
 
   return (
@@ -32,7 +34,11 @@ export const HeroSection = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="gradient-primary text-white text-lg px-8 h-14 rounded-xl shadow-lg hover:shadow-xl transition-all">
+            <Button 
+              size="lg" 
+              className="gradient-primary text-white text-lg px-8 h-14 rounded-xl shadow-lg hover:shadow-xl transition-all"
+              onClick={() => navigate("/register-company")}
+            >
               {t("landing.hero.cta")}
               <Arrow className="ms-2 h-5 w-5" />
             </Button>
