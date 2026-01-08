@@ -25,6 +25,7 @@ import ClientAnalytics from "./pages/client/ClientAnalytics";
 import ClientSettings from "./pages/client/ClientSettings";
 import CreateSalesInvoice from "./pages/client/CreateSalesInvoice";
 import CreateContact from "./pages/client/CreateContact";
+import ViewInvoice from "./pages/client/ViewInvoice";
 
 // Owner Portal
 import OwnerLayout from "./components/owner/OwnerLayout";
@@ -57,6 +58,7 @@ const App = () => (
               <Route index element={<ClientDashboard />} />
               <Route path="sales" element={<ClientSales />} />
               <Route path="sales/new" element={<CreateSalesInvoice />} />
+              <Route path="sales/:id" element={<ViewInvoice />} />
               <Route path="purchases" element={<ClientPurchases />} />
               <Route path="journal" element={<ClientJournal />} />
               <Route path="accounts" element={<ClientAccounts />} />
