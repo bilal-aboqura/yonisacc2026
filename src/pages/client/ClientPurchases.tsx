@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Plus, Search, Filter, Download, ShoppingCart } from "lucide-react";
 
 const ClientPurchases = () => {
   const { isRTL } = useLanguage();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
   const invoices: any[] = [];
@@ -32,7 +34,7 @@ const ClientPurchases = () => {
             {isRTL ? "إدارة فواتير المشتريات والموردين" : "Manage purchase invoices and vendors"}
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => navigate("/client/purchases/new")}>
           <Plus className="h-4 w-4" />
           {isRTL ? "فاتورة جديدة" : "New Invoice"}
         </Button>
