@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Plus, Search, Filter, Download, FileText } from "lucide-react";
 
 const ClientSales = () => {
   const { isRTL } = useLanguage();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
   // Placeholder data - will be connected to database later
@@ -33,7 +35,7 @@ const ClientSales = () => {
             {isRTL ? "إدارة فواتير المبيعات والعملاء" : "Manage sales invoices and customers"}
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => navigate("/client/sales/new")}>
           <Plus className="h-4 w-4" />
           {isRTL ? "فاتورة جديدة" : "New Invoice"}
         </Button>
