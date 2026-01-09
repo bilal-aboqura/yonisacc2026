@@ -196,22 +196,29 @@ const ClientLayout = () => {
               variant="ghost"
               className={cn(
                 "w-full gap-3 h-11 px-3",
+                collapsed ? "justify-center" : "justify-between",
                 isRTL ? "flex-row-reverse" : "flex-row",
                 groupActive && "bg-primary/10 text-primary"
               )}
             >
-              <item.icon className={cn(
-                "h-5 w-5 shrink-0",
-                groupActive && "text-primary"
-              )} />
+              <div className="flex items-center gap-3 min-w-0">
+                <item.icon
+                  className={cn(
+                    "h-5 w-5 shrink-0",
+                    groupActive && "text-primary"
+                  )}
+                />
+                {!collapsed && (
+                  <span className="truncate min-w-0 text-start">{isRTL ? item.label : item.labelEn}</span>
+                )}
+              </div>
               {!collapsed && (
-                <span className="truncate flex-1 text-start">{isRTL ? item.label : item.labelEn}</span>
-              )}
-              {!collapsed && (
-                <ChevronDown className={cn(
-                  "h-4 w-4 shrink-0 transition-transform duration-200",
-                  groupOpen && "rotate-180"
-                )} />
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 shrink-0 transition-transform duration-200",
+                    groupOpen && "rotate-180"
+                  )}
+                />
               )}
             </Button>
           </CollapsibleTrigger>
@@ -227,8 +234,8 @@ const ClientLayout = () => {
         key={item.path}
         variant="ghost"
         className={cn(
-          "w-full gap-3 h-10 px-3",
-          isRTL ? "flex-row-reverse" : "flex-row",
+          "w-full gap-3 h-10 px-3 flex-row",
+          collapsed ? "justify-center px-2" : isRTL ? "justify-end" : "justify-start",
           isChild && !collapsed && (isRTL ? "pe-10" : "ps-10"),
           isActive(item.path) && "bg-primary text-primary-foreground font-medium"
         )}
@@ -236,7 +243,7 @@ const ClientLayout = () => {
       >
         <item.icon className="h-4 w-4 shrink-0" />
         {!collapsed && (
-          <span className="truncate flex-1 text-start">{isRTL ? item.label : item.labelEn}</span>
+          <span className="truncate min-w-0 text-start">{isRTL ? item.label : item.labelEn}</span>
         )}
       </Button>
     );
@@ -266,15 +273,14 @@ const ClientLayout = () => {
         <Button
           variant="ghost"
           className={cn(
-            "w-full gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10 px-3",
-            isRTL ? "flex-row-reverse" : "flex-row",
-            collapsed && "justify-center px-2"
+            "w-full gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10 px-3 flex-row",
+            collapsed ? "justify-center px-2" : isRTL ? "justify-end" : "justify-start"
           )}
           onClick={handleSignOut}
         >
           <LogOut className="h-5 w-5 shrink-0" />
           {!collapsed && (
-            <span className="truncate flex-1 text-start">{isRTL ? "تسجيل الخروج" : "Logout"}</span>
+            <span className="truncate min-w-0 text-start">{isRTL ? "تسجيل الخروج" : "Logout"}</span>
           )}
         </Button>
       </div>
