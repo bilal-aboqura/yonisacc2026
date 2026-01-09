@@ -201,7 +201,7 @@ const ClientLayout = () => {
                 groupActive && "bg-primary/10 text-primary"
               )}
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className={cn("flex items-center gap-3 min-w-0", isRTL && "flex-row-reverse")}>
                 <item.icon
                   className={cn(
                     "h-5 w-5 shrink-0",
