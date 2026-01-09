@@ -161,8 +161,8 @@ const ClientLayout = () => {
   const toggleGroup = (groupName: string) => {
     setOpenGroups(prev => 
       prev.includes(groupName) 
-        ? prev.filter(g => g !== groupName)
-        : [...prev, groupName]
+        ? []
+        : [groupName]
     );
   };
 
