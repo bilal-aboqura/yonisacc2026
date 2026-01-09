@@ -234,8 +234,9 @@ const ClientLayout = () => {
         key={item.path}
         variant="ghost"
         className={cn(
-          "w-full gap-3 h-10 px-3 flex-row",
-          collapsed ? "justify-center px-2" : isRTL ? "justify-end" : "justify-start",
+          "w-full gap-3 h-10 px-3",
+          isRTL ? "flex-row-reverse" : "flex-row",
+          collapsed ? "justify-center px-2" : "justify-start",
           isChild && !collapsed && (isRTL ? "pe-10" : "ps-10"),
           isActive(item.path) && "bg-primary text-primary-foreground font-medium"
         )}
@@ -272,9 +273,10 @@ const ClientLayout = () => {
       <div className="p-2 border-t">
         <Button
           variant="ghost"
-          className={cn(
-            "w-full gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10 px-3 flex-row",
-            collapsed ? "justify-center px-2" : isRTL ? "justify-end" : "justify-start"
+        className={cn(
+            "w-full gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10 px-3",
+            isRTL ? "flex-row-reverse" : "flex-row",
+            collapsed ? "justify-center px-2" : "justify-start"
           )}
           onClick={handleSignOut}
         >
