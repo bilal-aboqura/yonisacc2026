@@ -184,7 +184,7 @@ const CompanyRegistration = () => {
       if (branchError) throw branchError;
 
       toast.success("تم إرسال طلب الاشتراك بنجاح! سيتم مراجعته قريباً");
-      navigate("/dashboard");
+      navigate("/client");
     } catch (error: any) {
       console.error("Registration error:", error);
       toast.error(error.message || "حدث خطأ في التسجيل");
