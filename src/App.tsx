@@ -37,6 +37,30 @@ import BalanceSheet from "./pages/client/reports/BalanceSheet";
 import CashFlow from "./pages/client/reports/CashFlow";
 import TrialBalance from "./pages/client/reports/TrialBalance";
 
+// New Client Pages
+import CostCenters from "./pages/client/CostCenters";
+import CostCenterReports from "./pages/client/CostCenterReports";
+import GeneralLedger from "./pages/client/GeneralLedger";
+import OperationsLog from "./pages/client/OperationsLog";
+import Customers from "./pages/client/Customers";
+import Vendors from "./pages/client/Vendors";
+import Quotes from "./pages/client/Quotes";
+import CreateQuote from "./pages/client/CreateQuote";
+import PurchaseOrders from "./pages/client/PurchaseOrders";
+import CreatePurchaseOrder from "./pages/client/CreatePurchaseOrder";
+
+// HR Pages
+import HRDashboard from "./pages/client/hr/HRDashboard";
+import Employees from "./pages/client/hr/Employees";
+import Departments from "./pages/client/hr/Departments";
+import Leaves from "./pages/client/hr/Leaves";
+import Periods from "./pages/client/hr/Periods";
+import Attendance from "./pages/client/hr/Attendance";
+import Loans from "./pages/client/hr/Loans";
+import Payroll from "./pages/client/hr/Payroll";
+import EndOfService from "./pages/client/hr/EndOfService";
+import HRReports from "./pages/client/hr/HRReports";
+
 // Owner Portal
 import OwnerLayout from "./components/owner/OwnerLayout";
 import OwnerDashboard from "./pages/owner/OwnerDashboard";
@@ -66,17 +90,48 @@ const App = () => (
             {/* Client Portal Routes */}
             <Route path="/client" element={<ClientLayout />}>
               <Route index element={<ClientDashboard />} />
+              
+              {/* Financial Accounting */}
+              <Route path="accounts" element={<ClientAccounts />} />
+              <Route path="accounts/new" element={<CreateAccount />} />
+              <Route path="accounts/opening-balances" element={<OpeningBalances />} />
+              <Route path="cost-centers" element={<CostCenters />} />
+              <Route path="cost-centers/reports" element={<CostCenterReports />} />
+              <Route path="journal" element={<ClientJournal />} />
+              <Route path="journal/new" element={<CreateJournalEntry />} />
+              <Route path="treasury" element={<ClientTreasury />} />
+              <Route path="treasury/new" element={<CreateTreasuryTransaction />} />
+              <Route path="ledger" element={<GeneralLedger />} />
+              <Route path="operations-log" element={<OperationsLog />} />
+              
+              {/* Sales */}
+              <Route path="customers" element={<Customers />} />
+              <Route path="quotes" element={<Quotes />} />
+              <Route path="quotes/new" element={<CreateQuote />} />
               <Route path="sales" element={<ClientSales />} />
               <Route path="sales/new" element={<CreateSalesInvoice />} />
               <Route path="sales/:id" element={<ViewInvoice />} />
+              
+              {/* Purchases */}
+              <Route path="vendors" element={<Vendors />} />
+              <Route path="purchase-orders" element={<PurchaseOrders />} />
+              <Route path="purchase-orders/new" element={<CreatePurchaseOrder />} />
               <Route path="purchases" element={<ClientPurchases />} />
               <Route path="purchases/new" element={<CreatePurchaseInvoice />} />
-              <Route path="journal" element={<ClientJournal />} />
-              <Route path="journal/new" element={<CreateJournalEntry />} />
-              <Route path="accounts" element={<ClientAccounts />} />
-              <Route path="accounts/new" element={<CreateAccount />} />
-              <Route path="treasury" element={<ClientTreasury />} />
-              <Route path="treasury/new" element={<CreateTreasuryTransaction />} />
+              
+              {/* HR */}
+              <Route path="hr" element={<HRDashboard />} />
+              <Route path="hr/employees" element={<Employees />} />
+              <Route path="hr/departments" element={<Departments />} />
+              <Route path="hr/leaves" element={<Leaves />} />
+              <Route path="hr/periods" element={<Periods />} />
+              <Route path="hr/attendance" element={<Attendance />} />
+              <Route path="hr/loans" element={<Loans />} />
+              <Route path="hr/payroll" element={<Payroll />} />
+              <Route path="hr/end-of-service" element={<EndOfService />} />
+              <Route path="hr/reports" element={<HRReports />} />
+              
+              {/* Other */}
               <Route path="inventory" element={<ClientInventory />} />
               <Route path="inventory/new" element={<CreateProduct />} />
               <Route path="contacts" element={<ClientContacts />} />
@@ -86,7 +141,6 @@ const App = () => (
               <Route path="reports/balance-sheet" element={<BalanceSheet />} />
               <Route path="reports/cash-flow" element={<CashFlow />} />
               <Route path="reports/trial-balance" element={<TrialBalance />} />
-              <Route path="accounts/opening-balances" element={<OpeningBalances />} />
               <Route path="analytics" element={<ClientAnalytics />} />
               <Route path="settings" element={<ClientSettings />} />
             </Route>
