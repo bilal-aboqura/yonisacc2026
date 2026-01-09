@@ -23,6 +23,14 @@ interface ParentAccount {
   name: string;
   name_en: string | null;
   type: string;
+  is_parent: boolean;
+}
+
+interface CostCenter {
+  id: string;
+  code: string;
+  name: string;
+  name_en: string | null;
 }
 
 const accountTypes = [
@@ -46,12 +54,14 @@ const CreateAccount = () => {
   const [nameEn, setNameEn] = useState("");
   const [accountType, setAccountType] = useState("");
   const [parentId, setParentId] = useState<string>("");
+  const [costCenterId, setCostCenterId] = useState<string>("");
   const [isParent, setIsParent] = useState(false);
   const [openingBalance, setOpeningBalance] = useState(0);
   const [isActive, setIsActive] = useState(true);
 
-  const [parentAccounts, setParentAccounts] = useState<ParentAccount[]>([]);
+  const [allAccounts, setAllAccounts] = useState<ParentAccount[]>([]);
   const [filteredParents, setFilteredParents] = useState<ParentAccount[]>([]);
+  const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -59,15 +69,47 @@ const CreateAccount = () => {
     }
   }, [user]);
 
+  // When parent is selected, auto-set type and generate code
   useEffect(() => {
-    // Filter parent accounts by selected type
-    if (accountType) {
-      setFilteredParents(parentAccounts.filter((p) => p.type === accountType));
-    } else {
-      setFilteredParents([]);
+    if (parentId) {
+      const selectedParent = allAccounts.find((a) => a.id === parentId);
+      if (selectedParent) {
+        // Auto-set account type based on parent
+        setAccountType(selectedParent.type);
+        
+        // Generate next code based on parent's children
+        generateNextCode(selectedParent);
+      }
     }
-    setParentId("");
-  }, [accountType, parentAccounts]);
+  }, [parentId, allAccounts]);
+
+  // Filter parent accounts (only show parent accounts)
+  useEffect(() => {
+    setFilteredParents(allAccounts.filter((a) => a.is_parent));
+  }, [allAccounts]);
+
+  const generateNextCode = async (parent: ParentAccount) => {
+    if (!companyId) return;
+    
+    // Get all children of this parent
+    const { data: children } = await supabase
+      .from("accounts")
+      .select("code")
+      .eq("company_id", companyId)
+      .eq("parent_id", parent.id)
+      .order("code", { ascending: false });
+
+    if (children && children.length > 0) {
+      // Get the highest code and increment
+      const lastCode = children[0].code;
+      const nextNum = parseInt(lastCode) + 1;
+      setCode(nextNum.toString());
+    } else {
+      // First child - add 1 to parent code
+      const newCode = parent.code + "1";
+      setCode(newCode);
+    }
+  };
 
   const fetchInitialData = async () => {
     try {
@@ -80,16 +122,25 @@ const CreateAccount = () => {
       if (companyError) throw companyError;
       setCompanyId(companyData.id);
 
-      // Fetch parent accounts
+      // Fetch all accounts
       const { data: accountsData } = await supabase
         .from("accounts")
-        .select("id, code, name, name_en, type")
+        .select("id, code, name, name_en, type, is_parent")
         .eq("company_id", companyData.id)
         .eq("is_active", true)
-        .eq("is_parent", true)
         .order("code");
 
-      setParentAccounts(accountsData || []);
+      setAllAccounts(accountsData || []);
+
+      // Fetch cost centers
+      const { data: costCentersData } = await supabase
+        .from("cost_centers")
+        .select("id, code, name, name_en")
+        .eq("company_id", companyData.id)
+        .eq("is_active", true)
+        .order("code");
+
+      setCostCenters(costCentersData || []);
     } catch (error: any) {
       console.error("Error fetching data:", error);
       toast({
@@ -159,6 +210,7 @@ const CreateAccount = () => {
         name_en: nameEn.trim() || null,
         type: accountType,
         parent_id: parentId || null,
+        cost_center_id: costCenterId || null,
         is_parent: isParent,
         balance: openingBalance,
         is_active: isActive,
@@ -221,19 +273,50 @@ const CreateAccount = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Parent Account First */}
+          <div className="space-y-2">
+            <Label>الحساب الرئيسي</Label>
+            <Select 
+              value={parentId || "__none__"} 
+              onValueChange={(v) => setParentId(v === "__none__" ? "" : v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر الحساب الرئيسي (اختياري)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">بدون حساب رئيسي (حساب جذر)</SelectItem>
+                {filteredParents.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.code} - {account.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              اختر الحساب الرئيسي وسيتم تحديد النوع والرمز تلقائياً
+            </p>
+          </div>
+
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>رمز الحساب *</Label>
               <Input
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="مثال: 1101"
+                placeholder="يتم إنشاؤه تلقائياً"
                 className="font-mono"
               />
+              <p className="text-xs text-muted-foreground">
+                يتم إنشاء الرمز تلقائياً عند اختيار الحساب الرئيسي
+              </p>
             </div>
             <div className="space-y-2">
               <Label>نوع الحساب *</Label>
-              <Select value={accountType} onValueChange={setAccountType}>
+              <Select 
+                value={accountType} 
+                onValueChange={setAccountType}
+                disabled={!!parentId}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="اختر نوع الحساب" />
                 </SelectTrigger>
@@ -245,6 +328,11 @@ const CreateAccount = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {parentId && (
+                <p className="text-xs text-muted-foreground">
+                  يتم تحديد النوع تلقائياً من الحساب الرئيسي
+                </p>
+              )}
             </div>
           </div>
 
@@ -269,26 +357,25 @@ const CreateAccount = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>الحساب الرئيسي</Label>
+            <Label>مركز التكلفة</Label>
             <Select 
-              value={parentId || "__none__"} 
-              onValueChange={(v) => setParentId(v === "__none__" ? "" : v)} 
-              disabled={!accountType}
+              value={costCenterId || "__none__"} 
+              onValueChange={(v) => setCostCenterId(v === "__none__" ? "" : v)}
             >
               <SelectTrigger>
-                <SelectValue placeholder={accountType ? "اختر الحساب الرئيسي (اختياري)" : "اختر نوع الحساب أولاً"} />
+                <SelectValue placeholder="اختر مركز التكلفة (اختياري)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">بدون حساب رئيسي</SelectItem>
-                {filteredParents.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.code} - {account.name}
+                <SelectItem value="__none__">بدون مركز تكلفة</SelectItem>
+                {costCenters.map((cc) => (
+                  <SelectItem key={cc.id} value={cc.id}>
+                    {cc.code} - {cc.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              اختر الحساب الرئيسي إذا كان هذا حساباً فرعياً
+              ربط الحساب بمركز تكلفة لتتبع المصاريف والإيرادات
             </p>
           </div>
 

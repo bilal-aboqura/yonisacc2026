@@ -19,6 +19,7 @@ export type Database = {
           balance: number | null
           code: string
           company_id: string
+          cost_center_id: string | null
           created_at: string
           id: string
           is_active: boolean | null
@@ -34,6 +35,7 @@ export type Database = {
           balance?: number | null
           code: string
           company_id: string
+          cost_center_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean | null
@@ -49,6 +51,7 @@ export type Database = {
           balance?: number | null
           code?: string
           company_id?: string
+          cost_center_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean | null
@@ -66,6 +69,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
             referencedColumns: ["id"]
           },
           {
@@ -547,6 +557,54 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_centers: {
+        Row: {
+          code: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          parent_id: string | null
+        }
+        Insert: {
+          code: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          parent_id?: string | null
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_centers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_centers_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
             referencedColumns: ["id"]
           },
         ]
@@ -1745,6 +1803,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_default_chart_of_accounts: {
+        Args: { p_company_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
