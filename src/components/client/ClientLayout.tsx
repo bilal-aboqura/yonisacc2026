@@ -195,19 +195,18 @@ const ClientLayout = () => {
             <Button
               variant="ghost"
               className={cn(
-                "w-full gap-3 h-11 justify-between px-3",
+                "w-full gap-3 h-11 px-3",
+                isRTL ? "flex-row-reverse" : "flex-row",
                 groupActive && "bg-primary/10 text-primary"
               )}
             >
-              <div className="flex items-center gap-3">
-                <item.icon className={cn(
-                  "h-5 w-5 shrink-0",
-                  groupActive && "text-primary"
-                )} />
-                {!collapsed && (
-                  <span className="truncate">{isRTL ? item.label : item.labelEn}</span>
-                )}
-              </div>
+              <item.icon className={cn(
+                "h-5 w-5 shrink-0",
+                groupActive && "text-primary"
+              )} />
+              {!collapsed && (
+                <span className="truncate flex-1 text-start">{isRTL ? item.label : item.labelEn}</span>
+              )}
               {!collapsed && (
                 <ChevronDown className={cn(
                   "h-4 w-4 shrink-0 transition-transform duration-200",
@@ -228,15 +227,16 @@ const ClientLayout = () => {
         key={item.path}
         variant="ghost"
         className={cn(
-          "w-full gap-3 h-10 justify-start px-3",
-          isChild && !collapsed && "ps-10",
+          "w-full gap-3 h-10 px-3",
+          isRTL ? "flex-row-reverse" : "flex-row",
+          isChild && !collapsed && (isRTL ? "pe-10" : "ps-10"),
           isActive(item.path) && "bg-primary text-primary-foreground font-medium"
         )}
         onClick={() => item.path && handleNavigate(item.path)}
       >
         <item.icon className="h-4 w-4 shrink-0" />
         {!collapsed && (
-          <span className="truncate">{isRTL ? item.label : item.labelEn}</span>
+          <span className="truncate flex-1 text-start">{isRTL ? item.label : item.labelEn}</span>
         )}
       </Button>
     );
@@ -245,8 +245,8 @@ const ClientLayout = () => {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="h-16 px-4 border-b flex items-center">
-        <div className="flex items-center gap-2">
+      <div className={cn("h-16 px-4 border-b flex items-center", isRTL && "flex-row-reverse justify-end")}>
+        <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
           <Building2 className="h-6 w-6 text-primary shrink-0" />
           {!collapsed && (
             <span className="font-bold text-lg text-foreground">محاسبي</span>
@@ -266,14 +266,15 @@ const ClientLayout = () => {
         <Button
           variant="ghost"
           className={cn(
-            "w-full gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10 justify-start px-3",
+            "w-full gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10 px-3",
+            isRTL ? "flex-row-reverse" : "flex-row",
             collapsed && "justify-center px-2"
           )}
           onClick={handleSignOut}
         >
           <LogOut className="h-5 w-5 shrink-0" />
           {!collapsed && (
-            <span className="truncate">{isRTL ? "تسجيل الخروج" : "Logout"}</span>
+            <span className="truncate flex-1 text-start">{isRTL ? "تسجيل الخروج" : "Logout"}</span>
           )}
         </Button>
       </div>
