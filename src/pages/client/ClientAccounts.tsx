@@ -47,6 +47,7 @@ const ClientAccounts = () => {
   const [flatAccounts, setFlatAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [isCreatingDefaults, setIsCreatingDefaults] = useState(false);
 
   // Edit Account Dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -375,6 +376,36 @@ const ClientAccounts = () => {
 
   const filteredAccounts = filterAccounts(accounts);
 
+  const handleCreateDefaultAccounts = async () => {
+    if (!companyId) return;
+
+    setIsCreatingDefaults(true);
+    try {
+      const { error } = await supabase.rpc("create_default_chart_of_accounts", {
+        p_company_id: companyId,
+      });
+
+      if (error) throw error;
+
+      toast.success(isRTL ? "تم إنشاء شجرة الحسابات الافتراضية بنجاح" : "Default chart of accounts created successfully");
+      
+      // Refresh accounts
+      const { data: accountsData } = await supabase
+        .from("accounts")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("code");
+
+      setFlatAccounts(accountsData || []);
+      setAccounts(buildAccountTree(accountsData || []));
+    } catch (error) {
+      console.error("Error creating default accounts:", error);
+      toast.error(isRTL ? "حدث خطأ في إنشاء الحسابات الافتراضية" : "Error creating default accounts");
+    } finally {
+      setIsCreatingDefaults(false);
+    }
+  };
+
   return (
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
       {/* Header */}
@@ -387,10 +418,24 @@ const ClientAccounts = () => {
             {isRTL ? "هيكل الحسابات المحاسبية للشركة" : "Company's accounting structure"}
           </p>
         </div>
-        <Button className="gap-2" onClick={() => navigate("/client/accounts/new")}>
-          <Plus className="h-4 w-4" />
-          {isRTL ? "حساب جديد" : "New Account"}
-        </Button>
+        <div className="flex gap-2">
+          {flatAccounts.length === 0 && (
+            <Button 
+              variant="outline" 
+              className="gap-2" 
+              onClick={handleCreateDefaultAccounts}
+              disabled={isCreatingDefaults}
+            >
+              {isCreatingDefaults && <Loader2 className="h-4 w-4 animate-spin" />}
+              <ClipboardList className="h-4 w-4" />
+              {isRTL ? "إنشاء الحسابات الافتراضية" : "Create Default Accounts"}
+            </Button>
+          )}
+          <Button className="gap-2" onClick={() => navigate("/client/accounts/new")}>
+            <Plus className="h-4 w-4" />
+            {isRTL ? "حساب جديد" : "New Account"}
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
