@@ -252,14 +252,30 @@ const ClientLayout = () => {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className={cn("h-16 px-4 border-b flex items-center", isRTL && "flex-row-reverse justify-end")}>
+      {/* Logo & Toggle */}
+      <div className={cn("h-16 px-4 border-b flex items-center justify-between", isRTL && "flex-row-reverse")}>
         <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
           <Building2 className="h-6 w-6 text-primary shrink-0" />
           {!collapsed && (
             <span className="font-bold text-lg text-foreground">محاسبي</span>
           )}
         </div>
+        {/* Desktop Collapse Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setCollapsed(!collapsed)}
+          className={cn(
+            "hidden md:flex h-8 w-8 rounded-full hover:bg-primary/10 transition-colors",
+            collapsed && "mx-auto"
+          )}
+        >
+          {collapsed ? (
+            isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
+          ) : (
+            isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />
+          )}
+        </Button>
       </div>
 
       {/* Menu Items */}
@@ -311,29 +327,15 @@ const ClientLayout = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Top Bar */}
-        <header className="h-16 border-b bg-card px-4 flex items-center justify-between">
+        <header className="h-16 border-b bg-card px-4 flex items-center justify-end">
           {/* Mobile Menu Button */}
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="md:hidden absolute start-4"
             onClick={() => setMobileOpen(true)}
           >
             <Menu className="h-6 w-6" />
-          </Button>
-
-          {/* Desktop: Collapse Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden md:flex"
-          >
-            {collapsed ? (
-              isRTL ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />
-            ) : (
-              isRTL ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />
-            )}
           </Button>
 
           {/* Actions */}
