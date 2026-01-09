@@ -195,15 +195,11 @@ const ClientLayout = () => {
             <Button
               variant="ghost"
               className={cn(
-                "w-full gap-3 h-11 flex-row",
-                collapsed ? "justify-center px-2" : "justify-between",
-                groupActive && "bg-primary/5 text-primary"
+                "w-full gap-3 h-11 justify-between px-3",
+                groupActive && "bg-primary/10 text-primary"
               )}
             >
-              <div className={cn(
-                "flex items-center gap-3",
-                collapsed ? "justify-center" : isRTL ? "flex-row-reverse" : "flex-row"
-              )}>
+              <div className="flex items-center gap-3">
                 <item.icon className={cn(
                   "h-5 w-5 shrink-0",
                   groupActive && "text-primary"
@@ -230,21 +226,17 @@ const ClientLayout = () => {
     return (
       <Button
         key={item.path}
-        variant={isActive(item.path) ? "secondary" : "ghost"}
+        variant="ghost"
         className={cn(
-          "w-full gap-3 h-10",
-          collapsed ? "justify-center px-2" : isRTL ? "justify-end flex-row-reverse" : "justify-start",
-          isChild && !collapsed && (isRTL ? "pr-10" : "pl-10"),
-          isActive(item.path) && "bg-primary/10 text-primary font-medium"
+          "w-full gap-3 h-10 justify-start px-3",
+          isChild && !collapsed && "ps-10",
+          isActive(item.path) && "bg-primary text-primary-foreground font-medium"
         )}
         onClick={() => item.path && handleNavigate(item.path)}
       >
-        <item.icon className={cn(
-          "h-4 w-4 shrink-0",
-          isActive(item.path) && "text-primary"
-        )} />
+        <item.icon className="h-4 w-4 shrink-0" />
         {!collapsed && (
-          <span className="truncate flex-1 text-start">{isRTL ? item.label : item.labelEn}</span>
+          <span className="truncate">{isRTL ? item.label : item.labelEn}</span>
         )}
       </Button>
     );
@@ -274,8 +266,8 @@ const ClientLayout = () => {
         <Button
           variant="ghost"
           className={cn(
-            "w-full gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10",
-            collapsed ? "justify-center px-2" : isRTL ? "justify-end flex-row-reverse" : "justify-start"
+            "w-full gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10 justify-start px-3",
+            collapsed && "justify-center px-2"
           )}
           onClick={handleSignOut}
         >
