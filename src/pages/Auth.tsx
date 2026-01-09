@@ -55,7 +55,7 @@ const Auth = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !authLoading) {
-      navigate("/dashboard");
+      navigate("/client");
     }
   }, [user, authLoading, navigate]);
 
@@ -99,7 +99,7 @@ const Auth = () => {
       description: isRTL ? "تم تسجيل الدخول بنجاح" : "Successfully logged in",
     });
     
-    navigate("/dashboard");
+    navigate("/client");
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -146,7 +146,7 @@ const Auth = () => {
       description: isRTL ? "تم تسجيل حسابك بنجاح" : "Your account has been created successfully",
     });
     
-    navigate("/dashboard");
+    navigate("/client");
   };
 
   if (authLoading) {

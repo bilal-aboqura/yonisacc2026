@@ -57,7 +57,7 @@ export const Header = () => {
                   <Building2 className="h-4 w-4" />
                   {t("nav.registerCompany")}
                 </Button>
-                <Button variant="ghost" onClick={() => navigate("/dashboard")} className="gap-2">
+                <Button variant="ghost" onClick={() => navigate("/client")} className="gap-2">
                   <LayoutDashboard className="h-4 w-4" />
                   {t("nav.dashboard")}
                 </Button>
@@ -111,7 +111,7 @@ export const Header = () => {
                       <Button 
                         variant="outline" 
                         className="w-full gap-2" 
-                        onClick={() => { navigate("/dashboard"); setIsOpen(false); }}
+                        onClick={() => { navigate("/client"); setIsOpen(false); }}
                       >
                         <LayoutDashboard className="h-4 w-4" />
                         {t("nav.dashboard")}
