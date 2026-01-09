@@ -29,6 +29,7 @@ import ViewInvoice from "./pages/client/ViewInvoice";
 import CreatePurchaseInvoice from "./pages/client/CreatePurchaseInvoice";
 import CreateJournalEntry from "./pages/client/CreateJournalEntry";
 import CreateAccount from "./pages/client/CreateAccount";
+import EditAccount from "./pages/client/EditAccount";
 import CreateTreasuryTransaction from "./pages/client/CreateTreasuryTransaction";
 import CreateProduct from "./pages/client/CreateProduct";
 import OpeningBalances from "./pages/client/OpeningBalances";
@@ -94,6 +95,7 @@ const App = () => (
               {/* Financial Accounting */}
               <Route path="accounts" element={<ClientAccounts />} />
               <Route path="accounts/new" element={<CreateAccount />} />
+              <Route path="accounts/:id/edit" element={<EditAccount />} />
               <Route path="accounts/opening-balances" element={<OpeningBalances />} />
               <Route path="cost-centers" element={<CostCenters />} />
               <Route path="cost-centers/reports" element={<CostCenterReports />} />

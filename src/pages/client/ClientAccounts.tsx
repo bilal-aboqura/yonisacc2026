@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   Plus, 
@@ -48,16 +47,6 @@ const ClientAccounts = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [isCreatingDefaults, setIsCreatingDefaults] = useState(false);
-
-  // Edit Account Dialog
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [editForm, setEditForm] = useState({
-    name: "",
-    name_en: "",
-    type: "",
-    is_active: true,
-  });
   const [isSaving, setIsSaving] = useState(false);
 
   // Opening Balance Dialog
@@ -170,57 +159,7 @@ const ClientAccounts = () => {
 
   const handleEditAccount = (account: Account, e: React.MouseEvent) => {
     e.stopPropagation();
-    setEditingAccount(account);
-    setEditForm({
-      name: account.name,
-      name_en: account.name_en || "",
-      type: account.type,
-      is_active: account.is_active ?? true,
-    });
-    setEditDialogOpen(true);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingAccount) return;
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from("accounts")
-        .update({
-          name: editForm.name,
-          name_en: editForm.name_en || null,
-          type: editForm.type,
-          is_active: editForm.is_active,
-        })
-        .eq("id", editingAccount.id);
-
-      if (error) throw error;
-
-      // Update local state
-      setFlatAccounts((prev) =>
-        prev.map((acc) =>
-          acc.id === editingAccount.id
-            ? { ...acc, ...editForm }
-            : acc
-        )
-      );
-      setAccounts(buildAccountTree(
-        flatAccounts.map((acc) =>
-          acc.id === editingAccount.id
-            ? { ...acc, ...editForm }
-            : acc
-        )
-      ));
-
-      toast.success(isRTL ? "تم تحديث الحساب بنجاح" : "Account updated successfully");
-      setEditDialogOpen(false);
-    } catch (error) {
-      console.error("Error updating account:", error);
-      toast.error(isRTL ? "حدث خطأ في تحديث الحساب" : "Error updating account");
-    } finally {
-      setIsSaving(false);
-    }
+    navigate(`/client/accounts/${account.id}/edit`);
   };
 
   const handleOpenBalanceDialog = (account: Account, e: React.MouseEvent) => {
@@ -479,60 +418,6 @@ const ClientAccounts = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Edit Account Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {isRTL ? "تعديل الحساب" : "Edit Account"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>{isRTL ? "اسم الحساب (عربي)" : "Account Name (Arabic)"}</Label>
-              <Input
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{isRTL ? "اسم الحساب (إنجليزي)" : "Account Name (English)"}</Label>
-              <Input
-                value={editForm.name_en}
-                onChange={(e) => setEditForm({ ...editForm, name_en: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{isRTL ? "نوع الحساب" : "Account Type"}</Label>
-              <Select
-                value={editForm.type}
-                onValueChange={(value) => setEditForm({ ...editForm, type: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asset">{isRTL ? "أصول" : "Assets"}</SelectItem>
-                  <SelectItem value="liability">{isRTL ? "خصوم" : "Liabilities"}</SelectItem>
-                  <SelectItem value="equity">{isRTL ? "حقوق ملكية" : "Equity"}</SelectItem>
-                  <SelectItem value="revenue">{isRTL ? "إيرادات" : "Revenue"}</SelectItem>
-                  <SelectItem value="expense">{isRTL ? "مصروفات" : "Expenses"}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              {isRTL ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button onClick={handleSaveEdit} disabled={isSaving}>
-              {isSaving && <Loader2 className="h-4 w-4 animate-spin me-2" />}
-              {isRTL ? "حفظ" : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Opening Balance Dialog */}
       <Dialog open={balanceDialogOpen} onOpenChange={setBalanceDialogOpen}>
