@@ -257,7 +257,7 @@ const ClientLayout = () => {
         <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
           <Building2 className="h-6 w-6 text-primary shrink-0" />
           {!collapsed && (
-            <span className="font-bold text-lg text-foreground">محاسبي</span>
+            <span className="font-bold text-lg text-foreground">Costamine</span>
           )}
         </div>
         {/* Desktop Collapse Toggle */}
