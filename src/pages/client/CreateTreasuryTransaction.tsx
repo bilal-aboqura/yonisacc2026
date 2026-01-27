@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,7 +63,7 @@ const paymentMethods = [
   { value: "credit_card", label: "بطاقة ائتمان" },
 ];
 
-const CreateTreasuryTransaction = () => {
+const CreateTreasuryTransaction = forwardRef<HTMLDivElement>((_, ref) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialType = searchParams.get("type") || "deposit";
@@ -239,7 +239,7 @@ const CreateTreasuryTransaction = () => {
   }
 
   return (
-    <div className="space-y-6 rtl max-w-2xl">
+    <div ref={ref} className="space-y-6 rtl max-w-2xl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -437,6 +437,8 @@ const CreateTreasuryTransaction = () => {
       </Tabs>
     </div>
   );
-};
+});
+
+CreateTreasuryTransaction.displayName = "CreateTreasuryTransaction";
 
 export default CreateTreasuryTransaction;

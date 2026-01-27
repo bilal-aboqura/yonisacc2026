@@ -1,10 +1,11 @@
+import { forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wallet, Plus, ArrowUpRight, ArrowDownRight, Building2 } from "lucide-react";
 
-const ClientTreasury = () => {
+const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
   const { isRTL } = useLanguage();
   const navigate = useNavigate();
 
@@ -26,7 +27,7 @@ const ClientTreasury = () => {
   ];
 
   return (
-    <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
+    <div ref={ref} className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -122,6 +123,8 @@ const ClientTreasury = () => {
       </Card>
     </div>
   );
-};
+});
+
+ClientTreasury.displayName = "ClientTreasury";
 
 export default ClientTreasury;
