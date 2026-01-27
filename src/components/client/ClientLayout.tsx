@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import AccountingAssistant from "./AccountingAssistant";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -349,6 +350,9 @@ const ClientLayout = () => {
         <main className="flex-1 p-4 md:p-6 overflow-auto">
           <Outlet />
         </main>
+
+        {/* AI Accounting Assistant */}
+        <AccountingAssistant />
       </div>
     </div>
   );
