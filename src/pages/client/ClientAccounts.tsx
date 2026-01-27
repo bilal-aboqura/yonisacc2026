@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,13 +36,99 @@ interface Account {
   children?: Account[];
 }
 
+// Memoized account row component
+const AccountRow = memo(({ 
+  account, 
+  level, 
+  isExpanded, 
+  isRTL, 
+  onToggle, 
+  onEdit, 
+  onBalance,
+  getTypeColor,
+  getTypeName
+}: {
+  account: Account;
+  level: number;
+  isExpanded: boolean;
+  isRTL: boolean;
+  onToggle: (id: string) => void;
+  onEdit: (account: Account, e: React.MouseEvent) => void;
+  onBalance: (account: Account, e: React.MouseEvent) => void;
+  getTypeColor: (type: string) => string;
+  getTypeName: (type: string) => string;
+}) => {
+  const hasChildren = account.children && account.children.length > 0;
+
+  return (
+    <div
+      className="flex items-center gap-2 p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors group"
+      style={{ paddingInlineStart: `${level * 24 + 12}px` }}
+      onClick={() => hasChildren && onToggle(account.id)}
+    >
+      {hasChildren ? (
+        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            isRTL ? <ChevronRight className="h-4 w-4 rotate-180" /> : <ChevronRight className="h-4 w-4" />
+          )}
+        </Button>
+      ) : (
+        <div className="w-6 flex justify-center shrink-0">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
+      
+      <span className="font-mono text-sm text-muted-foreground w-16 shrink-0">{account.code}</span>
+      
+      <div className="flex-1 min-w-0">
+        <span className="font-medium truncate block">
+          {isRTL ? account.name : (account.name_en || account.name)}
+        </span>
+      </div>
+
+      <Badge variant="secondary" className={`${getTypeColor(account.type)} shrink-0`}>
+        {getTypeName(account.type)}
+      </Badge>
+
+      <span className="font-mono text-sm w-28 text-end shrink-0">
+        {(account.balance || 0).toLocaleString()} ر.س
+      </span>
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={(e) => onBalance(account, e)}
+          title={isRTL ? "الرصيد الافتتاحي" : "Opening Balance"}
+        >
+          <DollarSign className="h-4 w-4 text-green-600" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={(e) => onEdit(account, e)}
+          title={isRTL ? "تعديل" : "Edit"}
+        >
+          <Pencil className="h-4 w-4 text-blue-600" />
+        </Button>
+      </div>
+    </div>
+  );
+});
+
+AccountRow.displayName = 'AccountRow';
+
 const ClientAccounts = () => {
   const { isRTL } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedAccounts, setExpandedAccounts] = useState<string[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [flatAccounts, setFlatAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -84,10 +170,6 @@ const ClientAccounts = () => {
         if (accountsError) throw accountsError;
 
         setFlatAccounts(accountsData || []);
-        
-        // Build tree structure
-        const tree = buildAccountTree(accountsData || []);
-        setAccounts(tree);
       } catch (error) {
         console.error("Error fetching accounts:", error);
         toast.error(isRTL ? "حدث خطأ في جلب الحسابات" : "Error fetching accounts");
@@ -99,17 +181,18 @@ const ClientAccounts = () => {
     fetchCompanyAndAccounts();
   }, [user, isRTL]);
 
-  const buildAccountTree = (flatList: Account[]): Account[] => {
+  // Memoized tree building
+  const accounts = useMemo(() => {
     const map = new Map<string, Account>();
     const roots: Account[] = [];
 
     // First pass: create map
-    flatList.forEach((account) => {
+    flatAccounts.forEach((account) => {
       map.set(account.id, { ...account, children: [] });
     });
 
     // Second pass: build tree
-    flatList.forEach((account) => {
+    flatAccounts.forEach((account) => {
       const node = map.get(account.id)!;
       if (account.parent_id && map.has(account.parent_id)) {
         const parent = map.get(account.parent_id)!;
@@ -121,15 +204,15 @@ const ClientAccounts = () => {
     });
 
     return roots;
-  };
+  }, [flatAccounts]);
 
-  const toggleExpand = (id: string) => {
+  const toggleExpand = useCallback((id: string) => {
     setExpandedAccounts((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
-  };
+  }, []);
 
-  const getTypeColor = (type: string) => {
+  const getTypeColor = useCallback((type: string) => {
     switch (type) {
       case "asset":
         return "bg-blue-500/10 text-blue-500";
@@ -144,9 +227,9 @@ const ClientAccounts = () => {
       default:
         return "bg-gray-500/10 text-gray-500";
     }
-  };
+  }, []);
 
-  const getTypeName = (type: string) => {
+  const getTypeName = useCallback((type: string) => {
     const names: Record<string, { ar: string; en: string }> = {
       asset: { ar: "أصول", en: "Assets" },
       liability: { ar: "خصوم", en: "Liabilities" },
@@ -155,19 +238,19 @@ const ClientAccounts = () => {
       expense: { ar: "مصروفات", en: "Expenses" },
     };
     return isRTL ? names[type]?.ar || type : names[type]?.en || type;
-  };
+  }, [isRTL]);
 
-  const handleEditAccount = (account: Account, e: React.MouseEvent) => {
+  const handleEditAccount = useCallback((account: Account, e: React.MouseEvent) => {
     e.stopPropagation();
     navigate(`/client/accounts/${account.id}/edit`);
-  };
+  }, [navigate]);
 
-  const handleOpenBalanceDialog = (account: Account, e: React.MouseEvent) => {
+  const handleOpenBalanceDialog = useCallback((account: Account, e: React.MouseEvent) => {
     e.stopPropagation();
     setBalanceAccount(account);
     setNewBalance(account.balance?.toString() || "0");
     setBalanceDialogOpen(true);
-  };
+  }, []);
 
   const handleSaveBalance = async () => {
     if (!balanceAccount) return;
@@ -184,13 +267,11 @@ const ClientAccounts = () => {
       if (error) throw error;
 
       // Update local state
-      const updatedFlat = flatAccounts.map((acc) =>
+      setFlatAccounts(prev => prev.map((acc) =>
         acc.id === balanceAccount.id
           ? { ...acc, balance: balanceValue }
           : acc
-      );
-      setFlatAccounts(updatedFlat);
-      setAccounts(buildAccountTree(updatedFlat));
+      ));
 
       toast.success(isRTL ? "تم تحديث الرصيد الافتتاحي بنجاح" : "Opening balance updated successfully");
       setBalanceDialogOpen(false);
@@ -202,13 +283,14 @@ const ClientAccounts = () => {
     }
   };
 
-  const filterAccounts = (accountList: Account[]): Account[] => {
-    if (!searchTerm) return accountList;
+  // Memoized filtered accounts
+  const filteredAccounts = useMemo(() => {
+    if (!searchTerm) return accounts;
     
     const search = searchTerm.toLowerCase();
     
-    const filterRecursive = (accounts: Account[]): Account[] => {
-      return accounts.reduce((filtered: Account[], account) => {
+    const filterRecursive = (accountList: Account[]): Account[] => {
+      return accountList.reduce((filtered: Account[], account) => {
         const matchesSearch = 
           account.name.toLowerCase().includes(search) ||
           (account.name_en?.toLowerCase() || "").includes(search) ||
@@ -229,73 +311,27 @@ const ClientAccounts = () => {
       }, []);
     };
 
-    return filterRecursive(accountList);
-  };
+    return filterRecursive(accounts);
+  }, [accounts, searchTerm]);
 
-  const renderAccount = (account: Account, level: number = 0) => {
+  // Memoized render function
+  const renderAccount = useCallback((account: Account, level: number = 0): React.ReactNode => {
     const hasChildren = account.children && account.children.length > 0;
     const isExpanded = expandedAccounts.includes(account.id);
 
     return (
       <div key={account.id}>
-        <div
-          className={`flex items-center gap-2 p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors group`}
-          style={{ paddingInlineStart: `${level * 24 + 12}px` }}
-          onClick={() => hasChildren && toggleExpand(account.id)}
-        >
-          {hasChildren ? (
-            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                isRTL ? <ChevronRight className="h-4 w-4 rotate-180" /> : <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
-          ) : (
-            <div className="w-6 flex justify-center shrink-0">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </div>
-          )}
-          
-          <span className="font-mono text-sm text-muted-foreground w-16 shrink-0">{account.code}</span>
-          
-          <div className="flex-1 min-w-0">
-            <span className="font-medium truncate block">
-              {isRTL ? account.name : (account.name_en || account.name)}
-            </span>
-          </div>
-
-          <Badge variant="secondary" className={`${getTypeColor(account.type)} shrink-0`}>
-            {getTypeName(account.type)}
-          </Badge>
-
-          <span className="font-mono text-sm w-28 text-end shrink-0">
-            {(account.balance || 0).toLocaleString()} ر.س
-          </span>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={(e) => handleOpenBalanceDialog(account, e)}
-              title={isRTL ? "الرصيد الافتتاحي" : "Opening Balance"}
-            >
-              <DollarSign className="h-4 w-4 text-green-600" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={(e) => handleEditAccount(account, e)}
-              title={isRTL ? "تعديل" : "Edit"}
-            >
-              <Pencil className="h-4 w-4 text-blue-600" />
-            </Button>
-          </div>
-        </div>
-
+        <AccountRow
+          account={account}
+          level={level}
+          isExpanded={isExpanded}
+          isRTL={isRTL}
+          onToggle={toggleExpand}
+          onEdit={handleEditAccount}
+          onBalance={handleOpenBalanceDialog}
+          getTypeColor={getTypeColor}
+          getTypeName={getTypeName}
+        />
         {hasChildren && isExpanded && (
           <div>
             {account.children!.map((child) => renderAccount(child, level + 1))}
@@ -303,17 +339,7 @@ const ClientAccounts = () => {
         )}
       </div>
     );
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  const filteredAccounts = filterAccounts(accounts);
+  }, [expandedAccounts, isRTL, toggleExpand, handleEditAccount, handleOpenBalanceDialog, getTypeColor, getTypeName]);
 
   const handleCreateDefaultAccounts = async () => {
     if (!companyId) return;
@@ -336,7 +362,6 @@ const ClientAccounts = () => {
         .order("code");
 
       setFlatAccounts(accountsData || []);
-      setAccounts(buildAccountTree(accountsData || []));
     } catch (error) {
       console.error("Error creating default accounts:", error);
       toast.error(isRTL ? "حدث خطأ في إنشاء الحسابات الافتراضية" : "Error creating default accounts");
@@ -344,6 +369,14 @@ const ClientAccounts = () => {
       setIsCreatingDefaults(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
