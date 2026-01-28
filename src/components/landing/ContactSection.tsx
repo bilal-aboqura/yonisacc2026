@@ -8,11 +8,28 @@ import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/hooks/useLanguage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Send, Building2, CreditCard, Hash, Landmark,
   Phone, Mail, MapPin, Loader2
 } from "lucide-react";
+
+interface BankAccountSettings {
+  bank_name: string;
+  bank_name_en: string;
+  account_name: string;
+  account_number: string;
+  iban: string;
+  is_visible: boolean;
+}
+
+interface PaymentSettings {
+  show_bank_transfer: boolean;
+  transfer_instructions_ar: string;
+  transfer_instructions_en: string;
+}
 
 // Validation schema
 const contactSchema = z.object({
@@ -33,6 +50,26 @@ export const ContactSection = () => {
     message: ""
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Fetch owner settings from database
+  const { data: ownerSettings, isLoading: isLoadingSettings } = useQuery({
+    queryKey: ["owner-settings-public"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("owner_settings")
+        .select("*");
+      
+      if (error) throw error;
+      
+      const bankSetting = data?.find(s => s.setting_key === "bank_account");
+      const paymentSetting = data?.find(s => s.setting_key === "payment_settings");
+      
+      return {
+        bankAccount: bankSetting?.setting_value as unknown as BankAccountSettings | null,
+        paymentSettings: paymentSetting?.setting_value as unknown as PaymentSettings | null,
+      };
+    },
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -106,12 +143,24 @@ export const ContactSection = () => {
     }
   };
 
+  // Get bank info from settings or use fallback
+  const bankAccount = ownerSettings?.bankAccount;
+  const paymentSettings = ownerSettings?.paymentSettings;
+  
+  const showBankInfo = bankAccount?.is_visible && paymentSettings?.show_bank_transfer;
+  
   const bankInfo = {
-    bankName: isRTL ? "البنك الأهلي السعودي" : "Saudi National Bank",
-    accountName: isRTL ? "شركة محاسبي للتقنية" : "Mohaseby Tech Co.",
-    accountNumber: "1234567890",
-    iban: "SA0380000000608010167519"
+    bankName: isRTL 
+      ? (bankAccount?.bank_name || "البنك الأهلي السعودي") 
+      : (bankAccount?.bank_name_en || "Saudi National Bank"),
+    accountName: bankAccount?.account_name || (isRTL ? "شركة محاسبي للتقنية" : "Mohaseby Tech Co."),
+    accountNumber: bankAccount?.account_number || "1234567890",
+    iban: bankAccount?.iban || "SA0380000000608010167519"
   };
+
+  const transferInstructions = isRTL 
+    ? paymentSettings?.transfer_instructions_ar 
+    : paymentSettings?.transfer_instructions_en;
 
   return (
     <section id="contact" className="py-20 bg-muted/30">
@@ -217,41 +266,52 @@ export const ContactSection = () => {
                 <Landmark className="h-6 w-6 text-primary" />
                 {t("landing.contact.bankInfo")}
               </CardTitle>
+              {transferInstructions && (
+                <p className="text-sm text-muted-foreground mt-2">{transferInstructions}</p>
+              )}
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
-                  <Building2 className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t("landing.contact.bankName")}</p>
-                    <p className="font-semibold">{bankInfo.bankName}</p>
+              {isLoadingSettings ? (
+                <div className="space-y-4">
+                  {[1, 2, 3, 4].map(i => (
+                    <Skeleton key={i} className="h-16 rounded-xl" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
+                    <Building2 className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">{t("landing.contact.bankName")}</p>
+                      <p className="font-semibold">{bankInfo.bankName}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
+                    <CreditCard className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">{t("landing.contact.accountName")}</p>
+                      <p className="font-semibold">{bankInfo.accountName}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
+                    <Hash className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">{t("landing.contact.accountNumber")}</p>
+                      <p className="font-semibold font-mono">{bankInfo.accountNumber}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
+                    <Landmark className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">{t("landing.contact.iban")}</p>
+                      <p className="font-semibold font-mono text-sm">{bankInfo.iban}</p>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
-                  <CreditCard className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t("landing.contact.accountName")}</p>
-                    <p className="font-semibold">{bankInfo.accountName}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
-                  <Hash className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t("landing.contact.accountNumber")}</p>
-                    <p className="font-semibold font-mono">{bankInfo.accountNumber}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
-                  <Landmark className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t("landing.contact.iban")}</p>
-                    <p className="font-semibold font-mono text-sm">{bankInfo.iban}</p>
-                  </div>
-                </div>
-              </div>
+              )}
 
               <div className="pt-6 border-t space-y-3">
                 <div className="flex items-center gap-3 text-muted-foreground">
