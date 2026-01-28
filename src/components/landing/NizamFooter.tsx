@@ -1,43 +1,6 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Mail, Phone, MapPin } from "lucide-react";
-
-const footerLinks = [
-  {
-    title: "المنتج",
-    links: [
-      { label: "المميزات", href: "#features" },
-      { label: "الوحدات", href: "#modules" },
-      { label: "الأسعار", href: "#pricing" },
-      { label: "الأسئلة الشائعة", href: "#faq" },
-    ],
-  },
-  {
-    title: "الشركة",
-    links: [
-      { label: "من نحن", href: "#" },
-      { label: "المدونة", href: "#" },
-      { label: "وظائف", href: "#" },
-      { label: "الشراكات", href: "#" },
-    ],
-  },
-  {
-    title: "الدعم",
-    links: [
-      { label: "مركز المساعدة", href: "#" },
-      { label: "التوثيق", href: "#" },
-      { label: "تواصل معنا", href: "#contact" },
-      { label: "حالة النظام", href: "#" },
-    ],
-  },
-  {
-    title: "قانوني",
-    links: [
-      { label: "سياسة الخصوصية", href: "#" },
-      { label: "الشروط والأحكام", href: "#" },
-      { label: "اتفاقية الاستخدام", href: "#" },
-    ],
-  },
-];
 
 const socialLinks = [
   { label: "Twitter", href: "#", icon: "𝕏" },
@@ -46,6 +9,46 @@ const socialLinks = [
 ];
 
 export const NizamFooter = () => {
+  const { t } = useTranslation();
+
+  const footerLinks = [
+    {
+      title: t("landing.footer.links.product.title"),
+      links: [
+        { label: t("landing.footer.links.product.features"), href: "#features" },
+        { label: t("landing.footer.links.product.modules"), href: "#modules" },
+        { label: t("landing.footer.links.product.pricing"), href: "#pricing" },
+        { label: t("landing.footer.links.product.faq"), href: "#faq" },
+      ],
+    },
+    {
+      title: t("landing.footer.links.company.title"),
+      links: [
+        { label: t("landing.footer.links.company.about"), href: "#" },
+        { label: t("landing.footer.links.company.blog"), href: "#" },
+        { label: t("landing.footer.links.company.careers"), href: "#" },
+        { label: t("landing.footer.links.company.partners"), href: "#" },
+      ],
+    },
+    {
+      title: t("landing.footer.links.support.title"),
+      links: [
+        { label: t("landing.footer.links.support.help"), href: "#" },
+        { label: t("landing.footer.links.support.docs"), href: "#" },
+        { label: t("landing.footer.links.support.contact"), href: "#contact" },
+        { label: t("landing.footer.links.support.status"), href: "#" },
+      ],
+    },
+    {
+      title: t("landing.footer.links.legal.title"),
+      links: [
+        { label: t("landing.footer.links.legal.privacy"), href: "#" },
+        { label: t("landing.footer.links.legal.terms"), href: "#" },
+        { label: t("landing.footer.links.legal.usage"), href: "#" },
+      ],
+    },
+  ];
+
   const scrollToSection = (href: string) => {
     if (href.startsWith("#")) {
       const element = document.querySelector(href);
@@ -66,27 +69,26 @@ export const NizamFooter = () => {
               <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-white font-bold text-2xl shadow-lg">
                 ن
               </div>
-              <span className="text-2xl font-bold">نظام</span>
+              <span className="text-2xl font-bold">{t("common.appName")}</span>
             </Link>
 
             <p className="text-muted-foreground max-w-sm">
-              نظام ERP سحابي عربي متكامل للمحاسبة، الموارد البشرية، المخزون، ونقاط البيع.
-              مصمم خصيصاً للشركات في العالم العربي.
+              {t("landing.footer.description")}
             </p>
 
             {/* Contact Info */}
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-muted-foreground">
                 <Mail className="w-5 h-5 text-primary" />
-                <span>info@nizam.app</span>
+                <span>{t("landing.footer.contact.email")}</span>
               </div>
               <div className="flex items-center gap-3 text-muted-foreground">
                 <Phone className="w-5 h-5 text-primary" />
-                <span dir="ltr">+966 50 123 4567</span>
+                <span dir="ltr">{t("landing.footer.contact.phone")}</span>
               </div>
               <div className="flex items-center gap-3 text-muted-foreground">
                 <MapPin className="w-5 h-5 text-primary" />
-                <span>الرياض، المملكة العربية السعودية</span>
+                <span>{t("landing.footer.contact.address")}</span>
               </div>
             </div>
 
@@ -129,11 +131,11 @@ export const NizamFooter = () => {
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} نظام. جميع الحقوق محفوظة.
+              © {new Date().getFullYear()} {t("landing.footer.copyright")}
             </p>
             <div className="flex items-center gap-4">
               <span className="text-xs text-muted-foreground">
-                صُنع بـ ❤️ في السعودية
+                {t("landing.footer.madeIn")}
               </span>
             </div>
           </div>
