@@ -21,7 +21,39 @@ interface Plan {
   max_branches: number | null;
   is_active: boolean;
   sort_order: number | null;
+  features_ar?: string[] | null;
+  features_en?: string[] | null;
+  not_included_ar?: string[] | null;
+  not_included_en?: string[] | null;
 }
+
+// Default features for plans if not stored in DB
+const defaultPlanFeatures: Record<string, { features_ar: string[]; features_en: string[]; not_included_ar: string[]; not_included_en: string[] }> = {
+  "Free": {
+    features_ar: ["15 فاتورة شهرياً", "15 قيد محاسبي", "مستخدم واحد", "فرع واحد", "الدعم الفني"],
+    features_en: ["15 invoices/month", "15 journal entries", "1 user", "1 branch", "Technical support"],
+    not_included_ar: ["الموارد البشرية", "تعدد الفروع"],
+    not_included_en: ["HR module", "Multi-branch"],
+  },
+  "Basic": {
+    features_ar: ["50 فاتورة شهرياً", "100 قيد محاسبي", "مستخدم واحد", "فرع واحد", "الدعم الفني", "التقارير المالية"],
+    features_en: ["50 invoices/month", "100 journal entries", "1 user", "1 branch", "Technical support", "Financial reports"],
+    not_included_ar: ["الموارد البشرية", "تعدد الفروع"],
+    not_included_en: ["HR module", "Multi-branch"],
+  },
+  "Advanced": {
+    features_ar: ["75 فاتورة شهرياً", "150 قيد محاسبي", "3 مستخدمين", "فرعين", "الدعم الفني", "التقارير المالية", "إدارة المخزون"],
+    features_en: ["75 invoices/month", "150 journal entries", "3 users", "2 branches", "Technical support", "Financial reports", "Inventory management"],
+    not_included_ar: ["الموارد البشرية"],
+    not_included_en: ["HR module"],
+  },
+  "Enterprise": {
+    features_ar: ["فواتير غير محدودة", "قيود غير محدودة", "مستخدمين غير محدود", "فروع غير محدودة", "الدعم الفني المتميز", "التقارير المالية", "إدارة المخزون", "الموارد البشرية", "API مخصص"],
+    features_en: ["Unlimited invoices", "Unlimited entries", "Unlimited users", "Unlimited branches", "Premium support", "Financial reports", "Inventory management", "HR module", "Custom API"],
+    not_included_ar: [],
+    not_included_en: [],
+  },
+};
 
 export const Pricing = () => {
   const { t } = useTranslation();
@@ -41,46 +73,22 @@ export const Pricing = () => {
     },
   });
 
-  const getFeatures = (plan: Plan): string[] => {
-    const features: string[] = [];
+  const getPlanFeatures = (plan: Plan) => {
+    // Use DB features if available, otherwise fall back to defaults
+    const defaultFeatures = defaultPlanFeatures[plan.name_en] || defaultPlanFeatures["Basic"];
     
-    if (plan.max_invoices) {
-      features.push(isRTL 
-        ? `${plan.max_invoices} فاتورة` 
-        : `${plan.max_invoices} Invoices`);
-    } else {
-      features.push(isRTL ? "فواتير غير محدودة" : "Unlimited Invoices");
-    }
-    
-    if (plan.max_entries) {
-      features.push(isRTL 
-        ? `${plan.max_entries} قيد محاسبي` 
-        : `${plan.max_entries} Journal Entries`);
-    } else {
-      features.push(isRTL ? "قيود غير محدودة" : "Unlimited Entries");
-    }
-    
-    if (plan.max_users) {
-      features.push(isRTL 
-        ? `${plan.max_users} مستخدم` 
-        : `${plan.max_users} Users`);
-    } else {
-      features.push(isRTL ? "مستخدمين غير محدود" : "Unlimited Users");
-    }
-    
-    if (plan.max_branches) {
-      features.push(isRTL 
-        ? `${plan.max_branches} فرع` 
-        : `${plan.max_branches} Branches`);
-    } else {
-      features.push(isRTL ? "فروع غير محدودة" : "Unlimited Branches");
-    }
-
-    return features;
+    return {
+      features: isRTL 
+        ? (plan.features_ar?.length ? plan.features_ar : defaultFeatures.features_ar)
+        : (plan.features_en?.length ? plan.features_en : defaultFeatures.features_en),
+      notIncluded: isRTL
+        ? (plan.not_included_ar?.length !== undefined ? plan.not_included_ar : defaultFeatures.not_included_ar)
+        : (plan.not_included_en?.length !== undefined ? plan.not_included_en : defaultFeatures.not_included_en),
+    };
   };
 
   const isPopular = (index: number) => index === 1;
-  const isEnterprise = (plan: Plan) => plan.price === 0 && !plan.max_invoices;
+  const isEnterprise = (plan: Plan) => plan.name_en === "Enterprise";
 
   if (isLoading) {
     return (
@@ -123,10 +131,9 @@ export const Pricing = () => {
         {/* Pricing Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans?.map((plan, index) => {
-            const features = getFeatures(plan);
+            const { features, notIncluded } = getPlanFeatures(plan);
             const popular = isPopular(index);
             const enterprise = isEnterprise(plan);
-            const hasPrice = plan.price > 0 || !enterprise;
 
             return (
               <div
@@ -159,13 +166,13 @@ export const Pricing = () => {
 
                   {/* Price */}
                   <div className="text-center">
-                    {hasPrice && !enterprise ? (
+                    {enterprise ? (
+                      <span className="text-2xl font-bold gradient-text">{t("landing.pricing.plans.enterprise.price")}</span>
+                    ) : plan.price > 0 ? (
                       <div className="flex items-baseline justify-center gap-1">
                         <span className="text-4xl font-bold gradient-text">{plan.price}</span>
                         <span className="text-muted-foreground">{t("landing.pricing.currency")}/{t("landing.pricing.period")}</span>
                       </div>
-                    ) : enterprise ? (
-                      <span className="text-2xl font-bold gradient-text">{t("landing.pricing.plans.enterprise.price")}</span>
                     ) : (
                       <div className="flex items-baseline justify-center gap-1">
                         <span className="text-4xl font-bold gradient-text">{isRTL ? "مجاني" : "Free"}</span>
@@ -181,6 +188,14 @@ export const Pricing = () => {
                           <Check className="w-3 h-3 text-accent" />
                         </div>
                         <span className="text-sm">{feature}</span>
+                      </li>
+                    ))}
+                    {notIncluded.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-3 opacity-50">
+                        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs">-</span>
+                        </div>
+                        <span className="text-sm line-through">{feature}</span>
                       </li>
                     ))}
                   </ul>
