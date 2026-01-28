@@ -1,22 +1,22 @@
-import { useLanguage } from "@/hooks/useLanguage";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Quotes = () => {
-  const { isRTL } = useLanguage();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
-          {isRTL ? "عروض الأسعار" : "Quotations"}
+          {t("client.quotes.title")}
         </h1>
         <Button onClick={() => navigate("/client/quotes/new")}>
           <Plus className="h-4 w-4 me-2" />
-          {isRTL ? "إنشاء عرض سعر" : "Create Quote"}
+          {t("client.quotes.createQuote")}
         </Button>
       </div>
 
@@ -24,12 +24,12 @@ const Quotes = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            {isRTL ? "عروض الأسعار" : "Quotations"}
+            {t("client.quotes.quotations")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12 text-muted-foreground">
-            {isRTL ? "لا توجد عروض أسعار حالياً" : "No quotations yet"}
+            {t("client.quotes.noQuotes")}
           </div>
         </CardContent>
       </Card>

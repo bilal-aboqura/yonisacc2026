@@ -1,62 +1,62 @@
-import { useLanguage } from "@/hooks/useLanguage";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListChecks } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const OperationsLog = () => {
-  const { isRTL } = useLanguage();
+  const { t } = useTranslation();
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">
-        {isRTL ? "سجل العمليات" : "Operations Log"}
+        {t("client.operationsLog.title")}
       </h1>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ListChecks className="h-5 w-5" />
-            {isRTL ? "جميع القيود اليومية" : "All Journal Entries"}
+            {t("client.operationsLog.allEntries")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all" className="w-full">
             <TabsList className="mb-4">
-              <TabsTrigger value="all">{isRTL ? "الكل" : "All"}</TabsTrigger>
-              <TabsTrigger value="manual">{isRTL ? "يدوي" : "Manual"}</TabsTrigger>
-              <TabsTrigger value="sales">{isRTL ? "مبيعات" : "Sales"}</TabsTrigger>
-              <TabsTrigger value="purchases">{isRTL ? "مشتريات" : "Purchases"}</TabsTrigger>
-              <TabsTrigger value="inventory">{isRTL ? "مخزون" : "Inventory"}</TabsTrigger>
-              <TabsTrigger value="hr">{isRTL ? "موارد بشرية" : "HR"}</TabsTrigger>
+              <TabsTrigger value="all">{t("client.operationsLog.tabs.all")}</TabsTrigger>
+              <TabsTrigger value="manual">{t("client.operationsLog.tabs.manual")}</TabsTrigger>
+              <TabsTrigger value="sales">{t("client.operationsLog.tabs.sales")}</TabsTrigger>
+              <TabsTrigger value="purchases">{t("client.operationsLog.tabs.purchases")}</TabsTrigger>
+              <TabsTrigger value="inventory">{t("client.operationsLog.tabs.inventory")}</TabsTrigger>
+              <TabsTrigger value="hr">{t("client.operationsLog.tabs.hr")}</TabsTrigger>
             </TabsList>
             <TabsContent value="all">
               <div className="text-center py-12 text-muted-foreground">
-                {isRTL ? "لا توجد قيود حالياً" : "No entries yet"}
+                {t("client.operationsLog.noEntries")}
               </div>
             </TabsContent>
             <TabsContent value="manual">
               <div className="text-center py-12 text-muted-foreground">
-                {isRTL ? "لا توجد قيود يدوية" : "No manual entries"}
+                {t("client.operationsLog.noManualEntries")}
               </div>
             </TabsContent>
             <TabsContent value="sales">
               <div className="text-center py-12 text-muted-foreground">
-                {isRTL ? "لا توجد قيود مبيعات" : "No sales entries"}
+                {t("client.operationsLog.noSalesEntries")}
               </div>
             </TabsContent>
             <TabsContent value="purchases">
               <div className="text-center py-12 text-muted-foreground">
-                {isRTL ? "لا توجد قيود مشتريات" : "No purchase entries"}
+                {t("client.operationsLog.noPurchaseEntries")}
               </div>
             </TabsContent>
             <TabsContent value="inventory">
               <div className="text-center py-12 text-muted-foreground">
-                {isRTL ? "لا توجد قيود مخزون" : "No inventory entries"}
+                {t("client.operationsLog.noInventoryEntries")}
               </div>
             </TabsContent>
             <TabsContent value="hr">
               <div className="text-center py-12 text-muted-foreground">
-                {isRTL ? "لا توجد قيود موارد بشرية" : "No HR entries"}
+                {t("client.operationsLog.noHREntries")}
               </div>
             </TabsContent>
           </Tabs>

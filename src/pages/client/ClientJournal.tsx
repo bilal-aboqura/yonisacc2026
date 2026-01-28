@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLanguage } from "@/hooks/useLanguage";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,27 +15,27 @@ import {
 import { Plus, Search, Filter, Download, BookOpen } from "lucide-react";
 
 const ClientJournal = () => {
-  const { isRTL } = useLanguage();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
   const entries: any[] = [];
 
   return (
-    <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            {isRTL ? "القيود اليومية" : "Journal Entries"}
+            {t("client.journal.title")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {isRTL ? "تسجيل القيود المحاسبية اليومية" : "Record daily accounting entries"}
+            {t("client.journal.subtitle")}
           </p>
         </div>
         <Button className="gap-2" onClick={() => navigate("/client/journal/new")}>
           <Plus className="h-4 w-4" />
-          {isRTL ? "قيد جديد" : "New Entry"}
+          {t("client.journal.newEntry")}
         </Button>
       </div>
 
@@ -46,7 +46,7 @@ const ClientJournal = () => {
             <div className="relative flex-1">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={isRTL ? "بحث برقم القيد أو البيان..." : "Search by entry number or description..."}
+                placeholder={t("client.journal.searchPlaceholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="ps-10"
@@ -55,11 +55,11 @@ const ClientJournal = () => {
             <div className="flex gap-2">
               <Button variant="outline" className="gap-2">
                 <Filter className="h-4 w-4" />
-                {isRTL ? "تصفية" : "Filter"}
+                {t("common.filter")}
               </Button>
               <Button variant="outline" className="gap-2">
                 <Download className="h-4 w-4" />
-                {isRTL ? "تصدير" : "Export"}
+                {t("common.export")}
               </Button>
             </div>
           </div>
@@ -71,7 +71,7 @@ const ClientJournal = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
-            {isRTL ? "سجل القيود" : "Entries Log"}
+            {t("client.journal.entriesLog")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -79,26 +79,26 @@ const ClientJournal = () => {
             <div className="text-center py-12">
               <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">
-                {isRTL ? "لا توجد قيود بعد" : "No entries yet"}
+                {t("client.journal.noEntries")}
               </h3>
               <p className="text-muted-foreground mb-4">
-                {isRTL ? "ابدأ بإنشاء أول قيد محاسبي" : "Start by creating your first journal entry"}
+                {t("client.journal.noEntriesDescription")}
               </p>
-              <Button className="gap-2">
+              <Button className="gap-2" onClick={() => navigate("/client/journal/new")}>
                 <Plus className="h-4 w-4" />
-                {isRTL ? "إنشاء قيد" : "Create Entry"}
+                {t("client.journal.createEntry")}
               </Button>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{isRTL ? "رقم القيد" : "Entry #"}</TableHead>
-                  <TableHead>{isRTL ? "التاريخ" : "Date"}</TableHead>
-                  <TableHead>{isRTL ? "البيان" : "Description"}</TableHead>
-                  <TableHead>{isRTL ? "مدين" : "Debit"}</TableHead>
-                  <TableHead>{isRTL ? "دائن" : "Credit"}</TableHead>
-                  <TableHead>{isRTL ? "الإجراءات" : "Actions"}</TableHead>
+                  <TableHead>{t("client.journal.entryNumber")}</TableHead>
+                  <TableHead>{t("client.journal.date")}</TableHead>
+                  <TableHead>{t("client.journal.description")}</TableHead>
+                  <TableHead>{t("client.journal.debit")}</TableHead>
+                  <TableHead>{t("client.journal.credit")}</TableHead>
+                  <TableHead>{t("client.journal.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -111,7 +111,7 @@ const ClientJournal = () => {
                     <TableCell>{entry.credit} ر.س</TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm">
-                        {isRTL ? "عرض" : "View"}
+                        {t("common.view")}
                       </Button>
                     </TableCell>
                   </TableRow>

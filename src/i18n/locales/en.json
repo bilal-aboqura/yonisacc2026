@@ -331,5 +331,80 @@
     "copyright": "All rights reserved",
     "privacy": "Privacy Policy",
     "terms": "Terms & Conditions"
+  },
+  "client": {
+    "journal": {
+      "title": "Journal Entries",
+      "subtitle": "Record daily accounting entries",
+      "newEntry": "New Entry",
+      "searchPlaceholder": "Search by entry number or description...",
+      "entriesLog": "Entries Log",
+      "noEntries": "No entries yet",
+      "noEntriesDescription": "Start by creating your first journal entry",
+      "createEntry": "Create Entry",
+      "entryNumber": "Entry #",
+      "date": "Date",
+      "description": "Description",
+      "debit": "Debit",
+      "credit": "Credit",
+      "actions": "Actions"
+    },
+    "generalLedger": {
+      "title": "General Ledger",
+      "generalLedger": "General Ledger",
+      "selectAccount": "Select an account to view its transactions"
+    },
+    "operationsLog": {
+      "title": "Operations Log",
+      "allEntries": "All Journal Entries",
+      "tabs": {
+        "all": "All",
+        "manual": "Manual",
+        "sales": "Sales",
+        "purchases": "Purchases",
+        "inventory": "Inventory",
+        "hr": "HR"
+      },
+      "noEntries": "No entries yet",
+      "noManualEntries": "No manual entries",
+      "noSalesEntries": "No sales entries",
+      "noPurchaseEntries": "No purchase entries",
+      "noInventoryEntries": "No inventory entries",
+      "noHREntries": "No HR entries"
+    },
+    "customers": {
+      "title": "Customers",
+      "addCustomer": "Add Customer",
+      "customersList": "Customers List",
+      "noCustomers": "No customers yet"
+    },
+    "vendors": {
+      "title": "Vendors",
+      "addVendor": "Add Vendor",
+      "vendorsList": "Vendors List",
+      "noVendors": "No vendors yet"
+    },
+    "quotes": {
+      "title": "Quotations",
+      "createQuote": "Create Quote",
+      "quotations": "Quotations",
+      "noQuotes": "No quotations yet",
+      "createNew": "Create New Quote",
+      "quoteDetails": "Quote Details",
+      "quoteForm": "Quote creation form"
+    },
+    "purchaseOrders": {
+      "title": "Purchase Orders",
+      "createOrder": "Create Purchase Order",
+      "orders": "Purchase Orders",
+      "noOrders": "No purchase orders yet",
+      "createNew": "Create New Purchase Order",
+      "orderDetails": "Purchase Order Details",
+      "orderForm": "Purchase order creation form"
+    },
+    "openingBalances": {
+      "title": "Opening Balances",
+      "subtitle": "Manage opening balances for accounts"
+    }
   }
 }
