@@ -186,19 +186,18 @@ export const PricingManager = () => {
   };
 
   const savePlan = (planId: string) => {
-    const changes = { ...editingPlans[planId] };
+    const changes: Partial<Plan> = { ...editingPlans[planId] };
     const featuresChanges = editingFeatures[planId];
     
-    // Note: Features are stored locally since DB columns aren't added yet
-    // Once migration runs, uncomment the lines below
-    // if (featuresChanges) {
-    //   changes.features_ar = featuresChanges.features_ar;
-    //   changes.features_en = featuresChanges.features_en;
-    //   changes.not_included_ar = featuresChanges.not_included_ar;
-    //   changes.not_included_en = featuresChanges.not_included_en;
-    // }
+    // Include features in the update if they were modified
+    if (featuresChanges) {
+      changes.features_ar = featuresChanges.features_ar;
+      changes.features_en = featuresChanges.features_en;
+      changes.not_included_ar = featuresChanges.not_included_ar;
+      changes.not_included_en = featuresChanges.not_included_en;
+    }
     
-    if (Object.keys(changes).length > 0 || featuresChanges) {
+    if (Object.keys(changes).length > 0) {
       updateMutation.mutate({ id: planId, data: changes });
     }
   };

@@ -1590,6 +1590,8 @@ export type Database = {
           description_ar: string | null
           description_en: string | null
           duration_months: number
+          features_ar: string[] | null
+          features_en: string[] | null
           id: string
           is_active: boolean | null
           max_branches: number | null
@@ -1598,6 +1600,8 @@ export type Database = {
           max_users: number | null
           name_ar: string
           name_en: string
+          not_included_ar: string[] | null
+          not_included_en: string[] | null
           price: number
           sort_order: number | null
           updated_at: string
@@ -1607,6 +1611,8 @@ export type Database = {
           description_ar?: string | null
           description_en?: string | null
           duration_months?: number
+          features_ar?: string[] | null
+          features_en?: string[] | null
           id?: string
           is_active?: boolean | null
           max_branches?: number | null
@@ -1615,6 +1621,8 @@ export type Database = {
           max_users?: number | null
           name_ar: string
           name_en: string
+          not_included_ar?: string[] | null
+          not_included_en?: string[] | null
           price?: number
           sort_order?: number | null
           updated_at?: string
@@ -1624,6 +1632,8 @@ export type Database = {
           description_ar?: string | null
           description_en?: string | null
           duration_months?: number
+          features_ar?: string[] | null
+          features_en?: string[] | null
           id?: string
           is_active?: boolean | null
           max_branches?: number | null
@@ -1632,6 +1642,8 @@ export type Database = {
           max_users?: number | null
           name_ar?: string
           name_en?: string
+          not_included_ar?: string[] | null
+          not_included_en?: string[] | null
           price?: number
           sort_order?: number | null
           updated_at?: string
