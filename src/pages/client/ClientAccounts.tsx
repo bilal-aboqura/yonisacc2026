@@ -46,7 +46,8 @@ const AccountRow = memo(({
   onEdit, 
   onBalance,
   getTypeColor,
-  getTypeName
+  getTypeName,
+  displayBalance
 }: {
   account: Account;
   level: number;
@@ -57,6 +58,7 @@ const AccountRow = memo(({
   onBalance: (account: Account, e: React.MouseEvent) => void;
   getTypeColor: (type: string) => string;
   getTypeName: (type: string) => string;
+  displayBalance: number;
 }) => {
   const hasChildren = account.children && account.children.length > 0;
 
@@ -93,7 +95,7 @@ const AccountRow = memo(({
       </Badge>
 
       <span className="font-mono text-sm w-28 text-end shrink-0">
-        {(account.balance || 0).toLocaleString()} ر.س
+        {displayBalance.toLocaleString()} ر.س
       </span>
 
       {/* Action Buttons */}
@@ -182,6 +184,17 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
 
     fetchCompanyAndAccounts();
   }, [user, isRTL]);
+
+  // Calculate total balance for an account including all children recursively
+  const calculateTotalBalance = useCallback((account: Account): number => {
+    const childrenTotal = (account.children || []).reduce(
+      (sum, child) => sum + calculateTotalBalance(child),
+      0
+    );
+    // For parent accounts, show sum of children; for leaf accounts, show own balance
+    const hasChildren = account.children && account.children.length > 0;
+    return hasChildren ? childrenTotal : (account.balance || 0);
+  }, []);
 
   // Memoized tree building
   const accounts = useMemo(() => {
@@ -320,6 +333,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
   const renderAccount = useCallback((account: Account, level: number = 0): React.ReactNode => {
     const hasChildren = account.children && account.children.length > 0;
     const isExpanded = expandedAccounts.includes(account.id);
+    const totalBalance = calculateTotalBalance(account);
 
     return (
       <div key={account.id}>
@@ -333,6 +347,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
           onBalance={handleOpenBalanceDialog}
           getTypeColor={getTypeColor}
           getTypeName={getTypeName}
+          displayBalance={totalBalance}
         />
         {hasChildren && isExpanded && (
           <div>
@@ -341,7 +356,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
         )}
       </div>
     );
-  }, [expandedAccounts, isRTL, toggleExpand, handleEditAccount, handleOpenBalanceDialog, getTypeColor, getTypeName]);
+  }, [expandedAccounts, isRTL, toggleExpand, handleEditAccount, handleOpenBalanceDialog, getTypeColor, getTypeName, calculateTotalBalance]);
 
   const handleCreateDefaultAccounts = async () => {
     if (!companyId) return;
