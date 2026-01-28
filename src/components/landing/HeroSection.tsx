@@ -42,7 +42,12 @@ export const HeroSection = () => {
               {t("landing.hero.cta")}
               <Arrow className="ms-2 h-5 w-5" />
             </Button>
-            <Button size="lg" variant="outline" className="text-lg px-8 h-14 rounded-xl group">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="text-lg px-8 h-14 rounded-xl group"
+              onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
+            >
               <Play className="me-2 h-5 w-5 group-hover:scale-110 transition-transform" />
               {t("landing.hero.demo")}
             </Button>
