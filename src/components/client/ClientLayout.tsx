@@ -140,12 +140,20 @@ const menuItems: MenuItem[] = [
 
 const ClientLayout = () => {
   const { isRTL } = useLanguage();
-  const { signOut } = useAuth();
+  const { signOut, user, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
+
+  // Require authentication for client area
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      navigate("/auth", { replace: true, state: { from: location.pathname } });
+    }
+  }, [isLoading, user, navigate, location.pathname]);
 
   // Auto-open group containing current path
   useEffect(() => {
@@ -348,7 +356,13 @@ const ClientLayout = () => {
 
         {/* Page Content */}
         <main className="flex-1 p-4 md:p-6 overflow-auto">
-          <Outlet />
+          {isLoading ? (
+            <div className="flex items-center justify-center min-h-[300px]">
+              <span className="text-muted-foreground">{isRTL ? "جاري التحميل..." : "Loading..."}</span>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
 
         {/* AI Accounting Assistant */}

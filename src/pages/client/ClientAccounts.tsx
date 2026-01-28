@@ -142,7 +142,12 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
 
   useEffect(() => {
     const fetchCompanyAndAccounts = async () => {
-      if (!user) return;
+      if (!user) {
+        setCompanyId(null);
+        setFlatAccounts([]);
+        setIsLoading(false);
+        return;
+      }
 
       try {
         // Get company
@@ -150,13 +155,10 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
           .from("companies")
           .select("id")
           .eq("owner_id", user.id)
-          .single();
+          .maybeSingle();
 
         if (companyError) throw companyError;
-        if (!companyData) {
-          setIsLoading(false);
-          return;
-        }
+        if (!companyData) return;
 
         setCompanyId(companyData.id);
 
@@ -374,6 +376,18 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div ref={ref} className={`space-y-3 ${isRTL ? "rtl" : "ltr"}`}>
+        <h1 className="text-2xl font-bold text-foreground">{isRTL ? "دليل الحسابات" : "Chart of Accounts"}</h1>
+        <p className="text-muted-foreground">{isRTL ? "يجب تسجيل الدخول لعرض دليل الحسابات" : "Please sign in to view the chart of accounts"}</p>
+        <div>
+          <Button onClick={() => navigate("/auth")}>{isRTL ? "تسجيل الدخول" : "Sign in"}</Button>
+        </div>
       </div>
     );
   }
