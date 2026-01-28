@@ -1,46 +1,49 @@
+import { useTranslation } from "react-i18next";
 import { Calculator, Users, ShoppingCart, Package, Building2, Briefcase, Store, Coffee, Globe, UserCheck } from "lucide-react";
 
-const modules = [
-  {
-    icon: Calculator,
-    title: "المحاسبة",
-    description: "دفتر أستاذ عام، قيود يومية، موازين مراجعة، قوائم مالية، وضريبة القيمة المضافة",
-    gradient: "from-blue-500 to-cyan-500",
-    features: ["القيود اليومية", "ميزان المراجعة", "القوائم المالية", "ضريبة القيمة المضافة"],
-  },
-  {
-    icon: Users,
-    title: "الموارد البشرية",
-    description: "إدارة الموظفين، الرواتب، الحضور والانصراف، الإجازات، والسلف",
-    gradient: "from-purple-500 to-pink-500",
-    features: ["إدارة الموظفين", "مسير الرواتب", "الحضور والانصراف", "الإجازات والسلف"],
-  },
-  {
-    icon: ShoppingCart,
-    title: "نقاط البيع",
-    description: "نظام POS متكامل للتجزئة مع الباركود، الفواتير الإلكترونية، وإدارة الكاشير",
-    gradient: "from-orange-500 to-red-500",
-    features: ["نظام الكاشير", "قارئ الباركود", "الفواتير الإلكترونية", "تقارير المبيعات"],
-  },
-  {
-    icon: Package,
-    title: "المخزون",
-    description: "إدارة المنتجات، المستودعات المتعددة، التحويلات، والتنبيهات التلقائية",
-    gradient: "from-green-500 to-emerald-500",
-    features: ["إدارة المنتجات", "مستودعات متعددة", "تتبع الكميات", "تنبيهات النقص"],
-  },
-];
-
-const businessTypes = [
-  { icon: Building2, label: "شركات تجارية" },
-  { icon: Briefcase, label: "شركات خدمية" },
-  { icon: Store, label: "متاجر التجزئة" },
-  { icon: Coffee, label: "المطاعم والكافيهات" },
-  { icon: Globe, label: "الأعمال الإلكترونية" },
-  { icon: UserCheck, label: "المستقلين والوكالات" },
-];
-
 export const Modules = () => {
+  const { t } = useTranslation();
+
+  const modules = [
+    {
+      icon: Calculator,
+      title: t("landing.modules.items.accounting.title"),
+      description: t("landing.modules.items.accounting.description"),
+      gradient: "from-blue-500 to-cyan-500",
+      features: t("landing.modules.items.accounting.features", { returnObjects: true }) as string[],
+    },
+    {
+      icon: Users,
+      title: t("landing.modules.items.hr.title"),
+      description: t("landing.modules.items.hr.description"),
+      gradient: "from-purple-500 to-pink-500",
+      features: t("landing.modules.items.hr.features", { returnObjects: true }) as string[],
+    },
+    {
+      icon: ShoppingCart,
+      title: t("landing.modules.items.pos.title"),
+      description: t("landing.modules.items.pos.description"),
+      gradient: "from-orange-500 to-red-500",
+      features: t("landing.modules.items.pos.features", { returnObjects: true }) as string[],
+    },
+    {
+      icon: Package,
+      title: t("landing.modules.items.inventory.title"),
+      description: t("landing.modules.items.inventory.description"),
+      gradient: "from-green-500 to-emerald-500",
+      features: t("landing.modules.items.inventory.features", { returnObjects: true }) as string[],
+    },
+  ];
+
+  const businessTypes = [
+    { icon: Building2, label: t("landing.modules.businessTypes.commercial") },
+    { icon: Briefcase, label: t("landing.modules.businessTypes.services") },
+    { icon: Store, label: t("landing.modules.businessTypes.retail") },
+    { icon: Coffee, label: t("landing.modules.businessTypes.restaurants") },
+    { icon: Globe, label: t("landing.modules.businessTypes.ecommerce") },
+    { icon: UserCheck, label: t("landing.modules.businessTypes.freelancers") },
+  ];
+
   return (
     <section id="modules" className="section-padding bg-muted/30 relative overflow-hidden">
       {/* Background Decoration */}
@@ -51,10 +54,10 @@ export const Modules = () => {
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold">
-            وحدات <span className="gradient-text">متكاملة</span>
+            {t("landing.modules.title")} <span className="gradient-text">{t("landing.modules.titleHighlight")}</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            كل وحدة مصممة بعناية لتلبية احتياجاتك الخاصة
+            {t("landing.modules.subtitle")}
           </p>
         </div>
 
@@ -94,7 +97,7 @@ export const Modules = () => {
 
         {/* Business Types */}
         <div className="text-center space-y-8">
-          <h3 className="text-2xl font-bold">مناسب لجميع أنواع الأعمال</h3>
+          <h3 className="text-2xl font-bold">{t("landing.modules.businessTypes.title")}</h3>
           <div className="flex flex-wrap justify-center gap-4">
             {businessTypes.map((type, index) => (
               <div

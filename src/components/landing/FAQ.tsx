@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   Accordion,
   AccordionContent,
@@ -5,50 +6,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const faqs = [
-  {
-    question: "هل يمكنني تجربة النظام مجاناً؟",
-    answer:
-      "نعم! نوفر فترة تجريبية مجانية لمدة 14 يوماً بدون الحاجة لبطاقة ائتمان. يمكنك استكشاف جميع المميزات خلال هذه الفترة.",
-  },
-  {
-    question: "هل النظام يدعم ضريبة القيمة المضافة السعودية؟",
-    answer:
-      "نعم، النظام متوافق تماماً مع متطلبات هيئة الزكاة والضريبة والجمارك. يدعم إصدار الفواتير الإلكترونية وحساب ضريبة القيمة المضافة تلقائياً وإعداد الإقرارات الضريبية.",
-  },
-  {
-    question: "هل يمكنني استيراد بياناتي من نظام آخر؟",
-    answer:
-      "بالتأكيد! نوفر أدوات استيراد سهلة تدعم ملفات Excel وCSV. كما يمكن لفريق الدعم مساعدتك في ترحيل البيانات من أي نظام محاسبي آخر.",
-  },
-  {
-    question: "هل البيانات آمنة؟",
-    answer:
-      "نعم، نستخدم أحدث تقنيات التشفير (SSL/TLS) لحماية بياناتك. جميع البيانات مخزنة في مراكز بيانات آمنة مع نسخ احتياطي يومي تلقائي.",
-  },
-  {
-    question: "هل يمكنني الترقية أو تخفيض الباقة لاحقاً؟",
-    answer:
-      "نعم، يمكنك تغيير باقتك في أي وقت من إعدادات حسابك. عند الترقية، سيتم احتساب الفرق بشكل تناسبي. عند التخفيض، سيسري التغيير من بداية الفترة التالية.",
-  },
-  {
-    question: "هل يدعم النظام الفروع المتعددة؟",
-    answer:
-      "نعم، في باقة التجزئة وما فوق. يمكنك إدارة فروع متعددة بمستودعات منفصلة، صلاحيات مختلفة لكل فرع، وتقارير موحدة أو مفصلة حسب الفرع.",
-  },
-  {
-    question: "كيف يعمل الدعم الفني؟",
-    answer:
-      "نوفر دعماً فنياً عبر عدة قنوات: البريد الإلكتروني، الدردشة المباشرة، والهاتف للباقات الأعلى. كما نوفر قاعدة معرفة شاملة ومقاطع فيديو تعليمية.",
-  },
-  {
-    question: "هل يعمل نظام نقاط البيع بدون انترنت؟",
-    answer:
-      "نعم، يدعم نظام نقاط البيع العمل بدون اتصال (Offline Mode). سيتم حفظ العمليات محلياً ومزامنتها تلقائياً عند عودة الاتصال.",
-  },
-];
-
 export const FAQ = () => {
+  const { t } = useTranslation();
+
+  const faqs = t("landing.faq.items", { returnObjects: true }) as Array<{
+    question: string;
+    answer: string;
+  }>;
+
   return (
     <section id="faq" className="section-padding bg-muted/30 relative">
       {/* Background Decoration */}
@@ -58,10 +23,10 @@ export const FAQ = () => {
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold">
-            الأسئلة <span className="gradient-text">الشائعة</span>
+            {t("landing.faq.title")} <span className="gradient-text">{t("landing.faq.titleHighlight")}</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            إجابات على الأسئلة الأكثر شيوعاً
+            {t("landing.faq.subtitle")}
           </p>
         </div>
 
@@ -86,13 +51,13 @@ export const FAQ = () => {
         {/* Contact CTA */}
         <div className="text-center mt-12">
           <p className="text-muted-foreground mb-4">
-            لم تجد إجابة لسؤالك؟
+            {t("landing.faq.contactCta")}
           </p>
           <button
             onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
             className="text-primary font-medium hover:underline"
           >
-            تواصل مع فريق الدعم
+            {t("landing.faq.contactLink")}
           </button>
         </div>
       </div>

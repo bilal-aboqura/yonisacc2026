@@ -1,21 +1,28 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Play, Calculator, Users, ShoppingCart, Package, TrendingUp, FileText } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { ArrowLeft, ArrowRight, Play, Calculator, Users, ShoppingCart, Package, TrendingUp, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const featurePills = [
-  { icon: Calculator, label: "محاسبة متكاملة" },
-  { icon: Users, label: "إدارة الموارد البشرية" },
-  { icon: ShoppingCart, label: "نقاط البيع" },
-  { icon: Package, label: "إدارة المخزون" },
-];
-
-const stats = [
-  { value: "1000+", label: "شركة" },
-  { value: "50K+", label: "مستخدم" },
-  { value: "99.9%", label: "وقت التشغيل" },
-];
+import { useLanguage } from "@/hooks/useLanguage";
 
 export const Hero = () => {
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
+
+  const featurePills = [
+    { icon: Calculator, label: t("landing.features.pills.accounting") },
+    { icon: Users, label: t("landing.features.pills.hr") },
+    { icon: ShoppingCart, label: t("landing.features.pills.pos") },
+    { icon: Package, label: t("landing.features.pills.inventory") },
+  ];
+
+  const stats = [
+    { value: "1000+", label: t("landing.hero.stats.companies") },
+    { value: "50K+", label: t("landing.hero.stats.users") },
+    { value: "99.9%", label: t("landing.hero.stats.uptime") },
+  ];
+
+  const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
+
   return (
     <section className="relative min-h-screen pt-24 pb-16 overflow-hidden gradient-hero">
       {/* Background Decorations */}
@@ -32,18 +39,17 @@ export const Hero = () => {
                 <span className="animate-ping-slow absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
               </span>
-              <span className="text-sm font-medium text-primary">نظام ERP سحابي متكامل</span>
+              <span className="text-sm font-medium text-primary">{t("landing.hero.badge")}</span>
             </div>
 
             {/* Heading */}
             <div className="space-y-4">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
-                أدر شركتك بالكامل{" "}
-                <span className="gradient-text">من مكان واحد</span>
+                {t("landing.hero.title")}{" "}
+                <span className="gradient-text">{t("landing.hero.titleHighlight")}</span>
               </h1>
               <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-xl">
-                نظام ERP سحابي عربي متكامل للمحاسبة، الموارد البشرية، المخزون، ونقاط البيع.
-                مصمم خصيصاً للشركات الصغيرة والمتوسطة في العالم العربي.
+                {t("landing.hero.subtitle")}
               </p>
             </div>
 
@@ -64,8 +70,8 @@ export const Hero = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <Link to="/register-company">
                 <Button size="lg" className="gradient-primary text-white btn-primary-shadow text-lg px-8 h-14 rounded-xl group w-full sm:w-auto">
-                  ابدأ تجربتك المجانية
-                  <ArrowLeft className="ms-2 h-5 w-5 group-hover:-translate-x-1 transition-transform" />
+                  {t("landing.hero.cta")}
+                  <ArrowIcon className="ms-2 h-5 w-5 group-hover:-translate-x-1 transition-transform" />
                 </Button>
               </Link>
               <Button
@@ -75,7 +81,7 @@ export const Hero = () => {
                 onClick={() => document.getElementById("modules")?.scrollIntoView({ behavior: "smooth" })}
               >
                 <Play className="me-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                شاهد العرض التوضيحي
+                {t("landing.hero.demo")}
               </Button>
             </div>
 
@@ -92,7 +98,7 @@ export const Hero = () => {
                 ))}
               </div>
               <div className="text-sm text-muted-foreground">
-                <span className="font-bold text-foreground">+1000</span> شركة عربية تثق بنا
+                <span className="font-bold text-foreground">+1000</span> {t("landing.hero.trustedBy")}
               </div>
             </div>
           </div>
@@ -144,13 +150,13 @@ export const Hero = () => {
                   <div className="flex-1 p-3 rounded-xl bg-primary/10 border border-primary/20">
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium">فاتورة جديدة</span>
+                      <span className="text-sm font-medium">{t("landing.dashboard.newInvoice")}</span>
                     </div>
                   </div>
                   <div className="flex-1 p-3 rounded-xl bg-accent/10 border border-accent/20">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-accent" />
-                      <span className="text-sm font-medium">تقرير المبيعات</span>
+                      <span className="text-sm font-medium">{t("landing.dashboard.salesReport")}</span>
                     </div>
                   </div>
                 </div>
@@ -164,7 +170,7 @@ export const Hero = () => {
                   <TrendingUp className="w-5 h-5 text-green-500" />
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">نمو المبيعات</div>
+                  <div className="text-xs text-muted-foreground">{t("landing.dashboard.salesGrowth")}</div>
                   <div className="text-lg font-bold text-green-500">+24%</div>
                 </div>
               </div>
@@ -176,7 +182,7 @@ export const Hero = () => {
                   <FileText className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">فاتورة جديدة</div>
+                  <div className="text-xs text-muted-foreground">{t("landing.dashboard.newInvoice")}</div>
                   <div className="text-sm font-bold">INV-2024-0158</div>
                 </div>
               </div>

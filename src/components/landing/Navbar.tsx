@@ -1,21 +1,23 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { cn } from "@/lib/utils";
 
-const navLinks = [
-  { href: "#features", label: "المميزات" },
-  { href: "#modules", label: "الوحدات" },
-  { href: "#pricing", label: "الأسعار" },
-  { href: "#faq", label: "الأسئلة الشائعة" },
-];
-
 export const Navbar = () => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  const navLinks = [
+    { href: "#features", label: t("nav.features") },
+    { href: "#modules", label: t("nav.modules") },
+    { href: "#pricing", label: t("nav.pricing") },
+    { href: "#faq", label: t("nav.faq") },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,7 +51,7 @@ export const Navbar = () => {
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:shadow-xl transition-shadow">
               ن
             </div>
-            <span className="text-xl font-bold text-foreground">نظام</span>
+            <span className="text-xl font-bold text-foreground">{t("common.appName")}</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -71,12 +73,12 @@ export const Navbar = () => {
             <ThemeToggle />
             <Link to="/auth">
               <Button variant="ghost" className="font-medium">
-                تسجيل الدخول
+                {t("nav.login")}
               </Button>
             </Link>
             <Link to="/register-company">
               <Button className="gradient-primary text-white btn-primary-shadow font-medium">
-                ابدأ مجاناً
+                {t("nav.startFree")}
               </Button>
             </Link>
           </div>
@@ -116,12 +118,12 @@ export const Navbar = () => {
             <div className="pt-4 border-t border-border space-y-2">
               <Link to="/auth" className="block">
                 <Button variant="ghost" className="w-full justify-center font-medium">
-                  تسجيل الدخول
+                  {t("nav.login")}
                 </Button>
               </Link>
               <Link to="/register-company" className="block">
                 <Button className="w-full gradient-primary text-white font-medium">
-                  ابدأ مجاناً
+                  {t("nav.startFree")}
                 </Button>
               </Link>
             </div>

@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Mohaseby",
+    "appName": "Nizam",
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
@@ -34,108 +34,245 @@
   "nav": {
     "home": "Home",
     "features": "Features",
+    "modules": "Modules",
     "pricing": "Pricing",
+    "faq": "FAQ",
     "testimonials": "Testimonials",
     "contact": "Contact",
     "login": "Login",
     "register": "Register",
     "registerCompany": "Register Company",
     "dashboard": "Dashboard",
-    "logout": "Logout"
+    "logout": "Logout",
+    "startFree": "Start Free"
   },
   "landing": {
     "hero": {
-      "title": "Complete Accounting Software",
-      "subtitle": "Manage your business efficiently with a comprehensive accounting system supporting sales, inventory, and HR",
-      "cta": "Start Free Now",
-      "demo": "Watch Demo"
-    },
-    "features": {
-      "title": "Powerful Features for Your Business",
-      "subtitle": "Everything you need in one place",
-      "invoices": {
-        "title": "Invoices & Sales",
-        "description": "Create professional invoices and manage sales and purchases easily"
-      },
-      "inventory": {
-        "title": "Inventory Management",
-        "description": "Track products and warehouses with automatic alerts"
-      },
-      "accounting": {
-        "title": "Accounting",
-        "description": "Journal entries, trial balance, and comprehensive financial reports"
-      },
-      "hr": {
-        "title": "Human Resources",
-        "description": "Manage employees, payroll, attendance, and advances"
-      },
-      "reports": {
-        "title": "Reports",
-        "description": "Detailed reports exportable in multiple formats"
-      },
-      "multiUser": {
-        "title": "Multi-User",
-        "description": "Multi-level permissions for your team"
-      },
-      "branches": {
-        "title": "Multiple Branches",
-        "description": "Manage multiple branches with separate inventory"
-      },
-      "security": {
-        "title": "Security",
-        "description": "Protect your data with highest security standards"
+      "badge": "Complete Cloud ERP System",
+      "title": "Manage Your Entire Business",
+      "titleHighlight": "From One Place",
+      "subtitle": "A comprehensive Arabic cloud ERP system for accounting, HR, inventory, and POS. Designed specifically for small and medium businesses in the Arab world.",
+      "cta": "Start Your Free Trial",
+      "demo": "Watch Demo",
+      "trustedBy": "Arabic companies trust us",
+      "stats": {
+        "companies": "Companies",
+        "users": "Users",
+        "uptime": "Uptime"
       }
     },
-    "activities": {
-      "title": "Supports All Business Types",
-      "commercial": "Commercial",
-      "services": "Services",
-      "industrial": "Industrial",
-      "contracting": "Contracting"
+    "features": {
+      "title": "Why",
+      "titleHighlight": "Nizam",
+      "subtitle": "Everything you need to manage your business in one integrated platform",
+      "highlights": {
+        "arabic": {
+          "title": "100% Arabic",
+          "description": "Complete Arabic interface with RTL support and compatible with Arabic accounting standards"
+        },
+        "secure": {
+          "title": "Secure & Reliable",
+          "description": "Advanced encryption and data protection with automatic daily backups"
+        },
+        "fast": {
+          "title": "Fast & Easy",
+          "description": "Simple and easy-to-use interface without a long learning curve"
+        }
+      },
+      "items": {
+        "accounting": {
+          "title": "Professional Accounting",
+          "description": "General ledger, journal entries, trial balance, and financial statements with ease"
+        },
+        "hr": {
+          "title": "Human Resources Management",
+          "description": "Payroll, attendance, leaves, and advances in one place"
+        },
+        "pos": {
+          "title": "Point of Sale",
+          "description": "Complete POS system for retail with barcode support and electronic invoicing"
+        },
+        "inventory": {
+          "title": "Inventory Management",
+          "description": "Product tracking, multiple warehouses, and automatic alerts"
+        },
+        "invoices": {
+          "title": "Invoices & Sales",
+          "description": "Professional invoices, quotes, and customer & vendor management"
+        },
+        "reports": {
+          "title": "Reports & Analytics",
+          "description": "Detailed reports and interactive charts for better decision making"
+        }
+      },
+      "pills": {
+        "accounting": "Complete Accounting",
+        "hr": "HR Management",
+        "pos": "Point of Sale",
+        "inventory": "Inventory Management"
+      }
+    },
+    "modules": {
+      "title": "Integrated",
+      "titleHighlight": "Modules",
+      "subtitle": "Each module is carefully designed to meet your specific needs",
+      "items": {
+        "accounting": {
+          "title": "Accounting",
+          "description": "General ledger, journal entries, trial balances, financial statements, and VAT",
+          "features": ["Journal Entries", "Trial Balance", "Financial Statements", "VAT"]
+        },
+        "hr": {
+          "title": "Human Resources",
+          "description": "Employee management, payroll, attendance, leaves, and advances",
+          "features": ["Employee Management", "Payroll", "Attendance", "Leaves & Advances"]
+        },
+        "pos": {
+          "title": "Point of Sale",
+          "description": "Complete POS system for retail with barcode, electronic invoicing, and cashier management",
+          "features": ["Cashier System", "Barcode Reader", "E-Invoicing", "Sales Reports"]
+        },
+        "inventory": {
+          "title": "Inventory",
+          "description": "Product management, multiple warehouses, transfers, and automatic alerts",
+          "features": ["Product Management", "Multiple Warehouses", "Quantity Tracking", "Low Stock Alerts"]
+        }
+      },
+      "businessTypes": {
+        "title": "Suitable for All Business Types",
+        "commercial": "Commercial Companies",
+        "services": "Service Companies",
+        "retail": "Retail Stores",
+        "restaurants": "Restaurants & Cafes",
+        "ecommerce": "E-Commerce",
+        "freelancers": "Freelancers & Agencies"
+      }
     },
     "pricing": {
-      "title": "Choose Your Plan",
-      "subtitle": "Competitive prices for all sizes",
-      "monthly": "Monthly",
-      "yearly": "Yearly",
+      "title": "Pricing",
+      "titleHighlight": "Plans",
+      "subtitle": "Choose the plan that fits your business size",
+      "currency": "SAR",
+      "period": "monthly",
       "popular": "Most Popular",
-      "choosePlan": "Choose Plan",
-      "currentPlan": "Current Plan",
-      "features": "Features:",
-      "invoices": "invoices",
-      "entries": "entries",
-      "users": "users",
-      "branches": "branches",
-      "unlimited": "Unlimited",
-      "allFeatures": "All Features",
-      "basicFeatures": "Basic Features",
-      "noHR": "Without HR",
-      "withHR": "With HR",
-      "prioritySupport": "Priority Support"
+      "startNow": "Start Now",
+      "contactUs": "Contact Us",
+      "vatNote": "All prices exclude VAT. You can cancel anytime.",
+      "plans": {
+        "starter": {
+          "name": "Starter",
+          "description": "For small businesses and freelancers",
+          "price": "99",
+          "features": ["1 User", "500 invoices/month", "Basic Accounting", "Limited Reports", "Email Support"],
+          "notIncluded": ["Point of Sale", "Human Resources", "Multiple Branches"]
+        },
+        "business": {
+          "name": "Business",
+          "description": "For small and medium businesses",
+          "price": "249",
+          "features": ["5 Users", "Unlimited Invoices", "Complete Accounting", "Point of Sale", "Inventory Management", "Advanced Reports", "Priority Support"],
+          "notIncluded": ["Human Resources", "Multiple Branches"]
+        },
+        "retail": {
+          "name": "Retail",
+          "description": "For stores and restaurants",
+          "price": "349",
+          "features": ["10 Users", "All Business Features", "Advanced POS", "Multiple Branches (up to 3)", "Multiple Warehouses", "Detailed Reports", "24/7 Support"],
+          "notIncluded": ["Human Resources"]
+        },
+        "enterprise": {
+          "name": "Enterprise",
+          "description": "For large companies",
+          "price": "Contact Us",
+          "features": ["Unlimited Users", "All Features", "Complete HR", "Unlimited Branches", "Full Customization", "API Integration", "Dedicated Account Manager"],
+          "notIncluded": []
+        }
+      }
     },
-    "testimonials": {
-      "title": "What Our Customers Say",
-      "subtitle": "Real reviews from real users"
+    "faq": {
+      "title": "Frequently Asked",
+      "titleHighlight": "Questions",
+      "subtitle": "Answers to the most common questions",
+      "contactCta": "Didn't find an answer?",
+      "contactLink": "Contact our support team",
+      "items": [
+        {
+          "question": "Can I try the system for free?",
+          "answer": "Yes! We offer a 14-day free trial without requiring a credit card. You can explore all features during this period."
+        },
+        {
+          "question": "Does the system support Saudi VAT?",
+          "answer": "Yes, the system is fully compliant with ZATCA requirements. It supports electronic invoice issuance, automatic VAT calculation, and tax return preparation."
+        },
+        {
+          "question": "Can I import my data from another system?",
+          "answer": "Absolutely! We provide easy import tools that support Excel and CSV files. Our support team can also help you migrate data from any other accounting system."
+        },
+        {
+          "question": "Is my data secure?",
+          "answer": "Yes, we use the latest encryption technologies (SSL/TLS) to protect your data. All data is stored in secure data centers with automatic daily backups."
+        },
+        {
+          "question": "Can I upgrade or downgrade my plan later?",
+          "answer": "Yes, you can change your plan anytime from your account settings. When upgrading, the difference will be calculated proportionally. When downgrading, the change takes effect from the next billing period."
+        },
+        {
+          "question": "Does the system support multiple branches?",
+          "answer": "Yes, in the Retail plan and above. You can manage multiple branches with separate warehouses, different permissions per branch, and unified or detailed reports per branch."
+        },
+        {
+          "question": "How does technical support work?",
+          "answer": "We provide technical support through multiple channels: email, live chat, and phone for higher-tier plans. We also offer a comprehensive knowledge base and tutorial videos."
+        },
+        {
+          "question": "Does the POS system work offline?",
+          "answer": "Yes, the POS system supports offline mode. Operations will be saved locally and automatically synced when the connection is restored."
+        }
+      ]
     },
-    "contact": {
-      "title": "Contact Us",
-      "subtitle": "We're here to help",
-      "name": "Full Name",
-      "email": "Email",
-      "phone": "Phone Number",
-      "message": "Message",
-      "send": "Send Message",
-      "success": "Your message was sent successfully!",
-      "bankInfo": "Bank Transfer Information",
-      "bankName": "Bank Name",
-      "accountName": "Account Holder Name",
-      "accountNumber": "Account Number",
-      "iban": "IBAN"
+    "footer": {
+      "description": "A comprehensive Arabic cloud ERP system for accounting, HR, inventory, and POS. Designed specifically for businesses in the Arab world.",
+      "contact": {
+        "email": "info@nizam.app",
+        "phone": "+966 50 123 4567",
+        "address": "Riyadh, Saudi Arabia"
+      },
+      "links": {
+        "product": {
+          "title": "Product",
+          "features": "Features",
+          "modules": "Modules",
+          "pricing": "Pricing",
+          "faq": "FAQ"
+        },
+        "company": {
+          "title": "Company",
+          "about": "About Us",
+          "blog": "Blog",
+          "careers": "Careers",
+          "partners": "Partners"
+        },
+        "support": {
+          "title": "Support",
+          "help": "Help Center",
+          "docs": "Documentation",
+          "contact": "Contact Us",
+          "status": "System Status"
+        },
+        "legal": {
+          "title": "Legal",
+          "privacy": "Privacy Policy",
+          "terms": "Terms & Conditions",
+          "usage": "Usage Agreement"
+        }
+      },
+      "copyright": "Nizam. All rights reserved.",
+      "madeIn": "Made with ❤️ in Saudi Arabia"
     },
-    "cta": {
-      "title": "Start Your Journey Now",
-      "subtitle": "Try the software for free without a credit card",
-      "button": "Create Free Account"
+    "dashboard": {
+      "newInvoice": "New Invoice",
+      "salesReport": "Sales Report",
+      "salesGrowth": "Sales Growth"
     }
   },
   "auth": {

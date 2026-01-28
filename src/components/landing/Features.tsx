@@ -1,63 +1,66 @@
+import { useTranslation } from "react-i18next";
 import { Calculator, Users, ShoppingCart, Package, Receipt, FileText, Globe, Shield, Zap } from "lucide-react";
 
-const highlights = [
-  {
-    icon: Globe,
-    title: "عربي 100%",
-    description: "واجهة عربية كاملة مع دعم RTL ومتوافق مع المعايير المحاسبية العربية",
-  },
-  {
-    icon: Shield,
-    title: "آمن وموثوق",
-    description: "تشفير متقدم وحماية للبيانات مع نسخ احتياطي يومي تلقائي",
-  },
-  {
-    icon: Zap,
-    title: "سريع وسهل",
-    description: "واجهة بسيطة وسهلة الاستخدام بدون منحنى تعلم طويل",
-  },
-];
-
-const features = [
-  {
-    icon: Calculator,
-    title: "محاسبة احترافية",
-    description: "دفتر أستاذ، قيود يومية، ميزان مراجعة، والقوائم المالية بسهولة تامة",
-    color: "from-blue-500 to-blue-600",
-  },
-  {
-    icon: Users,
-    title: "إدارة الموارد البشرية",
-    description: "الرواتب، الحضور والانصراف، الإجازات، والسلف في مكان واحد",
-    color: "from-purple-500 to-purple-600",
-  },
-  {
-    icon: ShoppingCart,
-    title: "نقاط البيع",
-    description: "نظام POS متكامل للتجزئة مع دعم الباركود والفواتير الإلكترونية",
-    color: "from-orange-500 to-orange-600",
-  },
-  {
-    icon: Package,
-    title: "إدارة المخزون",
-    description: "تتبع المنتجات، المستودعات المتعددة، والتنبيهات التلقائية",
-    color: "from-green-500 to-green-600",
-  },
-  {
-    icon: Receipt,
-    title: "الفواتير والمبيعات",
-    description: "فواتير احترافية، عروض أسعار، وإدارة العملاء والموردين",
-    color: "from-teal-500 to-teal-600",
-  },
-  {
-    icon: FileText,
-    title: "التقارير والتحليلات",
-    description: "تقارير مفصلة ورسوم بيانية تفاعلية لاتخاذ قرارات أفضل",
-    color: "from-pink-500 to-pink-600",
-  },
-];
-
 export const Features = () => {
+  const { t } = useTranslation();
+
+  const highlights = [
+    {
+      icon: Globe,
+      title: t("landing.features.highlights.arabic.title"),
+      description: t("landing.features.highlights.arabic.description"),
+    },
+    {
+      icon: Shield,
+      title: t("landing.features.highlights.secure.title"),
+      description: t("landing.features.highlights.secure.description"),
+    },
+    {
+      icon: Zap,
+      title: t("landing.features.highlights.fast.title"),
+      description: t("landing.features.highlights.fast.description"),
+    },
+  ];
+
+  const features = [
+    {
+      icon: Calculator,
+      title: t("landing.features.items.accounting.title"),
+      description: t("landing.features.items.accounting.description"),
+      color: "from-blue-500 to-blue-600",
+    },
+    {
+      icon: Users,
+      title: t("landing.features.items.hr.title"),
+      description: t("landing.features.items.hr.description"),
+      color: "from-purple-500 to-purple-600",
+    },
+    {
+      icon: ShoppingCart,
+      title: t("landing.features.items.pos.title"),
+      description: t("landing.features.items.pos.description"),
+      color: "from-orange-500 to-orange-600",
+    },
+    {
+      icon: Package,
+      title: t("landing.features.items.inventory.title"),
+      description: t("landing.features.items.inventory.description"),
+      color: "from-green-500 to-green-600",
+    },
+    {
+      icon: Receipt,
+      title: t("landing.features.items.invoices.title"),
+      description: t("landing.features.items.invoices.description"),
+      color: "from-teal-500 to-teal-600",
+    },
+    {
+      icon: FileText,
+      title: t("landing.features.items.reports.title"),
+      description: t("landing.features.items.reports.description"),
+      color: "from-pink-500 to-pink-600",
+    },
+  ];
+
   return (
     <section id="features" className="section-padding bg-background relative">
       {/* Background Decoration */}
@@ -67,10 +70,10 @@ export const Features = () => {
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold">
-            لماذا <span className="gradient-text">نظام</span>؟
+            {t("landing.features.title")} <span className="gradient-text">{t("landing.features.titleHighlight")}</span>?
           </h2>
           <p className="text-lg text-muted-foreground">
-            كل ما تحتاجه لإدارة أعمالك في منصة واحدة متكاملة
+            {t("landing.features.subtitle")}
           </p>
         </div>
 
