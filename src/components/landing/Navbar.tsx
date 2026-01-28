@@ -49,7 +49,7 @@ export const Navbar = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:shadow-xl transition-shadow">
-              ن
+              ك
             </div>
             <span className="text-xl font-bold text-foreground">{t("common.appName")}</span>
           </Link>
