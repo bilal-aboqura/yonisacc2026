@@ -283,6 +283,20 @@
       "copyright": "Nizam. All rights reserved.",
       "madeIn": "Made with ❤️ in Saudi Arabia"
     },
+    "contact": {
+      "title": "Contact Us",
+      "subtitle": "We're here to help. Send us a message and we'll get back to you soon",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "message": "Message",
+      "send": "Send Message",
+      "bankInfo": "Bank Account Information",
+      "bankName": "Bank Name",
+      "accountName": "Account Holder Name",
+      "accountNumber": "Account Number",
+      "iban": "IBAN"
+    },
     "dashboard": {
       "newInvoice": "New Invoice",
       "salesReport": "Sales Report",
