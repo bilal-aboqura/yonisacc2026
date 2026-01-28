@@ -347,7 +347,40 @@
       "description": "Description",
       "debit": "Debit",
       "credit": "Credit",
-      "actions": "Actions"
+      "actions": "Actions",
+      "create": {
+        "title": "New Journal Entry",
+        "subtitle": "Record a manual accounting entry",
+        "entryDetails": "Entry Details",
+        "entryNumber": "Entry Number",
+        "entryDate": "Entry Date",
+        "statement": "Statement",
+        "statementPlaceholder": "Entry description...",
+        "entryLines": "Entry Lines",
+        "addLine": "Add Line",
+        "account": "Account",
+        "selectAccount": "Select Account",
+        "lineDescription": "Description",
+        "lineDescriptionPlaceholder": "Description...",
+        "total": "Total",
+        "balanced": "Entry is balanced ✓",
+        "unbalanced": "Entry is not balanced - Difference:",
+        "currency": "SAR",
+        "additionalNotes": "Additional Notes",
+        "notesPlaceholder": "Any additional notes...",
+        "saveAsDraft": "Save as Draft",
+        "post": "Post Entry",
+        "errors": {
+          "loadingData": "Error loading data",
+          "minTwoLines": "At least two lines with valid accounts and amounts are required",
+          "notBalanced": "Entry is not balanced - Debit total must equal Credit total",
+          "savingEntry": "Error saving entry"
+        },
+        "success": {
+          "savedAsDraft": "Entry saved as draft",
+          "posted": "Entry posted successfully"
+        }
+      }
     },
     "generalLedger": {
       "title": "General Ledger",

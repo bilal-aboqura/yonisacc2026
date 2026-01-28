@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import {
   ArrowRight,
+  ArrowLeft,
   Plus,
   Trash2,
   Save,
@@ -34,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface Account {
   id: string;
@@ -56,6 +59,8 @@ interface EntryLine {
 const CreateJournalEntry = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
+  const { isRTL, currentLanguage } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,6 +75,8 @@ const CreateJournalEntry = () => {
     { id: crypto.randomUUID(), account_id: "", account_name: "", description: "", debit: 0, credit: 0 },
     { id: crypto.randomUUID(), account_id: "", account_name: "", description: "", debit: 0, credit: 0 },
   ]);
+
+  const BackIcon = isRTL ? ArrowRight : ArrowLeft;
 
   useEffect(() => {
     if (user) {
@@ -109,13 +116,18 @@ const CreateJournalEntry = () => {
     } catch (error: any) {
       console.error("Error fetching data:", error);
       toast({
-        title: "خطأ",
-        description: "حدث خطأ في تحميل البيانات",
+        title: t("common.error"),
+        description: t("client.journal.create.errors.loadingData"),
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const getAccountDisplayName = (account: Account) => {
+    const name = currentLanguage === "en" && account.name_en ? account.name_en : account.name;
+    return `${account.code} - ${name}`;
   };
 
   const updateLine = (id: string, field: keyof EntryLine, value: any) => {
@@ -126,7 +138,7 @@ const CreateJournalEntry = () => {
           // If selecting account, update account name
           if (field === "account_id") {
             const account = accounts.find((a) => a.id === value);
-            updated.account_name = account ? `${account.code} - ${account.name}` : "";
+            updated.account_name = account ? getAccountDisplayName(account) : "";
           }
           // If entering debit, clear credit
           if (field === "debit" && value > 0) {
@@ -166,8 +178,8 @@ const CreateJournalEntry = () => {
 
     if (validLines.length < 2) {
       toast({
-        title: "خطأ",
-        description: "يجب إدخال سطرين على الأقل بحسابات ومبالغ صحيحة",
+        title: t("common.error"),
+        description: t("client.journal.create.errors.minTwoLines"),
         variant: "destructive",
       });
       return;
@@ -175,8 +187,8 @@ const CreateJournalEntry = () => {
 
     if (!isBalanced) {
       toast({
-        title: "خطأ",
-        description: "القيد غير متوازن - يجب أن يتساوى إجمالي المدين مع إجمالي الدائن",
+        title: t("common.error"),
+        description: t("client.journal.create.errors.notBalanced"),
         variant: "destructive",
       });
       return;
@@ -217,16 +229,18 @@ const CreateJournalEntry = () => {
       if (linesError) throw linesError;
 
       toast({
-        title: "تم الحفظ",
-        description: status === "draft" ? "تم حفظ القيد كمسودة" : "تم ترحيل القيد بنجاح",
+        title: t("common.success"),
+        description: status === "draft" 
+          ? t("client.journal.create.success.savedAsDraft") 
+          : t("client.journal.create.success.posted"),
       });
 
       navigate("/client/journal");
     } catch (error: any) {
       console.error("Error saving entry:", error);
       toast({
-        title: "خطأ",
-        description: "حدث خطأ في حفظ القيد",
+        title: t("common.error"),
+        description: t("client.journal.create.errors.savingEntry"),
         variant: "destructive",
       });
     } finally {
@@ -243,26 +257,26 @@ const CreateJournalEntry = () => {
   }
 
   return (
-    <div className="space-y-6 rtl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/client/journal")}>
-            <ArrowRight className="h-5 w-5" />
+            <BackIcon className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">قيد يومية جديد</h1>
-            <p className="text-muted-foreground">تسجيل قيد محاسبي يدوي</p>
+            <h1 className="text-2xl font-bold">{t("client.journal.create.title")}</h1>
+            <p className="text-muted-foreground">{t("client.journal.create.subtitle")}</p>
           </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => handleSave("draft")} disabled={saving}>
-            حفظ كمسودة
+            {t("client.journal.create.saveAsDraft")}
           </Button>
           <Button onClick={() => handleSave("posted")} disabled={saving || !isBalanced}>
-            {saving && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
-            <Save className="h-4 w-4 ml-2" />
-            ترحيل القيد
+            {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+            <Save className="h-4 w-4 me-2" />
+            {t("client.journal.create.post")}
           </Button>
         </div>
       </div>
@@ -272,24 +286,24 @@ const CreateJournalEntry = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
-            بيانات القيد
+            {t("client.journal.create.entryDetails")}
           </CardTitle>
         </CardHeader>
         <CardContent className="grid md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label>رقم القيد</Label>
+            <Label>{t("client.journal.create.entryNumber")}</Label>
             <Input value={entryNumber} onChange={(e) => setEntryNumber(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>تاريخ القيد</Label>
+            <Label>{t("client.journal.create.entryDate")}</Label>
             <Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>البيان</Label>
+            <Label>{t("client.journal.create.statement")}</Label>
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="وصف القيد..."
+              placeholder={t("client.journal.create.statementPlaceholder")}
             />
           </div>
         </CardContent>
@@ -298,20 +312,20 @@ const CreateJournalEntry = () => {
       {/* Entry Lines */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>سطور القيد</CardTitle>
+          <CardTitle>{t("client.journal.create.entryLines")}</CardTitle>
           <Button size="sm" variant="outline" onClick={addLine} className="gap-2">
             <Plus className="h-4 w-4" />
-            إضافة سطر
+            {t("client.journal.create.addLine")}
           </Button>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[300px]">الحساب</TableHead>
-                <TableHead>البيان</TableHead>
-                <TableHead className="w-32">مدين</TableHead>
-                <TableHead className="w-32">دائن</TableHead>
+                <TableHead className="w-[300px]">{t("client.journal.create.account")}</TableHead>
+                <TableHead>{t("client.journal.create.lineDescription")}</TableHead>
+                <TableHead className="w-32">{t("client.journal.debit")}</TableHead>
+                <TableHead className="w-32">{t("client.journal.credit")}</TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
@@ -321,12 +335,12 @@ const CreateJournalEntry = () => {
                   <TableCell>
                     <Select value={line.account_id} onValueChange={(v) => updateLine(line.id, "account_id", v)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="اختر الحساب" />
+                        <SelectValue placeholder={t("client.journal.create.selectAccount")} />
                       </SelectTrigger>
                       <SelectContent>
                         {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
-                            {account.code} - {account.name}
+                            {getAccountDisplayName(account)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -336,7 +350,7 @@ const CreateJournalEntry = () => {
                     <Input
                       value={line.description}
                       onChange={(e) => updateLine(line.id, "description", e.target.value)}
-                      placeholder="الوصف..."
+                      placeholder={t("client.journal.create.lineDescriptionPlaceholder")}
                     />
                   </TableCell>
                   <TableCell>
@@ -373,8 +387,8 @@ const CreateJournalEntry = () => {
               ))}
               {/* Totals Row */}
               <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={2} className="text-left">
-                  الإجمالي
+                <TableCell colSpan={2} className={isRTL ? "text-left" : "text-right"}>
+                  {t("client.journal.create.total")}
                 </TableCell>
                 <TableCell className="text-center">{totalDebit.toFixed(2)}</TableCell>
                 <TableCell className="text-center">{totalCredit.toFixed(2)}</TableCell>
@@ -389,14 +403,14 @@ const CreateJournalEntry = () => {
               <Alert className="border-green-500/50 bg-green-500/10">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                 <AlertDescription className="text-green-700 dark:text-green-400">
-                  القيد متوازن ✓
+                  {t("client.journal.create.balanced")}
                 </AlertDescription>
               </Alert>
             ) : totalDebit > 0 || totalCredit > 0 ? (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  القيد غير متوازن - الفرق: {Math.abs(totalDebit - totalCredit).toFixed(2)} ر.س
+                  {t("client.journal.create.unbalanced")} {Math.abs(totalDebit - totalCredit).toFixed(2)} {t("client.journal.create.currency")}
                 </AlertDescription>
               </Alert>
             ) : null}
@@ -407,10 +421,10 @@ const CreateJournalEntry = () => {
       {/* Notes */}
       <Card>
         <CardHeader>
-          <CardTitle>ملاحظات إضافية</CardTitle>
+          <CardTitle>{t("client.journal.create.additionalNotes")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Textarea placeholder="أي ملاحظات إضافية..." rows={3} />
+          <Textarea placeholder={t("client.journal.create.notesPlaceholder")} rows={3} />
         </CardContent>
       </Card>
     </div>
