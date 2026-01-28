@@ -29,7 +29,21 @@
     "success": "تم بنجاح",
     "error": "حدث خطأ",
     "warning": "تحذير",
-    "info": "معلومات"
+    "info": "معلومات",
+    "currency": "ر.س",
+    "total": "الإجمالي",
+    "balance": "الرصيد",
+    "amount": "المبلغ",
+    "date": "التاريخ",
+    "status": "الحالة",
+    "actions": "الإجراءات",
+    "notes": "ملاحظات",
+    "description": "الوصف",
+    "debit": "مدين",
+    "credit": "دائن",
+    "difference": "الفرق",
+    "balanced": "متوازن",
+    "notBalanced": "غير متوازن"
   },
   "nav": {
     "home": "الرئيسية",

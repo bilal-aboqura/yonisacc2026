@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Download, ShoppingCart } from "lucide-react";
 
 const ClientPurchases = () => {
+  const { t } = useTranslation();
   const { isRTL } = useLanguage();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -56,11 +58,11 @@ const ClientPurchases = () => {
             <div className="flex gap-2">
               <Button variant="outline" className="gap-2">
                 <Filter className="h-4 w-4" />
-                {isRTL ? "تصفية" : "Filter"}
+                {t("common.filter")}
               </Button>
               <Button variant="outline" className="gap-2">
                 <Download className="h-4 w-4" />
-                {isRTL ? "تصدير" : "Export"}
+                {t("common.export")}
               </Button>
             </div>
           </div>
@@ -95,11 +97,11 @@ const ClientPurchases = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>{isRTL ? "رقم الفاتورة" : "Invoice #"}</TableHead>
-                  <TableHead>{isRTL ? "التاريخ" : "Date"}</TableHead>
+                  <TableHead>{t("common.date")}</TableHead>
                   <TableHead>{isRTL ? "المورد" : "Vendor"}</TableHead>
-                  <TableHead>{isRTL ? "المبلغ" : "Amount"}</TableHead>
-                  <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-                  <TableHead>{isRTL ? "الإجراءات" : "Actions"}</TableHead>
+                  <TableHead>{t("common.amount")}</TableHead>
+                  <TableHead>{t("common.status")}</TableHead>
+                  <TableHead>{t("common.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -108,7 +110,7 @@ const ClientPurchases = () => {
                     <TableCell className="font-medium">{invoice.number}</TableCell>
                     <TableCell>{invoice.date}</TableCell>
                     <TableCell>{invoice.vendor}</TableCell>
-                    <TableCell>{invoice.amount} ر.س</TableCell>
+                    <TableCell>{invoice.amount} {t("common.currency")}</TableCell>
                     <TableCell>
                       <Badge variant={invoice.status === "paid" ? "default" : "secondary"}>
                         {invoice.status === "paid" ? (isRTL ? "مدفوعة" : "Paid") : (isRTL ? "معلقة" : "Pending")}
@@ -116,7 +118,7 @@ const ClientPurchases = () => {
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm">
-                        {isRTL ? "عرض" : "View"}
+                        {t("common.view")}
                       </Button>
                     </TableCell>
                   </TableRow>

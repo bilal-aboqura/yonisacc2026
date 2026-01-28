@@ -1,11 +1,13 @@
 import { forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wallet, Plus, ArrowUpRight, ArrowDownRight, Building2 } from "lucide-react";
 
 const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
+  const { t } = useTranslation();
   const { isRTL } = useLanguage();
   const navigate = useNavigate();
 
@@ -63,7 +65,7 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
             </div>
             <div>
               <p className="text-muted-foreground">{isRTL ? "إجمالي الرصيد" : "Total Balance"}</p>
-              <p className="text-3xl font-bold">0 ر.س</p>
+              <p className="text-3xl font-bold">0 {t("common.currency")}</p>
             </div>
           </div>
         </CardContent>
@@ -84,7 +86,7 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{account.balance.toLocaleString()} ر.س</p>
+              <p className="text-2xl font-bold">{account.balance.toLocaleString()} {t("common.currency")}</p>
               <div className="flex gap-2 mt-4">
                 <Button variant="outline" size="sm" className="flex-1 gap-1">
                   <ArrowUpRight className="h-3 w-3" />

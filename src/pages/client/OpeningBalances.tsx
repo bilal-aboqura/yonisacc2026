@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/hooks/useLanguage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight,
+  ArrowLeft,
   Save,
   FileSpreadsheet,
   Loader2,
@@ -149,6 +152,8 @@ AccountBalanceRow.displayName = "AccountBalanceRow";
 const OpeningBalances = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -156,6 +161,8 @@ const OpeningBalances = () => {
   const [flatAccounts, setFlatAccounts] = useState<Account[]>([]);
   const [balances, setBalances] = useState<Map<string, OpeningBalance>>(new Map());
   const [expandedAccounts, setExpandedAccounts] = useState<string[]>([]);
+
+  const BackIcon = isRTL ? ArrowRight : ArrowLeft;
 
   useEffect(() => {
     if (!user) {
@@ -425,29 +432,29 @@ const OpeningBalances = () => {
   }
 
   return (
-    <div className="space-y-4 rtl">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/client/accounts")}>
-            <ArrowRight className="h-5 w-5" />
+            <BackIcon className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">الأرصدة الافتتاحية</h1>
-            <p className="text-muted-foreground text-sm">إدخال أرصدة الحسابات في بداية الفترة</p>
+            <h1 className="text-2xl font-bold">{t("client.openingBalances.title")}</h1>
+            <p className="text-muted-foreground text-sm">{t("client.openingBalances.subtitle")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={expandAll}>
-            توسيع الكل
+            {isRTL ? "توسيع الكل" : "Expand All"}
           </Button>
           <Button variant="outline" size="sm" onClick={collapseAll}>
-            طي الكل
+            {isRTL ? "طي الكل" : "Collapse All"}
           </Button>
           <Button onClick={handleSave} disabled={saving || !isBalanced}>
-            {saving && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
-            <Save className="h-4 w-4 ml-2" />
-            حفظ الأرصدة
+            {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+            <Save className="h-4 w-4 me-2" />
+            {t("common.save")}
           </Button>
         </div>
       </div>
@@ -464,23 +471,23 @@ const OpeningBalances = () => {
               )}
               <div>
                 <p className="font-medium">
-                  {isBalanced ? "الأرصدة متوازنة" : "الأرصدة غير متوازنة"}
+                  {isBalanced ? t("common.balanced") : t("common.notBalanced")}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {isBalanced
-                    ? "يمكنك حفظ الأرصدة الافتتاحية"
-                    : `يوجد فرق ${formatCurrency(difference)} ر.س`}
+                    ? (isRTL ? "يمكنك حفظ الأرصدة الافتتاحية" : "You can save the opening balances")
+                    : `${t("common.difference")}: ${formatCurrency(difference)} ${t("common.currency")}`}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-8 text-sm">
               <div className="text-center">
-                <p className="text-muted-foreground">إجمالي المدين</p>
-                <p className="font-bold text-lg">{formatCurrency(totalDebit)} ر.س</p>
+                <p className="text-muted-foreground">{t("common.debit")} {t("common.total")}</p>
+                <p className="font-bold text-lg">{formatCurrency(totalDebit)} {t("common.currency")}</p>
               </div>
               <div className="text-center">
-                <p className="text-muted-foreground">إجمالي الدائن</p>
-                <p className="font-bold text-lg">{formatCurrency(totalCredit)} ر.س</p>
+                <p className="text-muted-foreground">{t("common.credit")} {t("common.total")}</p>
+                <p className="font-bold text-lg">{formatCurrency(totalCredit)} {t("common.currency")}</p>
               </div>
             </div>
           </div>
@@ -492,25 +499,25 @@ const OpeningBalances = () => {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <FileSpreadsheet className="h-5 w-5" />
-            شجرة الحسابات
+            {isRTL ? "شجرة الحسابات" : "Chart of Accounts"}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {/* Header Row */}
           <div className="flex items-center gap-2 p-3 bg-muted/50 border-b font-medium text-sm sticky top-0">
             <div className="w-6 shrink-0"></div>
-            <span className="w-14 shrink-0">الرمز</span>
-            <div className="flex-1">اسم الحساب</div>
-            <span className="w-20 shrink-0">النوع</span>
-            <span className="w-28 text-center shrink-0">مدين</span>
-            <span className="w-28 text-center shrink-0">دائن</span>
+            <span className="w-14 shrink-0">{isRTL ? "الرمز" : "Code"}</span>
+            <div className="flex-1">{isRTL ? "اسم الحساب" : "Account Name"}</div>
+            <span className="w-20 shrink-0">{isRTL ? "النوع" : "Type"}</span>
+            <span className="w-28 text-center shrink-0">{t("common.debit")}</span>
+            <span className="w-28 text-center shrink-0">{t("common.credit")}</span>
           </div>
 
           {/* Accounts Tree */}
           <div className="max-h-[60vh] overflow-y-auto">
             {accountsTree.length === 0 ? (
               <div className="text-center text-muted-foreground py-12">
-                لا توجد حسابات
+                {isRTL ? "لا توجد حسابات" : "No accounts found"}
               </div>
             ) : (
               accountsTree.map((account) => renderAccount(account, 0))
@@ -521,7 +528,7 @@ const OpeningBalances = () => {
           <div className="flex items-center gap-2 p-3 bg-muted/70 border-t font-bold sticky bottom-0">
             <div className="w-6 shrink-0"></div>
             <span className="w-14 shrink-0"></span>
-            <div className="flex-1">الإجمالي</div>
+            <div className="flex-1">{t("common.total")}</div>
             <span className="w-20 shrink-0"></span>
             <span className="w-28 text-center shrink-0">{formatCurrency(totalDebit)}</span>
             <span className="w-28 text-center shrink-0">{formatCurrency(totalCredit)}</span>
