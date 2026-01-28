@@ -3,28 +3,106 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/hooks/useLanguage";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface Plan {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  description_ar: string | null;
+  description_en: string | null;
+  price: number;
+  max_invoices: number | null;
+  max_entries: number | null;
+  max_users: number | null;
+  max_branches: number | null;
+  is_active: boolean;
+  sort_order: number | null;
+}
 
 export const Pricing = () => {
   const { t } = useTranslation();
+  const { isRTL } = useLanguage();
 
-  const plans = [
-    {
-      key: "starter",
-      popular: false,
+  const { data: plans, isLoading } = useQuery({
+    queryKey: ["subscription-plans"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("subscription_plans")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order");
+      
+      if (error) throw error;
+      return data as Plan[];
     },
-    {
-      key: "business",
-      popular: true,
-    },
-    {
-      key: "retail",
-      popular: false,
-    },
-    {
-      key: "enterprise",
-      popular: false,
-    },
-  ];
+  });
+
+  const getFeatures = (plan: Plan): string[] => {
+    const features: string[] = [];
+    
+    if (plan.max_invoices) {
+      features.push(isRTL 
+        ? `${plan.max_invoices} فاتورة` 
+        : `${plan.max_invoices} Invoices`);
+    } else {
+      features.push(isRTL ? "فواتير غير محدودة" : "Unlimited Invoices");
+    }
+    
+    if (plan.max_entries) {
+      features.push(isRTL 
+        ? `${plan.max_entries} قيد محاسبي` 
+        : `${plan.max_entries} Journal Entries`);
+    } else {
+      features.push(isRTL ? "قيود غير محدودة" : "Unlimited Entries");
+    }
+    
+    if (plan.max_users) {
+      features.push(isRTL 
+        ? `${plan.max_users} مستخدم` 
+        : `${plan.max_users} Users`);
+    } else {
+      features.push(isRTL ? "مستخدمين غير محدود" : "Unlimited Users");
+    }
+    
+    if (plan.max_branches) {
+      features.push(isRTL 
+        ? `${plan.max_branches} فرع` 
+        : `${plan.max_branches} Branches`);
+    } else {
+      features.push(isRTL ? "فروع غير محدودة" : "Unlimited Branches");
+    }
+
+    return features;
+  };
+
+  const isPopular = (index: number) => index === 1;
+  const isEnterprise = (plan: Plan) => plan.price === 0 && !plan.max_invoices;
+
+  if (isLoading) {
+    return (
+      <section id="pricing" className="section-padding bg-background relative">
+        <div className="container-custom relative z-10">
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold">
+              {t("landing.pricing.title")} <span className="gradient-text">{t("landing.pricing.titleHighlight")}</span>
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              {t("landing.pricing.subtitle")}
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-[400px] rounded-3xl" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="pricing" className="section-padding bg-background relative">
@@ -44,27 +122,23 @@ export const Pricing = () => {
 
         {/* Pricing Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {plans.map((plan, index) => {
-            const planData = {
-              name: t(`landing.pricing.plans.${plan.key}.name`),
-              description: t(`landing.pricing.plans.${plan.key}.description`),
-              price: t(`landing.pricing.plans.${plan.key}.price`),
-              features: t(`landing.pricing.plans.${plan.key}.features`, { returnObjects: true }) as string[],
-              notIncluded: t(`landing.pricing.plans.${plan.key}.notIncluded`, { returnObjects: true }) as string[],
-            };
-            const hasPrice = plan.key !== "enterprise";
+          {plans?.map((plan, index) => {
+            const features = getFeatures(plan);
+            const popular = isPopular(index);
+            const enterprise = isEnterprise(plan);
+            const hasPrice = plan.price > 0 || !enterprise;
 
             return (
               <div
-                key={index}
+                key={plan.id}
                 className={cn(
                   "rounded-3xl p-6 card-hover relative",
-                  plan.popular
+                  popular
                     ? "bg-gradient-to-b from-primary/10 to-primary/5 border-2 border-primary shadow-xl"
                     : "glass-card"
                 )}
               >
-                {plan.popular && (
+                {popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="px-4 py-1 rounded-full gradient-primary text-white text-sm font-medium shadow-lg">
                       {t("landing.pricing.popular")}
@@ -75,38 +149,38 @@ export const Pricing = () => {
                 <div className="space-y-6">
                   {/* Plan Header */}
                   <div className="text-center pt-4">
-                    <h3 className="text-xl font-bold mb-1">{planData.name}</h3>
-                    <p className="text-sm text-muted-foreground">{planData.description}</p>
+                    <h3 className="text-xl font-bold mb-1">
+                      {isRTL ? plan.name_ar : plan.name_en}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {isRTL ? plan.description_ar : plan.description_en}
+                    </p>
                   </div>
 
                   {/* Price */}
                   <div className="text-center">
-                    {hasPrice ? (
+                    {hasPrice && !enterprise ? (
                       <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-4xl font-bold gradient-text">{planData.price}</span>
+                        <span className="text-4xl font-bold gradient-text">{plan.price}</span>
                         <span className="text-muted-foreground">{t("landing.pricing.currency")}/{t("landing.pricing.period")}</span>
                       </div>
+                    ) : enterprise ? (
+                      <span className="text-2xl font-bold gradient-text">{t("landing.pricing.plans.enterprise.price")}</span>
                     ) : (
-                      <span className="text-2xl font-bold gradient-text">{planData.price}</span>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-4xl font-bold gradient-text">{isRTL ? "مجاني" : "Free"}</span>
+                      </div>
                     )}
                   </div>
 
                   {/* Features */}
                   <ul className="space-y-3">
-                    {planData.features.map((feature, i) => (
+                    {features.map((feature, i) => (
                       <li key={i} className="flex items-center gap-3">
-                        <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-3 h-3 text-green-500" />
+                        <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                          <Check className="w-3 h-3 text-accent" />
                         </div>
                         <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                    {planData.notIncluded.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-3 opacity-50">
-                        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs">-</span>
-                        </div>
-                        <span className="text-sm line-through">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -116,12 +190,12 @@ export const Pricing = () => {
                     <Button
                       className={cn(
                         "w-full rounded-xl h-12",
-                        plan.popular
+                        popular
                           ? "gradient-primary text-white btn-primary-shadow"
                           : "bg-muted hover:bg-muted/80"
                       )}
                     >
-                      {hasPrice ? t("landing.pricing.startNow") : t("landing.pricing.contactUs")}
+                      {enterprise ? t("landing.pricing.contactUs") : t("landing.pricing.startNow")}
                     </Button>
                   </Link>
                 </div>
