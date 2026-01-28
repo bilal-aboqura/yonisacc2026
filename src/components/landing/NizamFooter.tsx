@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { Mail, Phone, MapPin } from "lucide-react";
 
-const footerLinks = {
-  product: {
+const footerLinks = [
+  {
     title: "المنتج",
     links: [
       { label: "المميزات", href: "#features" },
@@ -11,7 +11,7 @@ const footerLinks = {
       { label: "الأسئلة الشائعة", href: "#faq" },
     ],
   },
-  company: {
+  {
     title: "الشركة",
     links: [
       { label: "من نحن", href: "#" },
@@ -20,7 +20,7 @@ const footerLinks = {
       { label: "الشراكات", href: "#" },
     ],
   },
-  support: {
+  {
     title: "الدعم",
     links: [
       { label: "مركز المساعدة", href: "#" },
@@ -29,7 +29,7 @@ const footerLinks = {
       { label: "حالة النظام", href: "#" },
     ],
   },
-  legal: {
+  {
     title: "قانوني",
     links: [
       { label: "سياسة الخصوصية", href: "#" },
@@ -37,7 +37,7 @@ const footerLinks = {
       { label: "اتفاقية الاستخدام", href: "#" },
     ],
   },
-};
+];
 
 const socialLinks = [
   { label: "Twitter", href: "#", icon: "𝕏" },
@@ -58,7 +58,7 @@ export const NizamFooter = () => {
   return (
     <footer id="contact" className="bg-sidebar-background text-sidebar-foreground">
       <div className="container-custom section-padding">
-        <div className="grid lg:grid-cols-5 gap-12 mb-12">
+        <div className="grid lg:grid-cols-6 gap-8 mb-12">
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-6">
             {/* Logo */}
@@ -106,7 +106,7 @@ export const NizamFooter = () => {
           </div>
 
           {/* Links Columns */}
-          {Object.values(footerLinks).map((section, index) => (
+          {footerLinks.map((section, index) => (
             <div key={index} className="space-y-4">
               <h4 className="font-bold text-lg">{section.title}</h4>
               <ul className="space-y-3">
