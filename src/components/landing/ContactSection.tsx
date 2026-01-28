@@ -8,10 +8,19 @@ import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/hooks/useLanguage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { z } from "zod";
 import { 
   Send, Building2, CreditCard, Hash, Landmark,
   Phone, Mail, MapPin, Loader2
 } from "lucide-react";
+
+// Validation schema
+const contactSchema = z.object({
+  name: z.string().trim().min(2, { message: "الاسم يجب أن يكون حرفين على الأقل" }).max(100),
+  email: z.string().trim().email({ message: "البريد الإلكتروني غير صالح" }).max(255),
+  phone: z.string().optional(),
+  message: z.string().trim().min(10, { message: "الرسالة يجب أن تكون 10 أحرف على الأقل" }).max(1000),
+});
 
 export const ContactSection = () => {
   const { t } = useTranslation();
@@ -23,21 +32,66 @@ export const ContactSection = () => {
     phone: "",
     message: ""
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+
+    // Validate form data
+    const result = contactSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach(err => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const { error } = await supabase
         .from("contact_messages")
-        .insert([formData]);
+        .insert([{
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone?.trim() || null,
+          message: formData.message.trim(),
+        }]);
 
       if (error) throw error;
 
+      // Send notifications via edge function
+      try {
+        await supabase.functions.invoke("send-contact-notification", {
+          body: {
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            phone: formData.phone?.trim() || "",
+            message: formData.message.trim(),
+          },
+        });
+      } catch (notifyError) {
+        console.error("Notification error:", notifyError);
+        // Don't fail the form submission if notifications fail
+      }
+
       toast({
         title: isRTL ? "تم الإرسال" : "Sent",
-        description: t("landing.contact.success"),
+        description: isRTL ? "تم إرسال رسالتك بنجاح، سنتواصل معك قريباً" : "Your message has been sent successfully",
       });
 
       setFormData({ name: "", email: "", phone: "", message: "" });
@@ -73,50 +127,68 @@ export const ContactSection = () => {
             <CardContent className="p-8">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">{t("landing.contact.name")}</Label>
+                  <Label htmlFor="name">{t("landing.contact.name")} <span className="text-destructive">*</span></Label>
                   <Input
                     id="name"
+                    name="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    className="h-12"
+                    onChange={handleChange}
+                    className={`h-12 ${errors.name ? "border-destructive" : ""}`}
+                    disabled={isLoading}
+                    placeholder={isRTL ? "أدخل اسمك" : "Enter your name"}
                   />
+                  {errors.name && (
+                    <p className="text-sm text-destructive">{errors.name}</p>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">{t("landing.contact.email")}</Label>
+                    <Label htmlFor="email">{t("landing.contact.email")} <span className="text-destructive">*</span></Label>
                     <Input
                       id="email"
+                      name="email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                      className="h-12"
+                      onChange={handleChange}
+                      className={`h-12 ${errors.email ? "border-destructive" : ""}`}
+                      disabled={isLoading}
+                      placeholder={isRTL ? "أدخل بريدك الإلكتروني" : "Enter your email"}
                     />
+                    {errors.email && (
+                      <p className="text-sm text-destructive">{errors.email}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">{t("landing.contact.phone")}</Label>
                     <Input
                       id="phone"
+                      name="phone"
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={handleChange}
                       className="h-12"
+                      disabled={isLoading}
+                      placeholder={isRTL ? "أدخل رقم جوالك" : "Enter your phone"}
                     />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="message">{t("landing.contact.message")}</Label>
+                  <Label htmlFor="message">{t("landing.contact.message")} <span className="text-destructive">*</span></Label>
                   <Textarea
                     id="message"
+                    name="message"
                     value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    required
+                    onChange={handleChange}
                     rows={5}
-                    className="resize-none"
+                    className={`resize-none ${errors.message ? "border-destructive" : ""}`}
+                    disabled={isLoading}
+                    placeholder={isRTL ? "اكتب رسالتك هنا" : "Write your message here"}
                   />
+                  {errors.message && (
+                    <p className="text-sm text-destructive">{errors.message}</p>
+                  )}
                 </div>
                 
                 <Button 

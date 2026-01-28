@@ -88,7 +88,7 @@ export const FAQ = () => {
           </p>
           <button
             onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
-            className="text-primary font-medium hover:underline"
+            className="gradient-primary text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition-opacity"
           >
             {t("landing.faq.contactLink")}
           </button>

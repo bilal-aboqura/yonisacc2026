@@ -5,6 +5,7 @@ import { Modules } from "@/components/landing/Modules";
 import { Pricing } from "@/components/landing/Pricing";
 import { Testimonials } from "@/components/landing/Testimonials";
 import { FAQ } from "@/components/landing/FAQ";
+import { ContactSection } from "@/components/landing/ContactSection";
 import { NizamFooter } from "@/components/landing/NizamFooter";
 
 const Index = () => {
@@ -17,6 +18,7 @@ const Index = () => {
       <Pricing />
       <Testimonials />
       <FAQ />
+      <ContactSection />
       <NizamFooter />
     </div>
   );
