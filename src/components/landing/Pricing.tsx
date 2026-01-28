@@ -184,18 +184,18 @@ export const Pricing = () => {
                   <ul className="space-y-3">
                     {features.map((feature, i) => (
                       <li key={i} className="flex items-center gap-3">
-                        <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-3 h-3 text-accent" />
+                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <Check className="w-3 h-3 text-primary" />
                         </div>
                         <span className="text-sm">{feature}</span>
                       </li>
                     ))}
                     {notIncluded.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-3 opacity-50">
-                        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs">-</span>
+                      <li key={i} className="flex items-center gap-3">
+                        <div className="w-5 h-5 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0">
+                          <Check className="w-3 h-3 text-muted-foreground/40" />
                         </div>
-                        <span className="text-sm line-through">{feature}</span>
+                        <span className="text-sm text-muted-foreground/50 line-through">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -203,12 +203,7 @@ export const Pricing = () => {
                   {/* CTA */}
                   <Link to="/register-company" className="block">
                     <Button
-                      className={cn(
-                        "w-full rounded-xl h-12",
-                        popular
-                          ? "gradient-primary text-white btn-primary-shadow"
-                          : "bg-muted hover:bg-muted/80"
-                      )}
+                      className="w-full rounded-xl h-12 gradient-primary text-white btn-primary-shadow"
                     >
                       {enterprise ? t("landing.pricing.contactUs") : t("landing.pricing.startNow")}
                     </Button>
