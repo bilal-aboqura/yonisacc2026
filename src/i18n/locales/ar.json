@@ -347,7 +347,40 @@
       "description": "البيان",
       "debit": "مدين",
       "credit": "دائن",
-      "actions": "الإجراءات"
+      "actions": "الإجراءات",
+      "create": {
+        "title": "قيد يومية جديد",
+        "subtitle": "تسجيل قيد محاسبي يدوي",
+        "entryDetails": "بيانات القيد",
+        "entryNumber": "رقم القيد",
+        "entryDate": "تاريخ القيد",
+        "statement": "البيان",
+        "statementPlaceholder": "وصف القيد...",
+        "entryLines": "سطور القيد",
+        "addLine": "إضافة سطر",
+        "account": "الحساب",
+        "selectAccount": "اختر الحساب",
+        "lineDescription": "البيان",
+        "lineDescriptionPlaceholder": "الوصف...",
+        "total": "الإجمالي",
+        "balanced": "القيد متوازن ✓",
+        "unbalanced": "القيد غير متوازن - الفرق:",
+        "currency": "ر.س",
+        "additionalNotes": "ملاحظات إضافية",
+        "notesPlaceholder": "أي ملاحظات إضافية...",
+        "saveAsDraft": "حفظ كمسودة",
+        "post": "ترحيل القيد",
+        "errors": {
+          "loadingData": "حدث خطأ في تحميل البيانات",
+          "minTwoLines": "يجب إدخال سطرين على الأقل بحسابات ومبالغ صحيحة",
+          "notBalanced": "القيد غير متوازن - يجب أن يتساوى إجمالي المدين مع إجمالي الدائن",
+          "savingEntry": "حدث خطأ في حفظ القيد"
+        },
+        "success": {
+          "savedAsDraft": "تم حفظ القيد كمسودة",
+          "posted": "تم ترحيل القيد بنجاح"
+        }
+      }
     },
     "generalLedger": {
       "title": "دفتر الأستاذ",
