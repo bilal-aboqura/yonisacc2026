@@ -331,5 +331,80 @@
     "copyright": "جميع الحقوق محفوظة",
     "privacy": "سياسة الخصوصية",
     "terms": "الشروط والأحكام"
+  },
+  "client": {
+    "journal": {
+      "title": "القيود اليومية",
+      "subtitle": "تسجيل القيود المحاسبية اليومية",
+      "newEntry": "قيد جديد",
+      "searchPlaceholder": "بحث برقم القيد أو البيان...",
+      "entriesLog": "سجل القيود",
+      "noEntries": "لا توجد قيود بعد",
+      "noEntriesDescription": "ابدأ بإنشاء أول قيد محاسبي",
+      "createEntry": "إنشاء قيد",
+      "entryNumber": "رقم القيد",
+      "date": "التاريخ",
+      "description": "البيان",
+      "debit": "مدين",
+      "credit": "دائن",
+      "actions": "الإجراءات"
+    },
+    "generalLedger": {
+      "title": "دفتر الأستاذ",
+      "generalLedger": "دفتر الأستاذ العام",
+      "selectAccount": "اختر حساباً لعرض حركاته"
+    },
+    "operationsLog": {
+      "title": "سجل العمليات",
+      "allEntries": "جميع القيود اليومية",
+      "tabs": {
+        "all": "الكل",
+        "manual": "يدوي",
+        "sales": "مبيعات",
+        "purchases": "مشتريات",
+        "inventory": "مخزون",
+        "hr": "موارد بشرية"
+      },
+      "noEntries": "لا توجد قيود حالياً",
+      "noManualEntries": "لا توجد قيود يدوية",
+      "noSalesEntries": "لا توجد قيود مبيعات",
+      "noPurchaseEntries": "لا توجد قيود مشتريات",
+      "noInventoryEntries": "لا توجد قيود مخزون",
+      "noHREntries": "لا توجد قيود موارد بشرية"
+    },
+    "customers": {
+      "title": "العملاء",
+      "addCustomer": "إضافة عميل",
+      "customersList": "قائمة العملاء",
+      "noCustomers": "لا يوجد عملاء حالياً"
+    },
+    "vendors": {
+      "title": "الموردين",
+      "addVendor": "إضافة مورد",
+      "vendorsList": "قائمة الموردين",
+      "noVendors": "لا يوجد موردين حالياً"
+    },
+    "quotes": {
+      "title": "عروض الأسعار",
+      "createQuote": "إنشاء عرض سعر",
+      "quotations": "عروض الأسعار",
+      "noQuotes": "لا توجد عروض أسعار حالياً",
+      "createNew": "إنشاء عرض سعر جديد",
+      "quoteDetails": "بيانات عرض السعر",
+      "quoteForm": "نموذج إنشاء عرض السعر"
+    },
+    "purchaseOrders": {
+      "title": "أوامر الشراء",
+      "createOrder": "إنشاء أمر شراء",
+      "orders": "أوامر الشراء",
+      "noOrders": "لا توجد أوامر شراء حالياً",
+      "createNew": "إنشاء أمر شراء جديد",
+      "orderDetails": "بيانات أمر الشراء",
+      "orderForm": "نموذج إنشاء أمر الشراء"
+    },
+    "openingBalances": {
+      "title": "الأرصدة الافتتاحية",
+      "subtitle": "إدارة الأرصدة الافتتاحية للحسابات"
+    }
   }
 }
