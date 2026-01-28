@@ -54,9 +54,11 @@ const OpeningBalances = () => {
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      fetchData();
+    if (!user) {
+      setLoading(false);
+      return;
     }
+    fetchData();
   }, [user]);
 
   const fetchData = async () => {
@@ -65,9 +67,14 @@ const OpeningBalances = () => {
         .from("companies")
         .select("id")
         .eq("owner_id", user?.id)
-        .single();
+        .maybeSingle();
 
-      if (!companyData) return;
+      if (!companyData) {
+        setCompanyId(null);
+        setAccounts([]);
+        setBalances([]);
+        return;
+      }
       setCompanyId(companyData.id);
 
       const { data: accountsData } = await supabase
@@ -197,6 +204,15 @@ const OpeningBalances = () => {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3 rtl">
+        <p className="text-muted-foreground">يجب تسجيل الدخول لعرض الأرصدة الافتتاحية</p>
+        <Button onClick={() => navigate("/auth")}>تسجيل الدخول</Button>
       </div>
     );
   }
