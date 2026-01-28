@@ -1,35 +1,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/hooks/useLanguage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Send, Building2, CreditCard, Hash, Landmark,
-  Phone, Mail, MapPin, Loader2
-} from "lucide-react";
-
-interface BankAccountSettings {
-  bank_name: string;
-  bank_name_en: string;
-  account_name: string;
-  account_number: string;
-  iban: string;
-  is_visible: boolean;
-}
-
-interface PaymentSettings {
-  show_bank_transfer: boolean;
-  transfer_instructions_ar: string;
-  transfer_instructions_en: string;
-}
+import { Send, Phone, Mail, MapPin, Loader2 } from "lucide-react";
 
 // Validation schema
 const contactSchema = z.object({
@@ -50,26 +30,6 @@ export const ContactSection = () => {
     message: ""
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // Fetch owner settings from database
-  const { data: ownerSettings, isLoading: isLoadingSettings } = useQuery({
-    queryKey: ["owner-settings-public"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("owner_settings")
-        .select("*");
-      
-      if (error) throw error;
-      
-      const bankSetting = data?.find(s => s.setting_key === "bank_account");
-      const paymentSetting = data?.find(s => s.setting_key === "payment_settings");
-      
-      return {
-        bankAccount: bankSetting?.setting_value as unknown as BankAccountSettings | null,
-        paymentSettings: paymentSetting?.setting_value as unknown as PaymentSettings | null,
-      };
-    },
-  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -143,25 +103,6 @@ export const ContactSection = () => {
     }
   };
 
-  // Get bank info from settings or use fallback
-  const bankAccount = ownerSettings?.bankAccount;
-  const paymentSettings = ownerSettings?.paymentSettings;
-  
-  const showBankInfo = bankAccount?.is_visible && paymentSettings?.show_bank_transfer;
-  
-  const bankInfo = {
-    bankName: isRTL 
-      ? (bankAccount?.bank_name || "البنك الأهلي السعودي") 
-      : (bankAccount?.bank_name_en || "Saudi National Bank"),
-    accountName: bankAccount?.account_name || (isRTL ? "شركة محاسبي للتقنية" : "Mohaseby Tech Co."),
-    accountNumber: bankAccount?.account_number || "1234567890",
-    iban: bankAccount?.iban || "SA0380000000608010167519"
-  };
-
-  const transferInstructions = isRTL 
-    ? paymentSettings?.transfer_instructions_ar 
-    : paymentSettings?.transfer_instructions_en;
-
   return (
     <section id="contact" className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
@@ -170,7 +111,7 @@ export const ContactSection = () => {
           <p className="text-muted-foreground text-lg">{t("landing.contact.subtitle")}</p>
         </div>
         
-        <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="max-w-2xl mx-auto">
           {/* Contact Form */}
           <Card className="border-0 shadow-xl">
             <CardContent className="p-8">
@@ -191,7 +132,7 @@ export const ContactSection = () => {
                   )}
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">{t("landing.contact.email")} <span className="text-destructive">*</span></Label>
                     <Input
@@ -256,75 +197,26 @@ export const ContactSection = () => {
                   )}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
 
-          {/* Bank Info */}
-          <Card className="border-0 shadow-xl bg-gradient-to-br from-primary/5 to-accent/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Landmark className="h-6 w-6 text-primary" />
-                {t("landing.contact.bankInfo")}
-              </CardTitle>
-              {transferInstructions && (
-                <p className="text-sm text-muted-foreground mt-2">{transferInstructions}</p>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {isLoadingSettings ? (
-                <div className="space-y-4">
-                  {[1, 2, 3, 4].map(i => (
-                    <Skeleton key={i} className="h-16 rounded-xl" />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
-                    <Building2 className="h-5 w-5 text-primary mt-0.5" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t("landing.contact.bankName")}</p>
-                      <p className="font-semibold">{bankInfo.bankName}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
-                    <CreditCard className="h-5 w-5 text-primary mt-0.5" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t("landing.contact.accountName")}</p>
-                      <p className="font-semibold">{bankInfo.accountName}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
-                    <Hash className="h-5 w-5 text-primary mt-0.5" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t("landing.contact.accountNumber")}</p>
-                      <p className="font-semibold font-mono">{bankInfo.accountNumber}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-4 rounded-xl bg-background/80">
-                    <Landmark className="h-5 w-5 text-primary mt-0.5" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t("landing.contact.iban")}</p>
-                      <p className="font-semibold font-mono text-sm">{bankInfo.iban}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-6 border-t space-y-3">
+              {/* Contact Info */}
+              <div className="mt-8 pt-6 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex items-center gap-3 text-muted-foreground">
-                  <Phone className="h-5 w-5" />
-                  <span>+966 50 123 4567</span>
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Phone className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-sm">+966 50 123 4567</span>
                 </div>
                 <div className="flex items-center gap-3 text-muted-foreground">
-                  <Mail className="h-5 w-5" />
-                  <span>support@mohaseby.com</span>
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Mail className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-sm">support@costamine.com</span>
                 </div>
                 <div className="flex items-center gap-3 text-muted-foreground">
-                  <MapPin className="h-5 w-5" />
-                  <span>{isRTL ? "الرياض، المملكة العربية السعودية" : "Riyadh, Saudi Arabia"}</span>
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-sm">{isRTL ? "الرياض، السعودية" : "Riyadh, Saudi Arabia"}</span>
                 </div>
               </div>
             </CardContent>
