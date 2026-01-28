@@ -1,18 +1,41 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/hooks/useLanguage";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface FAQ {
+  id: string;
+  question_ar: string;
+  question_en: string;
+  answer_ar: string;
+  answer_en: string;
+  sort_order: number;
+}
 
 export const FAQ = () => {
   const { t } = useTranslation();
+  const { isRTL } = useLanguage();
 
-  const faqs = t("landing.faq.items", { returnObjects: true }) as Array<{
-    question: string;
-    answer: string;
-  }>;
+  const { data: faqs, isLoading } = useQuery({
+    queryKey: ["landing-faq-public"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("landing_faq")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order");
+      
+      if (error) throw error;
+      return data as FAQ[];
+    },
+  });
 
   return (
     <section id="faq" className="section-padding bg-muted/30 relative">
@@ -31,22 +54,32 @@ export const FAQ = () => {
         </div>
 
         {/* FAQ Accordion */}
-        <Accordion type="single" collapsible className="space-y-4">
-          {faqs.map((faq, index) => (
-            <AccordionItem
-              key={index}
-              value={`item-${index}`}
-              className="glass-card rounded-2xl px-6 border-none"
-            >
-              <AccordionTrigger className="text-right hover:no-underline py-6 text-lg font-semibold" data-accordion-trigger>
-                {faq.question}
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground pb-6 text-base leading-relaxed">
-                {faq.answer}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="glass-card rounded-2xl px-6 py-6">
+                <Skeleton className="h-6 w-3/4" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Accordion type="single" collapsible className="space-y-4">
+            {faqs?.map((faq, index) => (
+              <AccordionItem
+                key={faq.id}
+                value={`item-${index}`}
+                className="glass-card rounded-2xl px-6 border-none"
+              >
+                <AccordionTrigger className="text-right hover:no-underline py-6 text-lg font-semibold" data-accordion-trigger>
+                  {isRTL ? faq.question_ar : faq.question_en}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground pb-6 text-base leading-relaxed">
+                  {isRTL ? faq.answer_ar : faq.answer_en}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
 
         {/* Contact CTA */}
         <div className="text-center mt-12">

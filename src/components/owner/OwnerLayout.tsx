@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Building2,
   BarChart3,
+  Globe,
 } from "lucide-react";
 
 const OwnerLayout = () => {
@@ -68,6 +69,11 @@ const OwnerLayout = () => {
       path: "/owner/screens", 
       icon: Monitor, 
       label: isRTL ? "الشاشات" : "Screens" 
+    },
+    { 
+      path: "/owner/landing-content", 
+      icon: Globe, 
+      label: isRTL ? "محتوى الهبوط" : "Landing Content" 
     },
     { 
       path: "/owner/messages", 
