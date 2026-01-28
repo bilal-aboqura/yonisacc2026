@@ -1,25 +1,21 @@
-import { Header } from "@/components/landing/Header";
-import { HeroSection } from "@/components/landing/HeroSection";
-import { FeaturesSection } from "@/components/landing/FeaturesSection";
-import { ActivitiesSection } from "@/components/landing/ActivitiesSection";
-import { PricingSection } from "@/components/landing/PricingSection";
-import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
-import { ContactSection } from "@/components/landing/ContactSection";
-import { CTASection } from "@/components/landing/CTASection";
-import { Footer } from "@/components/landing/Footer";
+import { Navbar } from "@/components/landing/Navbar";
+import { Hero } from "@/components/landing/Hero";
+import { Features } from "@/components/landing/Features";
+import { Modules } from "@/components/landing/Modules";
+import { Pricing } from "@/components/landing/Pricing";
+import { FAQ } from "@/components/landing/FAQ";
+import { NizamFooter } from "@/components/landing/NizamFooter";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      <HeroSection />
-      <FeaturesSection />
-      <ActivitiesSection />
-      <PricingSection />
-      <TestimonialsSection />
-      <ContactSection />
-      <CTASection />
-      <Footer />
+      <Navbar />
+      <Hero />
+      <Features />
+      <Modules />
+      <Pricing />
+      <FAQ />
+      <NizamFooter />
     </div>
   );
 };
