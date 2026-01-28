@@ -29,7 +29,21 @@
     "success": "Success",
     "error": "Error",
     "warning": "Warning",
-    "info": "Info"
+    "info": "Info",
+    "currency": "SAR",
+    "total": "Total",
+    "balance": "Balance",
+    "amount": "Amount",
+    "date": "Date",
+    "status": "Status",
+    "actions": "Actions",
+    "notes": "Notes",
+    "description": "Description",
+    "debit": "Debit",
+    "credit": "Credit",
+    "difference": "Difference",
+    "balanced": "Balanced",
+    "notBalanced": "Not Balanced"
   },
   "nav": {
     "home": "Home",

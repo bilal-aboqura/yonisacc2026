@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, memo, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +42,8 @@ const AccountRow = memo(({
   account, 
   level, 
   isExpanded, 
-  isRTL, 
+  isRTL,
+  currency,
   onToggle, 
   onEdit, 
   onBalance,
@@ -53,6 +55,7 @@ const AccountRow = memo(({
   level: number;
   isExpanded: boolean;
   isRTL: boolean;
+  currency: string;
   onToggle: (id: string) => void;
   onEdit: (account: Account, e: React.MouseEvent) => void;
   onBalance: (account: Account, e: React.MouseEvent) => void;
@@ -95,7 +98,7 @@ const AccountRow = memo(({
       </Badge>
 
       <span className="font-mono text-sm w-28 text-end shrink-0">
-        {displayBalance.toLocaleString()} ر.س
+        {displayBalance.toLocaleString()} {currency}
       </span>
 
       {/* Action Buttons */}
@@ -126,6 +129,7 @@ const AccountRow = memo(({
 AccountRow.displayName = 'AccountRow';
 
 const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
+  const { t } = useTranslation();
   const { isRTL } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -334,6 +338,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
     const hasChildren = account.children && account.children.length > 0;
     const isExpanded = expandedAccounts.includes(account.id);
     const totalBalance = calculateTotalBalance(account);
+    const currency = t("common.currency");
 
     return (
       <div key={account.id}>
@@ -342,6 +347,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
           level={level}
           isExpanded={isExpanded}
           isRTL={isRTL}
+          currency={currency}
           onToggle={toggleExpand}
           onEdit={handleEditAccount}
           onBalance={handleOpenBalanceDialog}
@@ -356,7 +362,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
         )}
       </div>
     );
-  }, [expandedAccounts, isRTL, toggleExpand, handleEditAccount, handleOpenBalanceDialog, getTypeColor, getTypeName, calculateTotalBalance]);
+  }, [expandedAccounts, isRTL, t, toggleExpand, handleEditAccount, handleOpenBalanceDialog, getTypeColor, getTypeName, calculateTotalBalance]);
 
   const handleCreateDefaultAccounts = async () => {
     if (!companyId) return;

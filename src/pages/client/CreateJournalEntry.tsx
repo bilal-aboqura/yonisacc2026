@@ -410,7 +410,7 @@ const CreateJournalEntry = () => {
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  {t("client.journal.create.unbalanced")} {Math.abs(totalDebit - totalCredit).toFixed(2)} {t("client.journal.create.currency")}
+                  {t("client.journal.create.unbalanced")} {Math.abs(totalDebit - totalCredit).toFixed(2)} {t("common.currency")}
                 </AlertDescription>
               </Alert>
             ) : null}
