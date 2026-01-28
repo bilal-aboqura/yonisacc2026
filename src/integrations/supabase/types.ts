@@ -1001,6 +1001,153 @@ export type Database = {
           },
         ]
       }
+      landing_faq: {
+        Row: {
+          answer_ar: string
+          answer_en: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          question_ar: string
+          question_en: string
+          sort_order: number | null
+        }
+        Insert: {
+          answer_ar: string
+          answer_en: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          question_ar: string
+          question_en: string
+          sort_order?: number | null
+        }
+        Update: {
+          answer_ar?: string
+          answer_en?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          question_ar?: string
+          question_en?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      landing_features: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description_ar: string
+          description_en: string
+          icon: string
+          id: string
+          is_active: boolean | null
+          sort_order: number | null
+          title_ar: string
+          title_en: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description_ar: string
+          description_en: string
+          icon: string
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          title_ar: string
+          title_en: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description_ar?: string
+          description_en?: string
+          icon?: string
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          title_ar?: string
+          title_en?: string
+        }
+        Relationships: []
+      }
+      landing_hero: {
+        Row: {
+          badge_ar: string | null
+          badge_en: string | null
+          cta_text_ar: string
+          cta_text_en: string
+          demo_text_ar: string | null
+          demo_text_en: string | null
+          id: string
+          is_active: boolean | null
+          stat1_label_ar: string | null
+          stat1_label_en: string | null
+          stat1_value: string | null
+          stat2_label_ar: string | null
+          stat2_label_en: string | null
+          stat2_value: string | null
+          stat3_label_ar: string | null
+          stat3_label_en: string | null
+          stat3_value: string | null
+          subtitle_ar: string
+          subtitle_en: string
+          title_ar: string
+          title_en: string
+          updated_at: string | null
+        }
+        Insert: {
+          badge_ar?: string | null
+          badge_en?: string | null
+          cta_text_ar: string
+          cta_text_en: string
+          demo_text_ar?: string | null
+          demo_text_en?: string | null
+          id?: string
+          is_active?: boolean | null
+          stat1_label_ar?: string | null
+          stat1_label_en?: string | null
+          stat1_value?: string | null
+          stat2_label_ar?: string | null
+          stat2_label_en?: string | null
+          stat2_value?: string | null
+          stat3_label_ar?: string | null
+          stat3_label_en?: string | null
+          stat3_value?: string | null
+          subtitle_ar: string
+          subtitle_en: string
+          title_ar: string
+          title_en: string
+          updated_at?: string | null
+        }
+        Update: {
+          badge_ar?: string | null
+          badge_en?: string | null
+          cta_text_ar?: string
+          cta_text_en?: string
+          demo_text_ar?: string | null
+          demo_text_en?: string | null
+          id?: string
+          is_active?: boolean | null
+          stat1_label_ar?: string | null
+          stat1_label_en?: string | null
+          stat1_value?: string | null
+          stat2_label_ar?: string | null
+          stat2_label_en?: string | null
+          stat2_value?: string | null
+          stat3_label_ar?: string | null
+          stat3_label_en?: string | null
+          stat3_value?: string | null
+          subtitle_ar?: string
+          subtitle_en?: string
+          title_ar?: string
+          title_en?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       plan_screens: {
         Row: {
           created_at: string
