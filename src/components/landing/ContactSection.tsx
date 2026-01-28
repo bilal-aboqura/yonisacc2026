@@ -10,6 +10,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { Send, Phone, Mail, MapPin, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+
+interface ContactInfoSettings {
+  phone: string;
+  email: string;
+  location_ar: string;
+  location_en: string;
+  show_phone: boolean;
+  show_email: boolean;
+  show_location: boolean;
+}
 
 // Validation schema
 const contactSchema = z.object({
@@ -30,6 +41,21 @@ export const ContactSection = () => {
     message: ""
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Fetch contact info from owner_settings
+  const { data: contactInfo } = useQuery({
+    queryKey: ["contact-info-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("owner_settings")
+        .select("setting_value")
+        .eq("setting_key", "contact_info")
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data?.setting_value as unknown as ContactInfoSettings | null;
+    },
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -102,6 +128,19 @@ export const ContactSection = () => {
       setIsLoading(false);
     }
   };
+
+  // Default values
+  const phoneNumber = contactInfo?.phone || "+966 50 123 4567";
+  const emailAddress = contactInfo?.email || "support@costamine.com";
+  const location = isRTL 
+    ? (contactInfo?.location_ar || "الرياض، السعودية")
+    : (contactInfo?.location_en || "Riyadh, Saudi Arabia");
+
+  const showPhone = contactInfo?.show_phone ?? true;
+  const showEmail = contactInfo?.show_email ?? true;
+  const showLocation = contactInfo?.show_location ?? true;
+
+  const hasAnyContactInfo = showPhone || showEmail || showLocation;
 
   return (
     <section id="contact" className="py-20 bg-muted/30">
@@ -199,26 +238,40 @@ export const ContactSection = () => {
               </form>
 
               {/* Contact Info */}
-              <div className="mt-8 pt-6 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Phone className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-sm">+966 50 123 4567</span>
+              {hasAnyContactInfo && (
+                <div className={`mt-8 pt-6 border-t grid grid-cols-1 ${
+                  [showPhone, showEmail, showLocation].filter(Boolean).length === 3 
+                    ? 'md:grid-cols-3' 
+                    : [showPhone, showEmail, showLocation].filter(Boolean).length === 2 
+                      ? 'md:grid-cols-2' 
+                      : ''
+                } gap-4`}>
+                  {showPhone && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Phone className="h-5 w-5 text-primary" />
+                      </div>
+                      <span className="text-sm" dir="ltr">{phoneNumber}</span>
+                    </div>
+                  )}
+                  {showEmail && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Mail className="h-5 w-5 text-primary" />
+                      </div>
+                      <span className="text-sm">{emailAddress}</span>
+                    </div>
+                  )}
+                  {showLocation && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <MapPin className="h-5 w-5 text-primary" />
+                      </div>
+                      <span className="text-sm">{location}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Mail className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-sm">support@costamine.com</span>
-                </div>
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-sm">{isRTL ? "الرياض، السعودية" : "Riyadh, Saudi Arabia"}</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>

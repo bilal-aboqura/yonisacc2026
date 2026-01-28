@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, Building2, Eye, EyeOff, Save, Loader2 } from "lucide-react";
+import { Settings, Building2, Eye, EyeOff, Save, Loader2, Phone, Mail, MapPin } from "lucide-react";
 
 interface BankAccountSettings {
   bank_name: string;
@@ -24,6 +24,16 @@ interface PaymentSettings {
   show_bank_transfer: boolean;
   transfer_instructions_ar: string;
   transfer_instructions_en: string;
+}
+
+interface ContactInfoSettings {
+  phone: string;
+  email: string;
+  location_ar: string;
+  location_en: string;
+  show_phone: boolean;
+  show_email: boolean;
+  show_location: boolean;
 }
 
 const OwnerSettings = () => {
@@ -45,6 +55,16 @@ const OwnerSettings = () => {
     transfer_instructions_en: "",
   });
 
+  const [contactInfo, setContactInfo] = useState<ContactInfoSettings>({
+    phone: "+966 50 123 4567",
+    email: "support@costamine.com",
+    location_ar: "الرياض، السعودية",
+    location_en: "Riyadh, Saudi Arabia",
+    show_phone: true,
+    show_email: true,
+    show_location: true,
+  });
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ["owner-settings"],
     queryFn: async () => {
@@ -61,6 +81,7 @@ const OwnerSettings = () => {
     if (settings) {
       const bankSetting = settings.find(s => s.setting_key === "bank_account");
       const paymentSetting = settings.find(s => s.setting_key === "payment_settings");
+      const contactSetting = settings.find(s => s.setting_key === "contact_info");
       
       if (bankSetting?.setting_value) {
         setBankAccount(bankSetting.setting_value as unknown as BankAccountSettings);
@@ -68,17 +89,31 @@ const OwnerSettings = () => {
       if (paymentSetting?.setting_value) {
         setPaymentSettings(paymentSetting.setting_value as unknown as PaymentSettings);
       }
+      if (contactSetting?.setting_value) {
+        setContactInfo(contactSetting.setting_value as unknown as ContactInfoSettings);
+      }
     }
   }, [settings]);
 
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: unknown }) => {
-      const { error } = await supabase
+      // Try update first
+      const { data: updateData, error: updateError } = await supabase
         .from("owner_settings")
         .update({ setting_value: value as any })
-        .eq("setting_key", key);
+        .eq("setting_key", key)
+        .select();
       
-      if (error) throw error;
+      // If no rows updated, insert new row
+      if (!updateError && (!updateData || updateData.length === 0)) {
+        const { error: insertError } = await supabase
+          .from("owner_settings")
+          .insert({ setting_key: key, setting_value: value as any });
+        
+        if (insertError) throw insertError;
+      } else if (updateError) {
+        throw updateError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["owner-settings"] });
@@ -102,6 +137,10 @@ const OwnerSettings = () => {
 
   const savePaymentSettings = () => {
     updateSettingMutation.mutate({ key: "payment_settings", value: paymentSettings });
+  };
+
+  const saveContactInfo = () => {
+    updateSettingMutation.mutate({ key: "contact_info", value: contactInfo });
   };
 
   if (isLoading) {
@@ -128,6 +167,127 @@ const OwnerSettings = () => {
           </p>
         </div>
       </div>
+
+      {/* Contact Info Settings */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Phone className="h-5 w-5" />
+            {isRTL ? "بيانات التواصل" : "Contact Information"}
+          </CardTitle>
+          <CardDescription>
+            {isRTL 
+              ? "بيانات التواصل التي تظهر في صفحة الهبوط" 
+              : "Contact information displayed on the landing page"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Phone */}
+          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+            <div className="flex items-center gap-3 flex-1">
+              <Phone className={`h-5 w-5 ${contactInfo.show_phone ? "text-primary" : "text-muted-foreground"}`} />
+              <div className="flex-1">
+                <p className="font-medium mb-2">
+                  {isRTL ? "رقم الهاتف" : "Phone Number"}
+                </p>
+                <Input
+                  value={contactInfo.phone}
+                  onChange={(e) => setContactInfo(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="+966 50 123 4567"
+                  dir="ltr"
+                  className="max-w-xs"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-xs text-muted-foreground">{isRTL ? "إظهار" : "Show"}</span>
+              <Switch
+                checked={contactInfo.show_phone}
+                onCheckedChange={(checked) => 
+                  setContactInfo(prev => ({ ...prev, show_phone: checked }))
+                }
+              />
+            </div>
+          </div>
+
+          {/* Email */}
+          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+            <div className="flex items-center gap-3 flex-1">
+              <Mail className={`h-5 w-5 ${contactInfo.show_email ? "text-primary" : "text-muted-foreground"}`} />
+              <div className="flex-1">
+                <p className="font-medium mb-2">
+                  {isRTL ? "البريد الإلكتروني" : "Email Address"}
+                </p>
+                <Input
+                  value={contactInfo.email}
+                  onChange={(e) => setContactInfo(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="support@costamine.com"
+                  dir="ltr"
+                  type="email"
+                  className="max-w-xs"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-xs text-muted-foreground">{isRTL ? "إظهار" : "Show"}</span>
+              <Switch
+                checked={contactInfo.show_email}
+                onCheckedChange={(checked) => 
+                  setContactInfo(prev => ({ ...prev, show_email: checked }))
+                }
+              />
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+            <div className="flex items-center gap-3 flex-1">
+              <MapPin className={`h-5 w-5 ${contactInfo.show_location ? "text-primary" : "text-muted-foreground"}`} />
+              <div className="flex-1">
+                <p className="font-medium mb-2">
+                  {isRTL ? "الموقع" : "Location"}
+                </p>
+                <div className="grid md:grid-cols-2 gap-2 max-w-md">
+                  <Input
+                    value={contactInfo.location_ar}
+                    onChange={(e) => setContactInfo(prev => ({ ...prev, location_ar: e.target.value }))}
+                    placeholder="الرياض، السعودية"
+                    dir="rtl"
+                  />
+                  <Input
+                    value={contactInfo.location_en}
+                    onChange={(e) => setContactInfo(prev => ({ ...prev, location_en: e.target.value }))}
+                    placeholder="Riyadh, Saudi Arabia"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-xs text-muted-foreground">{isRTL ? "إظهار" : "Show"}</span>
+              <Switch
+                checked={contactInfo.show_location}
+                onCheckedChange={(checked) => 
+                  setContactInfo(prev => ({ ...prev, show_location: checked }))
+                }
+              />
+            </div>
+          </div>
+
+          <Button
+            onClick={saveContactInfo}
+            disabled={updateSettingMutation.isPending}
+            className="gradient-primary text-white"
+          >
+            {updateSettingMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin me-2" />
+            ) : (
+              <Save className="h-4 w-4 me-2" />
+            )}
+            {isRTL ? "حفظ بيانات التواصل" : "Save Contact Info"}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Bank Account Settings */}
       <Card className="border-0 shadow-lg">
