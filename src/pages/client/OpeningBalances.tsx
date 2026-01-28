@@ -1,25 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { ArrowRight, Save, FileSpreadsheet, Loader2, Plus, Search } from "lucide-react";
+  ArrowRight,
+  Save,
+  FileSpreadsheet,
+  Loader2,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -28,18 +23,128 @@ interface Account {
   id: string;
   code: string;
   name: string;
+  name_en: string | null;
   type: string;
-  balance: number;
+  balance: number | null;
+  parent_id: string | null;
+  is_active: boolean | null;
+  is_parent: boolean | null;
+  children?: Account[];
 }
 
 interface OpeningBalance {
-  account_id: string;
-  account_code: string;
-  account_name: string;
-  account_type: string;
   debit: number;
   credit: number;
 }
+
+// Memoized account row component for opening balances
+const AccountBalanceRow = memo(({
+  account,
+  level,
+  isExpanded,
+  onToggle,
+  balances,
+  onBalanceChange,
+  getTypeColor,
+  getTypeName,
+}: {
+  account: Account;
+  level: number;
+  isExpanded: boolean;
+  onToggle: (id: string) => void;
+  balances: Map<string, OpeningBalance>;
+  onBalanceChange: (accountId: string, field: "debit" | "credit", value: number) => void;
+  getTypeColor: (type: string) => string;
+  getTypeName: (type: string) => string;
+}) => {
+  const hasChildren = account.children && account.children.length > 0;
+  const balance = balances.get(account.id) || { debit: 0, credit: 0 };
+  const isLeafAccount = !hasChildren;
+
+  return (
+    <div
+      className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded-lg transition-colors group border-b border-border/30"
+      style={{ paddingInlineStart: `${level * 20 + 8}px` }}
+    >
+      {/* Expand/Collapse Button */}
+      {hasChildren ? (
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-6 w-6 shrink-0"
+          onClick={() => onToggle(account.id)}
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4 rotate-180" />
+          )}
+        </Button>
+      ) : (
+        <div className="w-6 flex justify-center shrink-0">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
+
+      {/* Account Code */}
+      <span className="font-mono text-xs text-muted-foreground w-14 shrink-0">
+        {account.code}
+      </span>
+
+      {/* Account Name */}
+      <div className="flex-1 min-w-0">
+        <span className={`text-sm truncate block ${hasChildren ? "font-semibold" : ""}`}>
+          {account.name}
+        </span>
+      </div>
+
+      {/* Account Type Badge */}
+      <Badge variant="secondary" className={`${getTypeColor(account.type)} shrink-0 text-xs`}>
+        {getTypeName(account.type)}
+      </Badge>
+
+      {/* Debit Input - Only for leaf accounts */}
+      <div className="w-28 shrink-0">
+        {isLeafAccount ? (
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={balance.debit || ""}
+            onChange={(e) => onBalanceChange(account.id, "debit", Number(e.target.value))}
+            className="h-8 text-center text-sm"
+            placeholder="0"
+          />
+        ) : (
+          <div className="h-8 flex items-center justify-center text-sm text-muted-foreground">
+            -
+          </div>
+        )}
+      </div>
+
+      {/* Credit Input - Only for leaf accounts */}
+      <div className="w-28 shrink-0">
+        {isLeafAccount ? (
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={balance.credit || ""}
+            onChange={(e) => onBalanceChange(account.id, "credit", Number(e.target.value))}
+            className="h-8 text-center text-sm"
+            placeholder="0"
+          />
+        ) : (
+          <div className="h-8 flex items-center justify-center text-sm text-muted-foreground">
+            -
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+AccountBalanceRow.displayName = "AccountBalanceRow";
 
 const OpeningBalances = () => {
   const navigate = useNavigate();
@@ -48,10 +153,9 @@ const OpeningBalances = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [balances, setBalances] = useState<OpeningBalance[]>([]);
-  const [accountSearch, setAccountSearch] = useState("");
-  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [flatAccounts, setFlatAccounts] = useState<Account[]>([]);
+  const [balances, setBalances] = useState<Map<string, OpeningBalance>>(new Map());
+  const [expandedAccounts, setExpandedAccounts] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) {
@@ -71,35 +175,39 @@ const OpeningBalances = () => {
 
       if (!companyData) {
         setCompanyId(null);
-        setAccounts([]);
-        setBalances([]);
+        setFlatAccounts([]);
+        setBalances(new Map());
+        setLoading(false);
         return;
       }
       setCompanyId(companyData.id);
 
       const { data: accountsData } = await supabase
         .from("accounts")
-        .select("id, code, name, type, balance")
+        .select("id, code, name, name_en, type, balance, parent_id, is_active, is_parent")
         .eq("company_id", companyData.id)
         .eq("is_active", true)
-        .or("is_parent.is.null,is_parent.eq.false")
         .order("code");
 
-      setAccounts(accountsData || []);
+      setFlatAccounts(accountsData || []);
 
       // Initialize balances from existing account balances
-      const initialBalances: OpeningBalance[] = (accountsData || [])
-        .filter((acc) => acc.balance !== 0)
-        .map((acc) => ({
-          account_id: acc.id,
-          account_code: acc.code,
-          account_name: acc.name,
-          account_type: acc.type,
-          debit: acc.balance > 0 ? acc.balance : 0,
-          credit: acc.balance < 0 ? Math.abs(acc.balance) : 0,
-        }));
-
+      const initialBalances = new Map<string, OpeningBalance>();
+      (accountsData || []).forEach((acc) => {
+        if (acc.balance !== null && acc.balance !== 0) {
+          initialBalances.set(acc.id, {
+            debit: acc.balance > 0 ? acc.balance : 0,
+            credit: acc.balance < 0 ? Math.abs(acc.balance) : 0,
+          });
+        }
+      });
       setBalances(initialBalances);
+
+      // Expand root accounts by default
+      const rootIds = (accountsData || [])
+        .filter((a) => !a.parent_id)
+        .map((a) => a.id);
+      setExpandedAccounts(rootIds);
     } catch (error) {
       console.error("Error:", error);
       toast({ title: "خطأ", description: "حدث خطأ في تحميل البيانات", variant: "destructive" });
@@ -108,49 +216,126 @@ const OpeningBalances = () => {
     }
   };
 
-  const addAccount = (account: Account) => {
-    if (balances.some((b) => b.account_id === account.id)) {
-      toast({ title: "تنبيه", description: "الحساب موجود بالفعل" });
-      return;
-    }
+  // Build tree structure from flat accounts
+  const accountsTree = useMemo(() => {
+    const map = new Map<string, Account>();
+    const roots: Account[] = [];
 
-    setBalances((prev) => [
-      ...prev,
-      {
-        account_id: account.id,
-        account_code: account.code,
-        account_name: account.name,
-        account_type: account.type,
-        debit: 0,
-        credit: 0,
-      },
-    ]);
-    setAccountDialogOpen(false);
-  };
+    flatAccounts.forEach((account) => {
+      map.set(account.id, { ...account, children: [] });
+    });
 
-  const updateBalance = (accountId: string, field: "debit" | "credit", value: number) => {
-    setBalances((prev) =>
-      prev.map((b) => {
-        if (b.account_id === accountId) {
-          if (field === "debit" && value > 0) {
-            return { ...b, debit: value, credit: 0 };
-          } else if (field === "credit" && value > 0) {
-            return { ...b, debit: 0, credit: value };
-          }
-          return { ...b, [field]: value };
+    flatAccounts.forEach((account) => {
+      const node = map.get(account.id)!;
+      if (account.parent_id && map.has(account.parent_id)) {
+        const parent = map.get(account.parent_id)!;
+        parent.children = parent.children || [];
+        parent.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+
+    // Sort children by code
+    const sortChildren = (nodes: Account[]) => {
+      nodes.sort((a, b) => a.code.localeCompare(b.code));
+      nodes.forEach((node) => {
+        if (node.children && node.children.length > 0) {
+          sortChildren(node.children);
         }
-        return b;
-      })
+      });
+    };
+    sortChildren(roots);
+
+    return roots;
+  }, [flatAccounts]);
+
+  const toggleExpand = useCallback((accountId: string) => {
+    setExpandedAccounts((prev) =>
+      prev.includes(accountId)
+        ? prev.filter((id) => id !== accountId)
+        : [...prev, accountId]
     );
-  };
+  }, []);
 
-  const removeBalance = (accountId: string) => {
-    setBalances((prev) => prev.filter((b) => b.account_id !== accountId));
-  };
+  const expandAll = useCallback(() => {
+    const allIds = flatAccounts.map((a) => a.id);
+    setExpandedAccounts(allIds);
+  }, [flatAccounts]);
 
-  const totalDebit = balances.reduce((sum, b) => sum + b.debit, 0);
-  const totalCredit = balances.reduce((sum, b) => sum + b.credit, 0);
-  const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+  const collapseAll = useCallback(() => {
+    setExpandedAccounts([]);
+  }, []);
+
+  const updateBalance = useCallback((accountId: string, field: "debit" | "credit", value: number) => {
+    setBalances((prev) => {
+      const newBalances = new Map(prev);
+      const current = newBalances.get(accountId) || { debit: 0, credit: 0 };
+
+      if (field === "debit" && value > 0) {
+        newBalances.set(accountId, { debit: value, credit: 0 });
+      } else if (field === "credit" && value > 0) {
+        newBalances.set(accountId, { debit: 0, credit: value });
+      } else {
+        newBalances.set(accountId, { ...current, [field]: value });
+      }
+
+      return newBalances;
+    });
+  }, []);
+
+  // Calculate totals
+  const { totalDebit, totalCredit, difference, isBalanced } = useMemo(() => {
+    let debit = 0;
+    let credit = 0;
+
+    balances.forEach((balance) => {
+      debit += balance.debit || 0;
+      credit += balance.credit || 0;
+    });
+
+    const diff = Math.abs(debit - credit);
+    return {
+      totalDebit: debit,
+      totalCredit: credit,
+      difference: diff,
+      isBalanced: diff < 0.01,
+    };
+  }, [balances]);
+
+  const getTypeColor = useCallback((type: string) => {
+    switch (type) {
+      case "asset":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "liability":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "equity":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+      case "revenue":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "expense":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+    }
+  }, []);
+
+  const getTypeName = useCallback((type: string) => {
+    switch (type) {
+      case "asset":
+        return "أصول";
+      case "liability":
+        return "خصوم";
+      case "equity":
+        return "حقوق ملكية";
+      case "revenue":
+        return "إيرادات";
+      case "expense":
+        return "مصروفات";
+      default:
+        return type;
+    }
+  }, []);
 
   const handleSave = async () => {
     if (!companyId) return;
@@ -167,12 +352,12 @@ const OpeningBalances = () => {
     setSaving(true);
     try {
       // Update each account balance
-      for (const balance of balances) {
+      for (const [accountId, balance] of balances.entries()) {
         const newBalance = balance.debit > 0 ? balance.debit : -balance.credit;
         await supabase
           .from("accounts")
           .update({ balance: newBalance })
-          .eq("id", balance.account_id);
+          .eq("id", accountId);
       }
 
       toast({
@@ -189,16 +374,38 @@ const OpeningBalances = () => {
     }
   };
 
-  const filteredAccounts = accounts.filter(
-    (a) =>
-      !balances.some((b) => b.account_id === a.id) &&
-      (a.name.toLowerCase().includes(accountSearch.toLowerCase()) ||
-        a.code.includes(accountSearch))
-  );
-
   const formatCurrency = (amount: number) => {
     return amount.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
+
+  // Recursive render function for account tree
+  const renderAccount = useCallback(
+    (account: Account, level: number = 0): React.ReactNode => {
+      const hasChildren = account.children && account.children.length > 0;
+      const isExpanded = expandedAccounts.includes(account.id);
+
+      return (
+        <div key={account.id}>
+          <AccountBalanceRow
+            account={account}
+            level={level}
+            isExpanded={isExpanded}
+            onToggle={toggleExpand}
+            balances={balances}
+            onBalanceChange={updateBalance}
+            getTypeColor={getTypeColor}
+            getTypeName={getTypeName}
+          />
+          {hasChildren && isExpanded && (
+            <div>
+              {account.children!.map((child) => renderAccount(child, level + 1))}
+            </div>
+          )}
+        </div>
+      );
+    },
+    [expandedAccounts, balances, toggleExpand, updateBalance, getTypeColor, getTypeName]
+  );
 
   if (loading) {
     return (
@@ -218,7 +425,7 @@ const OpeningBalances = () => {
   }
 
   return (
-    <div className="space-y-6 rtl">
+    <div className="space-y-4 rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -227,142 +434,97 @@ const OpeningBalances = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">الأرصدة الافتتاحية</h1>
-            <p className="text-muted-foreground">إدخال أرصدة الحسابات في بداية الفترة</p>
+            <p className="text-muted-foreground text-sm">إدخال أرصدة الحسابات في بداية الفترة</p>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={saving || !isBalanced}>
-          {saving && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
-          <Save className="h-4 w-4 ml-2" />
-          حفظ الأرصدة
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={expandAll}>
+            توسيع الكل
+          </Button>
+          <Button variant="outline" size="sm" onClick={collapseAll}>
+            طي الكل
+          </Button>
+          <Button onClick={handleSave} disabled={saving || !isBalanced}>
+            {saving && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+            <Save className="h-4 w-4 ml-2" />
+            حفظ الأرصدة
+          </Button>
+        </div>
       </div>
 
-      {/* Balances Table */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5" />
-            الأرصدة الافتتاحية
-          </CardTitle>
-          <Dialog open={accountDialogOpen} onOpenChange={setAccountDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-2">
-                <Plus className="h-4 w-4" />
-                إضافة حساب
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>اختيار حساب</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="بحث..."
-                    value={accountSearch}
-                    onChange={(e) => setAccountSearch(e.target.value)}
-                    className="pr-10"
-                  />
-                </div>
-                <div className="max-h-[300px] overflow-y-auto space-y-2">
-                  {filteredAccounts.map((account) => (
-                    <div
-                      key={account.id}
-                      className="p-3 border rounded-lg hover:bg-muted cursor-pointer"
-                      onClick={() => addAccount(account)}
-                    >
-                      <div className="flex justify-between">
-                        <span className="font-medium">{account.name}</span>
-                        <span className="font-mono text-muted-foreground">{account.code}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {filteredAccounts.length === 0 && (
-                    <p className="text-center text-muted-foreground py-4">
-                      لا توجد حسابات متاحة
-                    </p>
-                  )}
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-24">الرمز</TableHead>
-                <TableHead>اسم الحساب</TableHead>
-                <TableHead className="w-36">مدين</TableHead>
-                <TableHead className="w-36">دائن</TableHead>
-                <TableHead className="w-16"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {balances.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    اضغط على "إضافة حساب" لإدخال الأرصدة الافتتاحية
-                  </TableCell>
-                </TableRow>
+      {/* Balance Status Card */}
+      <Card className={isBalanced ? "border-green-500/50 bg-green-50/50 dark:bg-green-950/20" : "border-destructive/50 bg-destructive/5"}>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isBalanced ? (
+                <CheckCircle2 className="h-6 w-6 text-green-600" />
               ) : (
-                balances.map((balance) => (
-                  <TableRow key={balance.account_id}>
-                    <TableCell className="font-mono">{balance.account_code}</TableCell>
-                    <TableCell>{balance.account_name}</TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={balance.debit || ""}
-                        onChange={(e) => updateBalance(balance.account_id, "debit", Number(e.target.value))}
-                        className="text-center"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={balance.credit || ""}
-                        onChange={(e) => updateBalance(balance.account_id, "credit", Number(e.target.value))}
-                        className="text-center"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeBalance(balance.account_id)}
-                        className="text-destructive"
-                      >
-                        حذف
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                <AlertCircle className="h-6 w-6 text-destructive" />
               )}
-              {/* Totals */}
-              <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={2}>الإجمالي</TableCell>
-                <TableCell className="text-center">{formatCurrency(totalDebit)}</TableCell>
-                <TableCell className="text-center">{formatCurrency(totalCredit)}</TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-
-          {/* Balance Status */}
-          <div className="mt-4 p-4 rounded-lg bg-muted/50">
-            <div className="flex justify-between items-center">
-              <span>الفرق:</span>
-              <span className={isBalanced ? "text-green-600" : "text-destructive"}>
-                {formatCurrency(Math.abs(totalDebit - totalCredit))} ر.س
-                {isBalanced && " ✓"}
-              </span>
+              <div>
+                <p className="font-medium">
+                  {isBalanced ? "الأرصدة متوازنة" : "الأرصدة غير متوازنة"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {isBalanced
+                    ? "يمكنك حفظ الأرصدة الافتتاحية"
+                    : `يوجد فرق ${formatCurrency(difference)} ر.س`}
+                </p>
+              </div>
             </div>
+            <div className="flex items-center gap-8 text-sm">
+              <div className="text-center">
+                <p className="text-muted-foreground">إجمالي المدين</p>
+                <p className="font-bold text-lg">{formatCurrency(totalDebit)} ر.س</p>
+              </div>
+              <div className="text-center">
+                <p className="text-muted-foreground">إجمالي الدائن</p>
+                <p className="font-bold text-lg">{formatCurrency(totalCredit)} ر.س</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Accounts Tree */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <FileSpreadsheet className="h-5 w-5" />
+            شجرة الحسابات
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {/* Header Row */}
+          <div className="flex items-center gap-2 p-3 bg-muted/50 border-b font-medium text-sm sticky top-0">
+            <div className="w-6 shrink-0"></div>
+            <span className="w-14 shrink-0">الرمز</span>
+            <div className="flex-1">اسم الحساب</div>
+            <span className="w-20 shrink-0">النوع</span>
+            <span className="w-28 text-center shrink-0">مدين</span>
+            <span className="w-28 text-center shrink-0">دائن</span>
+          </div>
+
+          {/* Accounts Tree */}
+          <div className="max-h-[60vh] overflow-y-auto">
+            {accountsTree.length === 0 ? (
+              <div className="text-center text-muted-foreground py-12">
+                لا توجد حسابات
+              </div>
+            ) : (
+              accountsTree.map((account) => renderAccount(account, 0))
+            )}
+          </div>
+
+          {/* Totals Row */}
+          <div className="flex items-center gap-2 p-3 bg-muted/70 border-t font-bold sticky bottom-0">
+            <div className="w-6 shrink-0"></div>
+            <span className="w-14 shrink-0"></span>
+            <div className="flex-1">الإجمالي</div>
+            <span className="w-20 shrink-0"></span>
+            <span className="w-28 text-center shrink-0">{formatCurrency(totalDebit)}</span>
+            <span className="w-28 text-center shrink-0">{formatCurrency(totalCredit)}</span>
           </div>
         </CardContent>
       </Card>
