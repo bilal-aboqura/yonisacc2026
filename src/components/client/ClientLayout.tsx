@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import AccountingAssistant from "./AccountingAssistant";
+import CompanyDropdown from "./CompanyDropdown";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -351,6 +352,8 @@ const ClientLayout = () => {
           <div className="flex items-center gap-2">
             <LanguageToggle />
             <ThemeToggle />
+            <div className="h-6 w-px bg-border mx-1" />
+            <CompanyDropdown />
           </div>
         </header>
 
