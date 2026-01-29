@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Users,
@@ -32,11 +34,36 @@ const OwnerLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
+  // Check if user has owner role
+  const { data: isOwner, isLoading: isRoleLoading } = useQuery({
+    queryKey: ["user-role", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "owner")
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Error checking user role:", error);
+        return false;
+      }
+      return !!data;
+    },
+    enabled: !!user?.id,
+  });
+
   useEffect(() => {
-    if (!user && !isLoading) {
-      navigate("/auth");
+    if (!isLoading && !isRoleLoading) {
+      if (!user) {
+        navigate("/auth");
+      } else if (isOwner === false) {
+        navigate("/");
+      }
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, isOwner, isRoleLoading, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -170,7 +197,7 @@ const OwnerLayout = () => {
     </div>
   );
 
-  if (isLoading || !user) {
+  if (isLoading || isRoleLoading || !user || !isOwner) {
     return null;
   }
 
