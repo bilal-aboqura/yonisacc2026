@@ -202,37 +202,40 @@ const CompanyRegistration = () => {
   }
 
   return (
-    <div className={`min-h-screen bg-muted/30 py-8 px-4 ${isRTL ? "rtl" : "ltr"}`}>
+    <div className={`min-h-screen bg-muted/30 py-4 sm:py-6 md:py-8 px-3 sm:px-4 ${isRTL ? "rtl" : "ltr"}`}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Button
             variant="ghost"
+            size="sm"
             onClick={() => navigate("/")}
-            className="mb-4"
+            className="mb-3 sm:mb-4"
           >
             <ArrowLeft className={`h-4 w-4 ${isRTL ? "rotate-180 ml-2" : "mr-2"}`} />
-            العودة للرئيسية
+            {isRTL ? "العودة للرئيسية" : "Back to Home"}
           </Button>
-          <h1 className="text-3xl font-bold text-foreground">تسجيل شركة جديدة</h1>
-          <p className="text-muted-foreground mt-2">
-            أكمل البيانات التالية لتسجيل شركتك والاشتراك في النظام
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+            {isRTL ? "تسجيل شركة جديدة" : "Register New Company"}
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
+            {isRTL ? "أكمل البيانات التالية لتسجيل شركتك والاشتراك في النظام" : "Complete the following to register your company"}
           </p>
         </div>
 
         {/* Steps Indicator */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-center mb-6 sm:mb-8">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div
-              className={`flex items-center justify-center w-10 h-10 rounded-full ${
+              className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm sm:text-base ${
                 step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
               }`}
             >
-              {step > 1 ? <Check className="h-5 w-5" /> : "1"}
+              {step > 1 ? <Check className="h-4 w-4 sm:h-5 sm:w-5" /> : "1"}
             </div>
-            <div className={`w-24 h-1 ${step >= 2 ? "bg-primary" : "bg-muted"}`} />
+            <div className={`w-16 sm:w-24 h-1 ${step >= 2 ? "bg-primary" : "bg-muted"}`} />
             <div
-              className={`flex items-center justify-center w-10 h-10 rounded-full ${
+              className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full text-sm sm:text-base ${
                 step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
               }`}
             >
@@ -251,9 +254,9 @@ const CompanyRegistration = () => {
               </CardTitle>
               <CardDescription>أدخل المعلومات الأساسية لشركتك</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+            <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 sm:space-y-2">
                   <Label htmlFor="name">اسم الشركة (عربي) *</Label>
                   <Input
                     id="name"
@@ -264,7 +267,7 @@ const CompanyRegistration = () => {
                   />
                   {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   <Label htmlFor="name_en">اسم الشركة (إنجليزي)</Label>
                   <Input
                     id="name_en"
@@ -276,8 +279,8 @@ const CompanyRegistration = () => {
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 sm:space-y-2">
                   <Label htmlFor="email">البريد الإلكتروني *</Label>
                   <Input
                     id="email"
@@ -376,7 +379,7 @@ const CompanyRegistration = () => {
                     لا توجد باقات متاحة حالياً
                   </p>
                 ) : (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {plans.map((plan) => (
                       <Card
                         key={plan.id}

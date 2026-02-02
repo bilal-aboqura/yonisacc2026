@@ -129,7 +129,7 @@ export const Pricing = () => {
         </div>
 
         {/* Pricing Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {plans?.map((plan, index) => {
             const { features, notIncluded } = getPlanFeatures(plan);
             const popular = isPopular(index);
@@ -139,9 +139,9 @@ export const Pricing = () => {
               <div
                 key={plan.id}
                 className={cn(
-                  "rounded-3xl p-6 card-hover relative",
+                  "rounded-2xl sm:rounded-3xl p-4 sm:p-6 card-hover relative",
                   popular
-                    ? "bg-gradient-to-b from-primary/10 to-primary/5 border-2 border-primary shadow-xl"
+                    ? "bg-gradient-to-b from-primary/10 to-primary/5 border-2 border-primary shadow-xl sm:scale-105"
                     : "glass-card"
                 )}
               >

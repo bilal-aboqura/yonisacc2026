@@ -190,28 +190,28 @@ const ClientDashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat, index) => (
           <Card key={index}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 md:p-6">
               <div className="flex items-center justify-between">
-                <div className={`p-3 rounded-xl ${stat.bgColor}`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl ${stat.bgColor}`}>
+                  <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 ${stat.color}`} />
                 </div>
-                <div className="flex items-center gap-1 text-sm">
+                <div className="flex items-center gap-0.5 sm:gap-1 text-xs sm:text-sm">
                   {stat.trend === "up" ? (
-                    <ArrowUpRight className="h-4 w-4 text-green-500" />
+                    <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
                   ) : stat.trend === "down" ? (
-                    <ArrowDownRight className="h-4 w-4 text-red-500" />
+                    <ArrowDownRight className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
                   ) : null}
                   <span className={stat.trend === "up" ? "text-green-500" : stat.trend === "down" ? "text-red-500" : "text-muted-foreground"}>
                     {stat.change}
                   </span>
                 </div>
               </div>
-              <div className="mt-4">
-                <p className="text-2xl font-bold">{stat.value} ر.س</p>
-                <p className="text-sm text-muted-foreground mt-1">{stat.title}</p>
+              <div className="mt-2 sm:mt-3 md:mt-4">
+                <p className="text-lg sm:text-xl md:text-2xl font-bold">{stat.value} ر.س</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 line-clamp-1">{stat.title}</p>
               </div>
             </CardContent>
           </Card>
@@ -220,22 +220,22 @@ const ClientDashboard = () => {
 
       {/* Quick Actions */}
       <Card>
-        <CardHeader>
-          <CardTitle>{isRTL ? "إجراءات سريعة" : "Quick Actions"}</CardTitle>
+        <CardHeader className="pb-2 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg">{isRTL ? "إجراءات سريعة" : "Quick Actions"}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
             {quickActions.map((action, index) => (
               <Button
                 key={index}
                 variant="outline"
-                className="h-24 flex flex-col gap-2 hover:border-primary"
+                className="h-20 sm:h-24 flex flex-col gap-1.5 sm:gap-2 hover:border-primary"
                 onClick={() => navigate(action.path)}
               >
-                <div className={`p-2 rounded-lg ${action.color} text-white`}>
-                  <action.icon className="h-5 w-5" />
+                <div className={`p-1.5 sm:p-2 rounded-lg ${action.color} text-white`}>
+                  <action.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <span className="text-sm font-medium">{action.title}</span>
+                <span className="text-xs sm:text-sm font-medium text-center line-clamp-1">{action.title}</span>
               </Button>
             ))}
           </div>
@@ -243,24 +243,24 @@ const ClientDashboard = () => {
       </Card>
 
       {/* Recent Activity & Alerts */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle>{isRTL ? "آخر العمليات" : "Recent Transactions"}</CardTitle>
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg">{isRTL ? "آخر العمليات" : "Recent Transactions"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center text-muted-foreground py-8">
+            <div className="text-center text-muted-foreground py-6 sm:py-8 text-sm sm:text-base">
               {isRTL ? "لا توجد عمليات بعد" : "No transactions yet"}
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>{isRTL ? "التنبيهات" : "Alerts"}</CardTitle>
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg">{isRTL ? "التنبيهات" : "Alerts"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center text-muted-foreground py-8">
+            <div className="text-center text-muted-foreground py-6 sm:py-8 text-sm sm:text-base">
               {isRTL ? "لا توجد تنبيهات" : "No alerts"}
             </div>
           </CardContent>
