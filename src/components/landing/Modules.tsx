@@ -62,28 +62,28 @@ export const Modules = () => {
         </div>
 
         {/* Modules Grid */}
-        <div className="grid md:grid-cols-2 gap-8 mb-16">
+        <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-12 sm:mb-16">
           {modules.map((module, index) => (
             <div
               key={index}
-              className="glass-card rounded-3xl p-8 card-hover group"
+              className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 card-hover group"
             >
-              <div className="flex items-start gap-6">
+              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                 <div
-                  className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${module.gradient} flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform flex-shrink-0`}
+                  className={`w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br ${module.gradient} flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform flex-shrink-0`}
                 >
-                  <module.icon className="w-8 h-8 text-white" />
+                  <module.icon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                 </div>
-                <div className="flex-1 space-y-4">
+                <div className="flex-1 space-y-3 sm:space-y-4">
                   <div>
-                    <h3 className="text-2xl font-bold mb-2">{module.title}</h3>
-                    <p className="text-muted-foreground">{module.description}</p>
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-1 sm:mb-2">{module.title}</h3>
+                    <p className="text-sm sm:text-base text-muted-foreground">{module.description}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {module.features.map((feature, i) => (
                       <span
                         key={i}
-                        className="px-3 py-1 rounded-full bg-muted text-sm text-muted-foreground"
+                        className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-muted text-xs sm:text-sm text-muted-foreground"
                       >
                         {feature}
                       </span>
@@ -96,16 +96,16 @@ export const Modules = () => {
         </div>
 
         {/* Business Types */}
-        <div className="text-center space-y-8">
-          <h3 className="text-2xl font-bold">{t("landing.modules.businessTypes.title")}</h3>
-          <div className="flex flex-wrap justify-center gap-4">
+        <div className="text-center space-y-4 sm:space-y-6 lg:space-y-8">
+          <h3 className="text-xl sm:text-2xl font-bold">{t("landing.modules.businessTypes.title")}</h3>
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 lg:gap-4">
             {businessTypes.map((type, index) => (
               <div
                 key={index}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-card border border-border shadow-sm card-hover"
+                className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 lg:py-3 rounded-xl sm:rounded-2xl bg-card border border-border shadow-sm card-hover"
               >
-                <type.icon className="w-5 h-5 text-primary" />
-                <span className="font-medium">{type.label}</span>
+                <type.icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                <span className="text-sm sm:text-base font-medium">{type.label}</span>
               </div>
             ))}
           </div>

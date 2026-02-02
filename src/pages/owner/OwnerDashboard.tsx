@@ -93,21 +93,21 @@ const OwnerDashboard = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
         {statCards.map((stat, index) => (
           <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1 line-clamp-1">{stat.title}</p>
                   {isLoading ? (
-                    <Skeleton className="h-9 w-16" />
+                    <Skeleton className="h-7 sm:h-9 w-12 sm:w-16" />
                   ) : (
-                    <p className="text-3xl font-bold">{stat.value}</p>
+                    <p className="text-xl sm:text-2xl md:text-3xl font-bold">{stat.value}</p>
                   )}
                 </div>
-                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
-                  <stat.icon className="h-7 w-7 text-white" />
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-lg sm:rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
+                  <stat.icon className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-white" />
                 </div>
               </div>
             </CardContent>

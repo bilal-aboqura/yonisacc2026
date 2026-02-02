@@ -316,12 +316,12 @@ const ClientLayout = () => {
   );
 
   return (
-    <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-muted/30 flex">
+    <div dir={isRTL ? "rtl" : "ltr"} className="min-h-screen bg-muted/30 flex w-full">
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "hidden md:flex flex-col bg-card border-e transition-all duration-300",
-          collapsed ? "w-[70px]" : "w-[280px]"
+          "hidden md:flex flex-col bg-card border-e transition-all duration-300 shrink-0",
+          collapsed ? "w-[70px]" : "w-[260px] lg:w-[280px]"
         )}
       >
         <SidebarContent />
@@ -335,30 +335,33 @@ const ClientLayout = () => {
       </Sheet>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
         {/* Top Bar */}
-        <header className="h-16 border-b bg-card px-4 flex items-center justify-end">
+        <header className="h-14 sm:h-16 border-b bg-card px-3 sm:px-4 flex items-center justify-between shrink-0">
           {/* Mobile Menu Button */}
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden absolute start-4"
+            className="md:hidden h-9 w-9"
             onClick={() => setMobileOpen(true)}
           >
-            <Menu className="h-6 w-6" />
+            <Menu className="h-5 w-5" />
           </Button>
 
+          {/* Spacer for desktop */}
+          <div className="hidden md:block" />
+
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <LanguageToggle />
             <ThemeToggle />
-            <div className="h-6 w-px bg-border mx-1" />
+            <div className="h-6 w-px bg-border mx-0.5 sm:mx-1 hidden sm:block" />
             <CompanyDropdown />
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-auto">
           {isLoading ? (
             <div className="flex items-center justify-center min-h-[300px]">
               <span className="text-muted-foreground">{isRTL ? "جاري التحميل..." : "Loading..."}</span>

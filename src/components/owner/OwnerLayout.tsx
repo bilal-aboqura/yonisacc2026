@@ -202,25 +202,25 @@ const OwnerLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex w-full">
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "hidden lg:flex flex-col border-e bg-card transition-all duration-300",
-        collapsed ? "w-[70px]" : "w-[260px]"
+        "hidden lg:flex flex-col border-e bg-card transition-all duration-300 shrink-0",
+        collapsed ? "w-[70px]" : "w-[240px] xl:w-[260px]"
       )}>
         <SidebarContent />
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-40 glass border-b">
-          <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-40 glass border-b shrink-0">
+          <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* Mobile Menu */}
               <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                 <SheetTrigger asChild className="lg:hidden">
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" className="h-9 w-9">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
@@ -230,16 +230,16 @@ const OwnerLayout = () => {
               </Sheet>
 
               <div className="lg:hidden">
-                <h1 className="text-lg font-bold text-gradient">{t("common.appName")}</h1>
+                <h1 className="text-base sm:text-lg font-bold text-gradient">{t("common.appName")}</h1>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <LanguageToggle />
               <ThemeToggle />
               <div className="hidden sm:flex items-center gap-2 ps-2 border-s">
                 <div className="text-sm text-end">
-                  <p className="font-medium">{user.email?.split("@")[0]}</p>
+                  <p className="font-medium truncate max-w-[120px]">{user.email?.split("@")[0]}</p>
                   <p className="text-xs text-muted-foreground">
                     {isRTL ? "مالك النظام" : "System Owner"}
                   </p>
@@ -250,7 +250,7 @@ const OwnerLayout = () => {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 overflow-auto">
           <Outlet />
         </main>
       </div>

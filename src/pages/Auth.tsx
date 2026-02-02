@@ -160,34 +160,34 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 flex flex-col">
       {/* Header */}
-      <header className="p-4 flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate("/")} className="gap-2">
-          <Arrow className="h-4 w-4" />
+      <header className="p-3 sm:p-4 flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-1.5 sm:gap-2 text-sm">
+          <Arrow className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           {isRTL ? "الرئيسية" : "Home"}
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <LanguageToggle />
           <ThemeToggle />
         </div>
       </header>
 
       {/* Auth Form */}
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center p-3 sm:p-4">
         <Card className="w-full max-w-md border-0 shadow-2xl">
-          <CardHeader className="text-center pb-2">
-            <CardTitle className="text-3xl font-bold text-gradient">
+          <CardHeader className="text-center pb-2 px-4 sm:px-6">
+            <CardTitle className="text-2xl sm:text-3xl font-bold text-gradient">
               {t("common.appName")}
             </CardTitle>
-            <CardDescription className="text-base">
+            <CardDescription className="text-sm sm:text-base">
               {isRTL ? "أدر أعمالك بكفاءة واحترافية" : "Manage your business efficiently"}
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="pt-6">
+          <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">{t("auth.login.title")}</TabsTrigger>
-                <TabsTrigger value="signup">{t("auth.register.title")}</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6">
+                <TabsTrigger value="login" className="text-sm sm:text-base">{t("auth.login.title")}</TabsTrigger>
+                <TabsTrigger value="signup" className="text-sm sm:text-base">{t("auth.register.title")}</TabsTrigger>
               </TabsList>
               
               {/* Login Tab */}

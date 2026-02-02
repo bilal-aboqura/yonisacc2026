@@ -61,9 +61,9 @@ export const NizamFooter = () => {
   return (
     <footer id="contact" className="bg-sidebar-background text-sidebar-foreground">
       <div className="container-custom section-padding">
-        <div className="grid lg:grid-cols-6 gap-8 mb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 sm:gap-8 mb-8 sm:mb-12">
           {/* Brand Column */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="col-span-2 sm:col-span-3 lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Logo */}
             <Link to="/" className="inline-flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-white font-bold text-2xl shadow-lg">

@@ -84,107 +84,115 @@ const OwnerSubscribers = () => {
       </Card>
 
       {/* Companies Table */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border-0 shadow-lg overflow-hidden">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{isRTL ? "الشركة" : "Company"}</TableHead>
-                <TableHead>{isRTL ? "التواصل" : "Contact"}</TableHead>
-                <TableHead>{isRTL ? "الباقة" : "Plan"}</TableHead>
-                <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-                <TableHead>{isRTL ? "تاريخ التسجيل" : "Registration Date"}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                [...Array(5)].map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  </TableRow>
-                ))
-              ) : filteredCompanies?.length === 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    {isRTL ? "لا توجد شركات مسجلة" : "No companies found"}
-                  </TableCell>
+                  <TableHead className="min-w-[180px]">{isRTL ? "الشركة" : "Company"}</TableHead>
+                  <TableHead className="min-w-[200px] hidden sm:table-cell">{isRTL ? "التواصل" : "Contact"}</TableHead>
+                  <TableHead className="min-w-[100px]">{isRTL ? "الباقة" : "Plan"}</TableHead>
+                  <TableHead className="min-w-[100px]">{isRTL ? "الحالة" : "Status"}</TableHead>
+                  <TableHead className="min-w-[120px] hidden md:table-cell">{isRTL ? "تاريخ التسجيل" : "Registration Date"}</TableHead>
                 </TableRow>
-              ) : (
-                filteredCompanies?.map((company) => {
-                  const { status, plan } = getSubscriptionStatus(company.subscriptions || []);
-                  
-                  return (
-                    <TableRow key={company.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Building2 className="h-5 w-5 text-primary" />
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  [...Array(5)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-24 sm:w-32" /></TableCell>
+                      <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-32 sm:w-40" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-16 sm:w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-14 sm:w-16" /></TableCell>
+                      <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20 sm:w-24" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : filteredCompanies?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-6 sm:py-8 text-muted-foreground">
+                      {isRTL ? "لا توجد شركات مسجلة" : "No companies found"}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCompanies?.map((company) => {
+                    const { status, plan } = getSubscriptionStatus(company.subscriptions || []);
+                    
+                    return (
+                      <TableRow key={company.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm sm:text-base truncate">{company.name}</p>
+                              {company.name_en && (
+                                <p className="text-xs sm:text-sm text-muted-foreground truncate">{company.name_en}</p>
+                              )}
+                              {/* Mobile contact info */}
+                              <div className="sm:hidden mt-1 space-y-0.5">
+                                {company.email && (
+                                  <p className="text-xs text-muted-foreground truncate">{company.email}</p>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{company.name}</p>
-                            {company.name_en && (
-                              <p className="text-sm text-muted-foreground">{company.name_en}</p>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <div className="space-y-1">
+                            {company.email && (
+                              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                                <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span className="truncate">{company.email}</span>
+                              </div>
+                            )}
+                            {company.phone && (
+                              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                                <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span>{company.phone}</span>
+                              </div>
                             )}
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {company.email && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <Mail className="h-3 w-3 text-muted-foreground" />
-                              {company.email}
-                            </div>
+                        </TableCell>
+                        <TableCell>
+                          {plan ? (
+                            <span className="font-medium text-xs sm:text-sm">
+                              {isRTL ? plan.name_ar : plan.name_en}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
                           )}
-                          {company.phone && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <Phone className="h-3 w-3 text-muted-foreground" />
-                              {company.phone}
-                            </div>
+                        </TableCell>
+                        <TableCell>
+                          {status === "active" && (
+                            <Badge className="bg-green-500/10 text-green-600 border-green-200 text-xs">
+                              {isRTL ? "نشط" : "Active"}
+                            </Badge>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {plan ? (
-                          <span className="font-medium">
-                            {isRTL ? plan.name_ar : plan.name_en}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {status === "active" && (
-                          <Badge className="bg-green-500/10 text-green-600 border-green-200">
-                            {isRTL ? "نشط" : "Active"}
-                          </Badge>
-                        )}
-                        {status === "pending" && (
-                          <Badge className="bg-amber-500/10 text-amber-600 border-amber-200">
-                            {isRTL ? "معلق" : "Pending"}
-                          </Badge>
-                        )}
-                        {status === "none" && (
-                          <Badge variant="secondary">
-                            {isRTL ? "بدون اشتراك" : "No subscription"}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(company.created_at), "dd MMM yyyy", {
-                          locale: isRTL ? ar : enUS,
-                        })}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                          {status === "pending" && (
+                            <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 text-xs">
+                              {isRTL ? "معلق" : "Pending"}
+                            </Badge>
+                          )}
+                          {status === "none" && (
+                            <Badge variant="secondary" className="text-xs">
+                              {isRTL ? "بدون" : "None"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">
+                          {format(new Date(company.created_at), "dd MMM yyyy", {
+                            locale: isRTL ? ar : enUS,
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
