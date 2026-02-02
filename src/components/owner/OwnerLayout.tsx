@@ -24,6 +24,7 @@ import {
   Building2,
   BarChart3,
   Globe,
+  Shield,
 } from "lucide-react";
 
 const OwnerLayout = () => {
@@ -111,6 +112,11 @@ const OwnerLayout = () => {
       path: "/owner/reports", 
       icon: BarChart3, 
       label: isRTL ? "التقارير" : "Reports" 
+    },
+    { 
+      path: "/owner/audit-logs", 
+      icon: Shield, 
+      label: isRTL ? "سجل التدقيق" : "Audit Logs" 
     },
     { 
       path: "/owner/settings", 

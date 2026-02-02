@@ -73,6 +73,7 @@ import OwnerMessages from "./pages/owner/OwnerMessages";
 import OwnerReports from "./pages/owner/OwnerReports";
 import OwnerSettings from "./pages/owner/OwnerSettings";
 import OwnerLandingContent from "./pages/owner/OwnerLandingContent";
+import OwnerAuditLogs from "./pages/owner/OwnerAuditLogs";
 
 const queryClient = new QueryClient();
 
@@ -158,6 +159,7 @@ const App = () => (
               <Route path="landing-content" element={<OwnerLandingContent />} />
               <Route path="messages" element={<OwnerMessages />} />
               <Route path="reports" element={<OwnerReports />} />
+              <Route path="audit-logs" element={<OwnerAuditLogs />} />
               <Route path="settings" element={<OwnerSettings />} />
             </Route>
 
