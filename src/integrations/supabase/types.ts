@@ -2058,6 +2058,15 @@ export type Database = {
         Returns: boolean
       }
       is_company_owner: { Args: { _company_id: string }; Returns: boolean }
+      log_access_denied: {
+        Args: {
+          _attempted_operation: string
+          _attempted_record_id?: string
+          _details?: string
+          _table_name: string
+        }
+        Returns: undefined
+      }
       log_audit_event: {
         Args: {
           _company_id: string

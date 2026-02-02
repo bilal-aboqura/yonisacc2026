@@ -117,35 +117,52 @@ const CreateAccount = () => {
         .from("companies")
         .select("id")
         .eq("owner_id", user?.id)
-        .single();
+        .maybeSingle();
 
       if (companyError) throw companyError;
+      
+      if (!companyData) {
+        toast({
+          title: "تنبيه",
+          description: "يرجى إنشاء شركة أولاً",
+          variant: "destructive",
+        });
+        navigate("/client/settings");
+        return;
+      }
+      
       setCompanyId(companyData.id);
 
       // Fetch all accounts
-      const { data: accountsData } = await supabase
+      const { data: accountsData, error: accountsError } = await supabase
         .from("accounts")
         .select("id, code, name, name_en, type, is_parent")
         .eq("company_id", companyData.id)
         .eq("is_active", true)
         .order("code");
 
+      if (accountsError) {
+        console.error("Error fetching accounts:", accountsError);
+      }
       setAllAccounts(accountsData || []);
 
       // Fetch cost centers
-      const { data: costCentersData } = await supabase
+      const { data: costCentersData, error: costCentersError } = await supabase
         .from("cost_centers")
         .select("id, code, name, name_en")
         .eq("company_id", companyData.id)
         .eq("is_active", true)
         .order("code");
 
+      if (costCentersError) {
+        console.error("Error fetching cost centers:", costCentersError);
+      }
       setCostCenters(costCentersData || []);
     } catch (error: any) {
       console.error("Error fetching data:", error);
       toast({
         title: "خطأ",
-        description: "حدث خطأ في تحميل البيانات",
+        description: "حدث خطأ في تحميل البيانات. يرجى المحاولة مرة أخرى",
         variant: "destructive",
       });
     } finally {
@@ -191,7 +208,7 @@ const CreateAccount = () => {
         .select("id")
         .eq("company_id", companyId)
         .eq("code", code.trim())
-        .single();
+        .maybeSingle();
 
       if (existingAccount) {
         toast({
