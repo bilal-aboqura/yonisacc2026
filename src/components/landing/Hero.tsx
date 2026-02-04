@@ -28,7 +28,38 @@ interface HeroData {
   stat3_value: string | null;
   stat3_label_ar: string | null;
   stat3_label_en: string | null;
+  video_url: string | null;
 }
+
+// Helper function to convert YouTube URL to embed URL
+const getYouTubeEmbedUrl = (url: string): string | null => {
+  if (!url) return null;
+  
+  // Already an embed URL
+  if (url.includes('/embed/')) {
+    const videoId = url.split('/embed/')[1]?.split('?')[0];
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&rel=0`;
+    }
+    return url;
+  }
+  
+  // Standard YouTube URL (youtube.com/watch?v=...)
+  const watchMatch = url.match(/[?&]v=([^&]+)/);
+  if (watchMatch) {
+    const videoId = watchMatch[1];
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&rel=0`;
+  }
+  
+  // Short YouTube URL (youtu.be/...)
+  const shortMatch = url.match(/youtu\.be\/([^?]+)/);
+  if (shortMatch) {
+    const videoId = shortMatch[1];
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&rel=0`;
+  }
+  
+  return null;
+};
 
 export const Hero = () => {
   const { t } = useTranslation();
@@ -44,7 +75,7 @@ export const Hero = () => {
         .maybeSingle();
       
       if (error) throw error;
-      return data as HeroData | null;
+      return data as unknown as HeroData | null;
     },
   });
 
@@ -199,75 +230,91 @@ export const Hero = () => {
             </div>
           </div>
 
-          {/* Dashboard Mockup */}
+          {/* Video or Dashboard Mockup */}
           <div className="relative animate-slide-in-left order-1 lg:order-2">
-            {/* Main Dashboard Card */}
-            <div className="glass-card rounded-2xl sm:rounded-3xl p-1 shadow-2xl">
-              {/* Browser Bar */}
-              <div className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 border-b border-border/50">
-                <div className="flex gap-1 sm:gap-1.5">
-                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-400" />
-                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-400" />
-                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-400" />
+            {/* Main Content Card */}
+            <div className="glass-card rounded-2xl sm:rounded-3xl p-1 shadow-2xl overflow-hidden">
+              {heroData?.video_url && getYouTubeEmbedUrl(heroData.video_url) ? (
+                // YouTube Video
+                <div className="aspect-video">
+                  <iframe
+                    src={getYouTubeEmbedUrl(heroData.video_url)!}
+                    className="w-full h-full rounded-xl sm:rounded-2xl"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="Nizam Demo Video"
+                  />
                 </div>
-                <div className="flex-1 text-center hidden sm:block">
-                  <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 rounded-full bg-muted/50 text-xs text-muted-foreground">
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
-                    nizam.app/dashboard
-                  </div>
-                </div>
-              </div>
-
-              {/* Dashboard Content */}
-              <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
-                {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                  {stats.map((stat, index) => (
-                    <div key={index} className="text-center p-2 sm:p-4 rounded-lg sm:rounded-xl bg-muted/30">
-                      <div className="text-lg sm:text-xl md:text-2xl font-bold gradient-text">{stat.value}</div>
-                      <div className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">{stat.label}</div>
+              ) : (
+                // Fallback Dashboard Mockup
+                <>
+                  {/* Browser Bar */}
+                  <div className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 border-b border-border/50">
+                    <div className="flex gap-1 sm:gap-1.5">
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-destructive/70" />
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-accent/70" />
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-primary/70" />
                     </div>
-                  ))}
-                </div>
-
-                {/* Chart Placeholder */}
-                <div className="h-24 sm:h-32 md:h-40 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 border border-border/50 flex items-end justify-around p-2 sm:p-4">
-                  {[60, 80, 45, 90, 70, 85, 95].map((height, i) => (
-                    <div
-                      key={i}
-                      className="w-4 sm:w-6 md:w-8 rounded-t-md sm:rounded-t-lg gradient-primary opacity-70"
-                      style={{ height: `${height}%` }}
-                    />
-                  ))}
-                </div>
-
-                {/* Quick Actions */}
-                <div className="flex gap-2 sm:gap-3">
-                  <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20">
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                      <span className="text-xs sm:text-sm font-medium truncate">{t("landing.dashboard.newInvoice")}</span>
+                    <div className="flex-1 text-center hidden sm:block">
+                      <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 rounded-full bg-muted/50 text-xs text-muted-foreground">
+                        <span className="w-2 h-2 rounded-full bg-primary" />
+                        nizam.app/dashboard
+                      </div>
                     </div>
                   </div>
-                  <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-accent/10 border border-accent/20">
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" />
-                      <span className="text-xs sm:text-sm font-medium truncate">{t("landing.dashboard.salesReport")}</span>
+
+                  {/* Dashboard Content */}
+                  <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+                    {/* Stats Row */}
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                      {stats.map((stat, index) => (
+                        <div key={index} className="text-center p-2 sm:p-4 rounded-lg sm:rounded-xl bg-muted/30">
+                          <div className="text-lg sm:text-xl md:text-2xl font-bold gradient-text">{stat.value}</div>
+                          <div className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">{stat.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Chart Placeholder */}
+                    <div className="h-24 sm:h-32 md:h-40 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/5 to-accent/5 border border-border/50 flex items-end justify-around p-2 sm:p-4">
+                      {[60, 80, 45, 90, 70, 85, 95].map((height, i) => (
+                        <div
+                          key={i}
+                          className="w-4 sm:w-6 md:w-8 rounded-t-md sm:rounded-t-lg gradient-primary opacity-70"
+                          style={{ height: `${height}%` }}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="flex gap-2 sm:gap-3">
+                      <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-primary/10 border border-primary/20">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+                          <span className="text-xs sm:text-sm font-medium truncate">{t("landing.dashboard.newInvoice")}</span>
+                        </div>
+                      </div>
+                      <div className="flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-accent/10 border border-accent/20">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" />
+                          <span className="text-xs sm:text-sm font-medium truncate">{t("landing.dashboard.salesReport")}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
             {/* Floating Cards - Hidden on mobile */}
             <div className="hidden sm:block absolute -top-4 -left-4 glass-card rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-xl animate-float">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-green-500/20 flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary/20 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
                 <div>
                   <div className="text-[10px] sm:text-xs text-muted-foreground">{t("landing.dashboard.salesGrowth")}</div>
-                  <div className="text-base sm:text-lg font-bold text-green-500">+24%</div>
+                  <div className="text-base sm:text-lg font-bold text-primary">+24%</div>
                 </div>
               </div>
             </div>
