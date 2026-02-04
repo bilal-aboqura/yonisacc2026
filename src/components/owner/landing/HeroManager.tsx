@@ -31,6 +31,7 @@ interface HeroContent {
   stat3_value: string | null;
   stat3_label_ar: string | null;
   stat3_label_en: string | null;
+  video_url: string | null;
 }
 
 export const HeroManager = () => {
@@ -47,7 +48,7 @@ export const HeroManager = () => {
         .maybeSingle();
       
       if (error) throw error;
-      return data as HeroContent | null;
+      return data as unknown as HeroContent | null;
     },
   });
 
@@ -217,6 +218,30 @@ export const HeroManager = () => {
                 dir="ltr"
               />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Video URL Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{isRTL ? "فيديو يوتيوب" : "YouTube Video"}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>{isRTL ? "رابط الفيديو" : "Video URL"}</Label>
+            <Input
+              value={displayData.video_url || ""}
+              onChange={(e) => handleChange("video_url", e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              dir="ltr"
+            />
+            <p className="text-xs text-muted-foreground">
+              {isRTL 
+                ? "أدخل رابط يوتيوب عادي أو رابط embed. الفيديو سيشتغل تلقائياً مع كتم الصوت."
+                : "Enter a YouTube URL or embed link. Video will autoplay muted."
+              }
+            </p>
           </div>
         </CardContent>
       </Card>
