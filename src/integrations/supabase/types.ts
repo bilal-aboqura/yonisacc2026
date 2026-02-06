@@ -2189,6 +2189,42 @@ export type Database = {
         }
         Relationships: []
       }
+      vertical_screens: {
+        Row: {
+          created_at: string | null
+          id: string
+          screen_id: string
+          vertical_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          screen_id: string
+          vertical_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          screen_id?: string
+          vertical_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vertical_screens_screen_id_fkey"
+            columns: ["screen_id"]
+            isOneToOne: false
+            referencedRelation: "system_screens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vertical_screens_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "business_verticals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warehouses: {
         Row: {
           address: string | null
