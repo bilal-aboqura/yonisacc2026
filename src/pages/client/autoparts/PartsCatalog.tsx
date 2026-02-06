@@ -79,18 +79,17 @@ const PartsCatalog = () => {
     queryFn: async () => {
       if (!companyId) return [];
 
-      const baseQuery = supabase
+      let query = supabase
         .from("products")
         .select("id, name, name_en, sku, oem_number, shelf_location, part_condition, sale_price")
         .eq("company_id", companyId)
-        .eq("is_active", true)
-        .order("name");
+        .eq("is_active", true);
 
-      const finalQuery = filterCondition !== "all" 
-        ? baseQuery.eq("part_condition", filterCondition) 
-        : baseQuery;
+      if (filterCondition !== "all") {
+        query = query.eq("part_condition", filterCondition);
+      }
 
-      const { data, error } = await (finalQuery as any);
+      const { data, error } = await query.order("name");
       if (error) throw error;
 
       // Fetch compatibility data separately
