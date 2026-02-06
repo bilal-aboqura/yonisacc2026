@@ -7,7 +7,7 @@ import { useTenantIsolation } from "./useTenantIsolation";
 export const useAutoPartsAccess = () => {
   const { company, isLoadingCompany } = useTenantIsolation();
 
-  const isAutoPartsCompany = company?.activity_type === "auto_parts";
+  const isAutoPartsCompany = company?.activity_type === "Auto Parts Shops";
 
   return {
     isAutoPartsCompany,
