@@ -119,6 +119,11 @@ const OwnerLayout = () => {
       label: isRTL ? "سجل التدقيق" : "Audit Logs" 
     },
     { 
+      path: "/owner/activities", 
+      icon: Building2, 
+      label: isRTL ? "الأنشطة" : "Activities" 
+    },
+    { 
       path: "/owner/settings", 
       icon: Settings, 
       label: isRTL ? "الإعدادات" : "Settings" 
