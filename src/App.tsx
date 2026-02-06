@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 
 import NotFound from "./pages/NotFound";
 import CompanyRegistration from "./pages/CompanyRegistration";
+import Activities from "./pages/Activities";
 
 // Client Portal
 import ClientLayout from "./components/client/ClientLayout";
@@ -74,6 +75,7 @@ import OwnerReports from "./pages/owner/OwnerReports";
 import OwnerSettings from "./pages/owner/OwnerSettings";
 import OwnerLandingContent from "./pages/owner/OwnerLandingContent";
 import OwnerAuditLogs from "./pages/owner/OwnerAuditLogs";
+import OwnerActivities from "./pages/owner/OwnerActivities";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +91,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             
             <Route path="/register-company" element={<CompanyRegistration />} />
+            <Route path="/activities" element={<Activities />} />
             
             {/* Client Portal Routes */}
             <Route path="/client" element={<ClientLayout />}>
@@ -160,6 +163,7 @@ const App = () => (
               <Route path="messages" element={<OwnerMessages />} />
               <Route path="reports" element={<OwnerReports />} />
               <Route path="audit-logs" element={<OwnerAuditLogs />} />
+              <Route path="activities" element={<OwnerActivities />} />
               <Route path="settings" element={<OwnerSettings />} />
             </Route>
 

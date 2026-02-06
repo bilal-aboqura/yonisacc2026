@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { useLanguage } from "@/hooks/useLanguage";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -18,10 +19,12 @@ export const Navbar = () => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const { isRTL } = useLanguage();
 
   const navLinks = [
     { href: "#features", label: t("nav.features") },
     { href: "#modules", label: t("nav.modules") },
+    { href: "/activities", label: isRTL ? "الأنشطة" : "Activities", isRoute: true },
     { href: "#pricing", label: t("nav.pricing") },
     { href: "#faq", label: t("nav.faq") },
   ];
@@ -64,13 +67,23 @@ export const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-6 xl:gap-8">
             {navLinks.map((link) => (
-              <button
-                key={link.href}
-                onClick={() => scrollToSection(link.href)}
-                className="text-muted-foreground hover:text-foreground transition-colors font-medium story-link text-sm xl:text-base"
-              >
-                {link.label}
-              </button>
+              link.isRoute ? (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className="text-muted-foreground hover:text-foreground transition-colors font-medium story-link text-sm xl:text-base"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <button
+                  key={link.href}
+                  onClick={() => scrollToSection(link.href)}
+                  className="text-muted-foreground hover:text-foreground transition-colors font-medium story-link text-sm xl:text-base"
+                >
+                  {link.label}
+                </button>
+              )
             ))}
           </div>
 
@@ -116,13 +129,24 @@ export const Navbar = () => {
                 </SheetHeader>
                 <div className="p-4 sm:p-6 space-y-2">
                   {navLinks.map((link) => (
-                    <button
-                      key={link.href}
-                      onClick={() => scrollToSection(link.href)}
-                      className="block w-full text-right py-3 px-4 text-foreground hover:bg-muted/50 rounded-xl transition-colors font-medium text-base"
-                    >
-                      {link.label}
-                    </button>
+                    link.isRoute ? (
+                      <Link
+                        key={link.href}
+                        to={link.href}
+                        onClick={() => setIsOpen(false)}
+                        className="block w-full text-right py-3 px-4 text-foreground hover:bg-muted/50 rounded-xl transition-colors font-medium text-base"
+                      >
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <button
+                        key={link.href}
+                        onClick={() => scrollToSection(link.href)}
+                        className="block w-full text-right py-3 px-4 text-foreground hover:bg-muted/50 rounded-xl transition-colors font-medium text-base"
+                      >
+                        {link.label}
+                      </button>
+                    )
                   ))}
                   <div className="pt-4 mt-4 border-t border-border space-y-3">
                     <Link to="/auth" className="block" onClick={() => setIsOpen(false)}>
