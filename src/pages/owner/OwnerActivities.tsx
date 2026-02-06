@@ -17,12 +17,13 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Pencil, Eye, EyeOff, Clock, CheckCircle } from "lucide-react";
+import { Plus, Pencil, Eye, EyeOff, Clock, CheckCircle, Monitor } from "lucide-react";
 import {
   Gem, Car, ShoppingCart, Scissors, Sparkles,
   Stethoscope, Pill, Building2, UtensilsCrossed, Store
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import VerticalScreensDialog from "@/components/owner/VerticalScreensDialog";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Gem, Car, ShoppingCart, Scissors, Sparkles,
@@ -52,6 +53,8 @@ const OwnerActivities = () => {
   const queryClient = useQueryClient();
   const [editItem, setEditItem] = useState<BusinessVertical | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [screensVertical, setScreensVertical] = useState<BusinessVertical | null>(null);
+  const [screensDialogOpen, setScreensDialogOpen] = useState(false);
 
   const { data: verticals, isLoading } = useQuery({
     queryKey: ["owner-business-verticals"],
@@ -193,13 +196,24 @@ const OwnerActivities = () => {
                         </Button>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => { setEditItem({ ...item }); setDialogOpen(true); }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title={isRTL ? "الشاشات" : "Screens"}
+                            onClick={() => { setScreensVertical({ ...item }); setScreensDialogOpen(true); }}
+                          >
+                            <Monitor className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title={isRTL ? "تعديل" : "Edit"}
+                            onClick={() => { setEditItem({ ...item }); setDialogOpen(true); }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -323,6 +337,13 @@ const OwnerActivities = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Vertical Screens Dialog */}
+      <VerticalScreensDialog
+        open={screensDialogOpen}
+        onOpenChange={setScreensDialogOpen}
+        vertical={screensVertical}
+      />
     </div>
   );
 };
