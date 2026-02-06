@@ -356,7 +356,7 @@ const CompanyRegistration = () => {
                   <SelectContent>
                     <SelectItem value="__general__">{isRTL ? "تجارة عامة" : "General Trade"}</SelectItem>
                     {verticals?.map((v) => (
-                      <SelectItem key={v.id} value={v.name_en.toLowerCase().replace(/\s+/g, '_')}>
+                      <SelectItem key={v.id} value={v.name_en}>
                         {isRTL ? v.name_ar : v.name_en}
                       </SelectItem>
                     ))}

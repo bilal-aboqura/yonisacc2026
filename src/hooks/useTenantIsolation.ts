@@ -19,14 +19,15 @@ export const useTenantIsolation = () => {
         .from("companies")
         .select("id, name, name_en, owner_id, activity_type")
         .eq("owner_id", user.id)
-        .single();
+        .order("created_at", { ascending: false })
+        .limit(1);
       
       if (error) {
         console.error("Failed to fetch company:", error);
         return null;
       }
       
-      return data;
+      return data?.[0] || null;
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
