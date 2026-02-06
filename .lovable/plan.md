@@ -1,108 +1,81 @@
 
 
-# خطة: عرض شاشات العميل عند النقر على النشاط في لوحة المالك
+# اصلاح: عدم ظهور شاشات قطع الغيار للعميل المشترك
 
-## الفكرة
-عند الضغط على أي نشاط من صفحة إدارة الأنشطة (`/owner/activities`)، يظهر Dialog يعرض جميع الشاشات والصفحات التي ستكون متاحة للعميل المشترك في هذا النشاط، مقسمة حسب الوحدات (المحاسبة، المبيعات، المخزون، قطع الغيار، إلخ).
+## المشاكل المكتشفة
 
-## ما سيتم بناؤه
+### 1. عدم تطابق قيمة نوع النشاط
+- **صفحة التسجيل** تحفظ القيمة: `"auto_parts_shops"` (تحويل من اسم النشاط الإنجليزي)
+- **Hook التحقق** يبحث عن القيمة: `"auto_parts"`
+- النتيجة: لا تتطابق القيمتان ابداً، فلا تظهر شاشات قطع الغيار
 
-### 1. جدول ربط جديد في قاعدة البيانات: `vertical_screens`
-يربط كل نشاط تجاري بالشاشات الخاصة به:
+### 2. مشكلة تعدد الشركات
+- المستخدم الحالي لديه 4 شركات مسجلة في قاعدة البيانات
+- `useTenantIsolation` يستخدم `.single()` الذي يُرجع خطأ عند وجود أكثر من سجل واحد
+- النتيجة: يرجع `null` دائماً ولا يتم التعرف على الشركة أو نوع نشاطها
 
-| العمود | النوع | الوصف |
-|--------|-------|-------|
-| id | uuid | المعرف |
-| vertical_id | uuid | FK -> business_verticals |
-| screen_id | uuid | FK -> system_screens |
-| created_at | timestamptz | تاريخ الإنشاء |
+### 3. لا توجد شركة بنشاط قطع غيار
+- في قاعدة البيانات الحالية، لا توجد أي شركة بنوع نشاط يطابق `"auto_parts"` أو `"auto_parts_shops"`
 
-- قيد فريد على (vertical_id, screen_id) لمنع التكرار
-- سياسة RLS: القراءة للجميع، الإدارة للمالك فقط
+---
 
-**بيانات أولية:** ربط نشاط "قطع غيار السيارات" بجميع الشاشات الأساسية + شاشات قطع الغيار الثلاث.
+## الحل المقترح
 
-### 2. تعديل صفحة إدارة الأنشطة (`OwnerActivities.tsx`)
-- إضافة زر "عرض الشاشات" بجوار كل نشاط في جدول الأنشطة
-- عند النقر يفتح Dialog كبير يعرض:
-  - **القسم العلوي:** معلومات النشاط (الأيقونة، الاسم، الوصف)
-  - **القسم الرئيسي:** قائمة شاشات النظام مقسمة حسب الوحدات مع Checkboxes
-  - **الشاشات المحددة** (المرتبطة بالنشاط) تظهر بعلامة صح
-  - يمكن للمالك تعديل الشاشات المرتبطة بكل نشاط وحفظها
+### الاصلاح 1: توحيد قيمة نوع النشاط (CompanyRegistration.tsx)
+- تغيير القيمة المحفوظة لتكون `name_en` بالضبط كما في قاعدة البيانات (بدون تحويل)
+- أو حفظ `id` النشاط بدلاً من الاسم المحوّل
+- **الحل الأنسب**: حفظ `name_en` كما هو من جدول `business_verticals` بدون أي تحويل
 
-### 3. تصميم الواجهة
+### الاصلاح 2: تحديث التحقق في useAutoPartsAccess
+- تغيير المقارنة لتطابق القيمة الفعلية المحفوظة
+- استخدام `"Auto Parts Shops"` بدلاً من `"auto_parts"`
 
-```text
-+---------------------------------------------+
-|    عرض شاشات النشاط                          |
-+---------------------------------------------+
-|  [Car icon] محلات قطع غيار السيارات           |
-|  نظام متخصص لإدارة محلات قطع الغيار          |
-+---------------------------------------------+
-|                                               |
-|  [المحاسبة]  [المبيعات]  [المخزون]  [قطع الغيار]|
-|                                               |
-|  [x] تحديد الكل                               |
-|  ------------------------------------------- |
-|  [x] قيود اليومية                             |
-|  [x] دفتر الأستاذ                            |
-|  [x] ميزان المراجعة                           |
-|  [x] قائمة الدخل                              |
-|  [x] الميزانية العمومية                       |
-|  [x] التدفقات النقدية                         |
-|                                               |
-+---------------------------------------------+
-|        [إلغاء]          [حفظ التغييرات]        |
-+---------------------------------------------+
-```
+### الاصلاح 3: معالجة تعدد الشركات في useTenantIsolation
+- تغيير `.single()` إلى `.maybeSingle()` أو `.limit(1)` لتجنب الخطأ عند تعدد الشركات
+- ترتيب حسب تاريخ الإنشاء (الأحدث أولاً) لاختيار آخر شركة مسجلة
+
+### الاصلاح 4: تحديث البيانات الموجودة
+- تحديث الشركات الموجودة في قاعدة البيانات لتصحيح قيم `activity_type`
 
 ---
 
 ## التفاصيل التقنية
 
-### الملفات الجديدة
-1. **Migration SQL** - إنشاء جدول `vertical_screens` مع البيانات الأولية
-
 ### الملفات المعدلة
-1. **`src/pages/owner/OwnerActivities.tsx`** - إضافة:
-   - زر "الشاشات" في عمود الإجراءات
-   - Dialog لعرض وتعديل شاشات النشاط
-   - استعلامات لجلب `system_screens` و `vertical_screens`
-   - mutation لحفظ التغييرات
 
-### SQL Migration
+**1. `src/pages/CompanyRegistration.tsx`**
+- تغيير سطر 359 من:
+```typescript
+value={v.name_en.toLowerCase().replace(/\s+/g, '_')}
+```
+الى:
+```typescript
+value={v.name_en}
+```
+- تغيير سطر 351 لإزالة التحويل عند الحفظ:
+```typescript
+onValueChange={(v) => handleInputChange("activity_type", v === "__general__" ? "general" : v)}
+```
+يبقى كما هو لأن القيمة ستأتي صحيحة الآن
 
-```sql
--- جدول ربط الأنشطة بالشاشات
-CREATE TABLE public.vertical_screens (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  vertical_id UUID NOT NULL REFERENCES business_verticals(id) ON DELETE CASCADE,
-  screen_id UUID NOT NULL REFERENCES system_screens(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(vertical_id, screen_id)
-);
-
-ALTER TABLE public.vertical_screens ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Anyone can view vertical screens"
-  ON public.vertical_screens FOR SELECT USING (true);
-
-CREATE POLICY "Owners can manage vertical screens"
-  ON public.vertical_screens FOR ALL
-  USING (has_role(auth.uid(), 'owner'::app_role));
-
--- ربط نشاط قطع الغيار بكل الشاشات الأساسية + شاشات قطع الغيار
-INSERT INTO public.vertical_screens (vertical_id, screen_id)
-SELECT bv.id, ss.id
-FROM business_verticals bv
-CROSS JOIN system_screens ss
-WHERE bv.name_en = 'Auto Parts Shops';
+**2. `src/hooks/useAutoPartsAccess.ts`**
+- تغيير المقارنة من:
+```typescript
+const isAutoPartsCompany = company?.activity_type === "auto_parts";
+```
+الى:
+```typescript
+const isAutoPartsCompany = company?.activity_type === "Auto Parts Shops";
 ```
 
-### منطق العمل
-- عند فتح Dialog الشاشات، يتم جلب كل شاشات النظام من `system_screens` وتقسيمها حسب `module`
-- يتم جلب الشاشات المرتبطة بالنشاط المحدد من `vertical_screens`
-- المالك يمكنه تحديد أو إلغاء تحديد أي شاشة
-- عند الحفظ: يتم حذف الربط القديم وإدراج الجديد (نفس نمط `OwnerScreens.tsx`)
-- واجهة الـ Tabs تعرض الوحدات (المحاسبة، المبيعات، المخزون، الموارد البشرية، قطع الغيار، التقارير، الإعدادات)
+**3. `src/hooks/useTenantIsolation.ts`**
+- تغيير الاستعلام من `.single()` إلى `.order("created_at", { ascending: false }).limit(1)` ثم أخذ أول عنصر
+- هذا يمنع الخطأ عند وجود عدة شركات للمستخدم نفسه ويرجع الأحدث
+
+**4. `src/pages/client/CreateProduct.tsx`**
+- تحديث أي مقارنة تستخدم `"auto_parts"` لتطابق القيمة الجديدة
+
+### تحديث البيانات
+- لا حاجة لـ migration جديد
+- تحديث الشركات الموجودة (إن وجدت) لتصحيح قيم `activity_type` المحفوظة سابقاً
 
