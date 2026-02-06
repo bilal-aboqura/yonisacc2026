@@ -265,6 +265,60 @@ export type Database = {
           },
         ]
       }
+      business_verticals: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description_ar: string
+          description_en: string
+          features_ar: string[] | null
+          features_en: string[] | null
+          icon: string
+          id: string
+          is_active: boolean | null
+          monthly_price: number
+          name_ar: string
+          name_en: string
+          sort_order: number | null
+          status: string
+          yearly_price: number
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description_ar: string
+          description_en: string
+          features_ar?: string[] | null
+          features_en?: string[] | null
+          icon?: string
+          id?: string
+          is_active?: boolean | null
+          monthly_price?: number
+          name_ar: string
+          name_en: string
+          sort_order?: number | null
+          status?: string
+          yearly_price?: number
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description_ar?: string
+          description_en?: string
+          features_ar?: string[] | null
+          features_en?: string[] | null
+          icon?: string
+          id?: string
+          is_active?: boolean | null
+          monthly_price?: number
+          name_ar?: string
+          name_en?: string
+          sort_order?: number | null
+          status?: string
+          yearly_price?: number
+        }
+        Relationships: []
+      }
       client_screens: {
         Row: {
           company_id: string

@@ -17,7 +17,7 @@ export const useTenantIsolation = () => {
       
       const { data, error } = await supabase
         .from("companies")
-        .select("id, name, name_en, owner_id")
+        .select("id, name, name_en, owner_id, activity_type")
         .eq("owner_id", user.id)
         .single();
       
