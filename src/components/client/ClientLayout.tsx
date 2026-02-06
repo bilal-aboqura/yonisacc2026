@@ -4,6 +4,7 @@ import CompanyDropdown from "./CompanyDropdown";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAutoPartsAccess } from "@/hooks/useAutoPartsAccess";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -42,6 +43,9 @@ import {
   BookOpenCheck,
   Target,
   ListChecks,
+  Car,
+  Search,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -54,7 +58,7 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
-const menuItems: MenuItem[] = [
+const baseMenuItems: MenuItem[] = [
   { 
     icon: LayoutDashboard, 
     label: "لوحة التحكم", 
@@ -139,14 +143,31 @@ const menuItems: MenuItem[] = [
   },
 ];
 
+const autoPartsMenuGroup: MenuItem = {
+  icon: Car,
+  label: "قطع الغيار",
+  labelEn: "Auto Parts",
+  children: [
+    { icon: Search, label: "كتالوج القطع", labelEn: "Parts Catalog", path: "/client/auto-parts/catalog" },
+    { icon: Car, label: "ماركات السيارات", labelEn: "Car Brands", path: "/client/auto-parts/brands" },
+    { icon: Tag, label: "موديلات السيارات", labelEn: "Car Models", path: "/client/auto-parts/models" },
+  ]
+};
+
 const ClientLayout = () => {
   const { isRTL } = useLanguage();
   const { signOut, user, isLoading } = useAuth();
+  const { isAutoPartsCompany } = useAutoPartsAccess();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
+
+  // Build menu items dynamically based on activity type
+  const menuItems = isAutoPartsCompany
+    ? [...baseMenuItems.slice(0, 5), autoPartsMenuGroup, ...baseMenuItems.slice(5)]
+    : baseMenuItems;
 
   // Require authentication for client area
   useEffect(() => {

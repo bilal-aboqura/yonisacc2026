@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -13,9 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowRight, Save, Package, Loader2 } from "lucide-react";
+import { ArrowRight, Save, Package, Loader2, Car, X, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAutoPartsAccess } from "@/hooks/useAutoPartsAccess";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 
 interface Category {
@@ -24,9 +27,23 @@ interface Category {
   name_en: string | null;
 }
 
+interface CarBrand {
+  id: string;
+  name: string;
+  name_en: string | null;
+}
+
+interface CarModel {
+  id: string;
+  name: string;
+  name_en: string | null;
+  brand_id: string;
+}
+
 const CreateProduct = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAutoPartsCompany } = useAutoPartsAccess();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -47,6 +64,13 @@ const CreateProduct = () => {
   const [isService, setIsService] = useState(false);
   const [isActive, setIsActive] = useState(true);
 
+  // Auto parts fields
+  const [oemNumber, setOemNumber] = useState("");
+  const [shelfLocation, setShelfLocation] = useState("");
+  const [partCondition, setPartCondition] = useState("new");
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
+
   const [categories, setCategories] = useState<Category[]>([]);
 
   const units = [
@@ -58,6 +82,41 @@ const CreateProduct = () => {
     { value: "box", label: "كرتون" },
     { value: "pack", label: "عبوة" },
   ];
+
+  // Fetch car brands for auto parts
+  const { data: carBrands } = useQuery({
+    queryKey: ["car-brands-create", companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from("car_brands")
+        .select("*")
+        .eq("company_id", companyId)
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return (data || []) as unknown as CarBrand[];
+    },
+    enabled: !!companyId && isAutoPartsCompany,
+  });
+
+  // Fetch car models for selected brand
+  const { data: carModels } = useQuery({
+    queryKey: ["car-models-create", companyId, selectedBrand],
+    queryFn: async () => {
+      if (!companyId || !selectedBrand) return [];
+      const { data, error } = await supabase
+        .from("car_models")
+        .select("*")
+        .eq("company_id", companyId)
+        .eq("brand_id", selectedBrand)
+        .eq("is_active", true)
+        .order("name");
+      if (error) throw error;
+      return (data || []) as unknown as CarModel[];
+    },
+    enabled: !!companyId && !!selectedBrand && isAutoPartsCompany,
+  });
 
   useEffect(() => {
     if (user) {
@@ -96,6 +155,16 @@ const CreateProduct = () => {
     }
   };
 
+  const addModel = (modelId: string) => {
+    if (!selectedModels.includes(modelId)) {
+      setSelectedModels([...selectedModels, modelId]);
+    }
+  };
+
+  const removeModel = (modelId: string) => {
+    setSelectedModels(selectedModels.filter((id) => id !== modelId));
+  };
+
   const handleSave = async () => {
     if (!companyId) return;
 
@@ -110,7 +179,7 @@ const CreateProduct = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase.from("products").insert({
+      const insertData = {
         company_id: companyId,
         name: name.trim(),
         name_en: nameEn.trim() || null,
@@ -126,9 +195,27 @@ const CreateProduct = () => {
         description: description.trim() || null,
         is_service: isService,
         is_active: isActive,
-      });
+        oem_number: isAutoPartsCompany ? (oemNumber.trim() || null) : null,
+        shelf_location: isAutoPartsCompany ? (shelfLocation.trim() || null) : null,
+        part_condition: isAutoPartsCompany ? partCondition : "new",
+      };
+
+      const { data: product, error } = await supabase
+        .from("products")
+        .insert(insertData)
+        .select("id")
+        .single();
 
       if (error) throw error;
+
+      // Save car compatibility
+      if (isAutoPartsCompany && selectedModels.length > 0 && product) {
+        const compatData = selectedModels.map((modelId) => ({
+          product_id: product.id,
+          car_model_id: modelId,
+        }));
+        await supabase.from("product_car_compatibility").insert(compatData as any);
+      }
 
       toast({
         title: "تم الحفظ",
@@ -269,6 +356,112 @@ const CreateProduct = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Auto Parts Section */}
+      {isAutoPartsCompany && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Car className="h-5 w-5" />
+              بيانات قطع الغيار
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>رقم القطعة الأصلي (OEM)</Label>
+                <Input
+                  value={oemNumber}
+                  onChange={(e) => setOemNumber(e.target.value)}
+                  placeholder="OEM-12345"
+                  className="font-mono"
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>موقع الرف</Label>
+                <Input
+                  value={shelfLocation}
+                  onChange={(e) => setShelfLocation(e.target.value)}
+                  placeholder="A-01-03"
+                  className="font-mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>حالة القطعة</Label>
+                <Select value={partCondition} onValueChange={setPartCondition}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">جديد</SelectItem>
+                    <SelectItem value="used">مستعمل</SelectItem>
+                    <SelectItem value="refurbished">مجدد</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Car Compatibility */}
+            <div className="space-y-3 border-t pt-4">
+              <Label className="text-base font-semibold">توافق السيارات</Label>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>الماركة</Label>
+                  <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر الماركة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {carBrands?.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>الموديل</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value=""
+                      onValueChange={(v) => v && addModel(v)}
+                      disabled={!selectedBrand}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="اختر الموديل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {carModels?.filter((m) => !selectedModels.includes(m.id)).map((m) => (
+                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Selected Models */}
+              {selectedModels.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedModels.map((modelId) => {
+                    const model = carModels?.find((m) => m.id === modelId);
+                    const brand = carBrands?.find((b) => b.id === selectedBrand);
+                    return (
+                      <Badge key={modelId} variant="secondary" className="gap-1 px-3 py-1">
+                        {brand?.name} - {model?.name || modelId}
+                        <X
+                          className="h-3 w-3 cursor-pointer hover:text-destructive"
+                          onClick={() => removeModel(modelId)}
+                        />
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pricing */}
       <Card>

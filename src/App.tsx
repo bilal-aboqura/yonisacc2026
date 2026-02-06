@@ -51,6 +51,11 @@ import CreateQuote from "./pages/client/CreateQuote";
 import PurchaseOrders from "./pages/client/PurchaseOrders";
 import CreatePurchaseOrder from "./pages/client/CreatePurchaseOrder";
 
+// Auto Parts
+import CarBrands from "./pages/client/autoparts/CarBrands";
+import CarModels from "./pages/client/autoparts/CarModels";
+import PartsCatalog from "./pages/client/autoparts/PartsCatalog";
+
 // HR Pages
 import HRDashboard from "./pages/client/hr/HRDashboard";
 import Employees from "./pages/client/hr/Employees";
@@ -138,6 +143,11 @@ const App = () => (
               <Route path="hr/end-of-service" element={<EndOfService />} />
               <Route path="hr/reports" element={<HRReports />} />
               
+              {/* Auto Parts */}
+              <Route path="auto-parts/catalog" element={<PartsCatalog />} />
+              <Route path="auto-parts/brands" element={<CarBrands />} />
+              <Route path="auto-parts/models" element={<CarModels />} />
+
               {/* Other */}
               <Route path="inventory" element={<ClientInventory />} />
               <Route path="inventory/new" element={<CreateProduct />} />

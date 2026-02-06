@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +62,21 @@ const CompanyRegistration = () => {
     tax_number: "",
     activity_type: "",
     address: "",
+  });
+
+  // Fetch active business verticals for activity_type dropdown
+  const { data: verticals } = useQuery({
+    queryKey: ["registration-verticals"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("business_verticals")
+        .select("id, name_ar, name_en, status")
+        .eq("is_active", true)
+        .eq("status", "active")
+        .order("sort_order");
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; name_ar: string; name_en: string; status: string }>;
+    },
   });
 
   useEffect(() => {
@@ -329,13 +345,23 @@ const CompanyRegistration = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="activity_type">نوع النشاط</Label>
-                <Input
-                  id="activity_type"
-                  value={formData.activity_type}
-                  onChange={(e) => handleInputChange("activity_type", e.target.value)}
-                  placeholder="مثال: تجارة عامة، مقاولات، خدمات..."
-                />
+                <Label htmlFor="activity_type">{isRTL ? "نوع النشاط" : "Activity Type"}</Label>
+                <Select
+                  value={formData.activity_type || "__general__"}
+                  onValueChange={(v) => handleInputChange("activity_type", v === "__general__" ? "general" : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={isRTL ? "اختر نوع النشاط" : "Select activity type"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__general__">{isRTL ? "تجارة عامة" : "General Trade"}</SelectItem>
+                    {verticals?.map((v) => (
+                      <SelectItem key={v.id} value={v.name_en.toLowerCase().replace(/\s+/g, '_')}>
+                        {isRTL ? v.name_ar : v.name_en}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
