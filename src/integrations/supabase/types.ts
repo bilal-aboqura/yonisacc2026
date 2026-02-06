@@ -319,6 +319,98 @@ export type Database = {
         }
         Relationships: []
       }
+      car_brands: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          name: string
+          name_en: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name: string
+          name_en?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name?: string
+          name_en?: string | null
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_brands_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      car_models: {
+        Row: {
+          brand_id: string
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          year_from: number | null
+          year_to: number | null
+        }
+        Insert: {
+          brand_id: string
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          year_from?: number | null
+          year_to?: number | null
+        }
+        Update: {
+          brand_id?: string
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          year_from?: number | null
+          year_to?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_models_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "car_brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "car_models_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_screens: {
         Row: {
           company_id: string
@@ -1413,6 +1505,45 @@ export type Database = {
           },
         ]
       }
+      product_car_compatibility: {
+        Row: {
+          car_model_id: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          product_id: string
+        }
+        Insert: {
+          car_model_id: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          product_id: string
+        }
+        Update: {
+          car_model_id?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_car_compatibility_car_model_id_fkey"
+            columns: ["car_model_id"]
+            isOneToOne: false
+            referencedRelation: "car_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_car_compatibility_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_categories: {
         Row: {
           company_id: string
@@ -1509,6 +1640,7 @@ export type Database = {
           category_id: string | null
           company_id: string
           created_at: string
+          cross_reference: string[] | null
           description: string | null
           id: string
           image_url: string | null
@@ -1518,8 +1650,11 @@ export type Database = {
           min_stock: number | null
           name: string
           name_en: string | null
+          oem_number: string | null
+          part_condition: string | null
           purchase_price: number | null
           sale_price: number | null
+          shelf_location: string | null
           sku: string | null
           tax_rate: number | null
           unit: string | null
@@ -1530,6 +1665,7 @@ export type Database = {
           category_id?: string | null
           company_id: string
           created_at?: string
+          cross_reference?: string[] | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -1539,8 +1675,11 @@ export type Database = {
           min_stock?: number | null
           name: string
           name_en?: string | null
+          oem_number?: string | null
+          part_condition?: string | null
           purchase_price?: number | null
           sale_price?: number | null
+          shelf_location?: string | null
           sku?: string | null
           tax_rate?: number | null
           unit?: string | null
@@ -1551,6 +1690,7 @@ export type Database = {
           category_id?: string | null
           company_id?: string
           created_at?: string
+          cross_reference?: string[] | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -1560,8 +1700,11 @@ export type Database = {
           min_stock?: number | null
           name?: string
           name_en?: string | null
+          oem_number?: string | null
+          part_condition?: string | null
           purchase_price?: number | null
           sale_price?: number | null
+          shelf_location?: string | null
           sku?: string | null
           tax_rate?: number | null
           unit?: string | null
