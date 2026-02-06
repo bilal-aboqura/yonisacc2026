@@ -1,181 +1,225 @@
 
-# خطة بناء نظام الأنشطة المتخصصة (Business Verticals)
 
-## الفكرة
-بناء نظام متكامل لعرض الحلول المتخصصة لمختلف أنواع الأنشطة التجارية. كل نشاط يبدأ بحالة "قريباً" ويمكن للمالك تفعيله عند جاهزيته مع تحديد السعر والمميزات.
+# خطة بناء نظام إدارة محلات قطع غيار السيارات
 
-## ما سيتم بناؤه
+## ملخص المشروع
+تخصيص الشاشات الحالية (المخزون، المبيعات، المشتريات، جهات الاتصال) لتدعم متطلبات محلات قطع غيار السيارات، مع إضافة جداول قاعدة بيانات جديدة لتخزين بيانات السيارات (الماركات والموديلات) وربط القطع بها، وتفعيل نشاط قطع الغيار في صفحة الأنشطة.
 
-### 1. جدول جديد في قاعدة البيانات: `business_verticals`
-يخزن جميع الأنشطة التجارية المتاحة مع حالتها ومميزاتها:
+---
 
+## المرحلة 1: قاعدة البيانات - الجداول الجديدة
+
+### 1. جدول ماركات السيارات `car_brands`
 | العمود | النوع | الوصف |
 |--------|-------|-------|
 | id | uuid | المعرف |
-| name_ar | text | اسم النشاط بالعربية |
-| name_en | text | اسم النشاط بالإنجليزية |
-| description_ar | text | وصف النشاط بالعربية |
-| description_en | text | وصف النشاط بالإنجليزية |
-| icon | text | اسم الأيقونة من Lucide |
-| color | text | لون التدرج للبطاقة |
-| monthly_price | numeric | السعر الشهري |
-| yearly_price | numeric | السعر السنوي |
-| features_ar | text[] | قائمة المميزات بالعربية |
-| features_en | text[] | قائمة المميزات بالإنجليزية |
-| status | text | الحالة: coming_soon / active |
-| sort_order | integer | ترتيب العرض |
-| is_active | boolean | إظهار/إخفاء النشاط |
+| company_id | uuid | معرف الشركة |
+| name | text | الاسم بالعربية |
+| name_en | text | الاسم بالإنجليزية |
+| logo_url | text | شعار الماركة (اختياري) |
+| is_active | boolean | الحالة |
+| sort_order | integer | الترتيب |
 
-**سياسات الأمان (RLS):**
-- قراءة عامة للأنشطة النشطة (is_active = true)
-- إدارة كاملة للمالك (Owner) فقط
+### 2. جدول موديلات السيارات `car_models`
+| العمود | النوع | الوصف |
+|--------|-------|-------|
+| id | uuid | المعرف |
+| company_id | uuid | معرف الشركة |
+| brand_id | uuid | FK -> car_brands |
+| name | text | الاسم بالعربية |
+| name_en | text | الاسم بالإنجليزية |
+| year_from | integer | سنة البداية |
+| year_to | integer | سنة النهاية |
+| is_active | boolean | الحالة |
 
-**البيانات الأولية - 10 أنشطة تبدأ جميعها بحالة "قريباً":**
-1. محلات الذهب والمجوهرات
-2. محلات قطع غيار السيارات
-3. تجارة إلكترونية
-4. محلات الحلاقة (رجالي)
-5. صالون تجميل نسائي
-6. عيادات طبية
-7. صيدليات
-8. إدارة أملاك وعقارات
-9. مطاعم ومقاهي
-10. محلات التجزئة العامة
+### 3. جدول ربط المنتجات بالموديلات `product_car_compatibility`
+| العمود | النوع | الوصف |
+|--------|-------|-------|
+| id | uuid | المعرف |
+| product_id | uuid | FK -> products |
+| car_model_id | uuid | FK -> car_models |
+| notes | text | ملاحظات التوافق |
 
-### 2. صفحة الأنشطة العامة: `/activities`
-صفحة مستقلة تحتوي على:
+### 4. إضافة أعمدة جديدة لجدول `products`
+| العمود | النوع | الوصف |
+|--------|-------|-------|
+| oem_number | text | رقم القطعة الأصلي (OEM) |
+| cross_reference | text[] | أرقام القطع البديلة |
+| shelf_location | text | موقع الرف في المستودع |
+| part_condition | text | حالة القطعة (جديد/مستعمل/تجديد) |
 
-- **شريط التنقل + التذييل** - نفس تصميم صفحة الهبوط
-- **عنوان الصفحة** مع وصف تعريفي
-- **تبديل شهري/سنوي** - مع badge خصم عند اختيار السنوي
-- **شبكة بطاقات الأنشطة** - كل بطاقة تعرض:
-  - أيقونة النشاط واسمه ووصفه
-  - قائمة المميزات
-  - السعر (شهري/سنوي)
-  - زر "اشترك الآن" للأنشطة المفعلة
-  - badge "قريباً" للأنشطة تحت التطوير (مع تعطيل الزر)
+سياسات الأمان (RLS) لكل جدول: قراءة وإدارة مقيدة بـ `is_company_owner(company_id)`.
 
-### 3. صفحة إدارة الأنشطة في لوحة المالك: `/owner/activities`
-صفحة لإدارة الأنشطة تسمح بـ:
-- تعديل اسم ووصف ومميزات كل نشاط (عربي/إنجليزي)
-- تعديل الأسعار (شهري/سنوي)
-- تغيير الحالة بين "قريباً" و"مفعّل"
-- إظهار/إخفاء أي نشاط
-- إضافة أنشطة جديدة
-- تغيير ترتيب العرض
+---
 
-### 4. تحديث شريط التنقل
-إضافة رابط "الأنشطة" في Navbar يوجه إلى `/activities`
+## المرحلة 2: شاشات العميل - تخصيص الشاشات الحالية
 
-### 5. تحديث قسم الأنشطة في صفحة الهبوط
-تعديل `ActivitiesSection.tsx` لجعل البطاقات تجلب البيانات من قاعدة البيانات وتكون روابط لصفحة `/activities`
+### 1. تعديل شاشة المخزون (`ClientInventory.tsx`)
+- إضافة تبويب جديد "كتالوج القطع" يعرض القطع مع أرقام OEM والتوافق
+- إضافة تبويب "الماركات والموديلات" لإدارة ماركات السيارات وموديلاتها
+- إضافة فلتر بحث بالرقم التسلسلي (OEM) وبالماركة والموديل
+- إظهار موقع الرف ومعلومات القطعة البديلة
+
+### 2. تعديل شاشة إنشاء المنتج (`CreateProduct.tsx`)
+- إضافة حقول جديدة: رقم OEM، أرقام بديلة، موقع الرف، حالة القطعة
+- إضافة قسم "توافق السيارات" لربط القطعة بماركات وموديلات محددة
+- إمكانية إضافة عدة موديلات لنفس القطعة
+
+### 3. تعديل شاشة المبيعات (`ClientSales.tsx`)
+- إضافة بحث سريع بالقطعة حسب رقم OEM أو الماركة/الموديل
+- عرض معلومات التوافق في تفاصيل الفاتورة
+
+### 4. تعديل شاشة الموردين (`Vendors.tsx`)
+- إضافة حقل "الماركات الموردة" لربط المورد بالماركات التي يوفرها
+
+### 5. إضافة صفحات جديدة
+- **`src/pages/client/autoparts/CarBrands.tsx`**: إدارة ماركات السيارات (CRUD)
+- **`src/pages/client/autoparts/CarModels.tsx`**: إدارة موديلات السيارات (CRUD)
+- **`src/pages/client/autoparts/PartsCatalog.tsx`**: كتالوج القطع مع بحث متقدم
+
+---
+
+## المرحلة 3: تحديث القائمة الجانبية
+
+إضافة قسم جديد "قطع الغيار" في `ClientLayout.tsx`:
+
+```text
+قطع الغيار
+  ├── كتالوج القطع
+  ├── الماركات
+  └── الموديلات
+```
+
+سيظهر هذا القسم فقط عندما يكون نوع نشاط الشركة هو "قطع غيار سيارات".
+
+---
+
+## المرحلة 4: تفعيل النشاط في صفحة الأنشطة
+
+### 1. تحديث حالة نشاط قطع الغيار
+- تغيير `status` من `coming_soon` إلى `active` في جدول `business_verticals`
+- تحديث `is_active` إلى `true`
+
+### 2. تعديل صفحة التسجيل (`CompanyRegistration.tsx`)
+- إضافة اختيار نوع النشاط (قطع غيار / تجارة عامة / إلخ) من الأنشطة المفعلة
+- حفظ نوع النشاط المختار في حقل `activity_type` في جدول `companies`
+
+---
+
+## المرحلة 5: التحكم في الصلاحيات من لوحة المالك
+
+### 1. إضافة شاشات قطع الغيار في `system_screens`
+إدراج شاشات النظام الجديدة:
+- `auto_parts_catalog` - كتالوج القطع
+- `auto_parts_brands` - ماركات السيارات
+- `auto_parts_models` - موديلات السيارات
+
+### 2. تحديث `OwnerScreens.tsx`
+إضافة وحدة "قطع الغيار" (`auto_parts`) في تصنيف الشاشات مع أيقونة مخصصة.
+
+### 3. ربط الشاشات بالباقات
+المالك يستطيع من صفحة إدارة شاشات الباقات تحديد أي شاشات قطع الغيار متاحة لكل باقة.
 
 ---
 
 ## التفاصيل التقنية
 
-### الملفات الجديدة
-1. **`src/pages/Activities.tsx`** - صفحة عرض الأنشطة للزوار
-2. **`src/pages/owner/OwnerActivities.tsx`** - صفحة إدارة الأنشطة للمالك
+### الملفات الجديدة (7 ملفات)
+1. `src/pages/client/autoparts/CarBrands.tsx` - إدارة ماركات السيارات
+2. `src/pages/client/autoparts/CarModels.tsx` - إدارة موديلات السيارات
+3. `src/pages/client/autoparts/PartsCatalog.tsx` - كتالوج القطع مع بحث متقدم
+4. `src/pages/client/autoparts/CreateCarBrand.tsx` - إنشاء ماركة جديدة
+5. `src/pages/client/autoparts/CreateCarModel.tsx` - إنشاء موديل جديد
+6. `src/hooks/useAutoPartsAccess.ts` - Hook للتحقق من صلاحية الوصول لشاشات قطع الغيار
+7. Migration SQL - إنشاء الجداول الجديدة
 
-### الملفات المعدلة
-1. **`src/App.tsx`** - إضافة مسارات `/activities` و `/owner/activities`
-2. **`src/components/landing/Navbar.tsx`** - إضافة رابط "الأنشطة"
-3. **`src/components/landing/ActivitiesSection.tsx`** - جلب البيانات من DB + روابط
-4. **`src/components/owner/OwnerLayout.tsx`** - إضافة رابط إدارة الأنشطة في القائمة الجانبية
-5. **`src/i18n/locales/ar.json`** - ترجمات عربية جديدة
-6. **`src/i18n/locales/en.json`** - ترجمات إنجليزية جديدة
+### الملفات المعدلة (8 ملفات)
+1. `src/App.tsx` - إضافة routes جديدة لقطع الغيار
+2. `src/components/client/ClientLayout.tsx` - إضافة قسم قطع الغيار في القائمة
+3. `src/pages/client/ClientInventory.tsx` - تعديل شاشة المخزون
+4. `src/pages/client/CreateProduct.tsx` - إضافة حقول قطع الغيار
+5. `src/pages/client/ClientSales.tsx` - بحث بالماركة/الموديل
+6. `src/pages/CompanyRegistration.tsx` - اختيار نوع النشاط
+7. `src/pages/owner/OwnerScreens.tsx` - إضافة وحدة قطع الغيار
+8. `src/pages/Activities.tsx` - تفعيل زر الاشتراك لقطع الغيار
 
-### تصميم صفحة الأنشطة (`/activities`)
-
-```text
-+--------------------------------------------------+
-|                   شريط التنقل                      |
-+--------------------------------------------------+
-|                                                    |
-|        الحلول المتخصصة لكل نوع نشاط                |
-|   اختر النشاط المناسب لعملك واحصل على نظام        |
-|         مصمم خصيصاً لاحتياجاتك                     |
-|                                                    |
-|         [ شهري ]  [ سنوي - وفر 20% ]              |
-|                                                    |
-|  +----------+  +----------+  +----------+          |
-|  | ذهب      |  | قطع غيار |  | تجارة    |          |
-|  | [قريباً] |  | [قريباً] |  | إلكتروني |          |
-|  | المميزات |  | المميزات |  | [قريباً] |          |
-|  | السعر    |  | السعر    |  | المميزات |          |
-|  | [اشترك]  |  | [اشترك]  |  | [اشترك]  |          |
-|  +----------+  +----------+  +----------+          |
-|                    ...                             |
-+--------------------------------------------------+
-|                    التذييل                          |
-+--------------------------------------------------+
-```
-
-- الشاشات الكبيرة: 3 أعمدة
-- الشاشات المتوسطة: 2 عمودين
-- الموبايل: عمود واحد
-
-### تصميم بطاقة النشاط
-
-- **النشاط المفعّل**: بطاقة كاملة مع زر "اشترك الآن" يوجه لصفحة `/register-company`
-- **النشاط "قريباً"**: بطاقة بتأثير شفاف مع badge "قريباً" وزر معطل
-
-### قاعدة البيانات - SQL
+### قاعدة البيانات - SQL Migration
 
 ```sql
-CREATE TABLE public.business_verticals (
+-- 1. Car Brands Table
+CREATE TABLE public.car_brands (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name_ar TEXT NOT NULL,
-  name_en TEXT NOT NULL,
-  description_ar TEXT NOT NULL,
-  description_en TEXT NOT NULL,
-  icon TEXT NOT NULL DEFAULT 'Store',
-  color TEXT DEFAULT 'from-blue-500 to-blue-600',
-  monthly_price NUMERIC NOT NULL DEFAULT 0,
-  yearly_price NUMERIC NOT NULL DEFAULT 0,
-  features_ar TEXT[] DEFAULT ARRAY[]::TEXT[],
-  features_en TEXT[] DEFAULT ARRAY[]::TEXT[],
-  status TEXT NOT NULL DEFAULT 'coming_soon',
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  name_en TEXT,
+  logo_url TEXT,
+  is_active BOOLEAN DEFAULT true,
   sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.car_brands ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Company owner can manage car brands" ON public.car_brands FOR ALL USING (is_company_owner(company_id));
+CREATE POLICY "Company owner can view car brands" ON public.car_brands FOR SELECT USING (is_company_owner(company_id));
+
+-- 2. Car Models Table
+CREATE TABLE public.car_models (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  brand_id UUID NOT NULL REFERENCES car_brands(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  name_en TEXT,
+  year_from INTEGER,
+  year_to INTEGER,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE public.business_verticals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.car_models ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Company owner can manage car models" ON public.car_models FOR ALL USING (is_company_owner(company_id));
+CREATE POLICY "Company owner can view car models" ON public.car_models FOR SELECT USING (is_company_owner(company_id));
 
--- RLS policies
-CREATE POLICY "Anyone can view active verticals"
-  ON public.business_verticals FOR SELECT
-  USING (is_active = true);
+-- 3. Product-Car Compatibility Table
+CREATE TABLE public.product_car_compatibility (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  car_model_id UUID NOT NULL REFERENCES car_models(id) ON DELETE CASCADE,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(product_id, car_model_id)
+);
 
-CREATE POLICY "Owners can manage verticals"
-  ON public.business_verticals FOR ALL
-  USING (has_role(auth.uid(), 'owner'::app_role));
+ALTER TABLE public.product_car_compatibility ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Company owner can manage compatibility" ON public.product_car_compatibility FOR ALL
+  USING (EXISTS (SELECT 1 FROM products p WHERE p.id = product_car_compatibility.product_id AND is_company_owner(p.company_id)));
+CREATE POLICY "Company owner can view compatibility" ON public.product_car_compatibility FOR SELECT
+  USING (EXISTS (SELECT 1 FROM products p WHERE p.id = product_car_compatibility.product_id AND is_company_owner(p.company_id)));
+
+-- 4. Add auto parts columns to products
+ALTER TABLE public.products
+  ADD COLUMN IF NOT EXISTS oem_number TEXT,
+  ADD COLUMN IF NOT EXISTS cross_reference TEXT[] DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN IF NOT EXISTS shelf_location TEXT,
+  ADD COLUMN IF NOT EXISTS part_condition TEXT DEFAULT 'new';
+
+-- 5. Add auto parts screens to system_screens
+INSERT INTO public.system_screens (key, name_ar, name_en, module, sort_order) VALUES
+  ('auto_parts_catalog', 'كتالوج القطع', 'Parts Catalog', 'auto_parts', 60),
+  ('auto_parts_brands', 'ماركات السيارات', 'Car Brands', 'auto_parts', 61),
+  ('auto_parts_models', 'موديلات السيارات', 'Car Models', 'auto_parts', 62);
 ```
 
-### صفحة إدارة الأنشطة (Owner)
-تتبع نفس نمط صفحات الإدارة الموجودة (HeroManager, FeaturesManager) مع:
-- جدول يعرض كل الأنشطة
-- زر تعديل لكل نشاط يفتح Dialog
-- زر تبديل الحالة (قريباً / مفعّل)
-- زر إضافة نشاط جديد
-- إمكانية الإخفاء/الإظهار
+### عرض شاشات قطع الغيار حسب نوع النشاط
 
-### الترجمات المطلوبة
-```json
-// ar.json
-"activities": {
-  "title": "الحلول المتخصصة",
-  "subtitle": "اختر النشاط المناسب لعملك واحصل على نظام مصمم خصيصاً لاحتياجاتك",
-  "monthly": "شهري",
-  "yearly": "سنوي",
-  "save": "وفر 20%",
-  "comingSoon": "قريباً",
-  "subscribeNow": "اشترك الآن",
-  "underDevelopment": "تحت التطوير",
-  "currency": "ر.س",
-  "perMonth": "/شهر",
-  "perYear": "/سنة"
-}
-```
+قسم قطع الغيار في القائمة الجانبية سيظهر فقط للشركات التي نوع نشاطها `auto_parts` من خلال hook يتحقق من `activity_type` في جدول `companies`.
+
+### تدفق العمل المتوقع
+
+1. المالك يفعل نشاط "قطع غيار السيارات" من لوحة التحكم
+2. المالك يحدد الشاشات المتاحة لكل باقة اشتراك
+3. العميل يسجل شركة جديدة ويختار نشاط "قطع غيار"
+4. بعد التفعيل يظهر قسم "قطع الغيار" في القائمة الجانبية
+5. العميل يضيف الماركات والموديلات
+6. يضيف القطع مع أرقام OEM وربطها بالموديلات
+7. يستخدم البحث المتقدم في البيع والشراء
+
