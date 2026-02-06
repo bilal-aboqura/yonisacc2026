@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, Loader2, Monitor, Settings, FileText, Package, Calculator, Users, BarChart3 } from "lucide-react";
+import { Save, Loader2, Monitor, Settings, FileText, Package, Calculator, Users, BarChart3, Car } from "lucide-react";
 
 const moduleIcons: Record<string, any> = {
   settings: Settings,
@@ -18,6 +18,7 @@ const moduleIcons: Record<string, any> = {
   accounting: Calculator,
   hr: Users,
   reports: BarChart3,
+  auto_parts: Car,
 };
 
 const OwnerScreens = () => {
@@ -161,6 +162,7 @@ const OwnerScreens = () => {
     accounting: { ar: "المحاسبة", en: "Accounting" },
     hr: { ar: "الموارد البشرية", en: "HR" },
     reports: { ar: "التقارير", en: "Reports" },
+    auto_parts: { ar: "قطع الغيار", en: "Auto Parts" },
   };
 
   return (
