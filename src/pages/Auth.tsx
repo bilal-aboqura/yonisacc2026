@@ -13,8 +13,9 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { lovable } from "@/integrations/lovable/index";
-import { Loader2, Mail, Lock, User, ArrowLeft, ArrowRight } from "lucide-react";
+import { Loader2, Mail, Lock, User, ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
 
 // Validation schemas
 const loginSchema = z.object({
@@ -41,6 +42,16 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
+  
+  // Password visibility
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
+  
+  // Forgot password
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
   
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -151,6 +162,41 @@ const Auth = () => {
     navigate("/client");
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!forgotEmail.trim()) {
+      toast({
+        title: isRTL ? "خطأ" : "Error",
+        description: isRTL ? "يرجى إدخال البريد الإلكتروني" : "Please enter your email",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsForgotLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+    setIsForgotLoading(false);
+
+    if (error) {
+      toast({
+        title: isRTL ? "خطأ" : "Error",
+        description: isRTL ? "حدث خطأ أثناء إرسال رابط إعادة التعيين" : "Failed to send reset link",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: isRTL ? "تم الإرسال!" : "Email Sent!",
+      description: isRTL ? "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني" : "A password reset link has been sent to your email",
+    });
+    setShowForgotPassword(false);
+    setForgotEmail("");
+  };
+
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
@@ -236,18 +282,35 @@ const Auth = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">{t("auth.login.password")}</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password">{t("auth.login.password")}</Label>
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-xs text-primary hover:underline font-medium"
+                      >
+                        {isRTL ? "نسيت كلمة المرور؟" : "Forgot password?"}
+                      </button>
+                    </div>
                     <div className="relative">
                       <Lock className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="login-password"
-                        type="password"
+                        type={showLoginPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
-                        className="ps-10 h-12"
+                        className="ps-10 pe-10 h-12"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
                   
@@ -343,13 +406,21 @@ const Auth = () => {
                       <Lock className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
-                        type="password"
+                        type={showSignupPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
-                        className="ps-10 h-12"
+                        className="ps-10 pe-10 h-12"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                        className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
                   
@@ -359,13 +430,21 @@ const Auth = () => {
                       <Lock className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-confirm"
-                        type="password"
+                        type={showSignupConfirmPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={signupConfirmPassword}
                         onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                        className="ps-10 h-12"
+                        className="ps-10 pe-10 h-12"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
+                        className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showSignupConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
                   
@@ -423,6 +502,61 @@ const Auth = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowForgotPassword(false)}>
+          <Card className="w-full max-w-sm border-0 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <CardHeader className="text-center pb-2">
+              <CardTitle className="text-xl font-bold">
+                {isRTL ? "استعادة كلمة المرور" : "Reset Password"}
+              </CardTitle>
+              <CardDescription className="text-sm">
+                {isRTL ? "أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة التعيين" : "Enter your email and we'll send you a reset link"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-email">{isRTL ? "البريد الإلكتروني" : "Email"}</Label>
+                  <div className="relative">
+                    <Mail className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="forgot-email"
+                      type="email"
+                      placeholder="example@email.com"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="ps-10 h-12"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 gradient-primary text-white"
+                  disabled={isForgotLoading}
+                >
+                  {isForgotLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    isRTL ? "إرسال رابط إعادة التعيين" : "Send Reset Link"
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setShowForgotPassword(false)}
+                >
+                  {isRTL ? "رجوع" : "Back"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
