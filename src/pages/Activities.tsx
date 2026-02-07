@@ -186,7 +186,7 @@ const Activities = () => {
                           {isRTL ? "تحت التطوير" : "Under Development"}
                         </Button>
                       ) : (
-                        <Link to="/register-company" className="w-full">
+                        <Link to={`/register-company?activity=${encodeURIComponent(vertical.name_en)}`} className="w-full">
                           <Button className="w-full gap-2 gradient-primary text-white">
                             {isRTL ? "اشترك الآن" : "Subscribe Now"}
                             <ArrowIcon className="h-4 w-4" />
