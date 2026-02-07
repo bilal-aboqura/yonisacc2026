@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,7 +45,8 @@ const CompanyRegistration = () => {
   const { isRTL } = useLanguage();
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-
+  const [searchParams] = useSearchParams();
+  const activityParam = searchParams.get("activity");
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -84,6 +85,13 @@ const CompanyRegistration = () => {
       navigate("/auth?redirect=/register-company");
     }
   }, [user, authLoading, navigate]);
+
+  // Auto-select activity type from URL parameter
+  useEffect(() => {
+    if (activityParam && !formData.activity_type) {
+      handleInputChange("activity_type", activityParam);
+    }
+  }, [activityParam]);
 
   useEffect(() => {
     const fetchPlans = async () => {

@@ -33,13 +33,14 @@ const CompanyDropdown = () => {
         .from("companies")
         .select("*")
         .eq("owner_id", user.id)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(1);
       
       if (error) {
         console.error("Error fetching company:", error);
         return null;
       }
-      return data;
+      return data?.[0] || null;
     },
     enabled: !!user?.id,
   });
