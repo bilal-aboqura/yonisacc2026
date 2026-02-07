@@ -1,41 +1,40 @@
 
 
-# اصلاح: عدم ظهور شاشات قطع الغيار للعميل المشترك
+# اصلاح: تمرير نوع النشاط تلقائياً من صفحة الأنشطة إلى التسجيل
 
 ## المشاكل المكتشفة
 
-### 1. عدم تطابق قيمة نوع النشاط
-- **صفحة التسجيل** تحفظ القيمة: `"auto_parts_shops"` (تحويل من اسم النشاط الإنجليزي)
-- **Hook التحقق** يبحث عن القيمة: `"auto_parts"`
-- النتيجة: لا تتطابق القيمتان ابداً، فلا تظهر شاشات قطع الغيار
+### 1. عدم تمرير نوع النشاط عند الاشتراك
+عندما يضغط المستخدم "اشترك الآن" على بطاقة "محلات قطع غيار السيارات" في صفحة الأنشطة (`/activities`)، يتم نقله إلى `/register-company` **بدون أي معلومات عن النشاط الذي اختاره**. المستخدم يضطر لاختيار النشاط يدوياً مرة أخرى، وقد لا ينتبه لذلك.
 
-### 2. مشكلة تعدد الشركات
-- المستخدم الحالي لديه 4 شركات مسجلة في قاعدة البيانات
-- `useTenantIsolation` يستخدم `.single()` الذي يُرجع خطأ عند وجود أكثر من سجل واحد
-- النتيجة: يرجع `null` دائماً ولا يتم التعرف على الشركة أو نوع نشاطها
+### 2. المستخدم الجديد ليس لديه شركة
+بعد التحقق من قاعدة البيانات، المستخدم الجديد (`costaminehelp@gmail.com`) **لم يُكمل تسجيل الشركة** - لا توجد أي شركة مرتبطة بحسابه. هذا على الأرجح لأن نوع النشاط لم يكن محدداً تلقائياً.
 
-### 3. لا توجد شركة بنشاط قطع غيار
-- في قاعدة البيانات الحالية، لا توجد أي شركة بنوع نشاط يطابق `"auto_parts"` أو `"auto_parts_shops"`
+### 3. تضارب في جلب بيانات الشركة
+مكوّن `CompanyDropdown` يستخدم `.maybeSingle()` بدون ترتيب، مما قد يُرجع شركة قديمة بدلاً من الأحدث للمستخدمين الذين لديهم عدة شركات.
 
 ---
 
 ## الحل المقترح
 
-### الاصلاح 1: توحيد قيمة نوع النشاط (CompanyRegistration.tsx)
-- تغيير القيمة المحفوظة لتكون `name_en` بالضبط كما في قاعدة البيانات (بدون تحويل)
-- أو حفظ `id` النشاط بدلاً من الاسم المحوّل
-- **الحل الأنسب**: حفظ `name_en` كما هو من جدول `business_verticals` بدون أي تحويل
+### الاصلاح 1: تمرير نوع النشاط عبر رابط الاشتراك (`Activities.tsx`)
+- تغيير الرابط من:
+```
+/register-company
+```
+  الى:
+```
+/register-company?activity=Auto Parts Shops
+```
+- بحيث ينقل اسم النشاط الإنجليزي كمعامل (query parameter)
 
-### الاصلاح 2: تحديث التحقق في useAutoPartsAccess
-- تغيير المقارنة لتطابق القيمة الفعلية المحفوظة
-- استخدام `"Auto Parts Shops"` بدلاً من `"auto_parts"`
+### الاصلاح 2: تحديد النشاط تلقائياً في نموذج التسجيل (`CompanyRegistration.tsx`)
+- قراءة المعامل `activity` من الرابط عند فتح الصفحة
+- تعيينه كقيمة افتراضية لحقل نوع النشاط
+- بحيث يجد المستخدم النشاط محدداً مسبقاً عند فتح الصفحة
 
-### الاصلاح 3: معالجة تعدد الشركات في useTenantIsolation
-- تغيير `.single()` إلى `.maybeSingle()` أو `.limit(1)` لتجنب الخطأ عند تعدد الشركات
-- ترتيب حسب تاريخ الإنشاء (الأحدث أولاً) لاختيار آخر شركة مسجلة
-
-### الاصلاح 4: تحديث البيانات الموجودة
-- تحديث الشركات الموجودة في قاعدة البيانات لتصحيح قيم `activity_type`
+### الاصلاح 3: إصلاح ترتيب الشركات في CompanyDropdown
+- اضافة `.order("created_at", { ascending: false })` قبل `.limit(1)` لضمان إرجاع أحدث شركة
 
 ---
 
@@ -43,39 +42,39 @@
 
 ### الملفات المعدلة
 
-**1. `src/pages/CompanyRegistration.tsx`**
-- تغيير سطر 359 من:
+**1. `src/pages/Activities.tsx`** (سطر 189)
+- تغيير رابط "اشترك الآن" لتمرير اسم النشاط:
 ```typescript
-value={v.name_en.toLowerCase().replace(/\s+/g, '_')}
-```
-الى:
-```typescript
-value={v.name_en}
-```
-- تغيير سطر 351 لإزالة التحويل عند الحفظ:
-```typescript
-onValueChange={(v) => handleInputChange("activity_type", v === "__general__" ? "general" : v)}
-```
-يبقى كما هو لأن القيمة ستأتي صحيحة الآن
-
-**2. `src/hooks/useAutoPartsAccess.ts`**
-- تغيير المقارنة من:
-```typescript
-const isAutoPartsCompany = company?.activity_type === "auto_parts";
-```
-الى:
-```typescript
-const isAutoPartsCompany = company?.activity_type === "Auto Parts Shops";
+<Link to={`/register-company?activity=${encodeURIComponent(vertical.name_en)}`} className="w-full">
 ```
 
-**3. `src/hooks/useTenantIsolation.ts`**
-- تغيير الاستعلام من `.single()` إلى `.order("created_at", { ascending: false }).limit(1)` ثم أخذ أول عنصر
-- هذا يمنع الخطأ عند وجود عدة شركات للمستخدم نفسه ويرجع الأحدث
+**2. `src/pages/CompanyRegistration.tsx`**
+- اضافة `useSearchParams` من `react-router-dom`
+- قراءة معامل `activity` من الرابط
+- تعيين القيمة الافتراضية في `formData.activity_type` عند تحميل الصفحة:
+```typescript
+const [searchParams] = useSearchParams();
+const activityParam = searchParams.get("activity");
 
-**4. `src/pages/client/CreateProduct.tsx`**
-- تحديث أي مقارنة تستخدم `"auto_parts"` لتطابق القيمة الجديدة
+// في useEffect: تعيين activity_type اذا جاء من الرابط
+useEffect(() => {
+  if (activityParam && !formData.activity_type) {
+    handleInputChange("activity_type", activityParam);
+  }
+}, [activityParam]);
+```
 
-### تحديث البيانات
-- لا حاجة لـ migration جديد
-- تحديث الشركات الموجودة (إن وجدت) لتصحيح قيم `activity_type` المحفوظة سابقاً
+**3. `src/components/client/CompanyDropdown.tsx`** (سطر 33-36)
+- تعديل استعلام الشركة لإضافة ترتيب وحد:
+```typescript
+const { data, error } = await supabase
+  .from("companies")
+  .select("*")
+  .eq("owner_id", user.id)
+  .order("created_at", { ascending: false })
+  .limit(1);
+
+return data?.[0] || null;
+```
+- استبدال `.maybeSingle()` بـ `.limit(1)` مع أخذ أول عنصر
 
