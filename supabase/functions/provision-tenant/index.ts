@@ -21,7 +21,6 @@ serve(async (req) => {
       });
     }
 
-    // Verify the JWT with an anon-keyed client scoped to the user
     const anonClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -41,9 +40,28 @@ serve(async (req) => {
 
     // ── 2. Parse & validate the request body ─────────────────────────────────
     const body = await req.json();
-    const { name, name_en, email, phone, commercial_register, tax_number, activity_type, address, plan_id } = body;
 
-    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+    // Support both legacy field names and new onboarding payload
+    const name = (body.name || body.company_name || '').trim();
+    const name_en = (body.name_en || body.company_name_en || '').trim() || null;
+    const email = (body.email || '').trim();
+    const phone = (body.phone || '').trim();
+    const commercial_register = (body.commercial_register || '').trim() || null;
+    const tax_number = (body.tax_number || '').trim() || null;
+    const address = (body.address || '').trim() || null;
+    const activity_type = (body.activity_type || body.industry || '').trim() || null;
+    const country = (body.country || 'SA').trim();
+    const timezone = (body.timezone || 'Asia/Riyadh').trim();
+    const language = (body.language || 'ar').trim();
+    const base_currency = (body.base_currency || 'SAR').trim();
+    const modules: string[] = Array.isArray(body.modules) ? body.modules : [];
+    const full_name = (body.full_name || '').trim() || null;
+
+    // plan_id is now optional (system auto-assigns trial)
+    const plan_id: string | null = body.plan_id || null;
+
+    // Validation
+    if (!name || name.length < 2) {
       return new Response(JSON.stringify({ error: 'اسم الشركة مطلوب (2 أحرف على الأقل)' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -55,20 +73,14 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (!phone || phone.trim().length < 9) {
+    if (!phone || phone.length < 9) {
       return new Response(JSON.stringify({ error: 'رقم الهاتف غير صالح' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (!plan_id || typeof plan_id !== 'string') {
-      return new Response(JSON.stringify({ error: 'يرجى اختيار باقة' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
-    // ── 3. Use service-role client for ALL writes (bypasses RLS) ─────────────
+    // ── 3. Service-role client (bypasses RLS) ────────────────────────────────
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -89,34 +101,52 @@ serve(async (req) => {
       });
     }
 
-    // Validate plan exists and is active
-    const { data: plan, error: planError } = await admin
-      .from('subscription_plans')
-      .select('id, duration_months')
-      .eq('id', plan_id)
-      .eq('is_active', true)
-      .single();
+    // Resolve plan_id: use provided or pick the first active plan
+    let resolvedPlanId = plan_id;
+    if (!resolvedPlanId) {
+      const { data: defaultPlan } = await admin
+        .from('subscription_plans')
+        .select('id')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      resolvedPlanId = defaultPlan?.id || null;
+    } else {
+      // Validate provided plan exists and is active
+      const { data: plan } = await admin
+        .from('subscription_plans')
+        .select('id')
+        .eq('id', resolvedPlanId)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (!plan) {
+        return new Response(JSON.stringify({ error: 'الباقة المختارة غير متاحة' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
-    if (planError || !plan) {
-      return new Response(JSON.stringify({ error: 'الباقة المختارة غير متاحة' }), {
+    if (!resolvedPlanId) {
+      return new Response(JSON.stringify({ error: 'لا توجد باقات متاحة في النظام' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // ── 4. Provision everything inside a DB transaction via RPC ──────────────
-    // We call a server-side function that does all writes atomically.
+    // ── 4. Provision everything via atomic DB RPC ─────────────────────────────
     const { data: rpcData, error: rpcError } = await admin.rpc('provision_tenant', {
       p_user_id: userId,
-      p_name: name.trim(),
-      p_name_en: name_en?.trim() || null,
-      p_email: email.trim(),
-      p_phone: phone.trim(),
-      p_commercial_register: commercial_register?.trim() || null,
-      p_tax_number: tax_number?.trim() || null,
-      p_activity_type: activity_type?.trim() || null,
-      p_address: address?.trim() || null,
-      p_plan_id: plan_id,
+      p_name: name,
+      p_name_en: name_en,
+      p_email: email,
+      p_phone: phone,
+      p_commercial_register: commercial_register,
+      p_tax_number: tax_number,
+      p_activity_type: activity_type,
+      p_address: address,
+      p_plan_id: resolvedPlanId,
     });
 
     if (rpcError) {
@@ -128,6 +158,37 @@ serve(async (req) => {
     }
 
     const companyId = rpcData as string;
+
+    // ── 5. Post-provisioning: update profile full_name if provided ────────────
+    if (full_name) {
+      await admin
+        .from('profiles')
+        .update({ full_name, language })
+        .eq('user_id', userId);
+    }
+
+    // ── 6. Store selected modules as enabled client_screens ───────────────────
+    if (modules.length > 0) {
+      // Fetch system screens that match the selected module keys
+      const { data: screens } = await admin
+        .from('system_screens')
+        .select('id, module');
+
+      if (screens && screens.length > 0) {
+        const matchedScreenIds = screens
+          .filter((s) => modules.some((m) => s.module?.toLowerCase().includes(m.toLowerCase()) || m.toLowerCase().includes(s.module?.toLowerCase() ?? '')))
+          .map((s) => s.id);
+
+        if (matchedScreenIds.length > 0) {
+          const insertRows = matchedScreenIds.map((screen_id) => ({
+            company_id: companyId,
+            screen_id,
+            is_enabled: true,
+          }));
+          await admin.from('client_screens').insert(insertRows).throwOnError();
+        }
+      }
+    }
 
     return new Response(JSON.stringify({ company_id: companyId }), {
       status: 200,
