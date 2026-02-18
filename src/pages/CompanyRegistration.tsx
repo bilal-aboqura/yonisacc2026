@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
@@ -55,6 +55,10 @@ const CompanyRegistration = () => {
   const { isRTL } = useLanguage();
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // full_name passed from Auth.tsx after signup
+  const initialFullName: string = (location.state as any)?.full_name || "";
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -81,27 +85,28 @@ const CompanyRegistration = () => {
           </Button>
           <div className="flex items-center gap-2 text-sm font-bold text-primary">
             <Sparkles className="h-4 w-4" />
-            {isRTL ? "إنشاء شركة جديدة" : "New Company Setup"}
+            {isRTL ? "إعداد الشركة" : "Company Setup"}
           </div>
-          <div className="w-20" /> {/* spacer */}
+          <div className="w-20" />
         </div>
       </div>
 
       {/* Main content */}
       <div className="px-4 py-8">
-        {/* Page headline */}
         <div className="max-w-2xl mx-auto mb-8 text-center">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-            {isRTL ? "مرحباً بك في كوستامين 👋" : "Welcome to Costamine 👋"}
+            {initialFullName
+              ? (isRTL ? `مرحباً ${initialFullName} 👋` : `Welcome, ${initialFullName} 👋`)
+              : (isRTL ? "مرحباً بك في كوستامين 👋" : "Welcome to Costamine 👋")}
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground mt-2">
             {isRTL
               ? "أكمل الخطوات التالية لإعداد نظامك — لا يُحفظ أي شيء حتى الخطوة الأخيرة"
-              : "Complete the steps below to set up your system — nothing is saved until the last step"}
+              : "Complete the steps below — nothing is saved until the final step"}
           </p>
         </div>
 
-        <OnboardingProvider>
+        <OnboardingProvider initialFullName={initialFullName}>
           <WizardContent />
         </OnboardingProvider>
       </div>

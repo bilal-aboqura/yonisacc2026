@@ -1,9 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
 export interface OnboardingData {
-  // Step 1: Account
   full_name: string;
-  // Step 2: Company
   company_name: string;
   company_name_en: string;
   email: string;
@@ -11,18 +9,16 @@ export interface OnboardingData {
   commercial_register: string;
   tax_number: string;
   address: string;
-  // Step 3: Preferences
   industry: string;
   country: string;
   timezone: string;
   language: string;
   base_currency: string;
-  // Step 4: Module Selection
   selected_modules: string[];
 }
 
-const defaultData: OnboardingData = {
-  full_name: "",
+const buildDefaultData = (initialFullName?: string): OnboardingData => ({
+  full_name: initialFullName || "",
   company_name: "",
   company_name_en: "",
   email: "",
@@ -36,7 +32,7 @@ const defaultData: OnboardingData = {
   language: "ar",
   base_currency: "SAR",
   selected_modules: [],
-};
+});
 
 interface OnboardingContextType {
   data: OnboardingData;
@@ -56,8 +52,14 @@ export const useOnboarding = () => {
   return ctx;
 };
 
-export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
-  const [data, setData] = useState<OnboardingData>(defaultData);
+export const OnboardingProvider = ({
+  children,
+  initialFullName,
+}: {
+  children: ReactNode;
+  initialFullName?: string;
+}) => {
+  const [data, setData] = useState<OnboardingData>(buildDefaultData(initialFullName));
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
 
@@ -70,7 +72,9 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
   const goToStep = (step: number) => setCurrentStep(step);
 
   return (
-    <OnboardingContext.Provider value={{ data, update, currentStep, goNext, goBack, goToStep, totalSteps }}>
+    <OnboardingContext.Provider
+      value={{ data, update, currentStep, goNext, goBack, goToStep, totalSteps }}
+    >
       {children}
     </OnboardingContext.Provider>
   );
