@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Layers, Check, Loader2, BookOpen, Users, Truck, Wrench, ShoppingCart, BarChart3 } from "lucide-react";
-import { useState } from "react";
+import {
+  Layers, Check, Loader2,
+  BookOpen, Users, Truck, Wrench,
+  ShoppingCart, Package, ArrowRight
+} from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -15,54 +17,66 @@ const MODULES = [
     id: "accounting",
     labelAr: "المحاسبة المالية",
     labelEn: "Financial Accounting",
-    descAr: "دليل الحسابات، القيود، التقارير المالية",
-    descEn: "Chart of accounts, journal entries, financial reports",
+    descAr: "دليل الحسابات • القيود اليومية • التقارير",
+    descEn: "Chart of accounts • Journal entries • Reports",
     icon: BookOpen,
+    color: "bg-primary/10 text-primary border-primary/20",
+    activeColor: "bg-primary text-primary-foreground",
     required: true,
   },
   {
     id: "sales",
-    labelAr: "المبيعات والفواتير",
-    labelEn: "Sales & Invoicing",
-    descAr: "فواتير البيع، العروض، العملاء",
-    descEn: "Sales invoices, quotes, customers",
+    labelAr: "المبيعات",
+    labelEn: "Sales",
+    descAr: "فواتير البيع • العروض • العملاء",
+    descEn: "Invoices • Quotes • Customers",
     icon: ShoppingCart,
+    color: "bg-accent/10 text-accent-foreground border-accent/20",
+    activeColor: "bg-accent text-accent-foreground",
     required: false,
   },
   {
     id: "purchases",
     labelAr: "المشتريات",
     labelEn: "Purchases",
-    descAr: "فواتير الشراء، أوامر الشراء، الموردين",
-    descEn: "Purchase invoices, purchase orders, vendors",
+    descAr: "فواتير الشراء • أوامر الشراء • الموردون",
+    descEn: "Invoices • Purchase orders • Vendors",
     icon: Truck,
+    color: "bg-info/10 text-info border-info/20",
+    activeColor: "bg-info text-info-foreground",
     required: false,
   },
   {
     id: "inventory",
     labelAr: "المخزون",
     labelEn: "Inventory",
-    descAr: "إدارة المنتجات والمستودعات وحركة المخزون",
-    descEn: "Products, warehouses, stock movements",
-    icon: BarChart3,
+    descAr: "المنتجات • المستودعات • حركة المخزون",
+    descEn: "Products • Warehouses • Stock movements",
+    icon: Package,
+    color: "bg-success/10 text-success border-success/20",
+    activeColor: "bg-success text-success-foreground",
     required: false,
   },
   {
     id: "hr",
     labelAr: "الموارد البشرية",
     labelEn: "Human Resources",
-    descAr: "الموظفون، الرواتب، الإجازات، الحضور",
-    descEn: "Employees, payroll, leaves, attendance",
+    descAr: "الموظفون • الرواتب • الإجازات • الحضور",
+    descEn: "Employees • Payroll • Leaves • Attendance",
     icon: Users,
+    color: "bg-warning/10 text-warning-foreground border-warning/20",
+    activeColor: "bg-warning text-warning-foreground",
     required: false,
   },
   {
     id: "autoparts",
     labelAr: "قطع غيار السيارات",
     labelEn: "Auto Parts",
-    descAr: "كتالوج القطع، ماركات السيارات، التوافق",
-    descEn: "Parts catalog, car brands, compatibility",
+    descAr: "كتالوج القطع • الماركات • التوافق",
+    descEn: "Parts catalog • Car brands • Compatibility",
     icon: Wrench,
+    color: "bg-muted text-muted-foreground border-border",
+    activeColor: "bg-foreground text-background",
     required: false,
   },
 ];
@@ -77,9 +91,11 @@ export const Step4Modules = ({ isRTL }: Props) => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isSelected = (id: string) => id === "accounting" || data.selected_modules.includes(id);
+
   const toggleModule = (id: string) => {
     const mod = MODULES.find((m) => m.id === id);
-    if (mod?.required) return; // cannot deselect required modules
+    if (mod?.required) return;
     const current = data.selected_modules;
     const next = current.includes(id)
       ? current.filter((m) => m !== id)
@@ -87,23 +103,15 @@ export const Step4Modules = ({ isRTL }: Props) => {
     update({ selected_modules: next });
   };
 
-  const isSelected = (id: string) =>
-    id === "accounting" || data.selected_modules.includes(id);
+  const selectedCount = 1 + data.selected_modules.length; // accounting is always selected
 
   const handleFinish = async () => {
-    if (!user) {
-      toast.error(isRTL ? "يرجى تسجيل الدخول أولاً" : "Please sign in first");
-      return;
-    }
-
-    if (isSubmitting) return; // prevent double submit
+    if (!user || isSubmitting) return;
     setIsSubmitting(true);
 
     try {
       const payload = {
-        // Account
         full_name: data.full_name.trim(),
-        // Company
         name: data.company_name.trim(),
         name_en: data.company_name_en.trim() || null,
         email: data.email.trim(),
@@ -111,13 +119,11 @@ export const Step4Modules = ({ isRTL }: Props) => {
         commercial_register: data.commercial_register.trim() || null,
         tax_number: data.tax_number.trim() || null,
         address: data.address.trim() || null,
-        // Preferences
         industry: data.industry || null,
         country: data.country,
         timezone: data.timezone,
         language: data.language,
         base_currency: data.base_currency,
-        // Modules (always include accounting)
         modules: ["accounting", ...data.selected_modules.filter((m) => m !== "accounting")],
       };
 
@@ -125,129 +131,153 @@ export const Step4Modules = ({ isRTL }: Props) => {
         body: payload,
       });
 
-      if (error) {
-        throw new Error(error.message || (isRTL ? "حدث خطأ في إنشاء الشركة" : "Error creating company"));
-      }
-
-      if (!result?.company_id) {
-        throw new Error(isRTL ? "لم يتم إرجاع معرف الشركة" : "No company ID returned");
-      }
+      if (error) throw new Error(error.message || "حدث خطأ في إنشاء الشركة");
+      if (!result?.company_id) throw new Error("لم يتم إرجاع معرف الشركة");
 
       localStorage.setItem("activeCompany", result.company_id);
-      toast.success(isRTL ? "تم إنشاء الشركة بنجاح! مرحباً بك 🎉" : "Company created successfully! Welcome 🎉");
+      toast.success(isRTL ? "تم إنشاء شركتك بنجاح! أهلاً بك 🎉" : "Company created successfully! Welcome 🎉");
       navigate("/client/dashboard");
     } catch (err: any) {
-      console.error("Onboarding submission error:", err);
-      toast.error(err.message || (isRTL ? "حدث خطأ غير متوقع" : "Unexpected error occurred"));
+      console.error("Onboarding error:", err);
+      toast.error(err.message || (isRTL ? "حدث خطأ غير متوقع" : "Unexpected error"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Layers className="h-5 w-5" />
-          {isRTL ? "اختيار الوحدات" : "Select Modules"}
-        </CardTitle>
-        <CardDescription>
-          {isRTL
-            ? "اختر الوحدات التي تريد تفعيلها في نظامك. يمكن تغيير هذا لاحقاً."
-            : "Choose which modules to activate. You can change this later."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {MODULES.map((mod) => {
-            const selected = isSelected(mod.id);
-            const Icon = mod.icon;
-            return (
-              <button
-                key={mod.id}
-                type="button"
-                onClick={() => toggleModule(mod.id)}
-                disabled={mod.required}
-                className={cn(
-                  "relative flex items-start gap-3 p-4 rounded-lg border-2 text-start transition-all duration-200",
-                  selected
-                    ? "border-primary bg-primary/5"
-                    : "border-border bg-background hover:border-primary/40",
-                  mod.required && "opacity-90 cursor-default"
-                )}
-              >
-                <div
-                  className={cn(
-                    "flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg",
-                    selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm text-foreground">
-                      {isRTL ? mod.labelAr : mod.labelEn}
-                    </span>
-                    {mod.required && (
-                      <Badge variant="secondary" className="text-xs">
-                        {isRTL ? "أساسي" : "Required"}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {isRTL ? mod.descAr : mod.descEn}
-                  </p>
-                </div>
-                {selected && (
-                  <div className="absolute top-2 end-2">
-                    <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                      <Check className="h-3 w-3 text-primary-foreground" />
-                    </div>
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Summary */}
-        <div className="rounded-lg bg-muted/50 p-4 space-y-2 text-sm">
-          <p className="font-medium text-foreground">
-            {isRTL ? "ملخص التسجيل" : "Registration Summary"}
-          </p>
-          <div className="text-muted-foreground space-y-1">
-            <p>🏢 {data.company_name || "—"}</p>
-            <p>📧 {data.email || "—"}</p>
-            <p>💰 {data.base_currency} • 🌐 {data.country} • ⏰ {data.timezone}</p>
-            <p>
-              {isRTL ? "الوحدات: " : "Modules: "}
-              {["accounting", ...data.selected_modules.filter((m) => m !== "accounting")]
-                .map((id) => {
-                  const m = MODULES.find((x) => x.id === id);
-                  return m ? (isRTL ? m.labelAr : m.labelEn) : id;
-                })
-                .join(" • ")}
+    <div className="space-y-6">
+      {/* Hero card */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-success/10 via-success/5 to-transparent border border-success/20 p-6 sm:p-8">
+        <div className="absolute bottom-0 right-0 w-24 h-24 bg-success/10 rounded-full translate-y-1/2 translate-x-1/2" />
+        <div className="relative flex items-start gap-4">
+          <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/30">
+            <Layers className="h-7 w-7 text-primary-foreground" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">
+              {isRTL ? "اختر وحدات نظامك" : "Choose Your Modules"}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {isRTL
+                ? `${selectedCount} وحدات محددة — يمكنك التغيير لاحقاً من الإعدادات`
+                : `${selectedCount} modules selected — you can change this later`}
             </p>
           </div>
         </div>
+      </div>
 
-        <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={goBack} disabled={isSubmitting}>
-            {isRTL ? "السابق" : "Back"}
-          </Button>
-          <Button onClick={handleFinish} disabled={isSubmitting} size="lg" className="min-w-[160px]">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                {isRTL ? "جاري الإنشاء..." : "Creating..."}
-              </>
-            ) : (
-              isRTL ? "إنشاء الشركة 🚀" : "Create Company 🚀"
-            )}
-          </Button>
+      {/* Module grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {MODULES.map((mod) => {
+          const selected = isSelected(mod.id);
+          const Icon = mod.icon;
+          return (
+            <button
+              key={mod.id}
+              type="button"
+              onClick={() => toggleModule(mod.id)}
+              disabled={mod.required}
+              className={cn(
+                "relative group flex items-start gap-3 p-4 rounded-xl border-2 text-start transition-all duration-200",
+                selected
+                  ? "border-primary bg-primary/5 shadow-sm shadow-primary/10"
+                  : "border-border bg-card hover:border-primary/40 hover:bg-muted/30",
+                mod.required && "cursor-default"
+              )}
+            >
+              {/* Icon */}
+              <div
+                className={cn(
+                  "flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200",
+                  selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                )}
+              >
+                <Icon className="h-5 w-5" />
+              </div>
+
+              {/* Text */}
+              <div className="flex-1 min-w-0 pt-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-foreground">
+                    {isRTL ? mod.labelAr : mod.labelEn}
+                  </span>
+                  {mod.required && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">
+                      {isRTL ? "أساسي" : "Required"}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  {isRTL ? mod.descAr : mod.descEn}
+                </p>
+              </div>
+
+              {/* Check badge */}
+              <div
+                className={cn(
+                  "absolute top-3 end-3 w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200",
+                  selected
+                    ? "bg-primary opacity-100 scale-100"
+                    : "bg-border opacity-0 scale-75 group-hover:opacity-60 group-hover:scale-90"
+                )}
+              >
+                <Check className="h-3 w-3 text-primary-foreground" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Summary strip */}
+      <div className="rounded-xl border border-border bg-muted/30 p-4">
+        <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+          {isRTL ? "ملخص التسجيل" : "Registration Summary"}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+          <span className="text-muted-foreground flex gap-2">
+            <span>🏢</span>
+            <span className="text-foreground font-medium truncate">{data.company_name || "—"}</span>
+          </span>
+          <span className="text-muted-foreground flex gap-2">
+            <span>📧</span>
+            <span className="text-foreground font-medium truncate">{data.email || "—"}</span>
+          </span>
+          <span className="text-muted-foreground flex gap-2">
+            <span>💰</span>
+            <span className="text-foreground font-medium">{data.base_currency}</span>
+          </span>
+          <span className="text-muted-foreground flex gap-2">
+            <span>🌍</span>
+            <span className="text-foreground font-medium">{data.country} • {data.timezone.split("/")[1]}</span>
+          </span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex justify-between pt-2">
+        <Button variant="outline" onClick={goBack} disabled={isSubmitting} className="gap-2">
+          <ArrowRight className={cn("h-4 w-4", !isRTL && "rotate-180")} />
+          {isRTL ? "السابق" : "Back"}
+        </Button>
+        <Button
+          onClick={handleFinish}
+          disabled={isSubmitting}
+          size="lg"
+          className="gap-2 min-w-[180px]"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {isRTL ? "جاري الإنشاء..." : "Creating..."}
+            </>
+          ) : (
+            <>
+              {isRTL ? "إنشاء الشركة 🚀" : "Create Company 🚀"}
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
   );
 };
