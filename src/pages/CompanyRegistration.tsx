@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -41,7 +40,6 @@ interface Plan {
 }
 
 const CompanyRegistration = () => {
-  const { t } = useTranslation();
   const { isRTL } = useLanguage();
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -161,10 +159,17 @@ const CompanyRegistration = () => {
     setIsLoading(true);
 
     try {
-      // Create company
-      const { data: company, error: companyError } = await supabase
-        .from("companies")
-        .insert({
+      // Get the user's JWT to pass as Authorization header
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("لا يوجد جلسة نشطة. يرجى تسجيل الدخول مرة أخرى.");
+      }
+
+      // Call the secure edge function — NO direct DB write from the client
+      const { data, error } = await supabase.functions.invoke("provision-tenant", {
+        body: {
           name: formData.name.trim(),
           name_en: formData.name_en.trim() || null,
           email: formData.email.trim(),
@@ -173,42 +178,24 @@ const CompanyRegistration = () => {
           tax_number: formData.tax_number.trim() || null,
           activity_type: formData.activity_type.trim() || null,
           address: formData.address.trim() || null,
-          owner_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (companyError) throw companyError;
-
-      // Create subscription request
-      const selectedPlanData = plans.find((p) => p.id === selectedPlan);
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + (selectedPlanData?.duration_months || 1));
-
-      const { error: subscriptionError } = await supabase.from("subscriptions").insert({
-        company_id: company.id,
-        plan_id: selectedPlan,
-        status: "pending",
-        start_date: startDate.toISOString().split("T")[0],
-        end_date: endDate.toISOString().split("T")[0],
+          plan_id: selectedPlan,
+        },
       });
 
-      if (subscriptionError) throw subscriptionError;
+      if (error) {
+        throw new Error(error.message || "حدث خطأ في إنشاء الشركة");
+      }
 
-      // Create main branch
-      const { error: branchError } = await supabase.from("branches").insert({
-        company_id: company.id,
-        name: "الفرع الرئيسي",
-        name_en: "Main Branch",
-        is_main: true,
-        is_active: true,
-      });
+      if (!data?.company_id) {
+        throw new Error("لم يتم إرجاع معرف الشركة");
+      }
 
-      if (branchError) throw branchError;
+      // Store the active company in localStorage for quick access
+      localStorage.setItem("activeCompany", data.company_id);
 
-      toast.success("تم إرسال طلب الاشتراك بنجاح! سيتم مراجعته قريباً");
-      navigate("/client");
+      toast.success("تم إنشاء الشركة بنجاح! مرحباً بك في النظام 🎉");
+      navigate("/client/dashboard");
+
     } catch (error: any) {
       console.error("Registration error:", error);
       toast.error(error.message || "حدث خطأ في التسجيل");
@@ -485,10 +472,10 @@ const CompanyRegistration = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    جاري الإرسال...
+                    جاري إنشاء الشركة...
                   </>
                 ) : (
-                  "إرسال طلب الاشتراك"
+                  "إنشاء الشركة والبدء بالتجربة المجانية"
                 )}
               </Button>
             </div>
