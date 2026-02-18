@@ -22,7 +22,7 @@ import ClientTreasury from "./pages/client/ClientTreasury";
 import ClientInventory from "./pages/client/ClientInventory";
 import ClientContacts from "./pages/client/ClientContacts";
 import ClientReports from "./pages/client/ClientReports";
-import ClientAnalytics from "./pages/client/ClientAnalytics";
+
 import ClientSettings from "./pages/client/ClientSettings";
 import CreateSalesInvoice from "./pages/client/CreateSalesInvoice";
 import CreateContact from "./pages/client/CreateContact";
@@ -158,9 +158,9 @@ const App = () => (
               <Route path="reports/balance-sheet" element={<BalanceSheet />} />
               <Route path="reports/cash-flow" element={<CashFlow />} />
               <Route path="reports/trial-balance" element={<TrialBalance />} />
-              <Route path="analytics" element={<ClientAnalytics />} />
               <Route path="settings" element={<ClientSettings />} />
             </Route>
+            
             
             {/* Owner Portal Routes */}
             <Route path="/owner" element={<OwnerLayout />}>
