@@ -2365,6 +2365,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      provision_tenant: {
+        Args: {
+          p_activity_type?: string
+          p_address?: string
+          p_commercial_register?: string
+          p_email?: string
+          p_name: string
+          p_name_en?: string
+          p_phone?: string
+          p_plan_id?: string
+          p_tax_number?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       verify_tenant_access: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
