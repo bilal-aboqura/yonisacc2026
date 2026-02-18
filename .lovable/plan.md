@@ -1,80 +1,131 @@
 
+# تحويل دليل الحسابات إلى دليل موحد مشترك
 
-# اصلاح: تمرير نوع النشاط تلقائياً من صفحة الأنشطة إلى التسجيل
+## المشكلة الحالية
+كل شركة تحصل على نسخة منفصلة من الحسابات الافتراضية (is_system = true). هذا يعني:
+- تكرار البيانات: 10 شركات × 37 حساب = 370 صف مكرر
+- صعوبة تحديث الدليل الموحد لاحقاً
+- كل شركة "تملك" حسابات النظام في جدول `accounts`
 
-## المشاكل المكتشفة
+## الحل المقترح: جدول منفصل للحسابات الموحدة
 
-### 1. عدم تمرير نوع النشاط عند الاشتراك
-عندما يضغط المستخدم "اشترك الآن" على بطاقة "محلات قطع غيار السيارات" في صفحة الأنشطة (`/activities`)، يتم نقله إلى `/register-company` **بدون أي معلومات عن النشاط الذي اختاره**. المستخدم يضطر لاختيار النشاط يدوياً مرة أخرى، وقد لا ينتبه لذلك.
+### البنية الجديدة
 
-### 2. المستخدم الجديد ليس لديه شركة
-بعد التحقق من قاعدة البيانات، المستخدم الجديد (`costaminehelp@gmail.com`) **لم يُكمل تسجيل الشركة** - لا توجد أي شركة مرتبطة بحسابه. هذا على الأرجح لأن نوع النشاط لم يكن محدداً تلقائياً.
+```text
+global_accounts (جدول جديد)
+├── id, code, name, name_en, type
+├── parent_code (لبناء الشجرة بدون uuid)
+├── is_parent, sort_order
+└── is_active
 
-### 3. تضارب في جلب بيانات الشركة
-مكوّن `CompanyDropdown` يستخدم `.maybeSingle()` بدون ترتيب، مما قد يُرجع شركة قديمة بدلاً من الأحدث للمستخدمين الذين لديهم عدة شركات.
+accounts (الجدول الحالي - للحسابات المخصصة فقط)
+├── company_id (حسابات الشركة الخاصة بها)
+├── global_account_id (null = حساب خاص، رقم = مرتبط بالموحد)
+└── balance (الرصيد الافتتاحي الخاص بكل شركة)
+```
+
+### كيف تعمل الشاشة بعد التعديل
+1. **عرض الشجرة**: تجمع بين الحسابات الموحدة من `global_accounts` + الحسابات الخاصة بالشركة من `accounts`
+2. **الرصيد الافتتاحي**: يُحفظ في `accounts` (سجل واحد لكل شركة لكل حساب موحد)
+3. **إضافة حساب**: تضاف فقط للجدول `accounts` كحسابات مخصصة بجوار الشجرة الموحدة
 
 ---
 
-## الحل المقترح
+## خطوات التنفيذ
 
-### الاصلاح 1: تمرير نوع النشاط عبر رابط الاشتراك (`Activities.tsx`)
-- تغيير الرابط من:
-```
-/register-company
-```
-  الى:
-```
-/register-company?activity=Auto Parts Shops
-```
-- بحيث ينقل اسم النشاط الإنجليزي كمعامل (query parameter)
+### 1. Migration قاعدة البيانات
+- إنشاء جدول `global_accounts` مع سياسة RLS تسمح للجميع بالقراءة
+- نقل الحسابات الموحدة (is_system = true) من أي شركة إلى الجدول الجديد
+- إضافة عمود `global_account_id` في جدول `accounts` لربط الأرصدة
+- إضافة سياسات RLS للجدول الجديد
 
-### الاصلاح 2: تحديد النشاط تلقائياً في نموذج التسجيل (`CompanyRegistration.tsx`)
-- قراءة المعامل `activity` من الرابط عند فتح الصفحة
-- تعيينه كقيمة افتراضية لحقل نوع النشاط
-- بحيث يجد المستخدم النشاط محدداً مسبقاً عند فتح الصفحة
+### 2. تعديل `src/pages/client/ClientAccounts.tsx`
+- **إزالة** زر "إنشاء الحسابات الافتراضية" وكل منطقه
+- **إزالة** `handleCreateDefaultAccounts` function
+- **إزالة** state `isCreatingDefaults`
+- **تحديث** جلب البيانات: جلب `global_accounts` أولاً ثم دمجها مع `accounts` الخاصة بالشركة
+- **تحديث** حفظ الرصيد الافتتاحي: يحفظ في جدول `accounts` بربط `global_account_id`
 
-### الاصلاح 3: إصلاح ترتيب الشركات في CompanyDropdown
-- اضافة `.order("created_at", { ascending: false })` قبل `.limit(1)` لضمان إرجاع أحدث شركة
+### 3. تعديل `src/pages/client/CreateAccount.tsx`
+- تعديل قائمة "الحساب الرئيسي" لتشمل الحسابات الموحدة من `global_accounts`
+
+### 4. تعديل `src/pages/client/EditAccount.tsx`
+- تعديل قائمة "الحساب الرئيسي" لتشمل الحسابات الموحدة
+
+### 5. تعديل `src/pages/client/OpeningBalances.tsx`
+- تحديث جلب البيانات لدمج الجدولين
 
 ---
 
 ## التفاصيل التقنية
 
-### الملفات المعدلة
+### جدول `global_accounts` الجديد
+```sql
+CREATE TABLE public.global_accounts (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  code text NOT NULL UNIQUE,
+  name text NOT NULL,
+  name_en text,
+  type text NOT NULL,
+  parent_code text,  -- كود الحساب الأب (سهل البناء بدون FK)
+  is_parent boolean DEFAULT false,
+  sort_order integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
 
-**1. `src/pages/Activities.tsx`** (سطر 189)
-- تغيير رابط "اشترك الآن" لتمرير اسم النشاط:
-```typescript
-<Link to={`/register-company?activity=${encodeURIComponent(vertical.name_en)}`} className="w-full">
+-- RLS: الكل يقرأ
+ALTER TABLE public.global_accounts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view global accounts"
+  ON public.global_accounts FOR SELECT USING (true);
+CREATE POLICY "Owners can manage global accounts"
+  ON public.global_accounts FOR ALL
+  USING (has_role(auth.uid(), 'owner'::app_role));
 ```
 
-**2. `src/pages/CompanyRegistration.tsx`**
-- اضافة `useSearchParams` من `react-router-dom`
-- قراءة معامل `activity` من الرابط
-- تعيين القيمة الافتراضية في `formData.activity_type` عند تحميل الصفحة:
-```typescript
-const [searchParams] = useSearchParams();
-const activityParam = searchParams.get("activity");
-
-// في useEffect: تعيين activity_type اذا جاء من الرابط
-useEffect(() => {
-  if (activityParam && !formData.activity_type) {
-    handleInputChange("activity_type", activityParam);
-  }
-}, [activityParam]);
+### عمود `global_account_id` في `accounts`
+```sql
+ALTER TABLE public.accounts 
+  ADD COLUMN global_account_id uuid REFERENCES public.global_accounts(id);
 ```
 
-**3. `src/components/client/CompanyDropdown.tsx`** (سطر 33-36)
-- تعديل استعلام الشركة لإضافة ترتيب وحد:
-```typescript
-const { data, error } = await supabase
-  .from("companies")
-  .select("*")
-  .eq("owner_id", user.id)
-  .order("created_at", { ascending: false })
-  .limit(1);
+### نقل الحسابات الموحدة
+```sql
+-- نقل الحسابات الموحدة من أول شركة إلى global_accounts
+INSERT INTO public.global_accounts (code, name, name_en, type, is_parent, sort_order)
+SELECT DISTINCT ON (code) code, name, name_en, type, is_parent, sort_order
+FROM public.accounts 
+WHERE is_system = true
+ORDER BY code, sort_order;
 
-return data?.[0] || null;
+-- تحديث parent_code
+UPDATE public.global_accounts ga
+SET parent_code = (
+  SELECT ga2.code FROM public.global_accounts ga2
+  WHERE ga2.id = (
+    SELECT parent_id FROM public.accounts a
+    WHERE a.code = ga.code AND a.is_system = true
+    LIMIT 1
+  )
+);
 ```
-- استبدال `.maybeSingle()` بـ `.limit(1)` مع أخذ أول عنصر
 
+---
+
+## التغييرات على سلوك الشاشة
+
+| قبل | بعد |
+|-----|-----|
+| كل شركة عندها نسخة من الحسابات | الحسابات الموحدة مشتركة بين الجميع |
+| زر "إنشاء الحسابات الافتراضية" ظاهر | الزر محذوف نهائياً |
+| الرصيد محفوظ في نفس سجل الحساب | الرصيد محفوظ في سجل خاص بالشركة |
+| إضافة حساب يضاف للجدول المشترك | إضافة حساب يضاف لجدول الشركة فقط |
+
+---
+
+## الملفات المعدلة
+1. **Migration SQL** - جدول جديد + نقل بيانات + عمود جديد
+2. `src/pages/client/ClientAccounts.tsx` - إزالة الزر + تحديث جلب البيانات
+3. `src/pages/client/CreateAccount.tsx` - تحديث قائمة الحسابات الرئيسية
+4. `src/pages/client/EditAccount.tsx` - تحديث قائمة الحسابات الرئيسية
+5. `src/pages/client/OpeningBalances.tsx` - تحديث جلب البيانات
