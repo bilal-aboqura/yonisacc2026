@@ -3,7 +3,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import {
   FileText,
@@ -17,7 +17,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader2,
+  DollarSign,
+  BarChart3,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface CompanyData {
   id: string;
@@ -41,13 +44,13 @@ const ClientDashboard = () => {
   const [company, setCompany] = useState<CompanyData | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [period, setPeriod] = useState("month");
 
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
 
       try {
-        // Fetch company
         const { data: companyData } = await supabase
           .from("companies")
           .select("id, name, name_en")
@@ -57,7 +60,6 @@ const ClientDashboard = () => {
         if (companyData) {
           setCompany(companyData);
 
-          // Fetch subscription
           const { data: subData } = await supabase
             .from("subscriptions")
             .select(`
@@ -83,7 +85,7 @@ const ClientDashboard = () => {
     fetchData();
   }, [user]);
 
-  const stats = [
+  const kpis = [
     {
       title: isRTL ? "إجمالي المبيعات" : "Total Sales",
       value: "0",
@@ -92,15 +94,27 @@ const ClientDashboard = () => {
       icon: TrendingUp,
       color: "text-green-500",
       bgColor: "bg-green-500/10",
+      suffix: isRTL ? "ر.س" : "SAR",
     },
     {
       title: isRTL ? "إجمالي المشتريات" : "Total Purchases",
       value: "0",
       change: "+0%",
       trend: "up",
-      icon: TrendingDown,
+      icon: ShoppingCart,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
+      suffix: isRTL ? "ر.س" : "SAR",
+    },
+    {
+      title: isRTL ? "صافي الربح" : "Net Profit",
+      value: "0",
+      change: "+0%",
+      trend: "up",
+      icon: DollarSign,
+      color: "text-emerald-500",
+      bgColor: "bg-emerald-500/10",
+      suffix: isRTL ? "ر.س" : "SAR",
     },
     {
       title: isRTL ? "رصيد الخزينة" : "Treasury Balance",
@@ -110,6 +124,17 @@ const ClientDashboard = () => {
       icon: Wallet,
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
+      suffix: isRTL ? "ر.س" : "SAR",
+    },
+    {
+      title: isRTL ? "عدد الفواتير" : "Total Invoices",
+      value: "0",
+      change: "+0%",
+      trend: "neutral",
+      icon: FileText,
+      color: "text-orange-500",
+      bgColor: "bg-orange-500/10",
+      suffix: "",
     },
     {
       title: isRTL ? "قيمة المخزون" : "Inventory Value",
@@ -117,8 +142,9 @@ const ClientDashboard = () => {
       change: "0%",
       trend: "neutral",
       icon: Package,
-      color: "text-orange-500",
-      bgColor: "bg-orange-500/10",
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-500/10",
+      suffix: isRTL ? "ر.س" : "SAR",
     },
   ];
 
@@ -173,7 +199,8 @@ const ClientDashboard = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            {isRTL ? "مرحباً بك في" : "Welcome to"} {isRTL ? company.name : company.name_en || company.name}
+            {isRTL ? "مرحباً بك في" : "Welcome to"}{" "}
+            {isRTL ? company.name : company.name_en || company.name}
           </h1>
           {subscription && (
             <p className="text-muted-foreground mt-1">
@@ -184,35 +211,78 @@ const ClientDashboard = () => {
             </p>
           )}
         </div>
+        <Select value={period} onValueChange={setPeriod}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="week">{isRTL ? "هذا الأسبوع" : "This Week"}</SelectItem>
+            <SelectItem value="month">{isRTL ? "هذا الشهر" : "This Month"}</SelectItem>
+            <SelectItem value="quarter">{isRTL ? "هذا الربع" : "This Quarter"}</SelectItem>
+            <SelectItem value="year">{isRTL ? "هذه السنة" : "This Year"}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {stats.map((stat, index) => (
+      {/* KPIs Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+        {kpis.map((kpi, index) => (
           <Card key={index}>
-            <CardContent className="p-3 sm:p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl ${stat.bgColor}`}>
-                  <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 ${stat.color}`} />
+            <CardContent className="p-3 sm:p-4 md:p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`p-2 sm:p-2.5 rounded-lg ${kpi.bgColor}`}>
+                  <kpi.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${kpi.color}`} />
                 </div>
-                <div className="flex items-center gap-0.5 sm:gap-1 text-xs sm:text-sm">
-                  {stat.trend === "up" ? (
-                    <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-                  ) : stat.trend === "down" ? (
-                    <ArrowDownRight className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
+                <div className="flex items-center gap-0.5 text-xs">
+                  {kpi.trend === "up" ? (
+                    <ArrowUpRight className="h-3 w-3 text-green-500" />
+                  ) : kpi.trend === "down" ? (
+                    <ArrowDownRight className="h-3 w-3 text-red-500" />
                   ) : null}
-                  <span className={stat.trend === "up" ? "text-green-500" : stat.trend === "down" ? "text-red-500" : "text-muted-foreground"}>
-                    {stat.change}
+                  <span className={kpi.trend === "up" ? "text-green-500" : kpi.trend === "down" ? "text-red-500" : "text-muted-foreground"}>
+                    {kpi.change}
                   </span>
                 </div>
               </div>
-              <div className="mt-2 sm:mt-3 md:mt-4">
-                <p className="text-lg sm:text-xl md:text-2xl font-bold">{stat.value} ر.س</p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 line-clamp-1">{stat.title}</p>
-              </div>
+              <p className="text-lg sm:text-xl font-bold tabular-nums">
+                {kpi.value}
+                {kpi.suffix && <span className="text-xs font-normal text-muted-foreground ms-1">{kpi.suffix}</span>}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{kpi.title}</p>
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Charts Placeholder */}
+      <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+        <Card>
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              {isRTL ? "المبيعات الشهرية" : "Monthly Sales"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-52 flex items-center justify-center text-muted-foreground text-sm">
+              {isRTL ? "لا توجد بيانات كافية لعرض الرسم البياني" : "Not enough data to display chart"}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              {isRTL ? "المصروفات حسب الفئة" : "Expenses by Category"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-52 flex items-center justify-center text-muted-foreground text-sm">
+              {isRTL ? "لا توجد بيانات كافية لعرض الرسم البياني" : "Not enough data to display chart"}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Quick Actions */}
@@ -239,30 +309,42 @@ const ClientDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Recent Activity & Alerts */}
+      {/* Recent Activity & Top Items */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <Card>
           <CardHeader className="pb-2 sm:pb-4">
-            <CardTitle className="text-base sm:text-lg">{isRTL ? "آخر العمليات" : "Recent Transactions"}</CardTitle>
+            <CardTitle className="text-base sm:text-lg">{isRTL ? "أفضل المنتجات مبيعاً" : "Top Selling Products"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center text-muted-foreground py-6 sm:py-8 text-sm sm:text-base">
-              {isRTL ? "لا توجد عمليات بعد" : "No transactions yet"}
+            <div className="text-center text-muted-foreground py-8 text-sm">
+              {isRTL ? "لا توجد بيانات بعد" : "No data yet"}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2 sm:pb-4">
-            <CardTitle className="text-base sm:text-lg">{isRTL ? "التنبيهات" : "Alerts"}</CardTitle>
+            <CardTitle className="text-base sm:text-lg">{isRTL ? "أفضل العملاء" : "Top Customers"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center text-muted-foreground py-6 sm:py-8 text-sm sm:text-base">
-              {isRTL ? "لا توجد تنبيهات" : "No alerts"}
+            <div className="text-center text-muted-foreground py-8 text-sm">
+              {isRTL ? "لا توجد بيانات بعد" : "No data yet"}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Alerts */}
+      <Card>
+        <CardHeader className="pb-2 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg">{isRTL ? "آخر العمليات" : "Recent Transactions"}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-muted-foreground py-6 text-sm">
+            {isRTL ? "لا توجد عمليات بعد" : "No transactions yet"}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

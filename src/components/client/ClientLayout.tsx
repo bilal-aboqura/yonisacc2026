@@ -130,12 +130,6 @@ const baseMenuItems: MenuItem[] = [
     path: "/client/reports" 
   },
   { 
-    icon: TrendingUp, 
-    label: "الإحصائيات", 
-    labelEn: "Analytics", 
-    path: "/client/analytics" 
-  },
-  { 
     icon: Settings, 
     label: "الإعدادات", 
     labelEn: "Settings", 
