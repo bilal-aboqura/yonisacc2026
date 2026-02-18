@@ -21,6 +21,7 @@ export type Database = {
           company_id: string
           cost_center_id: string | null
           created_at: string
+          global_account_id: string | null
           id: string
           is_active: boolean | null
           is_parent: boolean | null
@@ -37,6 +38,7 @@ export type Database = {
           company_id: string
           cost_center_id?: string | null
           created_at?: string
+          global_account_id?: string | null
           id?: string
           is_active?: boolean | null
           is_parent?: boolean | null
@@ -53,6 +55,7 @@ export type Database = {
           company_id?: string
           cost_center_id?: string | null
           created_at?: string
+          global_account_id?: string | null
           id?: string
           is_active?: boolean | null
           is_parent?: boolean | null
@@ -76,6 +79,13 @@ export type Database = {
             columns: ["cost_center_id"]
             isOneToOne: false
             referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_global_account_id_fkey"
+            columns: ["global_account_id"]
+            isOneToOne: false
+            referencedRelation: "global_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -863,6 +873,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      global_accounts: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_parent: boolean | null
+          name: string
+          name_en: string | null
+          parent_code: string | null
+          sort_order: number | null
+          type: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_parent?: boolean | null
+          name: string
+          name_en?: string | null
+          parent_code?: string | null
+          sort_order?: number | null
+          type: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_parent?: boolean | null
+          name?: string
+          name_en?: string | null
+          parent_code?: string | null
+          sort_order?: number | null
+          type?: string
+        }
+        Relationships: []
       }
       invoice_items: {
         Row: {

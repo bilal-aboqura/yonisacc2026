@@ -2,3 +2,7 @@ project_id = "xnkhnelsuzhdzylzywbq"
 
 [functions.accounting-assistant]
 verify_jwt = false
+
+[functions.provision-tenant]
+verify_jwt = false
+
