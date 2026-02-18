@@ -2390,7 +2390,12 @@ export type Database = {
       invoice_type: "sales" | "purchase" | "quote"
       leave_type: "annual" | "sick" | "unpaid" | "emergency"
       penalty_type: "warning" | "deduction" | "suspension"
-      subscription_status: "pending" | "active" | "expired" | "cancelled"
+      subscription_status:
+        | "pending"
+        | "active"
+        | "expired"
+        | "cancelled"
+        | "trialing"
       transaction_type: "debit" | "credit"
     }
     CompositeTypes: {
@@ -2523,7 +2528,13 @@ export const Constants = {
       invoice_type: ["sales", "purchase", "quote"],
       leave_type: ["annual", "sick", "unpaid", "emergency"],
       penalty_type: ["warning", "deduction", "suspension"],
-      subscription_status: ["pending", "active", "expired", "cancelled"],
+      subscription_status: [
+        "pending",
+        "active",
+        "expired",
+        "cancelled",
+        "trialing",
+      ],
       transaction_type: ["debit", "credit"],
     },
   },

@@ -163,9 +163,6 @@ const ClientDashboard = () => {
         <p className="text-muted-foreground">
           {isRTL ? "لم يتم تسجيل شركة بعد" : "No company registered yet"}
         </p>
-        <Button onClick={() => navigate("/register-company")}>
-          {isRTL ? "سجل شركتك الآن" : "Register Your Company"}
-        </Button>
       </div>
     );
   }
