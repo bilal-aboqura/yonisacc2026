@@ -23,6 +23,7 @@ import {
   Loader2
 } from "lucide-react";
 
+// Unified type that works for both global and company accounts
 interface Account {
   id: string;
   code: string;
@@ -30,10 +31,14 @@ interface Account {
   name_en: string | null;
   type: string;
   balance: number | null;
-  parent_id: string | null;
+  parent_id: string | null;   // for company accounts
+  parent_code: string | null; // for global accounts
   is_active: boolean | null;
   is_parent: boolean | null;
   is_system: boolean | null;
+  is_global?: boolean;        // true = from global_accounts
+  global_account_id?: string | null;
+  company_account_id?: string | null; // the accounts.id if exists for balance tracking
   children?: Account[];
 }
 
@@ -97,6 +102,12 @@ const AccountRow = memo(({
         {getTypeName(account.type)}
       </Badge>
 
+      {account.is_global && (
+        <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground border-dashed">
+          {isRTL ? "موحد" : "Global"}
+        </Badge>
+      )}
+
       <span className="font-mono text-sm w-28 text-end shrink-0">
         {displayBalance.toLocaleString()} {currency}
       </span>
@@ -112,15 +123,17 @@ const AccountRow = memo(({
         >
           <DollarSign className="h-4 w-4 text-green-600" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={(e) => onEdit(account, e)}
-          title={isRTL ? "تعديل" : "Edit"}
-        >
-          <Pencil className="h-4 w-4 text-blue-600" />
-        </Button>
+        {!account.is_global && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => onEdit(account, e)}
+            title={isRTL ? "تعديل" : "Edit"}
+          >
+            <Pencil className="h-4 w-4 text-blue-600" />
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -138,7 +151,6 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
   const [flatAccounts, setFlatAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const [isCreatingDefaults, setIsCreatingDefaults] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Opening Balance Dialog
@@ -168,16 +180,79 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
 
         setCompanyId(companyData.id);
 
-        // Get accounts
-        const { data: accountsData, error: accountsError } = await supabase
+        // Fetch global accounts and company accounts in parallel
+        const [globalRes, companyRes] = await Promise.all([
+          supabase
+            .from("global_accounts" as any)
+            .select("*")
+            .eq("is_active", true)
+            .order("sort_order"),
+          supabase
+            .from("accounts")
+            .select("*")
+            .eq("company_id", companyData.id)
+            .is("global_account_id", null) // only custom company accounts
+            .order("code"),
+        ]);
+
+        if (globalRes.error) throw globalRes.error;
+
+        // Also fetch company accounts that have global_account_id (for balances)
+        const { data: linkedAccountsData } = await supabase
           .from("accounts")
-          .select("*")
+          .select("id, global_account_id, balance")
           .eq("company_id", companyData.id)
-          .order("code");
+          .not("global_account_id", "is", null);
 
-        if (accountsError) throw accountsError;
+        const linkedMap = new Map<string, { id: string; balance: number | null }>();
+        (linkedAccountsData || []).forEach((a: any) => {
+          linkedMap.set(a.global_account_id, { id: a.id, balance: a.balance });
+        });
 
-        setFlatAccounts(accountsData || []);
+        const globalAccounts = (globalRes.data || []) as any[];
+        const companyAccounts = (companyRes.data || []) as any[];
+
+        // Build merged flat list
+        // Global accounts get a virtual id = "global_" + ga.id
+        const merged: Account[] = [
+          ...globalAccounts.map((ga: any) => {
+            const linked = linkedMap.get(ga.id);
+            return {
+              id: "global_" + ga.id,
+              code: ga.code,
+              name: ga.name,
+              name_en: ga.name_en,
+              type: ga.type,
+              balance: linked?.balance ?? 0,
+              parent_id: null,
+              parent_code: ga.parent_code,
+              is_active: ga.is_active,
+              is_parent: ga.is_parent,
+              is_system: true,
+              is_global: true,
+              global_account_id: ga.id,
+              company_account_id: linked?.id ?? null,
+            };
+          }),
+          ...companyAccounts.map((a: any) => ({
+            id: a.id,
+            code: a.code,
+            name: a.name,
+            name_en: a.name_en,
+            type: a.type,
+            balance: a.balance,
+            parent_id: a.parent_id,
+            parent_code: null,
+            is_active: a.is_active,
+            is_parent: a.is_parent,
+            is_system: false,
+            is_global: false,
+            global_account_id: null,
+            company_account_id: a.id,
+          })),
+        ];
+
+        setFlatAccounts(merged);
       } catch (error) {
         console.error("Error fetching accounts:", error);
         toast.error(isRTL ? "حدث خطأ في جلب الحسابات" : "Error fetching accounts");
@@ -195,29 +270,47 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
       (sum, child) => sum + calculateTotalBalance(child),
       0
     );
-    // For parent accounts, show sum of children; for leaf accounts, show own balance
     const hasChildren = account.children && account.children.length > 0;
     return hasChildren ? childrenTotal : (account.balance || 0);
   }, []);
 
-  // Memoized tree building
+  // Build tree: global accounts use parent_code, company accounts use parent_id
   const accounts = useMemo(() => {
-    const map = new Map<string, Account>();
+    // Map by id for company accounts, also map global accounts by code
+    const byId = new Map<string, Account>();
+    const globalByCode = new Map<string, Account>();
     const roots: Account[] = [];
 
-    // First pass: create map
     flatAccounts.forEach((account) => {
-      map.set(account.id, { ...account, children: [] });
+      const node = { ...account, children: [] };
+      byId.set(account.id, node);
+      if (account.is_global) {
+        globalByCode.set(account.code, node);
+      }
     });
 
-    // Second pass: build tree
     flatAccounts.forEach((account) => {
-      const node = map.get(account.id)!;
-      if (account.parent_id && map.has(account.parent_id)) {
-        const parent = map.get(account.parent_id)!;
-        parent.children = parent.children || [];
-        parent.children.push(node);
-      } else {
+      const node = byId.get(account.id)!;
+
+      if (account.is_global && account.parent_code) {
+        const parentNode = globalByCode.get(account.parent_code);
+        if (parentNode) {
+          parentNode.children = parentNode.children || [];
+          parentNode.children.push(node);
+          return;
+        }
+      }
+
+      if (!account.is_global && account.parent_id) {
+        const parentNode = byId.get(account.parent_id);
+        if (parentNode) {
+          parentNode.children = parentNode.children || [];
+          parentNode.children.push(node);
+          return;
+        }
+      }
+
+      if (!account.parent_code && !account.parent_id) {
         roots.push(node);
       }
     });
@@ -233,18 +326,12 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
 
   const getTypeColor = useCallback((type: string) => {
     switch (type) {
-      case "asset":
-        return "bg-blue-500/10 text-blue-500";
-      case "liability":
-        return "bg-red-500/10 text-red-500";
-      case "equity":
-        return "bg-green-500/10 text-green-500";
-      case "revenue":
-        return "bg-emerald-500/10 text-emerald-500";
-      case "expense":
-        return "bg-orange-500/10 text-orange-500";
-      default:
-        return "bg-gray-500/10 text-gray-500";
+      case "asset": return "bg-blue-500/10 text-blue-500";
+      case "liability": return "bg-red-500/10 text-red-500";
+      case "equity": return "bg-green-500/10 text-green-500";
+      case "revenue": return "bg-emerald-500/10 text-emerald-500";
+      case "expense": return "bg-orange-500/10 text-orange-500";
+      default: return "bg-gray-500/10 text-gray-500";
     }
   }, []);
 
@@ -272,24 +359,61 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
   }, []);
 
   const handleSaveBalance = async () => {
-    if (!balanceAccount) return;
+    if (!balanceAccount || !companyId) return;
 
     setIsSaving(true);
     try {
       const balanceValue = parseFloat(newBalance) || 0;
-      
-      const { error } = await supabase
-        .from("accounts")
-        .update({ balance: balanceValue })
-        .eq("id", balanceAccount.id);
 
-      if (error) throw error;
+      if (balanceAccount.is_global) {
+        // For global accounts: upsert a record in accounts table linking to global_account
+        if (balanceAccount.company_account_id) {
+          // Update existing linked record
+          const { error } = await supabase
+            .from("accounts")
+            .update({ balance: balanceValue })
+            .eq("id", balanceAccount.company_account_id);
+          if (error) throw error;
+        } else {
+          // Create new linked record
+          const { data: inserted, error } = await supabase
+            .from("accounts")
+            .insert({
+              company_id: companyId,
+              code: balanceAccount.code,
+              name: balanceAccount.name,
+              name_en: balanceAccount.name_en,
+              type: balanceAccount.type,
+              is_parent: balanceAccount.is_parent,
+              is_system: false,
+              balance: balanceValue,
+              global_account_id: balanceAccount.global_account_id,
+            })
+            .select("id")
+            .single();
+          if (error) throw error;
 
-      // Update local state
-      setFlatAccounts(prev => prev.map((acc) =>
-        acc.id === balanceAccount.id
-          ? { ...acc, balance: balanceValue }
-          : acc
+          // Update local state with the new company_account_id
+          setFlatAccounts(prev => prev.map(a =>
+            a.id === balanceAccount.id
+              ? { ...a, company_account_id: inserted.id, balance: balanceValue }
+              : a
+          ));
+        }
+      } else {
+        // For custom company accounts: update directly
+        const { error } = await supabase
+          .from("accounts")
+          .update({ balance: balanceValue })
+          .eq("id", balanceAccount.id);
+        if (error) throw error;
+      }
+
+      // Update local state balance
+      setFlatAccounts(prev => prev.map(a =>
+        a.id === balanceAccount.id
+          ? { ...a, balance: balanceValue }
+          : a
       ));
 
       toast.success(isRTL ? "تم تحديث الرصيد الافتتاحي بنجاح" : "Opening balance updated successfully");
@@ -364,34 +488,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
     );
   }, [expandedAccounts, isRTL, t, toggleExpand, handleEditAccount, handleOpenBalanceDialog, getTypeColor, getTypeName, calculateTotalBalance]);
 
-  const handleCreateDefaultAccounts = async () => {
-    if (!companyId) return;
-
-    setIsCreatingDefaults(true);
-    try {
-      const { error } = await supabase.rpc("create_default_chart_of_accounts", {
-        p_company_id: companyId,
-      });
-
-      if (error) throw error;
-
-      toast.success(isRTL ? "تم إنشاء شجرة الحسابات الافتراضية بنجاح" : "Default chart of accounts created successfully");
-      
-      // Refresh accounts
-      const { data: accountsData } = await supabase
-        .from("accounts")
-        .select("*")
-        .eq("company_id", companyId)
-        .order("code");
-
-      setFlatAccounts(accountsData || []);
-    } catch (error) {
-      console.error("Error creating default accounts:", error);
-      toast.error(isRTL ? "حدث خطأ في إنشاء الحسابات الافتراضية" : "Error creating default accounts");
-    } finally {
-      setIsCreatingDefaults(false);
-    }
-  };
+  const totalAccountsCount = flatAccounts.length;
 
   if (isLoading) {
     return (
@@ -422,25 +519,13 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
             {isRTL ? "دليل الحسابات" : "Chart of Accounts"}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {isRTL ? "هيكل الحسابات المحاسبية للشركة" : "Company's accounting structure"}
+            {isRTL ? "الدليل الموحد المشترك لجميع الشركات" : "Unified chart of accounts for all companies"}
           </p>
         </div>
         <div className="flex gap-2">
-          {flatAccounts.length === 0 && (
-            <Button 
-              variant="outline" 
-              className="gap-2" 
-              onClick={handleCreateDefaultAccounts}
-              disabled={isCreatingDefaults}
-            >
-              {isCreatingDefaults && <Loader2 className="h-4 w-4 animate-spin" />}
-              <ClipboardList className="h-4 w-4" />
-              {isRTL ? "إنشاء الحسابات الافتراضية" : "Create Default Accounts"}
-            </Button>
-          )}
           <Button className="gap-2" onClick={() => navigate("/client/accounts/new")}>
             <Plus className="h-4 w-4" />
-            {isRTL ? "حساب جديد" : "New Account"}
+            {isRTL ? "حساب إضافي" : "Add Account"}
           </Button>
         </div>
       </div>
@@ -467,7 +552,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
             <ClipboardList className="h-5 w-5" />
             {isRTL ? "شجرة الحسابات" : "Accounts Tree"}
             <Badge variant="outline" className="ms-2">
-              {flatAccounts.length} {isRTL ? "حساب" : "accounts"}
+              {totalAccountsCount} {isRTL ? "حساب" : "accounts"}
             </Badge>
           </CardTitle>
         </CardHeader>

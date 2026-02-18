@@ -30,10 +30,15 @@ interface Account {
   type: string;
   balance: number | null;
   parent_id: string | null;
+  parent_code?: string | null;
   is_active: boolean | null;
   is_parent: boolean | null;
+  is_global?: boolean;
+  global_account_id?: string | null;
+  company_account_id?: string | null;
   children?: Account[];
 }
+
 
 interface OpeningBalance {
   debit: number;
@@ -189,18 +194,66 @@ const OpeningBalances = () => {
       }
       setCompanyId(companyData.id);
 
-      const { data: accountsData } = await supabase
-        .from("accounts")
-        .select("id, code, name, name_en, type, balance, parent_id, is_active, is_parent")
-        .eq("company_id", companyData.id)
-        .eq("is_active", true)
-        .order("code");
+      // Fetch global accounts + linked balances
+      const [globalRes, linkedRes, customRes] = await Promise.all([
+        supabase
+          .from("global_accounts" as any)
+          .select("id, code, name, name_en, type, balance, parent_code, is_active, is_parent")
+          .eq("is_active", true)
+          .order("sort_order"),
+        supabase
+          .from("accounts")
+          .select("id, global_account_id, balance")
+          .eq("company_id", companyData.id)
+          .not("global_account_id", "is", null),
+        supabase
+          .from("accounts")
+          .select("id, code, name, name_en, type, balance, parent_id, is_active, is_parent")
+          .eq("company_id", companyData.id)
+          .is("global_account_id", null)
+          .eq("is_active", true)
+          .order("code"),
+      ]);
 
-      setFlatAccounts(accountsData || []);
+      const linkedMap = new Map<string, { id: string; balance: number | null }>();
+      (linkedRes.data || []).forEach((a: any) => {
+        linkedMap.set(a.global_account_id, { id: a.id, balance: a.balance });
+      });
 
-      // Initialize balances from existing account balances
+      // Merge: global accounts + custom company accounts
+      const mergedAccounts: Account[] = [
+        ...(globalRes.data || []).map((ga: any) => {
+          const linked = linkedMap.get(ga.id);
+          return {
+            id: "global_" + ga.id,
+            code: ga.code,
+            name: ga.name,
+            name_en: ga.name_en,
+            type: ga.type,
+            balance: linked?.balance ?? 0,
+            parent_id: null,
+            parent_code: ga.parent_code,
+            is_active: ga.is_active,
+            is_parent: ga.is_parent,
+            is_global: true,
+            global_account_id: ga.id,
+            company_account_id: linked?.id ?? null,
+          } as any;
+        }),
+        ...(customRes.data || []).map((a: any) => ({
+          ...a,
+          parent_code: null,
+          is_global: false,
+          global_account_id: null,
+          company_account_id: a.id,
+        })),
+      ];
+
+      setFlatAccounts(mergedAccounts);
+
+      // Initialize balances from existing data
       const initialBalances = new Map<string, OpeningBalance>();
-      (accountsData || []).forEach((acc) => {
+      mergedAccounts.forEach((acc: any) => {
         if (acc.balance !== null && acc.balance !== 0) {
           initialBalances.set(acc.id, {
             debit: acc.balance > 0 ? acc.balance : 0,
@@ -211,9 +264,9 @@ const OpeningBalances = () => {
       setBalances(initialBalances);
 
       // Expand root accounts by default
-      const rootIds = (accountsData || [])
-        .filter((a) => !a.parent_id)
-        .map((a) => a.id);
+      const rootIds = mergedAccounts
+        .filter((a: any) => !a.parent_id && !a.parent_code)
+        .map((a: any) => a.id);
       setExpandedAccounts(rootIds);
     } catch (error) {
       console.error("Error:", error);
@@ -225,37 +278,47 @@ const OpeningBalances = () => {
 
   // Build tree structure from flat accounts
   const accountsTree = useMemo(() => {
-    const map = new Map<string, Account>();
+    const byId = new Map<string, Account>();
+    const globalByCode = new Map<string, Account>();
     const roots: Account[] = [];
 
     flatAccounts.forEach((account) => {
-      map.set(account.id, { ...account, children: [] });
+      const node = { ...account, children: [] };
+      byId.set(account.id, node);
+      if (account.is_global && account.code) {
+        globalByCode.set(account.code, node);
+      }
     });
 
     flatAccounts.forEach((account) => {
-      const node = map.get(account.id)!;
-      if (account.parent_id && map.has(account.parent_id)) {
-        const parent = map.get(account.parent_id)!;
-        parent.children = parent.children || [];
-        parent.children.push(node);
-      } else {
+      const node = byId.get(account.id)!;
+
+      if (account.is_global && account.parent_code) {
+        const parentNode = globalByCode.get(account.parent_code);
+        if (parentNode) {
+          parentNode.children = parentNode.children || [];
+          parentNode.children.push(node);
+          return;
+        }
+      }
+
+      if (!account.is_global && account.parent_id) {
+        const parentNode = byId.get(account.parent_id);
+        if (parentNode) {
+          parentNode.children = parentNode.children || [];
+          parentNode.children.push(node);
+          return;
+        }
+      }
+
+      if (!account.parent_code && !account.parent_id) {
         roots.push(node);
       }
     });
 
-    // Sort children by code
-    const sortChildren = (nodes: Account[]) => {
-      nodes.sort((a, b) => a.code.localeCompare(b.code));
-      nodes.forEach((node) => {
-        if (node.children && node.children.length > 0) {
-          sortChildren(node.children);
-        }
-      });
-    };
-    sortChildren(roots);
-
     return roots;
   }, [flatAccounts]);
+
 
   const toggleExpand = useCallback((accountId: string) => {
     setExpandedAccounts((prev) =>
@@ -358,14 +421,40 @@ const OpeningBalances = () => {
 
     setSaving(true);
     try {
-      // Update each account balance
+      // Update each account balance - handle global accounts via linked records
       for (const [accountId, balance] of balances.entries()) {
         const newBalance = balance.debit > 0 ? balance.debit : -balance.credit;
-        await supabase
-          .from("accounts")
-          .update({ balance: newBalance })
-          .eq("id", accountId);
+        const account = flatAccounts.find(a => a.id === accountId) as any;
+
+        if (account?.is_global) {
+          // Upsert via company_account_id if exists
+          if (account.company_account_id) {
+            await supabase
+              .from("accounts")
+              .update({ balance: newBalance })
+              .eq("id", account.company_account_id);
+          } else {
+            // Create linked record
+            await supabase.from("accounts").insert({
+              company_id: companyId,
+              code: account.code,
+              name: account.name,
+              name_en: account.name_en,
+              type: account.type,
+              is_parent: account.is_parent,
+              is_system: false,
+              balance: newBalance,
+              global_account_id: account.global_account_id,
+            });
+          }
+        } else {
+          await supabase
+            .from("accounts")
+            .update({ balance: newBalance })
+            .eq("id", accountId);
+        }
       }
+
 
       toast({
         title: "تم الحفظ",

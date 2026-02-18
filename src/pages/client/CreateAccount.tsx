@@ -133,18 +133,35 @@ const CreateAccount = () => {
       
       setCompanyId(companyData.id);
 
-      // Fetch all accounts
-      const { data: accountsData, error: accountsError } = await supabase
-        .from("accounts")
-        .select("id, code, name, name_en, type, is_parent")
-        .eq("company_id", companyData.id)
-        .eq("is_active", true)
-        .order("code");
+      // Fetch global accounts (unified chart) + company custom accounts
+      const [globalRes, companyRes] = await Promise.all([
+        supabase
+          .from("global_accounts" as any)
+          .select("id, code, name, name_en, type, is_parent")
+          .eq("is_active", true)
+          .order("sort_order"),
+        supabase
+          .from("accounts")
+          .select("id, code, name, name_en, type, is_parent")
+          .eq("company_id", companyData.id)
+          .eq("is_active", true)
+          .is("global_account_id", null)
+          .order("code"),
+      ]);
 
-      if (accountsError) {
-        console.error("Error fetching accounts:", accountsError);
-      }
-      setAllAccounts(accountsData || []);
+      // Merge: global accounts get a virtual id "global_" + ga.id
+      const globalAccounts: ParentAccount[] = (globalRes.data || []).map((ga: any) => ({
+        id: "global_" + ga.id,
+        code: ga.code,
+        name: ga.name,
+        name_en: ga.name_en,
+        type: ga.type,
+        is_parent: ga.is_parent,
+      }));
+
+      const companyAccounts: ParentAccount[] = (companyRes.data || []);
+
+      setAllAccounts([...globalAccounts, ...companyAccounts]);
 
       // Fetch cost centers
       const { data: costCentersData, error: costCentersError } = await supabase
