@@ -2,9 +2,10 @@ import { createContext, useContext, useState, ReactNode } from "react";
 
 export interface OnboardingData {
   full_name: string;
+  email: string;
+  password: string;
   company_name: string;
   company_name_en: string;
-  email: string;
   phone: string;
   commercial_register: string;
   tax_number: string;
@@ -17,11 +18,12 @@ export interface OnboardingData {
   selected_modules: string[];
 }
 
-const buildDefaultData = (initialFullName?: string): OnboardingData => ({
-  full_name: initialFullName || "",
+const buildDefaultData = (initial?: Partial<OnboardingData>): OnboardingData => ({
+  full_name: initial?.full_name || "",
+  email: initial?.email || "",
+  password: initial?.password || "",
   company_name: "",
   company_name_en: "",
-  email: "",
   phone: "",
   commercial_register: "",
   tax_number: "",
@@ -54,12 +56,12 @@ export const useOnboarding = () => {
 
 export const OnboardingProvider = ({
   children,
-  initialFullName,
+  initialData,
 }: {
   children: ReactNode;
-  initialFullName?: string;
+  initialData?: Partial<OnboardingData>;
 }) => {
-  const [data, setData] = useState<OnboardingData>(buildDefaultData(initialFullName));
+  const [data, setData] = useState<OnboardingData>(buildDefaultData(initialData));
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
 
