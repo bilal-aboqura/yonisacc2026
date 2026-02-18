@@ -132,34 +132,14 @@ const Auth = () => {
       return;
     }
 
-    setIsLoading(true);
-    const { error } = await signUp(signupEmail, signupPassword, signupName);
-    setIsLoading(false);
-
-    if (error) {
-      let errorMessage = isRTL ? "حدث خطأ أثناء إنشاء الحساب" : "Signup failed";
-      
-      if (error.message.includes("already registered")) {
-        errorMessage = isRTL ? "هذا البريد الإلكتروني مسجل مسبقاً" : "This email is already registered";
-      }
-
-      toast({
-        title: isRTL ? "خطأ" : "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: isRTL ? "تم إنشاء الحساب! 🎉" : "Account Created! 🎉",
-      description: isRTL
-        ? "الخطوة التالية: إعداد شركتك"
-        : "Next step: set up your company",
+    // Don't create account yet — pass data to wizard
+    navigate("/register-company", {
+      state: {
+        full_name: signupName,
+        email: signupEmail,
+        password: signupPassword,
+      },
     });
-    
-    // Redirect to onboarding wizard with full_name pre-filled
-    navigate("/register-company", { state: { full_name: signupName } });
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -444,13 +424,8 @@ const Auth = () => {
                   <Button 
                     type="submit" 
                     className="w-full h-12 gradient-primary text-white text-lg"
-                    disabled={isLoading}
                   >
-                    {isLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      isRTL ? "إنشاء حساب والمتابعة →" : "Create Account & Continue →"
-                    )}
+                    {isRTL ? "متابعة لإعداد الشركة ←" : "Continue to Setup →"}
                   </Button>
                 </form>
 

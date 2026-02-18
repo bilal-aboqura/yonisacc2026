@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
-import { useAuth } from "@/contexts/AuthContext";
 import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
 import { StepIndicator } from "@/components/onboarding/StepIndicator";
 import { Step1Account } from "@/components/onboarding/Step1Account";
@@ -9,7 +8,7 @@ import { Step2Company } from "@/components/onboarding/Step2Company";
 import { Step3Preferences } from "@/components/onboarding/Step3Preferences";
 import { Step4Modules } from "@/components/onboarding/Step4Modules";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 
 const STEP_LABELS_AR = ["معلومات الحساب", "بيانات الشركة", "تفضيلات النظام", "اختيار الوحدات"];
 const STEP_LABELS_EN = ["Account Info", "Company Details", "Preferences", "Select Modules"];
@@ -53,35 +52,32 @@ const WizardContent = () => {
 
 const CompanyRegistration = () => {
   const { isRTL } = useLanguage();
-  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // full_name passed from Auth.tsx after signup
-  const initialFullName: string = (location.state as any)?.full_name || "";
+  // full_name + email + password passed from Auth.tsx (no signup yet)
+  const locationState = (location.state as any) || {};
+  const initialData = {
+    full_name: locationState.full_name || "",
+    email: locationState.email || "",
+    password: locationState.password || "",
+  };
 
+  // If no email/password passed, redirect back to auth
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!initialData.email || !initialData.password) {
       navigate("/auth?redirect=/register-company");
     }
-  }, [user, authLoading, navigate]);
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  }, []);
 
   return (
     <div className={`min-h-screen bg-muted/30 ${isRTL ? "rtl" : "ltr"}`}>
       {/* Top bar */}
       <div className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-2 text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="gap-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className={`h-4 w-4 ${isRTL ? "rotate-180" : ""}`} />
-            {isRTL ? "الرئيسية" : "Home"}
+            {isRTL ? "رجوع" : "Back"}
           </Button>
           <div className="flex items-center gap-2 text-sm font-bold text-primary">
             <Sparkles className="h-4 w-4" />
@@ -95,18 +91,18 @@ const CompanyRegistration = () => {
       <div className="px-4 py-8">
         <div className="max-w-2xl mx-auto mb-8 text-center">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-            {initialFullName
-              ? (isRTL ? `مرحباً ${initialFullName} 👋` : `Welcome, ${initialFullName} 👋`)
+            {initialData.full_name
+              ? (isRTL ? `مرحباً ${initialData.full_name} 👋` : `Welcome, ${initialData.full_name} 👋`)
               : (isRTL ? "مرحباً بك في كوستامين 👋" : "Welcome to Costamine 👋")}
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground mt-2">
             {isRTL
-              ? "أكمل الخطوات التالية لإعداد نظامك — لا يُحفظ أي شيء حتى الخطوة الأخيرة"
-              : "Complete the steps below — nothing is saved until the final step"}
+              ? "أكمل الخطوات التالية لإعداد نظامك — سيتم إنشاء حسابك وشركتك عند الخطوة الأخيرة"
+              : "Complete the steps below — your account and company will be created at the final step"}
           </p>
         </div>
 
-        <OnboardingProvider initialFullName={initialFullName}>
+        <OnboardingProvider initialData={initialData}>
           <WizardContent />
         </OnboardingProvider>
       </div>

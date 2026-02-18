@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useOnboarding } from "@/contexts/OnboardingContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Mail, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { User, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -13,7 +12,6 @@ interface Props {
 
 export const Step1Account = ({ isRTL }: Props) => {
   const { data, update, goNext } = useOnboarding();
-  const { user } = useAuth();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
@@ -41,8 +39,8 @@ export const Step1Account = ({ isRTL }: Props) => {
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {isRTL
-                ? "أخبرنا من أنت حتى نتمكن من تخصيص تجربتك"
-                : "Tell us who you are so we can personalize your experience"}
+                ? "تأكد من بياناتك — سيتم إنشاء حسابك عند إتمام الإعداد"
+                : "Confirm your info — account will be created at the final step"}
             </p>
           </div>
         </div>
@@ -50,7 +48,7 @@ export const Step1Account = ({ isRTL }: Props) => {
 
       {/* Fields */}
       <div className="space-y-4">
-        {/* Email (readonly) */}
+        {/* Email (readonly — passed from signup) */}
         <div className="space-y-2">
           <Label className="text-sm font-medium text-foreground">
             {isRTL ? "البريد الإلكتروني" : "Email Address"}
@@ -58,7 +56,7 @@ export const Step1Account = ({ isRTL }: Props) => {
           <div className="relative">
             <Mail className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              value={user?.email ?? ""}
+              value={data.email}
               disabled
               dir="ltr"
               className="ps-10 bg-muted/50 text-muted-foreground cursor-not-allowed"
@@ -66,7 +64,7 @@ export const Step1Account = ({ isRTL }: Props) => {
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-            {isRTL ? "تم التحقق من هذا البريد الإلكتروني" : "This email is verified"}
+            {isRTL ? "البريد الإلكتروني محدد من صفحة التسجيل" : "Email set from registration page"}
           </div>
         </div>
 
@@ -97,7 +95,7 @@ export const Step1Account = ({ isRTL }: Props) => {
       </div>
 
       {/* Navigation */}
-      <div className={`flex ${isRTL ? "justify-end" : "justify-end"} pt-2`}>
+      <div className="flex justify-end pt-2">
         <Button onClick={() => { if (validate()) goNext(); }} size="lg" className="gap-2 min-w-[160px]">
           {isRTL ? "التالي" : "Continue"}
           <ArrowLeft className={isRTL ? "h-4 w-4" : "h-4 w-4 rotate-180"} />

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useOnboarding } from "@/contexts/OnboardingContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,7 +86,6 @@ interface Props {
 
 export const Step4Modules = ({ isRTL }: Props) => {
   const { data, update, goBack } = useOnboarding();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -103,13 +101,47 @@ export const Step4Modules = ({ isRTL }: Props) => {
     update({ selected_modules: next });
   };
 
-  const selectedCount = 1 + data.selected_modules.length; // accounting is always selected
+  const selectedCount = 1 + data.selected_modules.length;
 
   const handleFinish = async () => {
-    if (!user || isSubmitting) return;
+    if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
+      // Step 1: Create the auth account first
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: { full_name: data.full_name },
+        },
+      });
+
+      if (signUpError) {
+        let msg = isRTL ? "حدث خطأ أثناء إنشاء الحساب" : "Failed to create account";
+        if (signUpError.message.includes("already registered")) {
+          msg = isRTL ? "هذا البريد الإلكتروني مسجل مسبقاً" : "This email is already registered";
+        }
+        throw new Error(msg);
+      }
+
+      if (!signUpData.session) {
+        // Auto-confirm is off — account created but not signed in yet.
+        // We still try to sign in to get a session for provisioning.
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+        if (signInError || !signInData.session) {
+          // Account created but email confirmation required
+          toast.success(isRTL ? "تم إنشاء حسابك! تحقق من بريدك الإلكتروني لتفعيل الحساب" : "Account created! Check your email to verify.");
+          navigate("/auth");
+          return;
+        }
+      }
+
+      // Step 2: Provision the company
       const payload = {
         full_name: data.full_name.trim(),
         name: data.company_name.trim(),
@@ -135,7 +167,7 @@ export const Step4Modules = ({ isRTL }: Props) => {
       if (!result?.company_id) throw new Error("لم يتم إرجاع معرف الشركة");
 
       localStorage.setItem("activeCompany", result.company_id);
-      toast.success(isRTL ? "تم إنشاء شركتك بنجاح! أهلاً بك 🎉" : "Company created successfully! Welcome 🎉");
+      toast.success(isRTL ? "تم إنشاء حسابك وشركتك بنجاح! أهلاً بك 🎉" : "Account & company created! Welcome 🎉");
       navigate("/client/dashboard");
     } catch (err: any) {
       console.error("Onboarding error:", err);
@@ -273,7 +305,7 @@ export const Step4Modules = ({ isRTL }: Props) => {
             </>
           ) : (
             <>
-              {isRTL ? "إنشاء الشركة 🚀" : "Create Company 🚀"}
+              {isRTL ? "إنشاء الحساب والشركة 🚀" : "Create Account & Company 🚀"}
             </>
           )}
         </Button>
