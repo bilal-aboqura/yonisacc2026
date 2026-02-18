@@ -152,11 +152,14 @@ const Auth = () => {
     }
 
     toast({
-      title: isRTL ? "تم إنشاء الحساب!" : "Account Created!",
-      description: isRTL ? "تم تسجيل حسابك بنجاح" : "Your account has been created successfully",
+      title: isRTL ? "تم إنشاء الحساب! 🎉" : "Account Created! 🎉",
+      description: isRTL
+        ? "الخطوة التالية: إعداد شركتك"
+        : "Next step: set up your company",
     });
     
-    navigate("/client");
+    // Redirect to onboarding wizard with full_name pre-filled
+    navigate("/register-company", { state: { full_name: signupName } });
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -319,6 +322,44 @@ const Auth = () => {
               
               {/* Signup Tab */}
               <TabsContent value="signup">
+                {/* Onboarding journey preview */}
+                <div className="mb-5 p-3 rounded-xl bg-muted/40 border border-border/60">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2.5 text-center">
+                    {isRTL ? "رحلة الإعداد بعد التسجيل" : "Setup journey after registration"}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    {[
+                      { num: 1, labelAr: "الحساب", labelEn: "Account", active: true },
+                      { num: 2, labelAr: "الشركة", labelEn: "Company", active: false },
+                      { num: 3, labelAr: "التفضيلات", labelEn: "Preferences", active: false },
+                      { num: 4, labelAr: "الوحدات", labelEn: "Modules", active: false },
+                    ].map((s, i, arr) => (
+                      <div key={s.num} className="flex items-center flex-1">
+                        <div className="flex flex-col items-center gap-1">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
+                            s.active
+                              ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/30"
+                              : "bg-background border-border text-muted-foreground"
+                          }`}>
+                            {s.num}
+                          </div>
+                          <span className={`text-[10px] font-medium hidden sm:block ${s.active ? "text-primary" : "text-muted-foreground"}`}>
+                            {isRTL ? s.labelAr : s.labelEn}
+                          </span>
+                        </div>
+                        {i < arr.length - 1 && (
+                          <div className="flex-1 h-px bg-border mx-1" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground text-center mt-2">
+                    {isRTL
+                      ? "✦ بعد التسجيل ستكمل إعداد شركتك في 3 خطوات إضافية"
+                      : "✦ After signing up, complete your company setup in 3 more steps"}
+                  </p>
+                </div>
+
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">{t("auth.register.fullName")}</Label>
@@ -408,13 +449,10 @@ const Auth = () => {
                     {isLoading ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                      t("auth.register.submit")
+                      isRTL ? "إنشاء حساب والمتابعة →" : "Create Account & Continue →"
                     )}
                   </Button>
                 </form>
-                
-
-
 
                 <p className="text-center text-sm text-muted-foreground mt-6">
                   {t("auth.register.hasAccount")}{" "}
