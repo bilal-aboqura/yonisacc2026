@@ -6,6 +6,30 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+/** Normalize Saudi/Gulf phone numbers to E.164 format (+966XXXXXXXXX) */
+function normalizePhone(raw: string): string | null {
+  // Remove spaces, dashes, parentheses
+  let p = raw.replace(/[\s\-().]/g, '');
+
+  // Already E.164 with +
+  if (/^\+\d{10,15}$/.test(p)) return p;
+
+  // +966XXXXXXXXX → keep as-is
+  if (p.startsWith('+966') && p.length === 13) return p;
+
+  // 00966XXXXXXXXX → +966XXXXXXXXX
+  if (p.startsWith('00966')) return '+' + p.slice(2);
+
+  // 05XXXXXXXX (Saudi local) → +9665XXXXXXXX
+  if (/^05\d{8}$/.test(p)) return '+966' + p.slice(1);
+
+  // 5XXXXXXXX (9 digits) → +9665XXXXXXXX
+  if (/^5\d{8}$/.test(p)) return '+966' + p;
+
+  // Return null if we can't normalize — let basic validation handle it
+  return p.length >= 9 ? p : null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -41,7 +65,6 @@ serve(async (req) => {
     // ── 2. Parse & validate the request body ─────────────────────────────────
     const body = await req.json();
 
-    // Support both legacy field names and new onboarding payload
     const name = (body.name || body.company_name || '').trim();
     const name_en = (body.name_en || body.company_name_en || '').trim() || null;
     const email = (body.email || '').trim();
@@ -56,8 +79,6 @@ serve(async (req) => {
     const base_currency = (body.base_currency || 'SAR').trim();
     const modules: string[] = Array.isArray(body.modules) ? body.modules : [];
     const full_name = (body.full_name || '').trim() || null;
-
-    // plan_id is now optional (system auto-assigns trial)
     const plan_id: string | null = body.plan_id || null;
 
     // Validation
@@ -80,6 +101,15 @@ serve(async (req) => {
       });
     }
 
+    // Normalize phone to E.164
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) {
+      return new Response(JSON.stringify({ error: 'رقم الهاتف غير صالح' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // ── 3. Service-role client (bypasses RLS) ────────────────────────────────
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -87,7 +117,32 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Prevent duplicate company for the same owner
+    // ── 4. Check phone uniqueness BEFORE creating tenant ──────────────────────
+    const { data: existingPhone, error: phoneCheckError } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('phone_number', normalizedPhone)
+      .maybeSingle();
+
+    if (phoneCheckError) {
+      console.error('Phone uniqueness check error:', phoneCheckError);
+    }
+
+    if (existingPhone) {
+      return new Response(
+        JSON.stringify({
+          error: 'رقم الجوال مستخدم بالفعل',
+          error_en: 'This phone number is already registered',
+          code: 'PHONE_ALREADY_EXISTS',
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // ── 5. Prevent duplicate company for the same owner ───────────────────────
     const { data: existingCompany } = await admin
       .from('companies')
       .select('id')
@@ -101,7 +156,7 @@ serve(async (req) => {
       });
     }
 
-    // Resolve plan_id: use provided or pick the first active plan
+    // ── 6. Resolve plan_id ────────────────────────────────────────────────────
     let resolvedPlanId = plan_id;
     if (!resolvedPlanId) {
       const { data: defaultPlan } = await admin
@@ -113,7 +168,6 @@ serve(async (req) => {
         .maybeSingle();
       resolvedPlanId = defaultPlan?.id || null;
     } else {
-      // Validate provided plan exists and is active
       const { data: plan } = await admin
         .from('subscription_plans')
         .select('id')
@@ -135,7 +189,7 @@ serve(async (req) => {
       });
     }
 
-    // ── 4. Provision everything via atomic DB RPC ─────────────────────────────
+    // ── 7. Provision everything via atomic DB RPC ─────────────────────────────
     const { data: rpcData, error: rpcError } = await admin.rpc('provision_tenant', {
       p_user_id: userId,
       p_name: name,
@@ -159,17 +213,18 @@ serve(async (req) => {
 
     const companyId = rpcData as string;
 
-    // ── 5. Post-provisioning: update profile full_name if provided ────────────
-    if (full_name) {
-      await admin
-        .from('profiles')
-        .update({ full_name, language })
-        .eq('user_id', userId);
-    }
+    // ── 8. Update profile: full_name, language, phone_number ─────────────────
+    const profileUpdate: Record<string, unknown> = { language };
+    if (full_name) profileUpdate.full_name = full_name;
+    profileUpdate.phone_number = normalizedPhone;
 
-    // ── 6. Store selected modules as enabled client_screens ───────────────────
+    await admin
+      .from('profiles')
+      .update(profileUpdate)
+      .eq('user_id', userId);
+
+    // ── 9. Store selected modules as enabled client_screens ───────────────────
     if (modules.length > 0) {
-      // Fetch system screens that match the selected module keys
       const { data: screens } = await admin
         .from('system_screens')
         .select('id, module');

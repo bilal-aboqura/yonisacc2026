@@ -163,8 +163,26 @@ export const Step4Modules = ({ isRTL }: Props) => {
         body: payload,
       });
 
-      if (error) throw new Error(error.message || "حدث خطأ في إنشاء الشركة");
-      if (!result?.company_id) throw new Error("لم يتم إرجاع معرف الشركة");
+      if (error) {
+        // Parse structured errors from edge function
+        let msg = error.message || (isRTL ? "حدث خطأ في إنشاء الشركة" : "Failed to create company");
+        try {
+          const parsed = JSON.parse(error.message);
+          if (parsed?.code === 'PHONE_ALREADY_EXISTS') {
+            msg = isRTL ? "رقم الجوال مستخدم بالفعل" : "This phone number is already registered";
+          } else if (parsed?.error) {
+            msg = isRTL ? parsed.error : (parsed.error_en || parsed.error);
+          }
+        } catch { /* not JSON, use raw message */ }
+        throw new Error(msg);
+      }
+
+      // Also handle 409 from result body
+      if (result?.code === 'PHONE_ALREADY_EXISTS') {
+        throw new Error(isRTL ? "رقم الجوال مستخدم بالفعل" : "This phone number is already registered");
+      }
+
+      if (!result?.company_id) throw new Error(isRTL ? "لم يتم إرجاع معرف الشركة" : "Company ID not returned");
 
       localStorage.setItem("activeCompany", result.company_id);
       toast.success(isRTL ? "تم إنشاء حسابك وشركتك بنجاح! أهلاً بك 🎉" : "Account & company created! Welcome 🎉");
