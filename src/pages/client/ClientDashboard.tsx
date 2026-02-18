@@ -51,11 +51,13 @@ const ClientDashboard = () => {
       if (!user) return;
 
       try {
-        const { data: companyData } = await supabase
+        const { data: companies } = await supabase
           .from("companies")
           .select("id, name, name_en")
           .eq("owner_id", user.id)
-          .maybeSingle();
+          .order("created_at", { ascending: false });
+
+        const companyData = companies && companies.length > 0 ? companies[0] : null;
 
         if (companyData) {
           setCompany(companyData);
@@ -68,7 +70,9 @@ const ClientDashboard = () => {
               plan:subscription_plans(name_ar, name_en)
             `)
             .eq("company_id", companyData.id)
-            .eq("status", "active")
+            .in("status", ["active", "trialing"])
+            .order("created_at", { ascending: false })
+            .limit(1)
             .maybeSingle();
 
           if (subData) {
