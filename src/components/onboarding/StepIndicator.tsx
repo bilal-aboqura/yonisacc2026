@@ -1,8 +1,7 @@
-import { Check, User, Building2, Settings, Layers } from "lucide-react";
+import { Check, Building2, Settings, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { label: "الحساب", labelEn: "Account", icon: User },
   { label: "الشركة", labelEn: "Company", icon: Building2 },
   { label: "التفضيلات", labelEn: "Preferences", icon: Settings },
   { label: "الوحدات", labelEn: "Modules", icon: Layers },

@@ -63,7 +63,7 @@ export const OnboardingProvider = ({
 }) => {
   const [data, setData] = useState<OnboardingData>(buildDefaultData(initialData));
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 4;
+  const totalSteps = 3;
 
   const update = (partial: Partial<OnboardingData>) => {
     setData((prev) => ({ ...prev, ...partial }));
