@@ -188,11 +188,11 @@ const ClientDashboard = () => {
   }
 
   if (!company) {
+    // Redirect to company registration if no company found
+    navigate("/register-company", { replace: true });
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <p className="text-muted-foreground">
-          {isRTL ? "لم يتم تسجيل شركة بعد" : "No company registered yet"}
-        </p>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
