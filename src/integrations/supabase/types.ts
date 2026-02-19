@@ -1405,6 +1405,64 @@ export type Database = {
         }
         Relationships: []
       }
+      opening_balances: {
+        Row: {
+          account_id: string
+          company_id: string
+          created_at: string | null
+          credit: number
+          debit: number
+          fiscal_year_id: string | null
+          id: string
+          is_posted: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id: string
+          company_id: string
+          created_at?: string | null
+          credit?: number
+          debit?: number
+          fiscal_year_id?: string | null
+          id?: string
+          is_posted?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string
+          company_id?: string
+          created_at?: string | null
+          credit?: number
+          debit?: number
+          fiscal_year_id?: string | null
+          id?: string
+          is_posted?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opening_balances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opening_balances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opening_balances_fiscal_year_id_fkey"
+            columns: ["fiscal_year_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       owner_settings: {
         Row: {
           created_at: string | null
@@ -2335,6 +2393,14 @@ export type Database = {
     Functions: {
       create_default_chart_of_accounts: {
         Args: { p_company_id: string }
+        Returns: undefined
+      }
+      generate_opening_balances_from_closing: {
+        Args: {
+          p_closing_fiscal_year_id: string
+          p_company_id: string
+          p_new_fiscal_year_id: string
+        }
         Returns: undefined
       }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
