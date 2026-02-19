@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,17 +18,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-interface TrialBalanceRow {
+interface AccountNode {
   id: string;
   code: string;
   name: string;
   type: string;
+  parent_id: string | null;
+  is_parent: boolean;
+  children: AccountNode[];
+  // Leaf-level raw data
   openingDebit: number;
   openingCredit: number;
   movementDebit: number;
   movementCredit: number;
-  endingDebit: number;
-  endingCredit: number;
+  // Aggregated (for parents = sum of children, for leaves = own values)
+  aggOpeningDebit: number;
+  aggOpeningCredit: number;
+  aggMovementDebit: number;
+  aggMovementCredit: number;
+  aggEndingDebit: number;
+  aggEndingCredit: number;
 }
 
 const TrialBalance = () => {
@@ -36,7 +45,7 @@ const TrialBalance = () => {
   const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState<TrialBalanceRow[]>([]);
+  const [allAccounts, setAllAccounts] = useState<AccountNode[]>([]);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
@@ -59,24 +68,25 @@ const TrialBalance = () => {
 
       if (!companyData) return;
 
-      // Fetch leaf accounts
+      // Fetch ALL accounts (parents + leaves)
       const { data: accountsData } = await supabase
         .from("accounts")
-        .select("id, code, name, type")
+        .select("id, code, name, type, parent_id, is_parent, is_active")
         .eq("company_id", companyData.id)
         .eq("is_active", true)
-        .or("is_parent.is.null,is_parent.eq.false")
         .order("code");
 
       if (!accountsData || accountsData.length === 0) {
-        setRows([]);
+        setAllAccounts([]);
         setLoading(false);
         return;
       }
 
-      const accountIds = accountsData.map(a => a.id);
+      // Identify leaf accounts (not parent)
+      const leafAccounts = accountsData.filter(a => !a.is_parent);
+      const leafIds = leafAccounts.map(a => a.id);
 
-      // 1. Fetch opening balances from dedicated table
+      // 1. Fetch opening balances for leaf accounts
       const { data: obData } = await supabase
         .from("opening_balances")
         .select("account_id, debit, credit")
@@ -108,7 +118,7 @@ const TrialBalance = () => {
               .from("journal_entry_lines")
               .select("account_id, debit, credit")
               .in("entry_id", chunk)
-              .in("account_id", accountIds);
+              .in("account_id", leafIds);
 
             (priorLines || []).forEach((line: any) => {
               const existing = openingMap.get(line.account_id) || { debit: 0, credit: 0 };
@@ -121,7 +131,7 @@ const TrialBalance = () => {
         }
       }
 
-      // 3. Fetch period movements from journal entries (posted only, within date range)
+      // 3. Fetch period movements
       let entriesQuery = supabase
         .from("journal_entries")
         .select("id")
@@ -143,7 +153,7 @@ const TrialBalance = () => {
             .from("journal_entry_lines")
             .select("account_id, debit, credit")
             .in("entry_id", chunk)
-            .in("account_id", accountIds);
+            .in("account_id", leafIds);
 
           (lines || []).forEach((line: any) => {
             const existing = movementMap.get(line.account_id) || { debit: 0, credit: 0 };
@@ -155,31 +165,72 @@ const TrialBalance = () => {
         }
       }
 
-      // 4. Build trial balance rows
-      const trialRows: TrialBalanceRow[] = accountsData.map(account => {
+      // 4. Build account nodes with leaf-level data
+      const nodes: AccountNode[] = accountsData.map(account => {
         const opening = openingMap.get(account.id) || { debit: 0, credit: 0 };
         const movement = movementMap.get(account.id) || { debit: 0, credit: 0 };
-
-        // Opening net for display
         const openingNet = opening.debit - opening.credit;
-        const movementNet = movement.debit - movement.credit;
-        const endingNet = openingNet + movementNet;
 
         return {
           id: account.id,
           code: account.code,
           name: account.name,
           type: account.type,
+          parent_id: account.parent_id,
+          is_parent: !!account.is_parent,
+          children: [],
           openingDebit: openingNet > 0 ? openingNet : 0,
           openingCredit: openingNet < 0 ? Math.abs(openingNet) : 0,
           movementDebit: movement.debit,
           movementCredit: movement.credit,
-          endingDebit: endingNet > 0 ? endingNet : 0,
-          endingCredit: endingNet < 0 ? Math.abs(endingNet) : 0,
+          // Will be computed after tree is built
+          aggOpeningDebit: 0,
+          aggOpeningCredit: 0,
+          aggMovementDebit: 0,
+          aggMovementCredit: 0,
+          aggEndingDebit: 0,
+          aggEndingCredit: 0,
         };
-      }).filter(r => r.openingDebit > 0 || r.openingCredit > 0 || r.movementDebit > 0 || r.movementCredit > 0);
+      });
 
-      setRows(trialRows);
+      // 5. Build tree
+      const nodeMap = new Map<string, AccountNode>();
+      nodes.forEach(n => nodeMap.set(n.id, n));
+
+      const roots: AccountNode[] = [];
+      nodes.forEach(n => {
+        if (n.parent_id && nodeMap.has(n.parent_id)) {
+          nodeMap.get(n.parent_id)!.children.push(n);
+        } else {
+          roots.push(n);
+        }
+      });
+
+      // 6. Recursive aggregation (bottom-up)
+      const aggregate = (node: AccountNode) => {
+        if (node.children.length === 0) {
+          // Leaf: use own data
+          node.aggOpeningDebit = node.openingDebit;
+          node.aggOpeningCredit = node.openingCredit;
+          node.aggMovementDebit = node.movementDebit;
+          node.aggMovementCredit = node.movementCredit;
+        } else {
+          // Parent: sum children
+          node.children.forEach(child => aggregate(child));
+          node.aggOpeningDebit = node.children.reduce((s, c) => s + c.aggOpeningDebit, 0);
+          node.aggOpeningCredit = node.children.reduce((s, c) => s + c.aggOpeningCredit, 0);
+          node.aggMovementDebit = node.children.reduce((s, c) => s + c.aggMovementDebit, 0);
+          node.aggMovementCredit = node.children.reduce((s, c) => s + c.aggMovementCredit, 0);
+        }
+        const endingNet = (node.aggOpeningDebit - node.aggOpeningCredit) + (node.aggMovementDebit - node.aggMovementCredit);
+        node.aggEndingDebit = endingNet > 0 ? endingNet : 0;
+        node.aggEndingCredit = endingNet < 0 ? Math.abs(endingNet) : 0;
+      };
+
+      roots.forEach(r => aggregate(r));
+
+      // 7. Flatten tree for display (with indentation level)
+      setAllAccounts(roots);
     } catch (error) {
       console.error("Error:", error);
       toast({ title: "خطأ", description: "حدث خطأ في تحميل البيانات", variant: "destructive" });
@@ -188,17 +239,40 @@ const TrialBalance = () => {
     }
   };
 
-  const totals = rows.reduce(
-    (acc, row) => ({
-      openingDebit: acc.openingDebit + row.openingDebit,
-      openingCredit: acc.openingCredit + row.openingCredit,
-      movementDebit: acc.movementDebit + row.movementDebit,
-      movementCredit: acc.movementCredit + row.movementCredit,
-      endingDebit: acc.endingDebit + row.endingDebit,
-      endingCredit: acc.endingCredit + row.endingCredit,
-    }),
-    { openingDebit: 0, openingCredit: 0, movementDebit: 0, movementCredit: 0, endingDebit: 0, endingCredit: 0 }
-  );
+  // Flatten tree for table display
+  const flatRows = useMemo(() => {
+    const result: { node: AccountNode; level: number }[] = [];
+    const walk = (nodes: AccountNode[], level: number) => {
+      nodes.forEach(node => {
+        // Only include if has any balance
+        const hasBalance = node.aggOpeningDebit > 0 || node.aggOpeningCredit > 0 || 
+          node.aggMovementDebit > 0 || node.aggMovementCredit > 0;
+        if (hasBalance) {
+          result.push({ node, level });
+          if (node.children.length > 0) {
+            walk(node.children, level + 1);
+          }
+        }
+      });
+    };
+    walk(allAccounts, 0);
+    return result;
+  }, [allAccounts]);
+
+  const totals = useMemo(() => {
+    // Only sum root-level accounts to avoid double counting
+    return allAccounts.reduce(
+      (acc, node) => ({
+        openingDebit: acc.openingDebit + node.aggOpeningDebit,
+        openingCredit: acc.openingCredit + node.aggOpeningCredit,
+        movementDebit: acc.movementDebit + node.aggMovementDebit,
+        movementCredit: acc.movementCredit + node.aggMovementCredit,
+        endingDebit: acc.endingDebit + node.aggEndingDebit,
+        endingCredit: acc.endingCredit + node.aggEndingCredit,
+      }),
+      { openingDebit: 0, openingCredit: 0, movementDebit: 0, movementCredit: 0, endingDebit: 0, endingCredit: 0 }
+    );
+  }, [allAccounts]);
 
   const isBalanced = Math.abs(totals.endingDebit - totals.endingCredit) < 0.01;
 
@@ -272,7 +346,7 @@ const TrialBalance = () => {
       </Card>
 
       {/* Balance Status */}
-      {rows.length > 0 && (
+      {flatRows.length > 0 && (
         isBalanced ? (
           <Alert className="border-green-500/50 bg-green-500/10">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -316,24 +390,31 @@ const TrialBalance = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.length === 0 ? (
+              {flatRows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     لا توجد حسابات مسجلة
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-mono border-e">{row.code}</TableCell>
-                    <TableCell className="border-e">{row.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground border-e">{getTypeName(row.type)}</TableCell>
-                    <TableCell className="text-center">{formatCurrency(row.openingDebit)}</TableCell>
-                    <TableCell className="text-center border-e">{formatCurrency(row.openingCredit)}</TableCell>
-                    <TableCell className="text-center">{formatCurrency(row.movementDebit)}</TableCell>
-                    <TableCell className="text-center border-e">{formatCurrency(row.movementCredit)}</TableCell>
-                    <TableCell className="text-center font-medium">{formatCurrency(row.endingDebit)}</TableCell>
-                    <TableCell className="text-center font-medium">{formatCurrency(row.endingCredit)}</TableCell>
+                flatRows.map(({ node, level }) => (
+                  <TableRow 
+                    key={node.id} 
+                    className={node.is_parent ? "bg-muted/30 font-semibold" : ""}
+                  >
+                    <TableCell className="font-mono border-e">
+                      <span style={{ paddingInlineStart: `${level * 16}px` }}>{node.code}</span>
+                    </TableCell>
+                    <TableCell className="border-e">
+                      <span style={{ paddingInlineStart: `${level * 16}px` }}>{node.name}</span>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground border-e">{getTypeName(node.type)}</TableCell>
+                    <TableCell className="text-center">{formatCurrency(node.aggOpeningDebit)}</TableCell>
+                    <TableCell className="text-center border-e">{formatCurrency(node.aggOpeningCredit)}</TableCell>
+                    <TableCell className="text-center">{formatCurrency(node.aggMovementDebit)}</TableCell>
+                    <TableCell className="text-center border-e">{formatCurrency(node.aggMovementCredit)}</TableCell>
+                    <TableCell className="text-center font-medium">{formatCurrency(node.aggEndingDebit)}</TableCell>
+                    <TableCell className="text-center font-medium">{formatCurrency(node.aggEndingCredit)}</TableCell>
                   </TableRow>
                 ))
               )}
