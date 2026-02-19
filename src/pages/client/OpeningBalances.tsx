@@ -6,6 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ArrowRight,
   ArrowLeft,
@@ -17,6 +25,7 @@ import {
   FileText,
   AlertCircle,
   CheckCircle2,
+  Lock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,13 +48,20 @@ interface Account {
   children?: Account[];
 }
 
-
 interface OpeningBalance {
   debit: number;
   credit: number;
 }
 
-// Memoized account row component for opening balances
+interface FiscalPeriod {
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  is_closed: boolean;
+}
+
+// Memoized account row component
 const AccountBalanceRow = memo(({
   account,
   level,
@@ -55,6 +71,7 @@ const AccountBalanceRow = memo(({
   onBalanceChange,
   getTypeColor,
   getTypeName,
+  isLocked,
 }: {
   account: Account;
   level: number;
@@ -64,6 +81,7 @@ const AccountBalanceRow = memo(({
   onBalanceChange: (accountId: string, field: "debit" | "credit", value: number) => void;
   getTypeColor: (type: string) => string;
   getTypeName: (type: string) => string;
+  isLocked: boolean;
 }) => {
   const hasChildren = account.children && account.children.length > 0;
   const balance = balances.get(account.id) || { debit: 0, credit: 0 };
@@ -74,19 +92,9 @@ const AccountBalanceRow = memo(({
       className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded-lg transition-colors group border-b border-border/30"
       style={{ paddingInlineStart: `${level * 20 + 8}px` }}
     >
-      {/* Expand/Collapse Button */}
       {hasChildren ? (
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-6 w-6 shrink-0"
-          onClick={() => onToggle(account.id)}
-        >
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4 rotate-180" />
-          )}
+        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => onToggle(account.id)}>
+          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4 rotate-180" />}
         </Button>
       ) : (
         <div className="w-6 flex justify-center shrink-0">
@@ -94,24 +102,16 @@ const AccountBalanceRow = memo(({
         </div>
       )}
 
-      {/* Account Code */}
-      <span className="font-mono text-xs text-muted-foreground w-14 shrink-0">
-        {account.code}
-      </span>
+      <span className="font-mono text-xs text-muted-foreground w-14 shrink-0">{account.code}</span>
 
-      {/* Account Name */}
       <div className="flex-1 min-w-0">
-        <span className={`text-sm truncate block ${hasChildren ? "font-semibold" : ""}`}>
-          {account.name}
-        </span>
+        <span className={`text-sm truncate block ${hasChildren ? "font-semibold" : ""}`}>{account.name}</span>
       </div>
 
-      {/* Account Type Badge */}
       <Badge variant="secondary" className={`${getTypeColor(account.type)} shrink-0 text-xs`}>
         {getTypeName(account.type)}
       </Badge>
 
-      {/* Debit Input - Only for leaf accounts */}
       <div className="w-28 shrink-0">
         {isLeafAccount ? (
           <Input
@@ -122,15 +122,13 @@ const AccountBalanceRow = memo(({
             onChange={(e) => onBalanceChange(account.id, "debit", Number(e.target.value))}
             className="h-8 text-center text-sm"
             placeholder="0"
+            disabled={isLocked}
           />
         ) : (
-          <div className="h-8 flex items-center justify-center text-sm text-muted-foreground">
-            -
-          </div>
+          <div className="h-8 flex items-center justify-center text-sm text-muted-foreground">-</div>
         )}
       </div>
 
-      {/* Credit Input - Only for leaf accounts */}
       <div className="w-28 shrink-0">
         {isLeafAccount ? (
           <Input
@@ -141,17 +139,15 @@ const AccountBalanceRow = memo(({
             onChange={(e) => onBalanceChange(account.id, "credit", Number(e.target.value))}
             className="h-8 text-center text-sm"
             placeholder="0"
+            disabled={isLocked}
           />
         ) : (
-          <div className="h-8 flex items-center justify-center text-sm text-muted-foreground">
-            -
-          </div>
+          <div className="h-8 flex items-center justify-center text-sm text-muted-foreground">-</div>
         )}
       </div>
     </div>
   );
 });
-
 AccountBalanceRow.displayName = "AccountBalanceRow";
 
 const OpeningBalances = () => {
@@ -166,8 +162,18 @@ const OpeningBalances = () => {
   const [flatAccounts, setFlatAccounts] = useState<Account[]>([]);
   const [balances, setBalances] = useState<Map<string, OpeningBalance>>(new Map());
   const [expandedAccounts, setExpandedAccounts] = useState<string[]>([]);
+  const [fiscalPeriods, setFiscalPeriods] = useState<FiscalPeriod[]>([]);
+  const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<string | null>(null);
+  const [isPosted, setIsPosted] = useState(false);
 
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
+
+  // Whether balances are locked (posted or fiscal period closed)
+  const isLocked = useMemo(() => {
+    if (isPosted) return true;
+    const fp = fiscalPeriods.find(f => f.id === selectedFiscalYearId);
+    return fp?.is_closed === true;
+  }, [isPosted, fiscalPeriods, selectedFiscalYearId]);
 
   useEffect(() => {
     if (!user) {
@@ -176,6 +182,13 @@ const OpeningBalances = () => {
     }
     fetchData();
   }, [user]);
+
+  // Re-fetch opening balances when fiscal year changes
+  useEffect(() => {
+    if (companyId && selectedFiscalYearId !== undefined) {
+      fetchOpeningBalances();
+    }
+  }, [selectedFiscalYearId, companyId]);
 
   const fetchData = async () => {
     try {
@@ -188,16 +201,18 @@ const OpeningBalances = () => {
         .maybeSingle();
 
       if (!companyData) {
-        setCompanyId(null);
-        setFlatAccounts([]);
-        setBalances(new Map());
         setLoading(false);
         return;
       }
       setCompanyId(companyData.id);
 
-      // Fetch global accounts + linked balances
-      const [globalRes, linkedRes, customRes] = await Promise.all([
+      // Fetch fiscal periods and accounts in parallel
+      const [fpRes, globalRes, linkedRes, customRes] = await Promise.all([
+        supabase
+          .from("fiscal_periods")
+          .select("id, name, start_date, end_date, is_closed")
+          .eq("company_id", companyData.id)
+          .order("start_date", { ascending: false }),
         supabase
           .from("global_accounts" as any)
           .select("id, code, name, name_en, type, parent_code, is_active, is_parent")
@@ -218,17 +233,18 @@ const OpeningBalances = () => {
           .order("code"),
       ]);
 
+      setFiscalPeriods((fpRes.data || []) as FiscalPeriod[]);
+
       const linkedMap = new Map<string, { id: string; balance: number | null }>();
       (linkedRes.data || []).forEach((a: any) => {
         linkedMap.set(a.global_account_id, { id: a.id, balance: a.balance });
       });
 
-      // Merge: global accounts + custom company accounts
       const mergedAccounts: Account[] = [
         ...(globalRes.data || []).map((ga: any) => {
           const linked = linkedMap.get(ga.id);
           return {
-            id: "global_" + ga.id,
+            id: linked?.id ?? "global_" + ga.id,
             code: ga.code,
             name: ga.name,
             name_en: ga.name_en,
@@ -254,22 +270,8 @@ const OpeningBalances = () => {
 
       setFlatAccounts(mergedAccounts);
 
-      // Initialize balances from existing data
-      const initialBalances = new Map<string, OpeningBalance>();
-      mergedAccounts.forEach((acc: any) => {
-        if (acc.balance !== null && acc.balance !== 0) {
-          initialBalances.set(acc.id, {
-            debit: acc.balance > 0 ? acc.balance : 0,
-            credit: acc.balance < 0 ? Math.abs(acc.balance) : 0,
-          });
-        }
-      });
-      setBalances(initialBalances);
-
-      // Expand root accounts by default
-      const rootIds = mergedAccounts
-        .filter((a: any) => !a.parent_id && !a.parent_code)
-        .map((a: any) => a.id);
+      // Expand root accounts
+      const rootIds = mergedAccounts.filter((a: any) => !a.parent_id && !a.parent_code).map((a: any) => a.id);
       setExpandedAccounts(rootIds);
     } catch (error) {
       console.error("Error:", error);
@@ -279,7 +281,44 @@ const OpeningBalances = () => {
     }
   };
 
-  // Build tree structure from flat accounts
+  const fetchOpeningBalances = async () => {
+    if (!companyId) return;
+
+    try {
+      // Fetch opening balances from the dedicated table
+      let query = supabase
+        .from("opening_balances" as any)
+        .select("account_id, debit, credit, is_posted")
+        .eq("company_id", companyId);
+
+      if (selectedFiscalYearId) {
+        query = query.eq("fiscal_year_id", selectedFiscalYearId);
+      } else {
+        query = query.is("fiscal_year_id", null);
+      }
+
+      const { data: obData } = await query;
+
+      const newBalances = new Map<string, OpeningBalance>();
+      let posted = false;
+
+      (obData || []).forEach((ob: any) => {
+        // Map account_id to the display id used in flatAccounts
+        const account = flatAccounts.find(a => a.company_account_id === ob.account_id || a.id === ob.account_id);
+        if (account) {
+          newBalances.set(account.id, { debit: Number(ob.debit) || 0, credit: Number(ob.credit) || 0 });
+        }
+        if (ob.is_posted) posted = true;
+      });
+
+      setBalances(newBalances);
+      setIsPosted(posted);
+    } catch (error) {
+      console.error("Error fetching opening balances:", error);
+    }
+  };
+
+  // Build tree
   const accountsTree = useMemo(() => {
     const byId = new Map<string, Account>();
     const globalByCode = new Map<string, Account>();
@@ -295,45 +334,26 @@ const OpeningBalances = () => {
 
     flatAccounts.forEach((account) => {
       const node = byId.get(account.id)!;
-
       if (account.is_global && account.parent_code) {
         const parentNode = globalByCode.get(account.parent_code);
-        if (parentNode) {
-          parentNode.children = parentNode.children || [];
-          parentNode.children.push(node);
-          return;
-        }
+        if (parentNode) { parentNode.children = parentNode.children || []; parentNode.children.push(node); return; }
       }
-
       if (!account.is_global && account.parent_id) {
         const parentNode = byId.get(account.parent_id);
-        if (parentNode) {
-          parentNode.children = parentNode.children || [];
-          parentNode.children.push(node);
-          return;
-        }
+        if (parentNode) { parentNode.children = parentNode.children || []; parentNode.children.push(node); return; }
       }
-
-      if (!account.parent_code && !account.parent_id) {
-        roots.push(node);
-      }
+      if (!account.parent_code && !account.parent_id) roots.push(node);
     });
 
     return roots;
   }, [flatAccounts]);
 
-
   const toggleExpand = useCallback((accountId: string) => {
-    setExpandedAccounts((prev) =>
-      prev.includes(accountId)
-        ? prev.filter((id) => id !== accountId)
-        : [...prev, accountId]
-    );
+    setExpandedAccounts((prev) => prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId]);
   }, []);
 
   const expandAll = useCallback(() => {
-    const allIds = flatAccounts.map((a) => a.id);
-    setExpandedAccounts(allIds);
+    setExpandedAccounts(flatAccounts.map((a) => a.id));
   }, [flatAccounts]);
 
   const collapseAll = useCallback(() => {
@@ -344,7 +364,6 @@ const OpeningBalances = () => {
     setBalances((prev) => {
       const newBalances = new Map(prev);
       const current = newBalances.get(accountId) || { debit: 0, credit: 0 };
-
       if (field === "debit" && value > 0) {
         newBalances.set(accountId, { debit: value, credit: 0 });
       } else if (field === "credit" && value > 0) {
@@ -352,61 +371,37 @@ const OpeningBalances = () => {
       } else {
         newBalances.set(accountId, { ...current, [field]: value });
       }
-
       return newBalances;
     });
   }, []);
 
-  // Calculate totals
   const { totalDebit, totalCredit, difference, isBalanced } = useMemo(() => {
     let debit = 0;
     let credit = 0;
-
-    balances.forEach((balance) => {
-      debit += balance.debit || 0;
-      credit += balance.credit || 0;
-    });
-
+    balances.forEach((balance) => { debit += balance.debit || 0; credit += balance.credit || 0; });
     const diff = Math.abs(debit - credit);
-    return {
-      totalDebit: debit,
-      totalCredit: credit,
-      difference: diff,
-      isBalanced: diff < 0.01,
-    };
+    return { totalDebit: debit, totalCredit: credit, difference: diff, isBalanced: diff < 0.01 };
   }, [balances]);
 
   const getTypeColor = useCallback((type: string) => {
     switch (type) {
-      case "asset":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-      case "liability":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-      case "equity":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
-      case "revenue":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-      case "expense":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+      case "asset": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "liability": return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "equity": return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+      case "revenue": return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      case "expense": return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+      default: return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
     }
   }, []);
 
   const getTypeName = useCallback((type: string) => {
     switch (type) {
-      case "asset":
-        return "أصول";
-      case "liability":
-        return "خصوم";
-      case "equity":
-        return "حقوق ملكية";
-      case "revenue":
-        return "إيرادات";
-      case "expense":
-        return "مصروفات";
-      default:
-        return type;
+      case "asset": return "أصول";
+      case "liability": return "خصوم";
+      case "equity": return "حقوق ملكية";
+      case "revenue": return "إيرادات";
+      case "expense": return "مصروفات";
+      default: return type;
     }
   }, []);
 
@@ -414,57 +409,74 @@ const OpeningBalances = () => {
     if (!companyId) return;
 
     if (!isBalanced) {
-      toast({
-        title: "خطأ",
-        description: "الأرصدة غير متوازنة - يجب أن يتساوى إجمالي المدين مع إجمالي الدائن",
-        variant: "destructive",
-      });
+      toast({ title: "خطأ", description: "الأرصدة غير متوازنة - يجب أن يتساوى إجمالي المدين مع إجمالي الدائن", variant: "destructive" });
       return;
     }
 
     setSaving(true);
     try {
-      // Update each account balance - handle global accounts via linked records
-      for (const [accountId, balance] of balances.entries()) {
-        const newBalance = balance.debit > 0 ? balance.debit : -balance.credit;
-        const account = flatAccounts.find(a => a.id === accountId) as any;
+      // Collect all opening balance records
+      const records: any[] = [];
 
-        if (account?.is_global) {
-          // Upsert via company_account_id if exists
-          if (account.company_account_id) {
-            await supabase
-              .from("accounts")
-              .update({ balance: newBalance })
-              .eq("id", account.company_account_id);
-          } else {
-            // Create linked record
-            await supabase.from("accounts").insert({
-              company_id: companyId,
-              code: account.code,
-              name: account.name,
-              name_en: account.name_en,
-              type: account.type,
-              is_parent: account.is_parent,
-              is_system: false,
-              balance: newBalance,
-              global_account_id: account.global_account_id,
-            });
-          }
-        } else {
-          await supabase
-            .from("accounts")
-            .update({ balance: newBalance })
-            .eq("id", accountId);
+      for (const [accountId, balance] of balances.entries()) {
+        if (balance.debit === 0 && balance.credit === 0) continue;
+
+        const account = flatAccounts.find(a => a.id === accountId) as any;
+        if (!account) continue;
+
+        // Get the real account_id (from accounts table)
+        let realAccountId = account.company_account_id;
+
+        // For global accounts without a linked record, create one first
+        if (account.is_global && !realAccountId) {
+          const { data: newAcc } = await supabase.from("accounts").insert({
+            company_id: companyId,
+            code: account.code,
+            name: account.name,
+            name_en: account.name_en,
+            type: account.type,
+            is_parent: account.is_parent,
+            is_system: false,
+            balance: 0,
+            global_account_id: account.global_account_id,
+          }).select("id").single();
+
+          if (newAcc) realAccountId = newAcc.id;
         }
+
+        if (!realAccountId) continue;
+
+        records.push({
+          company_id: companyId,
+          account_id: realAccountId,
+          fiscal_year_id: selectedFiscalYearId || null,
+          debit: balance.debit,
+          credit: balance.credit,
+          is_posted: true,
+        });
       }
 
+      // Delete existing opening balances for this fiscal year, then insert new ones
+      let deleteQuery = supabase
+        .from("opening_balances" as any)
+        .delete()
+        .eq("company_id", companyId);
 
-      toast({
-        title: "تم الحفظ",
-        description: "تم حفظ الأرصدة الافتتاحية بنجاح",
-      });
+      if (selectedFiscalYearId) {
+        deleteQuery = deleteQuery.eq("fiscal_year_id", selectedFiscalYearId);
+      } else {
+        deleteQuery = deleteQuery.is("fiscal_year_id", null);
+      }
 
-      navigate("/client/accounts");
+      await deleteQuery;
+
+      if (records.length > 0) {
+        const { error } = await supabase.from("opening_balances" as any).insert(records);
+        if (error) throw error;
+      }
+
+      setIsPosted(true);
+      toast({ title: "تم الحفظ", description: "تم حفظ الأرصدة الافتتاحية بنجاح" });
     } catch (error) {
       console.error("Error:", error);
       toast({ title: "خطأ", description: "حدث خطأ في حفظ الأرصدة", variant: "destructive" });
@@ -477,12 +489,10 @@ const OpeningBalances = () => {
     return amount.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Recursive render function for account tree
   const renderAccount = useCallback(
     (account: Account, level: number = 0): React.ReactNode => {
       const hasChildren = account.children && account.children.length > 0;
       const isExpanded = expandedAccounts.includes(account.id);
-
       return (
         <div key={account.id}>
           <AccountBalanceRow
@@ -494,16 +504,15 @@ const OpeningBalances = () => {
             onBalanceChange={updateBalance}
             getTypeColor={getTypeColor}
             getTypeName={getTypeName}
+            isLocked={isLocked}
           />
           {hasChildren && isExpanded && (
-            <div>
-              {account.children!.map((child) => renderAccount(child, level + 1))}
-            </div>
+            <div>{account.children!.map((child) => renderAccount(child, level + 1))}</div>
           )}
         </div>
       );
     },
-    [expandedAccounts, balances, toggleExpand, updateBalance, getTypeColor, getTypeName]
+    [expandedAccounts, balances, toggleExpand, updateBalance, getTypeColor, getTypeName, isLocked]
   );
 
   if (loading) {
@@ -537,19 +546,54 @@ const OpeningBalances = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Fiscal Year Selector */}
+          {fiscalPeriods.length > 0 && (
+            <Select
+              value={selectedFiscalYearId || "none"}
+              onValueChange={(v) => setSelectedFiscalYearId(v === "none" ? null : v)}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder={isRTL ? "السنة المالية" : "Fiscal Year"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{isRTL ? "بدون فترة" : "No period"}</SelectItem>
+                {fiscalPeriods.map((fp) => (
+                  <SelectItem key={fp.id} value={fp.id}>
+                    {fp.name} {fp.is_closed ? "🔒" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button variant="outline" size="sm" onClick={expandAll}>
             {isRTL ? "توسيع الكل" : "Expand All"}
           </Button>
           <Button variant="outline" size="sm" onClick={collapseAll}>
             {isRTL ? "طي الكل" : "Collapse All"}
           </Button>
-          <Button onClick={handleSave} disabled={saving || !isBalanced}>
+          <Button onClick={handleSave} disabled={saving || !isBalanced || isLocked}>
             {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
-            <Save className="h-4 w-4 me-2" />
-            {t("common.save")}
+            {isLocked ? <Lock className="h-4 w-4 me-2" /> : <Save className="h-4 w-4 me-2" />}
+            {isLocked ? (isRTL ? "مقفل" : "Locked") : t("common.save")}
           </Button>
         </div>
       </div>
+
+      {/* Locked Warning */}
+      {isLocked && (
+        <Card className="border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="py-3">
+            <div className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-amber-600" />
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                {isRTL
+                  ? "الأرصدة الافتتاحية مقفلة ولا يمكن تعديلها بعد الترحيل"
+                  : "Opening balances are locked and cannot be edited after posting"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Balance Status Card */}
       <Card className={isBalanced ? "border-green-500/50 bg-green-50/50 dark:bg-green-950/20" : "border-destructive/50 bg-destructive/5"}>
@@ -595,7 +639,6 @@ const OpeningBalances = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {/* Header Row */}
           <div className="flex items-center gap-2 p-3 bg-muted/50 border-b font-medium text-sm sticky top-0">
             <div className="w-6 shrink-0"></div>
             <span className="w-14 shrink-0">{isRTL ? "الرمز" : "Code"}</span>
@@ -605,7 +648,6 @@ const OpeningBalances = () => {
             <span className="w-28 text-center shrink-0">{t("common.credit")}</span>
           </div>
 
-          {/* Accounts Tree */}
           <div className="max-h-[60vh] overflow-y-auto">
             {accountsTree.length === 0 ? (
               <div className="text-center text-muted-foreground py-12">
@@ -616,7 +658,6 @@ const OpeningBalances = () => {
             )}
           </div>
 
-          {/* Totals Row */}
           <div className="flex items-center gap-2 p-3 bg-muted/70 border-t font-bold sticky bottom-0">
             <div className="w-6 shrink-0"></div>
             <span className="w-14 shrink-0"></span>
