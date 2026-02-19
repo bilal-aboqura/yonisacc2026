@@ -167,52 +167,59 @@ const GeneralLedger = () => {
 
       setIsLoading(true);
       try {
-        // Get account opening balance
-        const { data: accData } = await supabase
-          .from("accounts")
-          .select("balance")
-          .eq("id", selectedAccountId)
-          .maybeSingle();
+        // Step 1: Get all posted journal entries for this company
+        const { data: entries, error: entriesError } = await supabase
+          .from("journal_entries")
+          .select("id, entry_number, entry_date, description, status")
+          .eq("company_id", companyId)
+          .eq("status", "posted")
+          .order("entry_date");
 
-        // Get all journal lines for this account
-        let query = supabase
+        if (entriesError) throw entriesError;
+        if (!entries || entries.length === 0) {
+          setLedgerLines([]);
+          setIsLoading(false);
+          return;
+        }
+
+        const entryIds = entries.map(e => e.id);
+        const entryMap = new Map(entries.map(e => [e.id, e]));
+
+        // Step 2: Get journal lines for this account from those entries
+        const { data: lines, error: linesError } = await supabase
           .from("journal_entry_lines")
-          .select(`
-            id, debit, credit, description,
-            entry_id,
-            journal_entries!inner(id, entry_number, entry_date, description, status, company_id)
-          `)
+          .select("id, entry_id, debit, credit, description")
           .eq("account_id", selectedAccountId)
-          .eq("journal_entries.company_id", companyId)
-          .eq("journal_entries.status", "posted")
-          .order("sort_order");
+          .in("entry_id", entryIds);
 
-        const { data, error } = await query;
-        if (error) throw error;
+        if (linesError) throw linesError;
 
-        // Filter by date if needed, then sort
-        let lines = (data || []).map((line: any) => ({
-          id: line.id,
-          entry_id: line.entry_id,
-          entry_number: line.journal_entries.entry_number,
-          entry_date: line.journal_entries.entry_date,
-          description: line.description || line.journal_entries.description,
-          debit: line.debit || 0,
-          credit: line.credit || 0,
-          running_balance: 0,
-          status: line.journal_entries.status,
-        }));
+        // Build ledger lines
+        let ledger = (lines || []).map((line: any) => {
+          const entry = entryMap.get(line.entry_id)!;
+          return {
+            id: line.id,
+            entry_id: line.entry_id,
+            entry_number: entry.entry_number,
+            entry_date: entry.entry_date,
+            description: line.description || entry.description,
+            debit: line.debit || 0,
+            credit: line.credit || 0,
+            running_balance: 0,
+            status: entry.status,
+          };
+        });
 
         // Apply date filters
         if (dateFrom) {
-          lines = lines.filter(l => l.entry_date >= dateFrom);
+          ledger = ledger.filter(l => l.entry_date >= dateFrom);
         }
         if (dateTo) {
-          lines = lines.filter(l => l.entry_date <= dateTo);
+          ledger = ledger.filter(l => l.entry_date <= dateTo);
         }
 
         // Sort by date then entry_number
-        lines.sort((a, b) => {
+        ledger.sort((a, b) => {
           const d = a.entry_date.localeCompare(b.entry_date);
           if (d !== 0) return d;
           return a.entry_number.localeCompare(b.entry_number);
@@ -220,13 +227,13 @@ const GeneralLedger = () => {
 
         // Calculate running balance
         let balance = 0;
-        lines.forEach(line => {
+        ledger.forEach(line => {
           balance += line.debit - line.credit;
           line.running_balance = balance;
         });
 
         setOpeningBalance(0);
-        setLedgerLines(lines);
+        setLedgerLines(ledger);
       } catch (error) {
         console.error(error);
         toast.error(isRTL ? "خطأ في جلب البيانات" : "Error loading ledger");
