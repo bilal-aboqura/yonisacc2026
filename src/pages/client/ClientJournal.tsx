@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -12,14 +14,72 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Filter, Download, BookOpen } from "lucide-react";
+import { Plus, Search, Filter, Download, BookOpen, Loader2, Eye } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/hooks/useLanguage";
 
 const ClientJournal = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { isRTL } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const entries: any[] = [];
+  // Fetch company
+  const { data: company } = useQuery({
+    queryKey: ["user-company", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("companies")
+        .select("id, currency")
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch journal entries
+  const { data: entries, isLoading } = useQuery({
+    queryKey: ["journal-entries", company?.id],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      const { data, error } = await supabase
+        .from("journal_entries")
+        .select("id, entry_number, entry_date, description, total_debit, total_credit, status, is_auto, reference_type")
+        .eq("company_id", company.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!company?.id,
+  });
+
+  const currency = isRTL ? "ر.س" : (company?.currency || "SAR");
+
+  const filtered = entries?.filter((e) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      e.entry_number?.toLowerCase().includes(term) ||
+      e.description?.toLowerCase().includes(term)
+    );
+  });
+
+  const getStatusBadge = (status: string | null) => {
+    if (status === "posted") {
+      return <Badge variant="default" className="bg-green-600">{isRTL ? "مرحّل" : "Posted"}</Badge>;
+    }
+    return <Badge variant="secondary">{isRTL ? "مسودة" : "Draft"}</Badge>;
+  };
+
+  const formatNumber = (num: number | null) => {
+    return (num || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   return (
     <div className="space-y-6">
@@ -52,16 +112,6 @@ const ClientJournal = () => {
                 className="ps-10"
               />
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="gap-2">
-                <Filter className="h-4 w-4" />
-                {t("common.filter")}
-              </Button>
-              <Button variant="outline" className="gap-2">
-                <Download className="h-4 w-4" />
-                {t("common.export")}
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -75,7 +125,11 @@ const ClientJournal = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {entries.length === 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : !filtered?.length ? (
             <div className="text-center py-12">
               <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">
@@ -98,19 +152,22 @@ const ClientJournal = () => {
                   <TableHead>{t("client.journal.description")}</TableHead>
                   <TableHead>{t("client.journal.debit")}</TableHead>
                   <TableHead>{t("client.journal.credit")}</TableHead>
+                  <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
                   <TableHead>{t("client.journal.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {entries.map((entry) => (
+                {filtered.map((entry) => (
                   <TableRow key={entry.id}>
-                    <TableCell className="font-medium">{entry.number}</TableCell>
-                    <TableCell>{entry.date}</TableCell>
-                    <TableCell>{entry.description}</TableCell>
-                    <TableCell>{entry.debit} ر.س</TableCell>
-                    <TableCell>{entry.credit} ر.س</TableCell>
+                    <TableCell className="font-mono font-medium">{entry.entry_number}</TableCell>
+                    <TableCell>{entry.entry_date}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">{entry.description || "-"}</TableCell>
+                    <TableCell>{formatNumber(entry.total_debit)} {currency}</TableCell>
+                    <TableCell>{formatNumber(entry.total_credit)} {currency}</TableCell>
+                    <TableCell>{getStatusBadge(entry.status)}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" className="gap-1">
+                        <Eye className="h-4 w-4" />
                         {t("common.view")}
                       </Button>
                     </TableCell>
