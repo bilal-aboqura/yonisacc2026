@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   ArrowRight,
   ArrowLeft,
@@ -31,6 +37,8 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
+  ChevronsUpDown,
+  Check,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,6 +63,70 @@ interface EntryLine {
   debit: number;
   credit: number;
 }
+
+// Searchable Account Combobox
+const AccountCombobox = ({
+  accounts,
+  value,
+  onSelect,
+  getAccountDisplayName,
+  placeholder,
+  isRTL,
+}: {
+  accounts: Account[];
+  value: string;
+  onSelect: (value: string) => void;
+  getAccountDisplayName: (account: Account) => string;
+  placeholder: string;
+  isRTL: boolean;
+}) => {
+  const [open, setOpen] = useState(false);
+  const selected = accounts.find((a) => a.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+        >
+          <span className="truncate">
+            {selected ? getAccountDisplayName(selected) : placeholder}
+          </span>
+          <ChevronsUpDown className="ms-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[350px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={isRTL ? "ابحث بالرمز أو الاسم..." : "Search by code or name..."} />
+          <CommandList>
+            <CommandEmpty>{isRTL ? "لا توجد نتائج" : "No results found"}</CommandEmpty>
+            <CommandGroup>
+              {accounts.map((account) => (
+                <CommandItem
+                  key={account.id}
+                  value={`${account.code} ${account.name} ${account.name_en || ""}`}
+                  onSelect={() => {
+                    onSelect(account.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={`me-2 h-4 w-4 ${value === account.id ? "opacity-100" : "opacity-0"}`}
+                  />
+                  <span className="font-mono text-xs me-2">{account.code}</span>
+                  <span className="truncate">{isRTL ? account.name : account.name_en || account.name}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 const CreateJournalEntry = () => {
   const navigate = useNavigate();
@@ -394,18 +466,14 @@ const CreateJournalEntry = () => {
               {lines.map((line) => (
                 <TableRow key={line.id}>
                   <TableCell>
-                    <Select value={line.account_id} onValueChange={(v) => updateLine(line.id, "account_id", v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("client.journal.create.selectAccount")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {getAccountDisplayName(account)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <AccountCombobox
+                      accounts={accounts}
+                      value={line.account_id}
+                      onSelect={(v) => updateLine(line.id, "account_id", v)}
+                      getAccountDisplayName={getAccountDisplayName}
+                      placeholder={t("client.journal.create.selectAccount")}
+                      isRTL={isRTL}
+                    />
                   </TableCell>
                   <TableCell>
                     <Input
