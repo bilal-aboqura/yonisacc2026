@@ -183,7 +183,6 @@ const CreateJournalEntry = () => {
           .eq("company_id", companyData.id)
           .eq("is_active", true)
           .is("global_account_id", null)
-          .neq("is_system", true)
           .or("is_parent.is.null,is_parent.eq.false")
           .order("code"),
         supabase
