@@ -200,7 +200,7 @@ const OpeningBalances = () => {
       const [globalRes, linkedRes, customRes] = await Promise.all([
         supabase
           .from("global_accounts" as any)
-          .select("id, code, name, name_en, type, balance, parent_code, is_active, is_parent")
+          .select("id, code, name, name_en, type, parent_code, is_active, is_parent")
           .eq("is_active", true)
           .order("sort_order"),
         supabase
