@@ -338,7 +338,7 @@ const ClientJournal = () => {
                             <Eye className="h-4 w-4 me-2" />
                             {isRTL ? "عرض" : "View"}
                           </DropdownMenuItem>
-                          {entry.status !== "posted" && (
+                          {entry.status !== "posted" && !entry.is_auto && (
                             <DropdownMenuItem onClick={() => navigate(`/client/journal/${entry.id}/edit`)}>
                               <Edit className="h-4 w-4 me-2" />
                               {isRTL ? "تعديل" : "Edit"}
@@ -348,7 +348,7 @@ const ClientJournal = () => {
                             <Printer className="h-4 w-4 me-2" />
                             {isRTL ? "طباعة" : "Print"}
                           </DropdownMenuItem>
-                          {entry.status !== "posted" && (
+                          {entry.status !== "posted" && !entry.is_auto && (
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onClick={() => setDeleteEntry({ id: entry.id, number: entry.entry_number })}

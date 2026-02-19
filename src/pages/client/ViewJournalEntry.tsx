@@ -100,7 +100,7 @@ const ViewJournalEntry = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          {entry.status !== "posted" && (
+          {entry.status !== "posted" && !entry.is_auto && (
             <Button variant="outline" onClick={() => navigate(`/client/journal/${id}/edit`)}>
               {isRTL ? "تعديل" : "Edit"}
             </Button>
