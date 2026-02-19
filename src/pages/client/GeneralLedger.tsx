@@ -38,7 +38,17 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   FileText,
+  BookOpen,
+  Eye,
+  Edit,
+  ExternalLink,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -272,13 +282,25 @@ const GeneralLedger = () => {
   return (
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-          {isRTL ? "دفتر الأستاذ" : "General Ledger"}
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          {isRTL ? "عرض حركات الحسابات التفصيلية" : "View detailed account transactions"}
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            {isRTL ? "دفتر الأستاذ" : "General Ledger"}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {isRTL ? "عرض حركات الحسابات التفصيلية" : "View detailed account transactions"}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/client/journal")}>
+            <BookOpen className="h-4 w-4" />
+            {isRTL ? "قيود اليومية" : "Journal Entries"}
+          </Button>
+          <Button className="gap-2" onClick={() => navigate("/client/journal/new")}>
+            <Edit className="h-4 w-4" />
+            {isRTL ? "قيد جديد" : "New Entry"}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -456,18 +478,23 @@ const GeneralLedger = () => {
                     <TableHead className="w-[130px] text-end">{isRTL ? "مدين" : "Debit"}</TableHead>
                     <TableHead className="w-[130px] text-end">{isRTL ? "دائن" : "Credit"}</TableHead>
                     <TableHead className="w-[140px] text-end">{isRTL ? "الرصيد" : "Balance"}</TableHead>
+                    <TableHead className="w-[80px] text-center">{isRTL ? "إجراءات" : "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {ledgerLines.map((line, index) => (
                     <TableRow
                       key={line.id}
-                      className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => navigate(`/client/journal/${line.entry_id}`)}
+                      className="hover:bg-muted/50 transition-colors group"
                     >
                       <TableCell className="text-center text-muted-foreground text-sm">{index + 1}</TableCell>
                       <TableCell>
-                        <span className="font-mono text-sm text-primary">{line.entry_number}</span>
+                        <button
+                          className="font-mono text-sm text-primary hover:underline cursor-pointer"
+                          onClick={() => navigate(`/client/journal/${line.entry_id}`)}
+                        >
+                          {line.entry_number}
+                        </button>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{line.entry_date}</TableCell>
                       <TableCell className="text-sm max-w-[250px] truncate">{line.description || "-"}</TableCell>
@@ -488,6 +515,28 @@ const GeneralLedger = () => {
                       <TableCell className={`text-end tabular-nums font-semibold ${line.running_balance >= 0 ? "text-green-600" : "text-orange-600"}`}>
                         {formatNumber(line.running_balance)}
                       </TableCell>
+                      <TableCell className="text-center">
+                        <TooltipProvider>
+                          <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/journal/${line.entry_id}`)}>
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{isRTL ? "عرض القيد" : "View Entry"}</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/journal/${line.entry_id}/edit`)}>
+                                  <Edit className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{isRTL ? "تعديل القيد" : "Edit Entry"}</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
+                      </TableCell>
                     </TableRow>
                   ))}
                   {/* Totals Row */}
@@ -504,6 +553,7 @@ const GeneralLedger = () => {
                     <TableCell className={`text-end tabular-nums ${totals.net >= 0 ? "text-green-600" : "text-orange-600"}`}>
                       {formatNumber(totals.net)}
                     </TableCell>
+                    <TableCell />
                   </TableRow>
                 </TableBody>
               </Table>
