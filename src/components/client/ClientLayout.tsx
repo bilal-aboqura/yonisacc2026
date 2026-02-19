@@ -4,6 +4,7 @@ import CompanyDropdown from "./CompanyDropdown";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { useAutoPartsAccess } from "@/hooks/useAutoPartsAccess";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
@@ -152,6 +153,7 @@ const ClientLayout = () => {
   const { isRTL } = useLanguage();
   const { signOut, user, isLoading } = useAuth();
   const { isAutoPartsCompany } = useAutoPartsAccess();
+  const { status: subStatus } = useSubscriptionGuard();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -170,6 +172,13 @@ const ClientLayout = () => {
       navigate("/auth", { replace: true, state: { from: location.pathname } });
     }
   }, [isLoading, user, navigate, location.pathname]);
+
+  // Block access if subscription is not active/trialing
+  useEffect(() => {
+    if (subStatus === "blocked") {
+      navigate("/subscription-expired", { replace: true });
+    }
+  }, [subStatus, navigate]);
 
   // Auto-open group containing current path
   useEffect(() => {

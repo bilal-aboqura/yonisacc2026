@@ -6,3 +6,6 @@ verify_jwt = false
 [functions.provision-tenant]
 verify_jwt = false
 
+[functions.expire-subscriptions]
+verify_jwt = false
+
