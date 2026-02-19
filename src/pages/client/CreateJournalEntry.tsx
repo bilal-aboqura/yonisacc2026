@@ -204,12 +204,13 @@ const CreateJournalEntry = () => {
       const globalAccounts = (globalRes.data || []) as any[];
       const customAccounts = (customRes.data || []) as any[];
 
-      // Merge: leaf global accounts + custom accounts
+      // Merge: only include leaf global accounts that have a linked company account
+      // (accounts without a linked record can't be used in journal entries due to FK constraint)
       const merged: Account[] = [
         ...globalAccounts
-          .filter((ga: any) => !ga.is_parent)
+          .filter((ga: any) => !ga.is_parent && linkedMap.has(ga.id))
           .map((ga: any) => ({
-            id: linkedMap.get(ga.id) || ga.id, // use linked company account id if exists
+            id: linkedMap.get(ga.id)!,
             code: ga.code,
             name: ga.name,
             name_en: ga.name_en,
@@ -239,13 +240,16 @@ const CreateJournalEntry = () => {
 
       setAccounts(uniqueAccounts);
 
-      // Generate entry number
-      const { count } = await supabase
-        .from("journal_entries")
-        .select("*", { count: "exact", head: true })
-        .eq("company_id", companyData.id);
+      // Generate entry number using company_settings for accuracy
+      const { data: settings } = await supabase
+        .from("company_settings")
+        .select("journal_prefix, next_journal_number")
+        .eq("company_id", companyData.id)
+        .maybeSingle();
 
-      setEntryNumber(`JE-${String((count || 0) + 1).padStart(6, "0")}`);
+      const prefix = settings?.journal_prefix || "JE-";
+      const nextNum = settings?.next_journal_number || 1;
+      setEntryNumber(`${prefix}${String(nextNum).padStart(6, "0")}`);
     } catch (error: any) {
       console.error("Error fetching data:", error);
       toast({
@@ -360,6 +364,12 @@ const CreateJournalEntry = () => {
       const { error: linesError } = await supabase.from("journal_entry_lines").insert(entryLines);
 
       if (linesError) throw linesError;
+
+      // Increment next_journal_number in company_settings
+      await supabase
+        .from("company_settings")
+        .update({ next_journal_number: parseInt(entryNumber.replace(/\D/g, "")) + 1 })
+        .eq("company_id", companyId);
 
       toast({
         title: t("common.success"),
