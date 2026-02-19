@@ -358,7 +358,7 @@ const ClientJournal = () => {
                             <TooltipContent>{isRTL ? "طباعة" : "Print"}</TooltipContent>
                           </Tooltip>
 
-                          {entry.status !== "posted" && !entry.is_auto && (
+                          {!entry.is_auto && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteEntry({ id: entry.id, number: entry.entry_number })}>
