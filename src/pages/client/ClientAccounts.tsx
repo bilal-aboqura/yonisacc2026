@@ -118,17 +118,15 @@ const AccountRow = memo(({
         >
           <DollarSign className="h-4 w-4 text-green-600" />
         </Button>
-        {!account.is_global && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={(e) => onEdit(account, e)}
-            title={isRTL ? "تعديل" : "Edit"}
-          >
-            <Pencil className="h-4 w-4 text-blue-600" />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={(e) => onEdit(account, e)}
+          title={isRTL ? "تعديل" : "Edit"}
+        >
+          <Pencil className="h-4 w-4 text-blue-600" />
+        </Button>
       </div>
     </div>
   );
@@ -346,7 +344,15 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
 
   const handleEditAccount = useCallback((account: Account, e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/client/accounts/${account.id}/edit`);
+    if (account.is_global) {
+      // For global accounts, use company_account_id if linked, otherwise navigate to edit with global id
+      const editId = account.company_account_id || account.global_account_id;
+      if (editId) {
+        navigate(`/client/accounts/${editId}/edit?global=true`);
+      }
+    } else {
+      navigate(`/client/accounts/${account.id}/edit`);
+    }
   }, [navigate]);
 
   const handleOpenBalanceDialog = useCallback((account: Account, e: React.MouseEvent) => {

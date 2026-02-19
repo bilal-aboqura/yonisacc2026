@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
 import { ArrowRight, Save, ClipboardList, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/hooks/useLanguage";
 import { toast } from "@/hooks/use-toast";
 
 interface ParentAccount {
@@ -44,7 +45,10 @@ const accountTypes = [
 const EditAccount = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const isGlobal = searchParams.get("global") === "true";
   const { user } = useAuth();
+  const { isRTL } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -59,7 +63,9 @@ const EditAccount = () => {
   const [isParent, setIsParent] = useState(false);
   const [openingBalance, setOpeningBalance] = useState(0);
   const [isActive, setIsActive] = useState(true);
-  const [isSystem, setIsSystem] = useState(false);
+  const [isSystemAccount, setIsSystemAccount] = useState(false);
+  const [linkedAccountId, setLinkedAccountId] = useState<string | null>(null);
+  const [globalAccountId, setGlobalAccountId] = useState<string | null>(null);
 
   const [allAccounts, setAllAccounts] = useState<ParentAccount[]>([]);
   const [filteredParents, setFilteredParents] = useState<ParentAccount[]>([]);
@@ -71,7 +77,6 @@ const EditAccount = () => {
     }
   }, [user, id]);
 
-  // Filter parent accounts (only show parent accounts, exclude self)
   useEffect(() => {
     setFilteredParents(allAccounts.filter((a) => a.is_parent && a.id !== id));
   }, [allAccounts, id]);
@@ -82,12 +87,18 @@ const EditAccount = () => {
         .from("companies")
         .select("id")
         .eq("owner_id", user?.id)
-        .single();
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (companyError) throw companyError;
+      if (!companyData) {
+        navigate("/client/accounts");
+        return;
+      }
       setCompanyId(companyData.id);
 
-      // Fetch global accounts + company custom accounts for parent selection
+      // Fetch parent options
       const [globalRes, companyRes] = await Promise.all([
         supabase
           .from("global_accounts" as any)
@@ -100,6 +111,7 @@ const EditAccount = () => {
           .eq("company_id", companyData.id)
           .eq("is_active", true)
           .is("global_account_id", null)
+          .neq("is_system", true)
           .order("code"),
       ]);
 
@@ -111,7 +123,6 @@ const EditAccount = () => {
         type: ga.type,
         is_parent: ga.is_parent,
       }));
-
       setAllAccounts([...globalAccounts, ...(companyRes.data || [])]);
 
       // Fetch cost centers
@@ -121,33 +132,67 @@ const EditAccount = () => {
         .eq("company_id", companyData.id)
         .eq("is_active", true)
         .order("code");
-
       setCostCenters(costCentersData || []);
 
-      // Fetch the account to edit
-      const { data: accountData, error: accountError } = await supabase
-        .from("accounts")
-        .select("*")
-        .eq("id", id)
-        .single();
+      if (isGlobal) {
+        // Fetch global account data
+        const { data: gaData, error: gaError } = await supabase
+          .from("global_accounts" as any)
+          .select("*")
+          .eq("id", id)
+          .single();
+        
+        if (gaError) throw gaError;
+        const ga = gaData as any;
 
-      if (accountError) throw accountError;
+        setCode(ga.code);
+        setName(ga.name);
+        setNameEn(ga.name_en || "");
+        setAccountType(ga.type);
+        setIsParent(ga.is_parent || false);
+        setIsActive(ga.is_active ?? true);
+        setIsSystemAccount(true);
+        setGlobalAccountId(ga.id);
 
-      setCode(accountData.code);
-      setName(accountData.name);
-      setNameEn(accountData.name_en || "");
-      setAccountType(accountData.type);
-      setParentId(accountData.parent_id || "");
-      setCostCenterId(accountData.cost_center_id || "");
-      setIsParent(accountData.is_parent || false);
-      setOpeningBalance(accountData.balance || 0);
-      setIsActive(accountData.is_active ?? true);
-      setIsSystem(accountData.is_system || false);
+        // Check for linked company account (for balance)
+        const { data: linkedData } = await supabase
+          .from("accounts")
+          .select("id, balance, cost_center_id")
+          .eq("company_id", companyData.id)
+          .eq("global_account_id", id as string)
+          .maybeSingle();
+
+        if (linkedData) {
+          setLinkedAccountId(linkedData.id);
+          setOpeningBalance(linkedData.balance || 0);
+          setCostCenterId(linkedData.cost_center_id || "");
+        }
+      } else {
+        // Fetch regular company account
+        const { data: accountData, error: accountError } = await supabase
+          .from("accounts")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (accountError) throw accountError;
+
+        setCode(accountData.code);
+        setName(accountData.name);
+        setNameEn(accountData.name_en || "");
+        setAccountType(accountData.type);
+        setParentId(accountData.parent_id || "");
+        setCostCenterId(accountData.cost_center_id || "");
+        setIsParent(accountData.is_parent || false);
+        setOpeningBalance(accountData.balance || 0);
+        setIsActive(accountData.is_active ?? true);
+        setIsSystemAccount(accountData.is_system || false);
+      }
     } catch (error: any) {
       console.error("Error fetching data:", error);
       toast({
-        title: "خطأ",
-        description: "حدث خطأ في تحميل البيانات",
+        title: isRTL ? "خطأ" : "Error",
+        description: isRTL ? "حدث خطأ في تحميل البيانات" : "Error loading data",
         variant: "destructive",
       });
       navigate("/client/accounts");
@@ -160,81 +205,94 @@ const EditAccount = () => {
     if (!companyId || !id) return;
 
     if (!code.trim()) {
-      toast({
-        title: "خطأ",
-        description: "يرجى إدخال رمز الحساب",
-        variant: "destructive",
-      });
+      toast({ title: isRTL ? "خطأ" : "Error", description: isRTL ? "يرجى إدخال رمز الحساب" : "Account code is required", variant: "destructive" });
       return;
     }
-
     if (!name.trim()) {
-      toast({
-        title: "خطأ",
-        description: "يرجى إدخال اسم الحساب",
-        variant: "destructive",
-      });
+      toast({ title: isRTL ? "خطأ" : "Error", description: isRTL ? "يرجى إدخال اسم الحساب" : "Account name is required", variant: "destructive" });
       return;
     }
-
     if (!accountType) {
-      toast({
-        title: "خطأ",
-        description: "يرجى اختيار نوع الحساب",
-        variant: "destructive",
-      });
+      toast({ title: isRTL ? "خطأ" : "Error", description: isRTL ? "يرجى اختيار نوع الحساب" : "Account type is required", variant: "destructive" });
       return;
     }
 
     setSaving(true);
     try {
-      // Check for duplicate code (excluding current account)
-      const { data: existingAccount } = await supabase
-        .from("accounts")
-        .select("id")
-        .eq("company_id", companyId)
-        .eq("code", code.trim())
-        .neq("id", id)
-        .single();
+      if (isGlobal && globalAccountId) {
+        // For global accounts: only save balance/cost center in linked accounts record
+        if (linkedAccountId) {
+          // Update existing linked record
+          const { error } = await supabase
+            .from("accounts")
+            .update({
+              balance: openingBalance,
+              cost_center_id: costCenterId || null,
+            })
+            .eq("id", linkedAccountId);
+          if (error) throw error;
+        } else {
+          // Create linked record for balance tracking
+          const { error } = await supabase
+            .from("accounts")
+            .insert({
+              company_id: companyId,
+              global_account_id: globalAccountId,
+              code: code,
+              name: name,
+              name_en: nameEn || null,
+              type: accountType,
+              is_parent: isParent,
+              is_system: true,
+              balance: openingBalance,
+              cost_center_id: costCenterId || null,
+            });
+          if (error) throw error;
+        }
+      } else {
+        // Regular company account
+        const { data: existingAccount } = await supabase
+          .from("accounts")
+          .select("id")
+          .eq("company_id", companyId)
+          .eq("code", code.trim())
+          .neq("id", id)
+          .maybeSingle();
 
-      if (existingAccount) {
-        toast({
-          title: "خطأ",
-          description: "رمز الحساب موجود مسبقاً",
-          variant: "destructive",
-        });
-        setSaving(false);
-        return;
+        if (existingAccount) {
+          toast({ title: isRTL ? "خطأ" : "Error", description: isRTL ? "رمز الحساب موجود مسبقاً" : "Account code already exists", variant: "destructive" });
+          setSaving(false);
+          return;
+        }
+
+        const { error } = await supabase
+          .from("accounts")
+          .update({
+            code: code.trim(),
+            name: name.trim(),
+            name_en: nameEn.trim() || null,
+            type: accountType,
+            parent_id: parentId || null,
+            cost_center_id: costCenterId || null,
+            is_parent: isParent,
+            balance: openingBalance,
+            is_active: isActive,
+          })
+          .eq("id", id);
+
+        if (error) throw error;
       }
 
-      const { error } = await supabase
-        .from("accounts")
-        .update({
-          code: code.trim(),
-          name: name.trim(),
-          name_en: nameEn.trim() || null,
-          type: accountType,
-          parent_id: parentId || null,
-          cost_center_id: costCenterId || null,
-          is_parent: isParent,
-          balance: openingBalance,
-          is_active: isActive,
-        })
-        .eq("id", id);
-
-      if (error) throw error;
-
       toast({
-        title: "تم الحفظ",
-        description: "تم تحديث الحساب بنجاح",
+        title: isRTL ? "تم الحفظ" : "Saved",
+        description: isRTL ? "تم تحديث الحساب بنجاح" : "Account updated successfully",
       });
-
       navigate("/client/accounts");
     } catch (error: any) {
       console.error("Error saving account:", error);
       toast({
-        title: "خطأ",
-        description: "حدث خطأ في حفظ الحساب",
+        title: isRTL ? "خطأ" : "Error",
+        description: isRTL ? "حدث خطأ في حفظ الحساب" : "Error saving account",
         variant: "destructive",
       });
     } finally {
@@ -250,23 +308,27 @@ const EditAccount = () => {
     );
   }
 
+  const isFieldDisabled = isGlobal; // Global account fields are read-only except balance
+
   return (
-    <div className="space-y-6 rtl max-w-2xl">
+    <div className="space-y-6 max-w-2xl" dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/client/accounts")}>
-            <ArrowRight className="h-5 w-5" />
+            <ArrowRight className={`h-5 w-5 ${isRTL ? "" : "rotate-180"}`} />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">تعديل الحساب</h1>
-            <p className="text-muted-foreground">تعديل بيانات الحساب: {code} - {name}</p>
+            <h1 className="text-2xl font-bold">{isRTL ? "تعديل الحساب" : "Edit Account"}</h1>
+            <p className="text-muted-foreground">
+              {isRTL ? `تعديل بيانات الحساب: ${code} - ${name}` : `Edit account: ${code} - ${nameEn || name}`}
+            </p>
           </div>
         </div>
         <Button onClick={handleSave} disabled={saving}>
-          {saving && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
-          <Save className="h-4 w-4 ml-2" />
-          حفظ التعديلات
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          <Save className="h-4 w-4" />
+          {isRTL ? "حفظ التعديلات" : "Save Changes"}
         </Button>
       </div>
 
@@ -275,62 +337,59 @@ const EditAccount = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5" />
-            بيانات الحساب
-            {isSystem && (
-              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">
-                حساب نظام
-              </span>
-            )}
+            {isRTL ? "بيانات الحساب" : "Account Details"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Parent Account */}
-          <div className="space-y-2">
-            <Label>الحساب الرئيسي</Label>
-            <Select 
-              value={parentId || "__none__"} 
-              onValueChange={(v) => setParentId(v === "__none__" ? "" : v)}
-              disabled={isSystem}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="اختر الحساب الرئيسي (اختياري)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">بدون حساب رئيسي (حساب جذر)</SelectItem>
-                {filteredParents.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.code} - {account.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!isGlobal && (
+            <div className="space-y-2">
+              <Label>{isRTL ? "الحساب الرئيسي" : "Parent Account"}</Label>
+              <Select 
+                value={parentId || "__none__"} 
+                onValueChange={(v) => setParentId(v === "__none__" ? "" : v)}
+                disabled={isSystemAccount}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={isRTL ? "اختر الحساب الرئيسي (اختياري)" : "Select parent (optional)"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">{isRTL ? "بدون حساب رئيسي (حساب جذر)" : "No parent (root account)"}</SelectItem>
+                  {filteredParents.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.code} - {isRTL ? account.name : (account.name_en || account.name)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>رمز الحساب *</Label>
+              <Label>{isRTL ? "رمز الحساب" : "Account Code"} *</Label>
               <Input
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="مثال: 1101"
+                placeholder={isRTL ? "مثال: 1101" : "e.g. 1101"}
                 className="font-mono"
-                disabled={isSystem}
+                disabled={isFieldDisabled}
               />
             </div>
             <div className="space-y-2">
-              <Label>نوع الحساب *</Label>
+              <Label>{isRTL ? "نوع الحساب" : "Account Type"} *</Label>
               <Select 
                 value={accountType} 
                 onValueChange={setAccountType}
-                disabled={isSystem}
+                disabled={isFieldDisabled}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="اختر نوع الحساب" />
+                  <SelectValue placeholder={isRTL ? "اختر نوع الحساب" : "Select type"} />
                 </SelectTrigger>
                 <SelectContent>
                   {accountTypes.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
-                      {type.label}
+                      {isRTL ? type.label : type.labelEn}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -340,38 +399,40 @@ const EditAccount = () => {
 
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>اسم الحساب (عربي) *</Label>
+              <Label>{isRTL ? "اسم الحساب (عربي)" : "Account Name (Arabic)"} *</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="اسم الحساب بالعربي"
+                placeholder={isRTL ? "اسم الحساب بالعربي" : "Arabic name"}
+                disabled={isFieldDisabled}
               />
             </div>
             <div className="space-y-2">
-              <Label>اسم الحساب (إنجليزي)</Label>
+              <Label>{isRTL ? "اسم الحساب (إنجليزي)" : "Account Name (English)"}</Label>
               <Input
                 value={nameEn}
                 onChange={(e) => setNameEn(e.target.value)}
                 placeholder="Account name in English"
                 dir="ltr"
+                disabled={isFieldDisabled}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>مركز التكلفة</Label>
+            <Label>{isRTL ? "مركز التكلفة" : "Cost Center"}</Label>
             <Select 
               value={costCenterId || "__none__"} 
               onValueChange={(v) => setCostCenterId(v === "__none__" ? "" : v)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="اختر مركز التكلفة (اختياري)" />
+                <SelectValue placeholder={isRTL ? "اختر مركز التكلفة (اختياري)" : "Select cost center (optional)"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">بدون مركز تكلفة</SelectItem>
+                <SelectItem value="__none__">{isRTL ? "بدون مركز تكلفة" : "No cost center"}</SelectItem>
                 {costCenters.map((cc) => (
                   <SelectItem key={cc.id} value={cc.id}>
-                    {cc.code} - {cc.name}
+                    {cc.code} - {isRTL ? cc.name : (cc.name_en || cc.name)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -379,7 +440,7 @@ const EditAccount = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>الرصيد الافتتاحي</Label>
+            <Label>{isRTL ? "الرصيد الافتتاحي" : "Opening Balance"}</Label>
             <Input
               type="number"
               step="0.01"
@@ -389,25 +450,29 @@ const EditAccount = () => {
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-            <div>
-              <Label className="text-base">حساب رئيسي (تجميعي)</Label>
-              <p className="text-sm text-muted-foreground">
-                تفعيل هذا الخيار إذا كان الحساب يحتوي على حسابات فرعية
-              </p>
-            </div>
-            <Switch checked={isParent} onCheckedChange={setIsParent} disabled={isSystem} />
-          </div>
+          {!isGlobal && (
+            <>
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <Label className="text-base">{isRTL ? "حساب رئيسي (تجميعي)" : "Parent Account (Aggregate)"}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {isRTL ? "تفعيل هذا الخيار إذا كان الحساب يحتوي على حسابات فرعية" : "Enable if this account has sub-accounts"}
+                  </p>
+                </div>
+                <Switch checked={isParent} onCheckedChange={setIsParent} disabled={isSystemAccount} />
+              </div>
 
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-            <div>
-              <Label className="text-base">حساب نشط</Label>
-              <p className="text-sm text-muted-foreground">
-                الحسابات غير النشطة لن تظهر في القوائم
-              </p>
-            </div>
-            <Switch checked={isActive} onCheckedChange={setIsActive} />
-          </div>
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <Label className="text-base">{isRTL ? "حساب نشط" : "Active Account"}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {isRTL ? "الحسابات غير النشطة لن تظهر في القوائم" : "Inactive accounts won't appear in lists"}
+                  </p>
+                </div>
+                <Switch checked={isActive} onCheckedChange={setIsActive} />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
