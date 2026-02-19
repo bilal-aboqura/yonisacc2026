@@ -84,6 +84,7 @@ import OwnerSettings from "./pages/owner/OwnerSettings";
 import OwnerLandingContent from "./pages/owner/OwnerLandingContent";
 import OwnerAuditLogs from "./pages/owner/OwnerAuditLogs";
 import OwnerActivities from "./pages/owner/OwnerActivities";
+import SubscriptionExpired from "./pages/SubscriptionExpired";
 
 const queryClient = new QueryClient();
 
@@ -100,6 +101,7 @@ const App = () => (
             
             <Route path="/register-company" element={<CompanyRegistration />} />
             <Route path="/activities" element={<Activities />} />
+            <Route path="/subscription-expired" element={<SubscriptionExpired />} />
             
             {/* Client Portal Routes */}
             <Route path="/client" element={<ClientLayout />}>

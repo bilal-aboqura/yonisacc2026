@@ -467,6 +467,7 @@ export type Database = {
           commercial_register: string | null
           created_at: string
           currency: string | null
+          deleted_at: string | null
           email: string | null
           id: string
           logo_url: string | null
@@ -483,6 +484,7 @@ export type Database = {
           commercial_register?: string | null
           created_at?: string
           currency?: string | null
+          deleted_at?: string | null
           email?: string | null
           id?: string
           logo_url?: string | null
@@ -499,6 +501,7 @@ export type Database = {
           commercial_register?: string | null
           created_at?: string
           currency?: string | null
+          deleted_at?: string | null
           email?: string | null
           id?: string
           logo_url?: string | null
@@ -2465,6 +2468,9 @@ export type Database = {
         | "expired"
         | "cancelled"
         | "trialing"
+        | "suspended"
+        | "terminated"
+        | "past_due"
       transaction_type: "debit" | "credit"
     }
     CompositeTypes: {
@@ -2603,6 +2609,9 @@ export const Constants = {
         "expired",
         "cancelled",
         "trialing",
+        "suspended",
+        "terminated",
+        "past_due",
       ],
       transaction_type: ["debit", "credit"],
     },
