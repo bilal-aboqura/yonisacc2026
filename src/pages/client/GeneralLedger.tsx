@@ -178,7 +178,19 @@ const GeneralLedger = () => {
 
       setIsLoading(true);
       try {
-        // Step 1: Get all posted journal entries for this company
+        // Step 1: Fetch opening balance from dedicated table
+        const { data: obData } = await supabase
+          .from("opening_balances" as any)
+          .select("debit, credit")
+          .eq("company_id", companyId)
+          .eq("account_id", selectedAccountId);
+
+        let obNet = 0;
+        (obData || []).forEach((ob: any) => {
+          obNet += (Number(ob.debit) || 0) - (Number(ob.credit) || 0);
+        });
+
+        // Step 2: Get all posted journal entries for this company
         const { data: entries, error: entriesError } = await supabase
           .from("journal_entries")
           .select("id, entry_number, entry_date, description, status")
@@ -188,6 +200,7 @@ const GeneralLedger = () => {
 
         if (entriesError) throw entriesError;
         if (!entries || entries.length === 0) {
+          setOpeningBalance(obNet);
           setLedgerLines([]);
           setIsLoading(false);
           return;
@@ -196,7 +209,7 @@ const GeneralLedger = () => {
         const entryIds = entries.map(e => e.id);
         const entryMap = new Map(entries.map(e => [e.id, e]));
 
-        // Step 2: Get journal lines for this account from those entries
+        // Step 3: Get journal lines for this account from those entries
         const { data: lines, error: linesError } = await supabase
           .from("journal_entry_lines")
           .select("id, entry_id, debit, credit, description")
@@ -236,14 +249,14 @@ const GeneralLedger = () => {
           return a.entry_number.localeCompare(b.entry_number);
         });
 
-        // Calculate running balance
-        let balance = 0;
+        // Calculate running balance starting from opening balance
+        let balance = obNet;
         ledger.forEach(line => {
           balance += line.debit - line.credit;
           line.running_balance = balance;
         });
 
-        setOpeningBalance(0);
+        setOpeningBalance(obNet);
         setLedgerLines(ledger);
       } catch (error) {
         console.error(error);
@@ -263,8 +276,9 @@ const GeneralLedger = () => {
   const totals = useMemo(() => {
     const totalDebit = ledgerLines.reduce((s, l) => s + l.debit, 0);
     const totalCredit = ledgerLines.reduce((s, l) => s + l.credit, 0);
-    return { totalDebit, totalCredit, net: totalDebit - totalCredit };
-  }, [ledgerLines]);
+    const net = openingBalance + totalDebit - totalCredit;
+    return { totalDebit, totalCredit, net };
+  }, [ledgerLines, openingBalance]);
 
   const getTypeBadge = (type: string) => {
     const map: Record<string, { label: string; color: string }> = {
@@ -483,6 +497,25 @@ const GeneralLedger = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {/* Opening Balance Row */}
+                  {openingBalance !== 0 && (
+                    <TableRow className="bg-blue-50/50 dark:bg-blue-950/20 font-medium">
+                      <TableCell className="text-center text-muted-foreground">-</TableCell>
+                      <TableCell className="text-muted-foreground">-</TableCell>
+                      <TableCell className="text-muted-foreground">-</TableCell>
+                      <TableCell>{isRTL ? "رصيد افتتاحي" : "Opening Balance"}</TableCell>
+                      <TableCell className="text-end tabular-nums">
+                        {openingBalance > 0 ? <span className="text-blue-600">{formatNumber(openingBalance)}</span> : <span className="text-muted-foreground">-</span>}
+                      </TableCell>
+                      <TableCell className="text-end tabular-nums">
+                        {openingBalance < 0 ? <span className="text-red-600">{formatNumber(Math.abs(openingBalance))}</span> : <span className="text-muted-foreground">-</span>}
+                      </TableCell>
+                      <TableCell className={`text-end tabular-nums font-semibold ${openingBalance >= 0 ? "text-green-600" : "text-orange-600"}`}>
+                        {formatNumber(openingBalance)}
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
+                  )}
                   {ledgerLines.map((line, index) => (
                     <TableRow
                       key={line.id}

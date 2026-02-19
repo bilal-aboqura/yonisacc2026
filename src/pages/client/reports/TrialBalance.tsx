@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -10,18 +12,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowRight, Download, Printer, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowRight, Download, Printer, Loader2, CheckCircle2, XCircle, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-interface AccountBalance {
+interface TrialBalanceRow {
   id: string;
   code: string;
   name: string;
   type: string;
-  balance: number;
+  openingDebit: number;
+  openingCredit: number;
+  movementDebit: number;
+  movementCredit: number;
+  endingDebit: number;
+  endingCredit: number;
 }
 
 const TrialBalance = () => {
@@ -29,33 +36,114 @@ const TrialBalance = () => {
   const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
-  const [accounts, setAccounts] = useState<AccountBalance[]>([]);
+  const [rows, setRows] = useState<TrialBalanceRow[]>([]);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     if (user) {
       fetchData();
     }
-  }, [user]);
+  }, [user, dateFrom, dateTo]);
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const { data: companyData } = await supabase
         .from("companies")
         .select("id")
         .eq("owner_id", user?.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
       if (!companyData) return;
 
+      // Fetch leaf accounts
       const { data: accountsData } = await supabase
         .from("accounts")
-        .select("id, code, name, type, balance")
+        .select("id, code, name, type")
         .eq("company_id", companyData.id)
         .eq("is_active", true)
         .or("is_parent.is.null,is_parent.eq.false")
         .order("code");
 
-      setAccounts(accountsData || []);
+      if (!accountsData || accountsData.length === 0) {
+        setRows([]);
+        setLoading(false);
+        return;
+      }
+
+      const accountIds = accountsData.map(a => a.id);
+
+      // Fetch opening balances from dedicated table
+      const { data: obData } = await supabase
+        .from("opening_balances" as any)
+        .select("account_id, debit, credit")
+        .eq("company_id", companyData.id);
+
+      const openingMap = new Map<string, { debit: number; credit: number }>();
+      (obData || []).forEach((ob: any) => {
+        openingMap.set(ob.account_id, { debit: Number(ob.debit) || 0, credit: Number(ob.credit) || 0 });
+      });
+
+      // Fetch movements from journal entries (posted only)
+      let entriesQuery = supabase
+        .from("journal_entries")
+        .select("id")
+        .eq("company_id", companyData.id)
+        .eq("status", "posted");
+
+      if (dateFrom) entriesQuery = entriesQuery.gte("entry_date", dateFrom);
+      if (dateTo) entriesQuery = entriesQuery.lte("entry_date", dateTo);
+
+      const { data: entries } = await entriesQuery;
+      const entryIds = (entries || []).map(e => e.id);
+
+      const movementMap = new Map<string, { debit: number; credit: number }>();
+
+      if (entryIds.length > 0) {
+        // Batch fetch in chunks of 100
+        for (let i = 0; i < entryIds.length; i += 100) {
+          const chunk = entryIds.slice(i, i + 100);
+          const { data: lines } = await supabase
+            .from("journal_entry_lines")
+            .select("account_id, debit, credit")
+            .in("entry_id", chunk)
+            .in("account_id", accountIds);
+
+          (lines || []).forEach((line: any) => {
+            const existing = movementMap.get(line.account_id) || { debit: 0, credit: 0 };
+            movementMap.set(line.account_id, {
+              debit: existing.debit + (Number(line.debit) || 0),
+              credit: existing.credit + (Number(line.credit) || 0),
+            });
+          });
+        }
+      }
+
+      // Build trial balance rows
+      const trialRows: TrialBalanceRow[] = accountsData.map(account => {
+        const opening = openingMap.get(account.id) || { debit: 0, credit: 0 };
+        const movement = movementMap.get(account.id) || { debit: 0, credit: 0 };
+
+        const endingNet = (opening.debit - opening.credit) + (movement.debit - movement.credit);
+
+        return {
+          id: account.id,
+          code: account.code,
+          name: account.name,
+          type: account.type,
+          openingDebit: opening.debit,
+          openingCredit: opening.credit,
+          movementDebit: movement.debit,
+          movementCredit: movement.credit,
+          endingDebit: endingNet > 0 ? endingNet : 0,
+          endingCredit: endingNet < 0 ? Math.abs(endingNet) : 0,
+        };
+      }).filter(r => r.openingDebit > 0 || r.openingCredit > 0 || r.movementDebit > 0 || r.movementCredit > 0);
+
+      setRows(trialRows);
     } catch (error) {
       console.error("Error:", error);
       toast({ title: "خطأ", description: "حدث خطأ في تحميل البيانات", variant: "destructive" });
@@ -64,20 +152,19 @@ const TrialBalance = () => {
     }
   };
 
-  // Debit accounts: assets, expenses (positive balance)
-  // Credit accounts: liabilities, equity, revenue (negative balance in DB, shown as positive)
-  const getDebitCredit = (account: AccountBalance) => {
-    const balance = account.balance || 0;
-    if (account.type === "asset" || account.type === "expense") {
-      return { debit: balance > 0 ? balance : 0, credit: balance < 0 ? Math.abs(balance) : 0 };
-    } else {
-      return { debit: balance > 0 ? balance : 0, credit: balance < 0 ? Math.abs(balance) : Math.abs(balance) };
-    }
-  };
+  const totals = rows.reduce(
+    (acc, row) => ({
+      openingDebit: acc.openingDebit + row.openingDebit,
+      openingCredit: acc.openingCredit + row.openingCredit,
+      movementDebit: acc.movementDebit + row.movementDebit,
+      movementCredit: acc.movementCredit + row.movementCredit,
+      endingDebit: acc.endingDebit + row.endingDebit,
+      endingCredit: acc.endingCredit + row.endingCredit,
+    }),
+    { openingDebit: 0, openingCredit: 0, movementDebit: 0, movementCredit: 0, endingDebit: 0, endingCredit: 0 }
+  );
 
-  const totalDebit = accounts.reduce((sum, acc) => sum + getDebitCredit(acc).debit, 0);
-  const totalCredit = accounts.reduce((sum, acc) => sum + getDebitCredit(acc).credit, 0);
-  const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+  const isBalanced = Math.abs(totals.endingDebit - totals.endingCredit) < 0.01;
 
   const formatCurrency = (amount: number) => {
     if (amount === 0) return "-";
@@ -113,7 +200,7 @@ const TrialBalance = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">ميزان المراجعة</h1>
-            <p className="text-muted-foreground">أرصدة جميع الحسابات</p>
+            <p className="text-muted-foreground">أرصدة جميع الحسابات مع الحركات</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -126,8 +213,30 @@ const TrialBalance = () => {
         </div>
       </div>
 
+      {/* Date Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>من تاريخ</Label>
+              <div className="relative">
+                <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="ps-10" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>إلى تاريخ</Label>
+              <div className="relative">
+                <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="ps-10" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Balance Status */}
-      {accounts.length > 0 && (
+      {rows.length > 0 && (
         isBalanced ? (
           <Alert className="border-green-500/50 bg-green-500/10">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -139,7 +248,7 @@ const TrialBalance = () => {
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertDescription>
-              ميزان المراجعة غير متوازن - الفرق: {formatCurrency(Math.abs(totalDebit - totalCredit))} ر.س
+              ميزان المراجعة غير متوازن - الفرق: {formatCurrency(Math.abs(totals.endingDebit - totals.endingCredit))} ر.س
             </AlertDescription>
           </Alert>
         )
@@ -154,39 +263,53 @@ const TrialBalance = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-24">الرمز</TableHead>
-                <TableHead>اسم الحساب</TableHead>
-                <TableHead className="w-24">النوع</TableHead>
-                <TableHead className="text-center w-36">مدين</TableHead>
-                <TableHead className="text-center w-36">دائن</TableHead>
+                <TableHead rowSpan={2} className="w-20 border-e">الرمز</TableHead>
+                <TableHead rowSpan={2} className="border-e">اسم الحساب</TableHead>
+                <TableHead rowSpan={2} className="w-20 border-e">النوع</TableHead>
+                <TableHead colSpan={2} className="text-center border-e bg-blue-50/50 dark:bg-blue-950/20">الرصيد الافتتاحي</TableHead>
+                <TableHead colSpan={2} className="text-center border-e bg-amber-50/50 dark:bg-amber-950/20">الحركات</TableHead>
+                <TableHead colSpan={2} className="text-center bg-green-50/50 dark:bg-green-950/20">الرصيد الختامي</TableHead>
+              </TableRow>
+              <TableRow>
+                <TableHead className="text-center w-28 bg-blue-50/50 dark:bg-blue-950/20">مدين</TableHead>
+                <TableHead className="text-center w-28 border-e bg-blue-50/50 dark:bg-blue-950/20">دائن</TableHead>
+                <TableHead className="text-center w-28 bg-amber-50/50 dark:bg-amber-950/20">مدين</TableHead>
+                <TableHead className="text-center w-28 border-e bg-amber-50/50 dark:bg-amber-950/20">دائن</TableHead>
+                <TableHead className="text-center w-28 bg-green-50/50 dark:bg-green-950/20">مدين</TableHead>
+                <TableHead className="text-center w-28 bg-green-50/50 dark:bg-green-950/20">دائن</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {accounts.length === 0 ? (
+              {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     لا توجد حسابات مسجلة
                   </TableCell>
                 </TableRow>
               ) : (
-                accounts.map((account) => {
-                  const { debit, credit } = getDebitCredit(account);
-                  return (
-                    <TableRow key={account.id}>
-                      <TableCell className="font-mono">{account.code}</TableCell>
-                      <TableCell>{account.name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{getTypeName(account.type)}</TableCell>
-                      <TableCell className="text-center">{formatCurrency(debit)}</TableCell>
-                      <TableCell className="text-center">{formatCurrency(credit)}</TableCell>
-                    </TableRow>
-                  );
-                })
+                rows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-mono border-e">{row.code}</TableCell>
+                    <TableCell className="border-e">{row.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground border-e">{getTypeName(row.type)}</TableCell>
+                    <TableCell className="text-center">{formatCurrency(row.openingDebit)}</TableCell>
+                    <TableCell className="text-center border-e">{formatCurrency(row.openingCredit)}</TableCell>
+                    <TableCell className="text-center">{formatCurrency(row.movementDebit)}</TableCell>
+                    <TableCell className="text-center border-e">{formatCurrency(row.movementCredit)}</TableCell>
+                    <TableCell className="text-center font-medium">{formatCurrency(row.endingDebit)}</TableCell>
+                    <TableCell className="text-center font-medium">{formatCurrency(row.endingCredit)}</TableCell>
+                  </TableRow>
+                ))
               )}
               {/* Totals */}
-              <TableRow className="bg-muted/50 font-bold text-lg">
-                <TableCell colSpan={3}>الإجمالي</TableCell>
-                <TableCell className="text-center">{formatCurrency(totalDebit)}</TableCell>
-                <TableCell className="text-center">{formatCurrency(totalCredit)}</TableCell>
+              <TableRow className="bg-muted/50 font-bold text-lg border-t-2">
+                <TableCell colSpan={3} className="border-e">الإجمالي</TableCell>
+                <TableCell className="text-center">{formatCurrency(totals.openingDebit)}</TableCell>
+                <TableCell className="text-center border-e">{formatCurrency(totals.openingCredit)}</TableCell>
+                <TableCell className="text-center">{formatCurrency(totals.movementDebit)}</TableCell>
+                <TableCell className="text-center border-e">{formatCurrency(totals.movementCredit)}</TableCell>
+                <TableCell className="text-center">{formatCurrency(totals.endingDebit)}</TableCell>
+                <TableCell className="text-center">{formatCurrency(totals.endingCredit)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
