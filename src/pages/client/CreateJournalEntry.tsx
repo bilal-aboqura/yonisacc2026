@@ -90,21 +90,82 @@ const CreateJournalEntry = () => {
         .from("companies")
         .select("id")
         .eq("owner_id", user?.id)
-        .single();
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (companyError) throw companyError;
+      if (!companyData) return;
       setCompanyId(companyData.id);
 
-      // Fetch accounts (only non-parent accounts)
-      const { data: accountsData } = await supabase
-        .from("accounts")
-        .select("id, code, name, name_en, type, is_parent")
-        .eq("company_id", companyData.id)
-        .eq("is_active", true)
-        .or("is_parent.is.null,is_parent.eq.false")
-        .order("code");
+      // Fetch global accounts, company custom accounts, and linked accounts in parallel
+      const [globalRes, customRes, linkedRes] = await Promise.all([
+        supabase
+          .from("global_accounts" as any)
+          .select("id, code, name, name_en, type, is_parent, is_active")
+          .eq("is_active", true)
+          .order("sort_order"),
+        supabase
+          .from("accounts")
+          .select("id, code, name, name_en, type, is_parent, global_account_id")
+          .eq("company_id", companyData.id)
+          .eq("is_active", true)
+          .is("global_account_id", null)
+          .neq("is_system", true)
+          .or("is_parent.is.null,is_parent.eq.false")
+          .order("code"),
+        supabase
+          .from("accounts")
+          .select("id, global_account_id")
+          .eq("company_id", companyData.id)
+          .not("global_account_id", "is", null),
+      ]);
 
-      setAccounts(accountsData || []);
+      if (globalRes.error) throw globalRes.error;
+
+      // Build a map of global_account_id -> company accounts.id
+      const linkedMap = new Map<string, string>();
+      (linkedRes.data || []).forEach((a: any) => {
+        linkedMap.set(a.global_account_id, a.id);
+      });
+
+      const globalAccounts = (globalRes.data || []) as any[];
+      const customAccounts = (customRes.data || []) as any[];
+
+      // Merge: leaf global accounts + custom accounts
+      const merged: Account[] = [
+        ...globalAccounts
+          .filter((ga: any) => !ga.is_parent)
+          .map((ga: any) => ({
+            id: linkedMap.get(ga.id) || ga.id, // use linked company account id if exists
+            code: ga.code,
+            name: ga.name,
+            name_en: ga.name_en,
+            type: ga.type,
+            is_parent: false,
+          })),
+        ...customAccounts.map((a: any) => ({
+          id: a.id,
+          code: a.code,
+          name: a.name,
+          name_en: a.name_en,
+          type: a.type,
+          is_parent: a.is_parent,
+        })),
+      ];
+
+      // Deduplicate by id
+      const seen = new Set<string>();
+      const uniqueAccounts = merged.filter((a) => {
+        if (seen.has(a.id)) return false;
+        seen.add(a.id);
+        return true;
+      });
+
+      // Sort by code
+      uniqueAccounts.sort((a, b) => a.code.localeCompare(b.code));
+
+      setAccounts(uniqueAccounts);
 
       // Generate entry number
       const { count } = await supabase
