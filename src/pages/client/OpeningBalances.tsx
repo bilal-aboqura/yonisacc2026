@@ -183,6 +183,8 @@ const OpeningBalances = () => {
         .from("companies")
         .select("id")
         .eq("owner_id", user?.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (!companyData) {
@@ -211,6 +213,7 @@ const OpeningBalances = () => {
           .select("id, code, name, name_en, type, balance, parent_id, is_active, is_parent")
           .eq("company_id", companyData.id)
           .is("global_account_id", null)
+          .neq("is_system", true)
           .eq("is_active", true)
           .order("code"),
       ]);
