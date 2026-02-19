@@ -173,9 +173,18 @@ const EditAccount = () => {
           .from("accounts")
           .select("*")
           .eq("id", id)
-          .single();
+          .maybeSingle();
 
         if (accountError) throw accountError;
+        if (!accountData) {
+          toast({
+            title: isRTL ? "خطأ" : "Error",
+            description: isRTL ? "الحساب غير موجود" : "Account not found",
+            variant: "destructive",
+          });
+          navigate("/client/accounts");
+          return;
+        }
 
         setCode(accountData.code);
         setName(accountData.name);
