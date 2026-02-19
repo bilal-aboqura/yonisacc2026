@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Building2, User, Bell, Shield, Palette } from "lucide-react";
+import { Settings, Building2, User, Bell, Shield, Palette, Users } from "lucide-react";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import TeamManagement from "@/components/client/TeamManagement";
 
 const ClientSettings = () => {
   const { isRTL } = useLanguage();
@@ -27,10 +28,14 @@ const ClientSettings = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 lg:w-auto lg:inline-grid">
           <TabsTrigger value="company" className="gap-2">
             <Building2 className="h-4 w-4" />
             {isRTL ? "الشركة" : "Company"}
+          </TabsTrigger>
+          <TabsTrigger value="team" className="gap-2">
+            <Users className="h-4 w-4" />
+            {isRTL ? "الفريق" : "Team"}
           </TabsTrigger>
           <TabsTrigger value="profile" className="gap-2">
             <User className="h-4 w-4" />
@@ -82,6 +87,10 @@ const ClientSettings = () => {
               <Button>{isRTL ? "حفظ التغييرات" : "Save Changes"}</Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="team">
+          <TeamManagement />
         </TabsContent>
 
         <TabsContent value="profile">

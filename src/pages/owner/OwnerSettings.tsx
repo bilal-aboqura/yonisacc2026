@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, Building2, Eye, EyeOff, Save, Loader2, Phone, Mail, MapPin } from "lucide-react";
+import { Settings, Building2, Eye, EyeOff, Save, Loader2, Phone, Mail, MapPin, Key } from "lucide-react";
 
 interface BankAccountSettings {
   bank_name: string;
@@ -34,6 +34,10 @@ interface ContactInfoSettings {
   show_phone: boolean;
   show_email: boolean;
   show_location: boolean;
+}
+
+interface ResendApiSettings {
+  api_key: string;
 }
 
 const OwnerSettings = () => {
@@ -65,6 +69,10 @@ const OwnerSettings = () => {
     show_location: true,
   });
 
+  const [resendApi, setResendApi] = useState<ResendApiSettings>({
+    api_key: "",
+  });
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ["owner-settings"],
     queryFn: async () => {
@@ -82,6 +90,7 @@ const OwnerSettings = () => {
       const bankSetting = settings.find(s => s.setting_key === "bank_account");
       const paymentSetting = settings.find(s => s.setting_key === "payment_settings");
       const contactSetting = settings.find(s => s.setting_key === "contact_info");
+      const resendSetting = settings.find(s => s.setting_key === "resend_api_key");
       
       if (bankSetting?.setting_value) {
         setBankAccount(bankSetting.setting_value as unknown as BankAccountSettings);
@@ -91,6 +100,9 @@ const OwnerSettings = () => {
       }
       if (contactSetting?.setting_value) {
         setContactInfo(contactSetting.setting_value as unknown as ContactInfoSettings);
+      }
+      if (resendSetting?.setting_value) {
+        setResendApi(resendSetting.setting_value as unknown as ResendApiSettings);
       }
     }
   }, [settings]);
@@ -141,6 +153,10 @@ const OwnerSettings = () => {
 
   const saveContactInfo = () => {
     updateSettingMutation.mutate({ key: "contact_info", value: contactInfo });
+  };
+
+  const saveResendApi = () => {
+    updateSettingMutation.mutate({ key: "resend_api_key", value: resendApi });
   };
 
   if (isLoading) {
@@ -470,6 +486,51 @@ const OwnerSettings = () => {
               <Save className="h-4 w-4 me-2" />
             )}
             {isRTL ? "حفظ إعدادات الدفع" : "Save Payment Settings"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Resend API Key */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="h-5 w-5" />
+            {isRTL ? "مفتاح Resend API" : "Resend API Key"}
+          </CardTitle>
+          <CardDescription>
+            {isRTL 
+              ? "مفتاح API لخدمة إرسال البريد الإلكتروني (Resend) - يُستخدم لإرسال دعوات الفريق" 
+              : "API key for Resend email service - used for sending team invitations"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>{isRTL ? "مفتاح API" : "API Key"}</Label>
+            <Input
+              value={resendApi.api_key}
+              onChange={(e) => setResendApi(prev => ({ ...prev, api_key: e.target.value }))}
+              placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxxx"
+              dir="ltr"
+              type="password"
+            />
+            <p className="text-xs text-muted-foreground">
+              {isRTL 
+                ? "احصل على المفتاح من resend.com/api-keys" 
+                : "Get your key from resend.com/api-keys"}
+            </p>
+          </div>
+
+          <Button
+            onClick={saveResendApi}
+            disabled={updateSettingMutation.isPending}
+            className="gradient-primary text-white"
+          >
+            {updateSettingMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin me-2" />
+            ) : (
+              <Save className="h-4 w-4 me-2" />
+            )}
+            {isRTL ? "حفظ مفتاح API" : "Save API Key"}
           </Button>
         </CardContent>
       </Card>
