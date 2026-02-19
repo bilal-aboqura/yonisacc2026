@@ -307,6 +307,31 @@ const CreateJournalEntry = () => {
   const totalCredit = lines.reduce((sum, line) => sum + (line.credit || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
 
+  const updateAccountBalances = async (validLines: typeof lines) => {
+    const accountIds = [...new Set(validLines.map(l => l.account_id))];
+    for (const accountId of accountIds) {
+      const { data: balanceData } = await supabase
+        .from("journal_entry_lines")
+        .select("debit, credit, entry_id")
+        .eq("account_id", accountId);
+      
+      if (balanceData) {
+        const { data: postedEntries } = await supabase
+          .from("journal_entries")
+          .select("id")
+          .eq("company_id", companyId!)
+          .eq("status", "posted");
+        const postedIds = new Set(postedEntries?.map((e: any) => e.id) || []);
+        
+        const net = balanceData
+          .filter((l: any) => postedIds.has(l.entry_id))
+          .reduce((sum: number, l: any) => sum + (l.debit || 0) - (l.credit || 0), 0);
+        
+        await supabase.from("accounts").update({ balance: net }).eq("id", accountId);
+      }
+    }
+  };
+
   const handleSave = async (status: "draft" | "posted") => {
     if (!companyId) return;
 
@@ -363,6 +388,11 @@ const CreateJournalEntry = () => {
       const { error: linesError } = await supabase.from("journal_entry_lines").insert(entryLines);
 
       if (linesError) throw linesError;
+
+      // Update account balances if entry is posted
+      if (status === "posted") {
+        await updateAccountBalances(validLines);
+      }
 
       // Increment next_journal_number in company_settings
       await supabase

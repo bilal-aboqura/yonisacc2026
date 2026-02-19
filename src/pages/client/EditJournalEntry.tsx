@@ -117,11 +117,6 @@ const EditJournalEntry = () => {
       const { data: entry, error: entryErr } = await supabase
         .from("journal_entries").select("*").eq("id", id!).single();
       if (entryErr) throw entryErr;
-      if (entry.status === "posted") {
-        toast({ title: isRTL ? "خطأ" : "Error", description: isRTL ? "لا يمكن تعديل قيد مرحّل" : "Cannot edit a posted entry", variant: "destructive" });
-        navigate("/client/journal");
-        return;
-      }
       setEntryNumber(entry.entry_number);
       setEntryDate(entry.entry_date);
       setDescription(entry.description || "");
@@ -238,6 +233,44 @@ const EditJournalEntry = () => {
       }));
       const { error: linesErr } = await supabase.from("journal_entry_lines").insert(newLines);
       if (linesErr) throw linesErr;
+
+      // Recalculate account balances for all affected accounts
+      const { data: entryStatus } = await supabase
+        .from("journal_entries").select("status").eq("id", id).single();
+      
+      if (entryStatus?.status === "posted") {
+        // Get all unique account IDs from old and new lines
+        const accountIds = new Set<string>();
+        validLines.forEach(l => accountIds.add(l.account_id));
+        // Also include old accounts that may have been removed
+        const { data: allEntryLines } = await supabase
+          .from("journal_entry_lines").select("account_id").eq("entry_id", id!);
+        allEntryLines?.forEach((l: any) => accountIds.add(l.account_id));
+
+        for (const accountId of accountIds) {
+          const { data: balanceData } = await supabase
+            .from("journal_entry_lines")
+            .select("debit, credit, entry_id")
+            .eq("account_id", accountId);
+          
+          // Filter to only posted entries
+          if (balanceData) {
+            const postedEntryIds = new Set<string>();
+            const { data: postedEntries } = await supabase
+              .from("journal_entries")
+              .select("id")
+              .eq("company_id", companyId!)
+              .eq("status", "posted");
+            postedEntries?.forEach((e: any) => postedEntryIds.add(e.id));
+
+            const net = balanceData
+              .filter((l: any) => postedEntryIds.has(l.entry_id))
+              .reduce((sum: number, l: any) => sum + (l.debit || 0) - (l.credit || 0), 0);
+
+            await supabase.from("accounts").update({ balance: net }).eq("id", accountId);
+          }
+        }
+      }
 
       toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تحديث القيد بنجاح" : "Entry updated successfully" });
       navigate("/client/journal");
