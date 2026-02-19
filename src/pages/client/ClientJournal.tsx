@@ -25,12 +25,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Plus, Search, BookOpen, Loader2, Eye, Edit, Trash2, Printer, MoreHorizontal } from "lucide-react";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Plus, Search, BookOpen, Loader2, Eye, Edit, Trash2, Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -305,65 +305,76 @@ const ClientJournal = () => {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("client.journal.entryNumber")}</TableHead>
-                  <TableHead>{t("client.journal.date")}</TableHead>
-                  <TableHead>{t("client.journal.description")}</TableHead>
-                  <TableHead>{t("client.journal.debit")}</TableHead>
-                  <TableHead>{t("client.journal.credit")}</TableHead>
-                  <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-                  <TableHead className="w-[80px]">{t("client.journal.actions")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((entry) => (
-                  <TableRow key={entry.id}>
-                    <TableCell className="font-mono font-medium">{entry.entry_number}</TableCell>
-                    <TableCell>{entry.entry_date}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{entry.description || "-"}</TableCell>
-                    <TableCell>{formatNumber(entry.total_debit)} {currency}</TableCell>
-                    <TableCell>{formatNumber(entry.total_credit)} {currency}</TableCell>
-                    <TableCell>{getStatusBadge(entry.status)}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align={isRTL ? "start" : "end"}>
-                          <DropdownMenuItem onClick={() => navigate(`/client/journal/${entry.id}`)}>
-                            <Eye className="h-4 w-4 me-2" />
-                            {isRTL ? "عرض" : "View"}
-                          </DropdownMenuItem>
-                          {entry.status !== "posted" && !entry.is_auto && (
-                            <DropdownMenuItem onClick={() => navigate(`/client/journal/${entry.id}/edit`)}>
-                              <Edit className="h-4 w-4 me-2" />
-                              {isRTL ? "تعديل" : "Edit"}
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => handlePrint(entry.id)}>
-                            <Printer className="h-4 w-4 me-2" />
-                            {isRTL ? "طباعة" : "Print"}
-                          </DropdownMenuItem>
-                          {entry.status !== "posted" && !entry.is_auto && (
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setDeleteEntry({ id: entry.id, number: entry.entry_number })}
-                            >
-                              <Trash2 className="h-4 w-4 me-2" />
-                              {isRTL ? "حذف" : "Delete"}
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+            <TooltipProvider delayDuration={200}>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[120px]">{t("client.journal.entryNumber")}</TableHead>
+                    <TableHead className="w-[110px]">{t("client.journal.date")}</TableHead>
+                    <TableHead>{t("client.journal.description")}</TableHead>
+                    <TableHead className="w-[130px] text-end">{t("client.journal.debit")}</TableHead>
+                    <TableHead className="w-[130px] text-end">{t("client.journal.credit")}</TableHead>
+                    <TableHead className="w-[90px] text-center">{isRTL ? "الحالة" : "Status"}</TableHead>
+                    <TableHead className="w-[140px] text-center">{t("client.journal.actions")}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((entry) => (
+                    <TableRow key={entry.id} className="group">
+                      <TableCell className="font-mono font-medium text-primary">{entry.entry_number}</TableCell>
+                      <TableCell className="text-muted-foreground">{entry.entry_date}</TableCell>
+                      <TableCell className="max-w-[250px] truncate">{entry.description || "-"}</TableCell>
+                      <TableCell className="text-end font-medium tabular-nums">{formatNumber(entry.total_debit)} <span className="text-xs text-muted-foreground">{currency}</span></TableCell>
+                      <TableCell className="text-end font-medium tabular-nums">{formatNumber(entry.total_credit)} <span className="text-xs text-muted-foreground">{currency}</span></TableCell>
+                      <TableCell className="text-center">{getStatusBadge(entry.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => navigate(`/client/journal/${entry.id}`)}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{isRTL ? "عرض" : "View"}</TooltipContent>
+                          </Tooltip>
+
+                          {entry.status !== "posted" && !entry.is_auto && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-600" onClick={() => navigate(`/client/journal/${entry.id}/edit`)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => handlePrint(entry.id)}>
+                                <Printer className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{isRTL ? "طباعة" : "Print"}</TooltipContent>
+                          </Tooltip>
+
+                          {entry.status !== "posted" && !entry.is_auto && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteEntry({ id: entry.id, number: entry.entry_number })}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{isRTL ? "حذف" : "Delete"}</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TooltipProvider>
           )}
         </CardContent>
       </Card>
