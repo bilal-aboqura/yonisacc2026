@@ -102,11 +102,6 @@ const AccountRow = memo(({
         {getTypeName(account.type)}
       </Badge>
 
-      {account.is_global && (
-        <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground border-dashed">
-          {isRTL ? "موحد" : "Global"}
-        </Badge>
-      )}
 
       <span className="font-mono text-sm w-28 text-end shrink-0">
         {displayBalance.toLocaleString()} {currency}
@@ -193,7 +188,8 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
             .from("accounts")
             .select("*")
             .eq("company_id", companyData.id)
-            .is("global_account_id", null) // only custom company accounts
+            .is("global_account_id", null)
+            .neq("is_system", true) // exclude old system accounts (now in global_accounts)
             .order("code"),
         ]);
 
