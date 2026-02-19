@@ -29,6 +29,8 @@ import CreateContact from "./pages/client/CreateContact";
 import ViewInvoice from "./pages/client/ViewInvoice";
 import CreatePurchaseInvoice from "./pages/client/CreatePurchaseInvoice";
 import CreateJournalEntry from "./pages/client/CreateJournalEntry";
+import ViewJournalEntry from "./pages/client/ViewJournalEntry";
+import EditJournalEntry from "./pages/client/EditJournalEntry";
 import CreateAccount from "./pages/client/CreateAccount";
 import EditAccount from "./pages/client/EditAccount";
 import CreateTreasuryTransaction from "./pages/client/CreateTreasuryTransaction";
@@ -113,6 +115,8 @@ const App = () => (
               <Route path="cost-centers/reports" element={<CostCenterReports />} />
               <Route path="journal" element={<ClientJournal />} />
               <Route path="journal/new" element={<CreateJournalEntry />} />
+              <Route path="journal/:id" element={<ViewJournalEntry />} />
+              <Route path="journal/:id/edit" element={<EditJournalEntry />} />
               <Route path="treasury" element={<ClientTreasury />} />
               <Route path="treasury/new" element={<CreateTreasuryTransaction />} />
               <Route path="ledger" element={<GeneralLedger />} />
