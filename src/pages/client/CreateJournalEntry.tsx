@@ -381,9 +381,25 @@ const CreateJournalEntry = () => {
       navigate("/client/journal");
     } catch (error: any) {
       console.error("Error saving entry:", error);
+      let errorMessage = t("client.journal.create.errors.savingEntry");
+      if (error?.code === "23505") {
+        errorMessage = isRTL 
+          ? `رقم القيد "${entryNumber}" مستخدم مسبقاً. يرجى تغيير الرقم أو تحديث الصفحة.`
+          : `Entry number "${entryNumber}" already exists. Please change it or refresh the page.`;
+      } else if (error?.code === "23503") {
+        errorMessage = isRTL
+          ? "أحد الحسابات المحددة غير موجود. يرجى تحديث الصفحة والمحاولة مرة أخرى."
+          : "One of the selected accounts no longer exists. Please refresh and try again.";
+      } else if (error?.code === "42501") {
+        errorMessage = isRTL
+          ? "ليس لديك صلاحية لإنشاء قيود يومية."
+          : "You don't have permission to create journal entries.";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
       toast({
         title: t("common.error"),
-        description: t("client.journal.create.errors.savingEntry"),
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
