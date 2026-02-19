@@ -187,39 +187,80 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
             .select("*")
             .eq("company_id", companyData.id)
             .is("global_account_id", null)
-            .neq("is_system", true) // exclude old system accounts (now in global_accounts)
+            .neq("is_system", true)
             .order("code"),
         ]);
 
         if (globalRes.error) throw globalRes.error;
 
-        // Also fetch company accounts that have global_account_id (for balances)
+        // Fetch company accounts that have global_account_id (for linking)
         const { data: linkedAccountsData } = await supabase
           .from("accounts")
-          .select("id, global_account_id, balance")
+          .select("id, global_account_id")
           .eq("company_id", companyData.id)
           .not("global_account_id", "is", null);
 
-        const linkedMap = new Map<string, { id: string; balance: number | null }>();
+        const linkedMap = new Map<string, { id: string }>();
         (linkedAccountsData || []).forEach((a: any) => {
-          linkedMap.set(a.global_account_id, { id: a.id, balance: a.balance });
+          linkedMap.set(a.global_account_id, { id: a.id });
         });
 
-        const globalAccounts = (globalRes.data || []) as any[];
+        // Compute dynamic balances: opening_balances + all posted journal movements
+        const allAccountIds: string[] = [];
         const companyAccounts = (companyRes.data || []) as any[];
+        companyAccounts.forEach((a: any) => allAccountIds.push(a.id));
+        (linkedAccountsData || []).forEach((a: any) => allAccountIds.push(a.id));
+
+        // Fetch opening balances
+        const { data: obData } = await supabase
+          .from("opening_balances")
+          .select("account_id, debit, credit")
+          .eq("company_id", companyData.id);
+
+        const balanceMap = new Map<string, number>();
+        (obData || []).forEach((ob: any) => {
+          const prev = balanceMap.get(ob.account_id) || 0;
+          balanceMap.set(ob.account_id, prev + (Number(ob.debit) || 0) - (Number(ob.credit) || 0));
+        });
+
+        // Fetch all posted journal entry movements
+        const { data: allEntries } = await supabase
+          .from("journal_entries")
+          .select("id")
+          .eq("company_id", companyData.id)
+          .eq("status", "posted");
+
+        if (allEntries && allEntries.length > 0 && allAccountIds.length > 0) {
+          const entryIds = allEntries.map(e => e.id);
+          for (let i = 0; i < entryIds.length; i += 100) {
+            const chunk = entryIds.slice(i, i + 100);
+            const { data: lines } = await supabase
+              .from("journal_entry_lines")
+              .select("account_id, debit, credit")
+              .in("entry_id", chunk)
+              .in("account_id", allAccountIds);
+
+            (lines || []).forEach((line: any) => {
+              const prev = balanceMap.get(line.account_id) || 0;
+              balanceMap.set(line.account_id, prev + (Number(line.debit) || 0) - (Number(line.credit) || 0));
+            });
+          }
+        }
+
+        const globalAccounts = (globalRes.data || []) as any[];
 
         // Build merged flat list
-        // Global accounts get a virtual id = "global_" + ga.id
         const merged: Account[] = [
           ...globalAccounts.map((ga: any) => {
             const linked = linkedMap.get(ga.id);
+            const dynamicBalance = linked ? (balanceMap.get(linked.id) || 0) : 0;
             return {
               id: "global_" + ga.id,
               code: ga.code,
               name: ga.name,
               name_en: ga.name_en,
               type: ga.type,
-              balance: linked?.balance ?? 0,
+              balance: dynamicBalance,
               parent_id: null,
               parent_code: ga.parent_code,
               is_active: ga.is_active,
@@ -236,7 +277,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
             name: a.name,
             name_en: a.name_en,
             type: a.type,
-            balance: a.balance,
+            balance: balanceMap.get(a.id) || 0,
             parent_id: a.parent_id,
             parent_code: null,
             is_active: a.is_active,

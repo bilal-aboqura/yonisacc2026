@@ -76,18 +76,52 @@ const TrialBalance = () => {
 
       const accountIds = accountsData.map(a => a.id);
 
-      // Fetch opening balances from dedicated table
+      // 1. Fetch opening balances from dedicated table
       const { data: obData } = await supabase
-        .from("opening_balances" as any)
+        .from("opening_balances")
         .select("account_id, debit, credit")
         .eq("company_id", companyData.id);
 
       const openingMap = new Map<string, { debit: number; credit: number }>();
       (obData || []).forEach((ob: any) => {
-        openingMap.set(ob.account_id, { debit: Number(ob.debit) || 0, credit: Number(ob.credit) || 0 });
+        const existing = openingMap.get(ob.account_id) || { debit: 0, credit: 0 };
+        openingMap.set(ob.account_id, {
+          debit: existing.debit + (Number(ob.debit) || 0),
+          credit: existing.credit + (Number(ob.credit) || 0),
+        });
       });
 
-      // Fetch movements from journal entries (posted only)
+      // 2. If dateFrom is set, add prior journal movements to opening balance
+      if (dateFrom) {
+        const { data: priorEntries } = await supabase
+          .from("journal_entries")
+          .select("id")
+          .eq("company_id", companyData.id)
+          .eq("status", "posted")
+          .lt("entry_date", dateFrom);
+
+        if (priorEntries && priorEntries.length > 0) {
+          const priorIds = priorEntries.map(e => e.id);
+          for (let i = 0; i < priorIds.length; i += 100) {
+            const chunk = priorIds.slice(i, i + 100);
+            const { data: priorLines } = await supabase
+              .from("journal_entry_lines")
+              .select("account_id, debit, credit")
+              .in("entry_id", chunk)
+              .in("account_id", accountIds);
+
+            (priorLines || []).forEach((line: any) => {
+              const existing = openingMap.get(line.account_id) || { debit: 0, credit: 0 };
+              openingMap.set(line.account_id, {
+                debit: existing.debit + (Number(line.debit) || 0),
+                credit: existing.credit + (Number(line.credit) || 0),
+              });
+            });
+          }
+        }
+      }
+
+      // 3. Fetch period movements from journal entries (posted only, within date range)
       let entriesQuery = supabase
         .from("journal_entries")
         .select("id")
@@ -103,7 +137,6 @@ const TrialBalance = () => {
       const movementMap = new Map<string, { debit: number; credit: number }>();
 
       if (entryIds.length > 0) {
-        // Batch fetch in chunks of 100
         for (let i = 0; i < entryIds.length; i += 100) {
           const chunk = entryIds.slice(i, i + 100);
           const { data: lines } = await supabase
@@ -122,20 +155,23 @@ const TrialBalance = () => {
         }
       }
 
-      // Build trial balance rows
+      // 4. Build trial balance rows
       const trialRows: TrialBalanceRow[] = accountsData.map(account => {
         const opening = openingMap.get(account.id) || { debit: 0, credit: 0 };
         const movement = movementMap.get(account.id) || { debit: 0, credit: 0 };
 
-        const endingNet = (opening.debit - opening.credit) + (movement.debit - movement.credit);
+        // Opening net for display
+        const openingNet = opening.debit - opening.credit;
+        const movementNet = movement.debit - movement.credit;
+        const endingNet = openingNet + movementNet;
 
         return {
           id: account.id,
           code: account.code,
           name: account.name,
           type: account.type,
-          openingDebit: opening.debit,
-          openingCredit: opening.credit,
+          openingDebit: openingNet > 0 ? openingNet : 0,
+          openingCredit: openingNet < 0 ? Math.abs(openingNet) : 0,
           movementDebit: movement.debit,
           movementCredit: movement.credit,
           endingDebit: endingNet > 0 ? endingNet : 0,

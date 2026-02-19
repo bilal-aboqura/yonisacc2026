@@ -180,7 +180,7 @@ const GeneralLedger = () => {
       try {
         // Step 1: Fetch opening balance from dedicated table
         const { data: obData } = await supabase
-          .from("opening_balances" as any)
+          .from("opening_balances")
           .select("debit, credit")
           .eq("company_id", companyId)
           .eq("account_id", selectedAccountId);
@@ -190,15 +190,45 @@ const GeneralLedger = () => {
           obNet += (Number(ob.debit) || 0) - (Number(ob.credit) || 0);
         });
 
-        // Step 2: Get all posted journal entries for this company
-        const { data: entries, error: entriesError } = await supabase
+        // Step 2: If dateFrom is set, add prior journal movements to opening balance
+        if (dateFrom) {
+          const { data: priorEntries } = await supabase
+            .from("journal_entries")
+            .select("id")
+            .eq("company_id", companyId)
+            .eq("status", "posted")
+            .lt("entry_date", dateFrom);
+
+          if (priorEntries && priorEntries.length > 0) {
+            const priorIds = priorEntries.map(e => e.id);
+            for (let i = 0; i < priorIds.length; i += 100) {
+              const chunk = priorIds.slice(i, i + 100);
+              const { data: priorLines } = await supabase
+                .from("journal_entry_lines")
+                .select("debit, credit")
+                .eq("account_id", selectedAccountId)
+                .in("entry_id", chunk);
+              (priorLines || []).forEach((l: any) => {
+                obNet += (Number(l.debit) || 0) - (Number(l.credit) || 0);
+              });
+            }
+          }
+        }
+
+        // Step 3: Get posted journal entries for this company within date range
+        let entriesQuery = supabase
           .from("journal_entries")
           .select("id, entry_number, entry_date, description, status")
           .eq("company_id", companyId)
           .eq("status", "posted")
           .order("entry_date");
 
+        if (dateFrom) entriesQuery = entriesQuery.gte("entry_date", dateFrom);
+        if (dateTo) entriesQuery = entriesQuery.lte("entry_date", dateTo);
+
+        const { data: entries, error: entriesError } = await entriesQuery;
         if (entriesError) throw entriesError;
+
         if (!entries || entries.length === 0) {
           setOpeningBalance(obNet);
           setLedgerLines([]);
@@ -209,17 +239,21 @@ const GeneralLedger = () => {
         const entryIds = entries.map(e => e.id);
         const entryMap = new Map(entries.map(e => [e.id, e]));
 
-        // Step 3: Get journal lines for this account from those entries
-        const { data: lines, error: linesError } = await supabase
-          .from("journal_entry_lines")
-          .select("id, entry_id, debit, credit, description")
-          .eq("account_id", selectedAccountId)
-          .in("entry_id", entryIds);
-
-        if (linesError) throw linesError;
+        // Step 4: Get journal lines for this account using JOIN via entry_id IN (filtered entries)
+        let allLines: any[] = [];
+        for (let i = 0; i < entryIds.length; i += 100) {
+          const chunk = entryIds.slice(i, i + 100);
+          const { data: lines, error: linesError } = await supabase
+            .from("journal_entry_lines")
+            .select("id, entry_id, debit, credit, description")
+            .eq("account_id", selectedAccountId)
+            .in("entry_id", chunk);
+          if (linesError) throw linesError;
+          allLines = allLines.concat(lines || []);
+        }
 
         // Build ledger lines
-        let ledger = (lines || []).map((line: any) => {
+        const ledger: LedgerLine[] = allLines.map((line: any) => {
           const entry = entryMap.get(line.entry_id)!;
           return {
             id: line.id,
@@ -227,20 +261,12 @@ const GeneralLedger = () => {
             entry_number: entry.entry_number,
             entry_date: entry.entry_date,
             description: line.description || entry.description,
-            debit: line.debit || 0,
-            credit: line.credit || 0,
+            debit: Number(line.debit) || 0,
+            credit: Number(line.credit) || 0,
             running_balance: 0,
             status: entry.status,
           };
         });
-
-        // Apply date filters
-        if (dateFrom) {
-          ledger = ledger.filter(l => l.entry_date >= dateFrom);
-        }
-        if (dateTo) {
-          ledger = ledger.filter(l => l.entry_date <= dateTo);
-        }
 
         // Sort by date then entry_number
         ledger.sort((a, b) => {
