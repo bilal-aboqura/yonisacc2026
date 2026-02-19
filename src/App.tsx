@@ -41,6 +41,7 @@ import TrialBalance from "./pages/client/reports/TrialBalance";
 
 // New Client Pages
 import CostCenters from "./pages/client/CostCenters";
+import CreateCostCenter from "./pages/client/CreateCostCenter";
 import CostCenterReports from "./pages/client/CostCenterReports";
 import GeneralLedger from "./pages/client/GeneralLedger";
 import OperationsLog from "./pages/client/OperationsLog";
@@ -108,6 +109,7 @@ const App = () => (
               <Route path="accounts/:id/edit" element={<EditAccount />} />
               <Route path="accounts/opening-balances" element={<OpeningBalances />} />
               <Route path="cost-centers" element={<CostCenters />} />
+              <Route path="cost-centers/new" element={<CreateCostCenter />} />
               <Route path="cost-centers/reports" element={<CostCenterReports />} />
               <Route path="journal" element={<ClientJournal />} />
               <Route path="journal/new" element={<CreateJournalEntry />} />
