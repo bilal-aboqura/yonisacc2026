@@ -119,25 +119,24 @@ export const Step4Modules = ({ isRTL }: Props) => {
       });
 
       if (signUpError) {
+        const errMsg = signUpError.message?.toLowerCase() || "";
         let msg = isRTL ? "حدث خطأ أثناء إنشاء الحساب" : "Failed to create account";
-        if (signUpError.message.includes("already registered")) {
+        if (errMsg.includes("already registered") || errMsg.includes("already been registered") || signUpError.status === 422) {
           msg = isRTL ? "هذا البريد الإلكتروني مسجل مسبقاً" : "This email is already registered";
+        } else if (errMsg.includes("password")) {
+          msg = isRTL ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل" : "Password must be at least 6 characters";
         }
         throw new Error(msg);
       }
 
       if (!signUpData.session) {
-        // Auto-confirm is off — account created but not signed in yet.
-        // We still try to sign in to get a session for provisioning.
+        // Fallback: try to sign in if auto-confirm created the user without returning a session
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
         });
         if (signInError || !signInData.session) {
-          // Account created but email confirmation required
-          toast.success(isRTL ? "تم إنشاء حسابك! تحقق من بريدك الإلكتروني لتفعيل الحساب" : "Account created! Check your email to verify.");
-          navigate("/auth");
-          return;
+          throw new Error(isRTL ? "فشل تسجيل الدخول بعد إنشاء الحساب. حاول تسجيل الدخول يدوياً." : "Failed to sign in after signup. Try logging in manually.");
         }
       }
 
@@ -159,27 +158,24 @@ export const Step4Modules = ({ isRTL }: Props) => {
         modules: ["accounting", ...data.selected_modules.filter((m) => m !== "accounting")],
       };
 
-      const { data: result, error } = await supabase.functions.invoke("provision-tenant", {
+      const response = await supabase.functions.invoke("provision-tenant", {
         body: payload,
       });
 
-      if (error) {
-        // Parse structured errors from edge function
-        let msg = error.message || (isRTL ? "حدث خطأ في إنشاء الشركة" : "Failed to create company");
-        try {
-          const parsed = JSON.parse(error.message);
-          if (parsed?.code === 'PHONE_ALREADY_EXISTS') {
-            msg = isRTL ? "رقم الجوال مستخدم بالفعل" : "This phone number is already registered";
-          } else if (parsed?.error) {
-            msg = isRTL ? parsed.error : (parsed.error_en || parsed.error);
-          }
-        } catch { /* not JSON, use raw message */ }
-        throw new Error(msg);
-      }
+      // supabase.functions.invoke returns { data, error }
+      // On non-2xx, error is set but data may also contain the response body
+      const result = response.data;
+      const fnError = response.error;
 
-      // Also handle 409 from result body
-      if (result?.code === 'PHONE_ALREADY_EXISTS') {
-        throw new Error(isRTL ? "رقم الجوال مستخدم بالفعل" : "This phone number is already registered");
+      if (fnError || result?.error) {
+        const errorBody = result || {};
+        let msg = errorBody.error || fnError?.message || (isRTL ? "حدث خطأ في إنشاء الشركة" : "Failed to create company");
+        
+        if (errorBody.code === 'PHONE_ALREADY_EXISTS') {
+          msg = isRTL ? "رقم الجوال مستخدم بالفعل" : "This phone number is already registered";
+        }
+        
+        throw new Error(msg);
       }
 
       if (!result?.company_id) throw new Error(isRTL ? "لم يتم إرجاع معرف الشركة" : "Company ID not returned");

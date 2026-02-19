@@ -1784,6 +1784,7 @@ export type Database = {
           id: string
           language: string | null
           phone: string | null
+          phone_number: string | null
           theme: string | null
           updated_at: string
           user_id: string
@@ -1795,6 +1796,7 @@ export type Database = {
           id?: string
           language?: string | null
           phone?: string | null
+          phone_number?: string | null
           theme?: string | null
           updated_at?: string
           user_id: string
@@ -1806,6 +1808,7 @@ export type Database = {
           id?: string
           language?: string | null
           phone?: string | null
+          phone_number?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
