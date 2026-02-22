@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
-import { Search, Building2, Eye, Pencil, Pause, Ban, Trash2, Mail, Phone, Calendar, MapPin } from "lucide-react";
+import { Search, Building2, Eye, Pencil, Pause, Ban, Trash2, Mail, Phone, Calendar, MapPin, Archive, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -48,9 +48,10 @@ const OwnerSubscribers = () => {
   const [page, setPage] = useState(1);
   const [viewCompany, setViewCompany] = useState<any>(null);
   const [confirmAction, setConfirmAction] = useState<{ type: "suspend" | "terminate" | "delete"; company: any } | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["owner-subscribers", search, page],
+    queryKey: ["owner-subscribers", search, page, showArchived],
     queryFn: async () => {
       let query = supabase
         .from("companies")
@@ -61,9 +62,14 @@ const OwnerSubscribers = () => {
             plan:subscription_plans(name_ar, name_en, price)
           )
         `, { count: "exact" })
-        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+
+      if (showArchived) {
+        query = query.not("deleted_at", "is", null);
+      } else {
+        query = query.is("deleted_at", null);
+      }
 
       if (search.trim()) {
         query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,name_en.ilike.%${search}%`);
@@ -81,11 +87,13 @@ const OwnerSubscribers = () => {
   const actionMutation = useMutation({
     mutationFn: async ({ type, companyId, subscriptionId }: { type: string; companyId: string; subscriptionId?: string }) => {
       if (type === "delete") {
-        const { error } = await supabase
-          .from("companies")
-          .update({ deleted_at: new Date().toISOString() } as any)
-          .eq("id", companyId);
-        if (error) throw error;
+        // Use edge function for proper soft delete + auth user cleanup
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await supabase.functions.invoke("delete-subscriber", {
+          body: { companyId },
+        });
+        if (response.error) throw new Error(response.error.message || "Delete failed");
+        if (response.data?.error) throw new Error(response.data.error);
       } else if (type === "suspend" || type === "terminate") {
         if (subscriptionId) {
           const { error } = await supabase
@@ -142,10 +150,10 @@ const OwnerSubscribers = () => {
       descEn: "Are you sure you want to terminate this subscription? Access will be permanently blocked.",
     },
     delete: {
-      titleAr: "حذف الشركة",
-      titleEn: "Delete Company",
-      descAr: "هل أنت متأكد من حذف هذه الشركة؟ لن يتم حذفها نهائياً ولكن ستختفي من القائمة.",
-      descEn: "Are you sure you want to delete this company? It will be soft-deleted and hidden from the list.",
+      titleAr: "حذف المشترك",
+      titleEn: "Delete Subscriber",
+      descAr: "سيتم أرشفة الشركة وإلغاء الاشتراك وتحرير البريد الإلكتروني للتسجيل مجدداً. لن يتم حذف السجلات المحاسبية.",
+      descEn: "The company will be archived, subscription cancelled, and the email freed for re-registration. Accounting records will be preserved.",
     },
   };
 
@@ -158,17 +166,27 @@ const OwnerSubscribers = () => {
         </p>
       </div>
 
-      {/* Search */}
       <Card className="border-0 shadow-lg">
         <CardContent className="p-4">
-          <div className="relative max-w-md">
-            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={isRTL ? "بحث بالاسم أو البريد..." : "Search by name or email..."}
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="ps-10"
-            />
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-[200px] max-w-md">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={isRTL ? "بحث بالاسم أو البريد..." : "Search by name or email..."}
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                className="ps-10"
+              />
+            </div>
+            <Button
+              variant={showArchived ? "default" : "outline"}
+              size="sm"
+              className="gap-2"
+              onClick={() => { setShowArchived(!showArchived); setPage(1); }}
+            >
+              <Archive className="h-4 w-4" />
+              {isRTL ? "المؤرشفين" : "Archived"}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -212,9 +230,10 @@ const OwnerSubscribers = () => {
                     const status: string = sub?.status || "none";
                     const cfg = statusConfig[status] || statusConfig.none;
                     const isTerminated = status === "terminated";
+                    const isArchived = !!company.deleted_at;
 
                     return (
-                      <TableRow key={company.id} className={isTerminated ? "opacity-60" : ""}>
+                      <TableRow key={company.id} className={isTerminated || isArchived ? "opacity-60" : ""}>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -260,7 +279,7 @@ const OwnerSubscribers = () => {
 
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isTerminated}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isArchived || isTerminated}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
@@ -272,7 +291,7 @@ const OwnerSubscribers = () => {
                                 <Button
                                   variant="ghost" size="icon"
                                   className="h-8 w-8 hover:text-yellow-600"
-                                  disabled={isTerminated || status === "suspended"}
+                                  disabled={isArchived || isTerminated || status === "suspended"}
                                   onClick={() => setConfirmAction({ type: "suspend", company })}
                                 >
                                   <Pause className="h-4 w-4" />
@@ -286,7 +305,7 @@ const OwnerSubscribers = () => {
                                 <Button
                                   variant="ghost" size="icon"
                                   className="h-8 w-8 hover:text-red-600"
-                                  disabled={isTerminated}
+                                  disabled={isArchived || isTerminated}
                                   onClick={() => setConfirmAction({ type: "terminate", company })}
                                 >
                                   <Ban className="h-4 w-4" />
@@ -300,6 +319,7 @@ const OwnerSubscribers = () => {
                                 <Button
                                   variant="ghost" size="icon"
                                   className="h-8 w-8 hover:text-destructive"
+                                  disabled={isArchived}
                                   onClick={() => setConfirmAction({ type: "delete", company })}
                                 >
                                   <Trash2 className="h-4 w-4" />
