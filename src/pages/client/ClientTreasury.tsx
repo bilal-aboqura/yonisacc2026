@@ -56,14 +56,25 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
     queryFn: async () => {
       if (!company?.id) return { accounts: [], transactions: [] };
 
+      // First get global account IDs under "Cash and Banks" (code 111)
+      const { data: cashBankGlobals } = await supabase
+        .from("global_accounts" as any)
+        .select("id")
+        .eq("is_active", true)
+        .like("code", "111%")
+        .eq("is_parent", false);
+
+      const cashBankGlobalIds = (cashBankGlobals || []).map((g: any) => g.id);
+
       const [accountsRes, transactionsRes, balancesRes] = await Promise.all([
+        // Only fetch accounts linked to cash/bank global accounts
         supabase
           .from("accounts")
           .select("id, name, name_en")
           .eq("company_id", company.id)
           .eq("is_active", true)
           .or("is_parent.is.null,is_parent.eq.false")
-          .in("type", ["asset"])
+          .in("global_account_id", cashBankGlobalIds.length > 0 ? cashBankGlobalIds : ["__none__"])
           .order("code"),
         supabase
           .from("treasury_transactions")
