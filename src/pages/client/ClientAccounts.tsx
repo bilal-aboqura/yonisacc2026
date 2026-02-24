@@ -372,10 +372,10 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
   const handleEditAccount = useCallback((account: Account, e: React.MouseEvent) => {
     e.stopPropagation();
     if (account.is_global) {
-      // For global accounts, use company_account_id if linked, otherwise navigate to edit with global id
-      const editId = account.company_account_id || account.global_account_id;
-      if (editId) {
-        navigate(`/client/accounts/${editId}/edit?global=true`);
+      // Always navigate using global account id in global edit mode
+      // EditAccount expects :id to be global_accounts.id when ?global=true
+      if (account.global_account_id) {
+        navigate(`/client/accounts/${account.global_account_id}/edit?global=true`);
       }
     } else {
       navigate(`/client/accounts/${account.id}/edit`);
