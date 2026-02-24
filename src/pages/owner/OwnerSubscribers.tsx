@@ -234,7 +234,7 @@ const OwnerSubscribers = () => {
       </Card>
 
       {/* Table */}
-      <Card className="border-0 shadow-lg overflow-hidden">
+      <Card className="border-0 shadow-lg overflow-hidden rounded-2xl">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>

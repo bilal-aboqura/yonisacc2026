@@ -124,7 +124,7 @@ const OwnerActivities = () => {
         </div>
       </div>
 
-      <Card>
+      <Card className="shadow-sm border-border/60 rounded-2xl overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>

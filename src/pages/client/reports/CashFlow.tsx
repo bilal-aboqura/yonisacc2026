@@ -177,7 +177,7 @@ const CashFlow = () => {
       </div>
 
       {/* Inflows */}
-      <Card>
+      <Card className="shadow-sm border-border/60 rounded-2xl overflow-hidden">
         <CardHeader>
           <CardTitle className="text-green-600 flex items-center gap-2">
             <ArrowUpRight className="h-5 w-5" />
@@ -225,7 +225,7 @@ const CashFlow = () => {
       </Card>
 
       {/* Outflows */}
-      <Card>
+      <Card className="shadow-sm border-border/60 rounded-2xl overflow-hidden">
         <CardHeader>
           <CardTitle className="text-red-600 flex items-center gap-2">
             <ArrowDownRight className="h-5 w-5" />

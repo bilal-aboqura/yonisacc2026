@@ -207,7 +207,7 @@ const OperationsLog = () => {
       </Card>
 
       {/* Entries */}
-      <Card>
+      <Card className="shadow-sm border-border/60 rounded-2xl overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ListChecks className="h-5 w-5" />
