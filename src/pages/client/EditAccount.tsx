@@ -135,14 +135,42 @@ const EditAccount = () => {
       setCostCenters(costCentersData || []);
 
       if (isGlobal) {
-        // Fetch global account data
-        const { data: gaData, error: gaError } = await supabase
+        // Fetch global account data (supports legacy ids: global_<id> or linked company account id)
+        let resolvedGlobalId = (id as string).startsWith("global_")
+          ? (id as string).replace("global_", "")
+          : (id as string);
+
+        let { data: gaData } = await supabase
           .from("global_accounts" as any)
           .select("*")
-          .eq("id", id)
-          .single();
-        
-        if (gaError) throw gaError;
+          .eq("id", resolvedGlobalId)
+          .maybeSingle();
+
+        if (!gaData) {
+          // Fallback: id may be a linked company account id
+          const { data: linkedLookup, error: linkedLookupError } = await supabase
+            .from("accounts")
+            .select("global_account_id")
+            .eq("id", id as string)
+            .eq("company_id", companyData.id)
+            .maybeSingle();
+
+          if (linkedLookupError) throw linkedLookupError;
+          if (!linkedLookup?.global_account_id) throw new Error("Global account not found");
+
+          resolvedGlobalId = linkedLookup.global_account_id;
+
+          const { data: retryGlobalData, error: retryGlobalError } = await supabase
+            .from("global_accounts" as any)
+            .select("*")
+            .eq("id", resolvedGlobalId)
+            .maybeSingle();
+
+          if (retryGlobalError) throw retryGlobalError;
+          if (!retryGlobalData) throw new Error("Global account not found");
+          gaData = retryGlobalData;
+        }
+
         const ga = gaData as any;
 
         setCode(ga.code);
@@ -152,14 +180,14 @@ const EditAccount = () => {
         setIsParent(ga.is_parent || false);
         setIsActive(ga.is_active ?? true);
         setIsSystemAccount(true);
-        setGlobalAccountId(ga.id);
+        setGlobalAccountId(resolvedGlobalId);
 
         // Check for linked company account (for balance)
         const { data: linkedData } = await supabase
           .from("accounts")
           .select("id, balance, cost_center_id")
           .eq("company_id", companyData.id)
-          .eq("global_account_id", id as string)
+          .eq("global_account_id", resolvedGlobalId)
           .maybeSingle();
 
         if (linkedData) {
