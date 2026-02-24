@@ -452,24 +452,44 @@ const OpeningBalances = () => {
         let realAccountId = account.company_account_id;
 
         if (account.is_global && !realAccountId) {
-          const { data: newAcc } = await supabase.from("accounts").insert({
-            company_id: companyId,
-            code: account.code,
-            name: account.name,
-            name_en: account.name_en,
-            type: account.type,
-            is_parent: account.is_parent,
-            is_system: false,
-            balance: 0,
-            global_account_id: account.global_account_id,
-          }).select("id").single();
+          // First try to find existing company account by code
+          const { data: existingAcc } = await supabase
+            .from("accounts")
+            .select("id")
+            .eq("company_id", companyId)
+            .eq("code", account.code)
+            .maybeSingle();
 
-          if (newAcc) {
-            realAccountId = newAcc.id;
-            // Update flatAccounts with the new linked id
+          if (existingAcc) {
+            realAccountId = existingAcc.id;
+            // Link global account for future lookups
+            await supabase
+              .from("accounts")
+              .update({ global_account_id: account.global_account_id })
+              .eq("id", existingAcc.id);
+          } else {
+            // Only create if truly missing
+            const { data: newAcc } = await supabase.from("accounts").insert({
+              company_id: companyId,
+              code: account.code,
+              name: account.name,
+              name_en: account.name_en,
+              type: account.type,
+              is_parent: account.is_parent,
+              is_system: false,
+              balance: 0,
+              global_account_id: account.global_account_id,
+            }).select("id").single();
+
+            if (newAcc) {
+              realAccountId = newAcc.id;
+            }
+          }
+
+          if (realAccountId) {
             setFlatAccounts((prev) =>
               prev.map((a) =>
-                a.id === accountId ? { ...a, company_account_id: newAcc.id } : a
+                a.id === accountId ? { ...a, company_account_id: realAccountId } : a
               )
             );
           }
