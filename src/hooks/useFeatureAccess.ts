@@ -65,7 +65,7 @@ export const useFeatureAccess = () => {
       return data as unknown as FeatureAccess;
     },
     enabled: !!companyId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds for near-real-time owner updates
   });
 
   const { data: usage, isLoading: isLoadingUsage, refetch: refetchUsage } = useQuery({

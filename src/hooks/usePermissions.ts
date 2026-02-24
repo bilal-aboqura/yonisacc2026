@@ -21,7 +21,7 @@ export const usePermissions = () => {
       return (data as any) || {};
     },
     enabled: !!companyId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 seconds for near-real-time owner updates
   });
 
   const hasPermission = (featureKey: string): boolean => {

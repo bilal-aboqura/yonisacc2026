@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { useAutoPartsAccess } from "@/hooks/useAutoPartsAccess";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { useScreenAccess } from "@/hooks/useScreenAccess";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -57,6 +58,7 @@ interface MenuItem {
   label: string;
   labelEn: string;
   path?: string;
+  screenKey?: string;
   children?: MenuItem[];
 }
 
@@ -65,21 +67,22 @@ const baseMenuItems: MenuItem[] = [
     icon: LayoutDashboard, 
     label: "لوحة التحكم", 
     labelEn: "Dashboard", 
-    path: "/client" 
+    path: "/client",
+    screenKey: "dashboard",
   },
   {
     icon: Calculator,
     label: "المحاسبة المالية",
     labelEn: "Financial Accounting",
     children: [
-      { icon: ClipboardList, label: "دليل الحسابات", labelEn: "Chart of Accounts", path: "/client/accounts" },
-      { icon: FileSpreadsheet, label: "الأرصدة الإفتتاحية", labelEn: "Opening Balances", path: "/client/accounts/opening-balances" },
-      { icon: Target, label: "مراكز التكلفة", labelEn: "Cost Centers", path: "/client/cost-centers" },
-      { icon: BookOpen, label: "قيود اليومية", labelEn: "Journal Entries", path: "/client/journal" },
-      { icon: Wallet, label: "الخزينة و البنوك", labelEn: "Treasury & Banks", path: "/client/treasury" },
-      { icon: BookOpenCheck, label: "دفتر الأستاذ", labelEn: "General Ledger", path: "/client/ledger" },
-      { icon: BarChart3, label: "تقارير مراكز التكلفة", labelEn: "Cost Center Reports", path: "/client/cost-centers/reports" },
-      { icon: ListChecks, label: "سجل العمليات", labelEn: "Operations Log", path: "/client/operations-log" },
+      { icon: ClipboardList, label: "دليل الحسابات", labelEn: "Chart of Accounts", path: "/client/accounts", screenKey: "accounts" },
+      { icon: FileSpreadsheet, label: "الأرصدة الإفتتاحية", labelEn: "Opening Balances", path: "/client/accounts/opening-balances", screenKey: "opening_balances" },
+      { icon: Target, label: "مراكز التكلفة", labelEn: "Cost Centers", path: "/client/cost-centers", screenKey: "cost_centers" },
+      { icon: BookOpen, label: "قيود اليومية", labelEn: "Journal Entries", path: "/client/journal", screenKey: "journal_entries" },
+      { icon: Wallet, label: "الخزينة و البنوك", labelEn: "Treasury & Banks", path: "/client/treasury", screenKey: "treasury" },
+      { icon: BookOpenCheck, label: "دفتر الأستاذ", labelEn: "General Ledger", path: "/client/ledger", screenKey: "ledger" },
+      { icon: BarChart3, label: "تقارير مراكز التكلفة", labelEn: "Cost Center Reports", path: "/client/cost-centers/reports", screenKey: "cost_center_reports" },
+      { icon: ListChecks, label: "سجل العمليات", labelEn: "Operations Log", path: "/client/operations-log", screenKey: "operations_log" },
     ]
   },
   {
@@ -87,9 +90,9 @@ const baseMenuItems: MenuItem[] = [
     label: "المبيعات",
     labelEn: "Sales",
     children: [
-      { icon: Users, label: "العملاء", labelEn: "Customers", path: "/client/customers" },
-      { icon: FileText, label: "عرض سعر", labelEn: "Quotations", path: "/client/quotes" },
-      { icon: Receipt, label: "فاتورة مبيعات", labelEn: "Sales Invoice", path: "/client/sales" },
+      { icon: Users, label: "العملاء", labelEn: "Customers", path: "/client/customers", screenKey: "customers" },
+      { icon: FileText, label: "عرض سعر", labelEn: "Quotations", path: "/client/quotes", screenKey: "quotes" },
+      { icon: Receipt, label: "فاتورة مبيعات", labelEn: "Sales Invoice", path: "/client/sales", screenKey: "sales_invoices" },
     ]
   },
   {
@@ -97,9 +100,9 @@ const baseMenuItems: MenuItem[] = [
     label: "المشتريات",
     labelEn: "Purchases",
     children: [
-      { icon: UserPlus, label: "الموردين", labelEn: "Vendors", path: "/client/vendors" },
-      { icon: FileText, label: "أمر شراء", labelEn: "Purchase Order", path: "/client/purchase-orders" },
-      { icon: Receipt, label: "فاتورة مشتريات", labelEn: "Purchase Invoice", path: "/client/purchases" },
+      { icon: UserPlus, label: "الموردين", labelEn: "Vendors", path: "/client/vendors", screenKey: "vendors" },
+      { icon: FileText, label: "أمر شراء", labelEn: "Purchase Order", path: "/client/purchase-orders", screenKey: "purchase_orders" },
+      { icon: Receipt, label: "فاتورة مشتريات", labelEn: "Purchase Invoice", path: "/client/purchases", screenKey: "purchase_invoices" },
     ]
   },
   {
@@ -107,35 +110,38 @@ const baseMenuItems: MenuItem[] = [
     label: "الموارد البشرية",
     labelEn: "Human Resources",
     children: [
-      { icon: LayoutDashboard, label: "لوحة تحكم HR", labelEn: "HR Dashboard", path: "/client/hr" },
-      { icon: Users, label: "الموظفين", labelEn: "Employees", path: "/client/hr/employees" },
-      { icon: Building, label: "الأقسام", labelEn: "Departments", path: "/client/hr/departments" },
-      { icon: Calendar, label: "الإجازات", labelEn: "Leaves", path: "/client/hr/leaves" },
-      { icon: Clock, label: "الفترات", labelEn: "Periods", path: "/client/hr/periods" },
-      { icon: Clock, label: "الحضور و الانصراف", labelEn: "Attendance", path: "/client/hr/attendance" },
-      { icon: Banknote, label: "السلف و القروض", labelEn: "Loans & Advances", path: "/client/hr/loans" },
-      { icon: DollarSign, label: "الرواتب", labelEn: "Payroll", path: "/client/hr/payroll" },
-      { icon: Award, label: "نهاية الخدمة", labelEn: "End of Service", path: "/client/hr/end-of-service" },
-      { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/hr/reports" },
+      { icon: LayoutDashboard, label: "لوحة تحكم HR", labelEn: "HR Dashboard", path: "/client/hr", screenKey: "hr_dashboard" },
+      { icon: Users, label: "الموظفين", labelEn: "Employees", path: "/client/hr/employees", screenKey: "employees" },
+      { icon: Building, label: "الأقسام", labelEn: "Departments", path: "/client/hr/departments", screenKey: "departments" },
+      { icon: Calendar, label: "الإجازات", labelEn: "Leaves", path: "/client/hr/leaves", screenKey: "leaves" },
+      { icon: Clock, label: "الفترات", labelEn: "Periods", path: "/client/hr/periods", screenKey: "periods" },
+      { icon: Clock, label: "الحضور و الانصراف", labelEn: "Attendance", path: "/client/hr/attendance", screenKey: "attendance" },
+      { icon: Banknote, label: "السلف و القروض", labelEn: "Loans & Advances", path: "/client/hr/loans", screenKey: "loans" },
+      { icon: DollarSign, label: "الرواتب", labelEn: "Payroll", path: "/client/hr/payroll", screenKey: "payroll" },
+      { icon: Award, label: "نهاية الخدمة", labelEn: "End of Service", path: "/client/hr/end-of-service", screenKey: "end_of_service" },
+      { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/hr/reports", screenKey: "hr_reports" },
     ]
   },
   { 
     icon: Package, 
     label: "المخزون", 
     labelEn: "Inventory", 
-    path: "/client/inventory" 
+    path: "/client/inventory",
+    screenKey: "products",
   },
   { 
     icon: BarChart3, 
     label: "التقارير", 
     labelEn: "Reports", 
-    path: "/client/reports" 
+    path: "/client/reports",
+    screenKey: "reports",
   },
   { 
     icon: Settings, 
     label: "الإعدادات", 
     labelEn: "Settings", 
-    path: "/client/settings" 
+    path: "/client/settings",
+    screenKey: "settings",
   },
 ];
 
@@ -144,9 +150,9 @@ const autoPartsMenuGroup: MenuItem = {
   label: "قطع الغيار",
   labelEn: "Auto Parts",
   children: [
-    { icon: Search, label: "كتالوج القطع", labelEn: "Parts Catalog", path: "/client/auto-parts/catalog" },
-    { icon: Car, label: "ماركات السيارات", labelEn: "Car Brands", path: "/client/auto-parts/brands" },
-    { icon: Tag, label: "موديلات السيارات", labelEn: "Car Models", path: "/client/auto-parts/models" },
+    { icon: Search, label: "كتالوج القطع", labelEn: "Parts Catalog", path: "/client/auto-parts/catalog", screenKey: "auto_parts_catalog" },
+    { icon: Car, label: "ماركات السيارات", labelEn: "Car Brands", path: "/client/auto-parts/brands", screenKey: "auto_parts_brands" },
+    { icon: Tag, label: "موديلات السيارات", labelEn: "Car Models", path: "/client/auto-parts/models", screenKey: "auto_parts_models" },
   ]
 };
 
@@ -156,6 +162,7 @@ const ClientLayout = () => {
   const { isAutoPartsCompany } = useAutoPartsAccess();
   const { status: subStatus } = useSubscriptionGuard();
   const { isModuleEnabled } = useFeatureAccess();
+  const { isScreenEnabled } = useScreenAccess();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -178,13 +185,36 @@ const ClientLayout = () => {
       }
     });
 
+    // Filter individual screens within each module
+    items = items.map(item => {
+      if (item.children) {
+        const filteredChildren = item.children.filter(child =>
+          !child.screenKey || isScreenEnabled(child.screenKey)
+        );
+        // If no children remain after filtering, hide the whole module
+        if (filteredChildren.length === 0) return null;
+        return { ...item, children: filteredChildren };
+      }
+      // Filter top-level items by screen key
+      if (item.screenKey && !isScreenEnabled(item.screenKey)) return null;
+      return item;
+    }).filter(Boolean) as MenuItem[];
+
     // Add auto parts group if enabled AND company is auto parts type
     if (isAutoPartsCompany && isModuleEnabled("auto_parts")) {
-      const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
-      if (reportsIdx !== -1) {
-        items.splice(reportsIdx, 0, autoPartsMenuGroup);
-      } else {
-        items.push(autoPartsMenuGroup);
+      const autoPartsFiltered = {
+        ...autoPartsMenuGroup,
+        children: autoPartsMenuGroup.children?.filter(child =>
+          !child.screenKey || isScreenEnabled(child.screenKey)
+        ),
+      };
+      if (autoPartsFiltered.children && autoPartsFiltered.children.length > 0) {
+        const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
+        if (reportsIdx !== -1) {
+          items.splice(reportsIdx, 0, autoPartsFiltered);
+        } else {
+          items.push(autoPartsFiltered);
+        }
       }
     }
 
