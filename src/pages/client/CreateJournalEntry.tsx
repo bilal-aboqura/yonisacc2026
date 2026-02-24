@@ -45,6 +45,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import UsageLimitGuard from "@/components/client/UsageLimitGuard";
 
 interface Account {
   id: string;
@@ -133,6 +135,7 @@ const CreateJournalEntry = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const { isRTL, currentLanguage } = useLanguage();
+  const { incrementUsage } = useFeatureAccess();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -358,6 +361,9 @@ const CreateJournalEntry = () => {
         .update({ next_journal_number: parseInt(entryNumber.replace(/\D/g, "")) + 1 })
         .eq("company_id", companyId);
 
+      // Increment usage counter
+      await incrementUsage("journal_entries");
+
       toast({
         title: t("common.success"),
         description: status === "draft" 
@@ -403,6 +409,7 @@ const CreateJournalEntry = () => {
   }
 
   return (
+    <UsageLimitGuard usageType="journal_entries">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -570,6 +577,7 @@ const CreateJournalEntry = () => {
         </CardContent>
       </Card>
     </div>
+    </UsageLimitGuard>
   );
 };
 

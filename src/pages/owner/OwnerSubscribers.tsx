@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
-import { Search, Building2, Eye, Pencil, Pause, Ban, Trash2, Mail, Phone, Calendar, MapPin, Archive, Users, RotateCcw, KeyRound, Loader2 } from "lucide-react";
+import { Search, Building2, Eye, Pencil, Pause, Ban, Trash2, Mail, Phone, Calendar, MapPin, Archive, Users, RotateCcw, KeyRound, Loader2, ShieldCheck } from "lucide-react";
+import ManageAccessDialog from "@/components/owner/ManageAccessDialog";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
@@ -55,6 +56,7 @@ const OwnerSubscribers = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [restoreCompany, setRestoreCompany] = useState<any>(null);
   const [restorePassword, setRestorePassword] = useState("");
+  const [manageAccessCompany, setManageAccessCompany] = useState<any>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["owner-subscribers", search, page, showArchived],
@@ -310,6 +312,20 @@ const OwnerSubscribers = () => {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>{isRTL ? "عرض" : "View"}</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost" size="icon"
+                                  className="h-8 w-8 hover:text-primary"
+                                  disabled={isArchived}
+                                  onClick={() => setManageAccessCompany(company)}
+                                >
+                                  <ShieldCheck className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{isRTL ? "إدارة الوصول" : "Manage Access"}</TooltipContent>
                             </Tooltip>
 
                             <Tooltip>
@@ -605,6 +621,14 @@ const OwnerSubscribers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Manage Access Dialog */}
+      <ManageAccessDialog
+        open={!!manageAccessCompany}
+        onOpenChange={() => setManageAccessCompany(null)}
+        company={manageAccessCompany}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["owner-subscribers"] })}
+      />
     </div>
   );
 };

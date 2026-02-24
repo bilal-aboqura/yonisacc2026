@@ -35,6 +35,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import UsageLimitGuard from "@/components/client/UsageLimitGuard";
 
 interface Contact {
   id: string;
@@ -69,6 +71,7 @@ interface InvoiceItem {
 const CreatePurchaseInvoice = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { incrementUsage } = useFeatureAccess();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -257,6 +260,9 @@ const CreatePurchaseInvoice = () => {
 
       if (itemsError) throw itemsError;
 
+      // Increment usage counter
+      await incrementUsage("purchase_invoices");
+
       toast({
         title: "تم الحفظ",
         description: status === "draft" ? "تم حفظ الفاتورة كمسودة" : "تم حفظ الفاتورة بنجاح",
@@ -297,6 +303,7 @@ const CreatePurchaseInvoice = () => {
   }
 
   return (
+    <UsageLimitGuard usageType="purchase_invoices">
     <div className="space-y-6 rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -593,6 +600,7 @@ const CreatePurchaseInvoice = () => {
         </div>
       </div>
     </div>
+    </UsageLimitGuard>
   );
 };
 
