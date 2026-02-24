@@ -1,54 +1,29 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+  Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
 import {
-  BookOpenCheck,
-  ChevronsUpDown,
-  Check,
-  Search,
-  Loader2,
-  Calendar,
-  ArrowUpRight,
-  ArrowDownRight,
-  FileText,
-  BookOpen,
-  Eye,
-  Edit,
-  ExternalLink,
-} from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  BookOpenCheck, ChevronsUpDown, Check, Loader2, Calendar,
+  ArrowUpRight, ArrowDownRight, FileText, BookOpen, Eye, Edit, ExternalLink,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -79,232 +54,102 @@ const GeneralLedger = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [ledgerLines, setLedgerLines] = useState<LedgerLine[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isAccountsLoading, setIsAccountsLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  const [openingBalance, setOpeningBalance] = useState(0);
 
-  // Load accounts
-  useEffect(() => {
-    const fetchAccounts = async () => {
-      if (!user) return;
-      try {
-        const { data: comp } = await supabase
-          .from("companies")
-          .select("id")
-          .eq("owner_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+  // Get company
+  const { data: company } = useQuery({
+    queryKey: ["user-company", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
 
-        if (!comp) return;
-        setCompanyId(comp.id);
+  // Load accounts (cached 5 min)
+  const { data: accounts = [], isLoading: isAccountsLoading } = useQuery({
+    queryKey: ["ledger-accounts", company?.id],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      const [globalRes, linkedRes, customRes] = await Promise.all([
+        supabase.from("global_accounts" as any).select("id, code, name, name_en, type, is_parent").eq("is_active", true).eq("is_parent", false).order("sort_order"),
+        supabase.from("accounts").select("id, global_account_id").eq("company_id", company.id).not("global_account_id", "is", null),
+        supabase.from("accounts").select("id, code, name, name_en, type, is_parent").eq("company_id", company.id).eq("is_active", true).is("global_account_id", null).or("is_parent.is.null,is_parent.eq.false").order("code"),
+      ]);
 
-        // Fetch linked global accounts + custom accounts (leaf only)
-        const [globalRes, linkedRes, customRes] = await Promise.all([
-          supabase
-            .from("global_accounts" as any)
-            .select("id, code, name, name_en, type, is_parent")
-            .eq("is_active", true)
-            .eq("is_parent", false)
-            .order("sort_order"),
-          supabase
-            .from("accounts")
-            .select("id, global_account_id")
-            .eq("company_id", comp.id)
-            .not("global_account_id", "is", null),
-          supabase
-            .from("accounts")
-            .select("id, code, name, name_en, type, is_parent")
-            .eq("company_id", comp.id)
-            .eq("is_active", true)
-            .is("global_account_id", null)
-            .or("is_parent.is.null,is_parent.eq.false")
-            .order("code"),
-        ]);
+      const linkedMap = new Map<string, string>();
+      (linkedRes.data || []).forEach((a: any) => linkedMap.set(a.global_account_id, a.id));
 
-        const linkedMap = new Map<string, string>();
-        (linkedRes.data || []).forEach((a: any) => {
-          linkedMap.set(a.global_account_id, a.id);
-        });
+      const merged: Account[] = [
+        ...(globalRes.data || []).filter((ga: any) => linkedMap.has(ga.id)).map((ga: any) => ({
+          id: linkedMap.get(ga.id)!, code: ga.code, name: ga.name, name_en: ga.name_en, type: ga.type, is_parent: false,
+        })),
+        ...(customRes.data || []).map((a: any) => ({
+          id: a.id, code: a.code, name: a.name, name_en: a.name_en, type: a.type, is_parent: a.is_parent,
+        })),
+      ];
 
-        const merged: Account[] = [
-          ...(globalRes.data || [])
-            .filter((ga: any) => linkedMap.has(ga.id))
-            .map((ga: any) => ({
-              id: linkedMap.get(ga.id)!,
-              code: ga.code,
-              name: ga.name,
-              name_en: ga.name_en,
-              type: ga.type,
-              is_parent: false,
-            })),
-          ...(customRes.data || []).map((a: any) => ({
-            id: a.id,
-            code: a.code,
-            name: a.name,
-            name_en: a.name_en,
-            type: a.type,
-            is_parent: a.is_parent,
-          })),
-        ];
+      const seen = new Set<string>();
+      return merged.filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; }).sort((a, b) => a.code.localeCompare(b.code));
+    },
+    enabled: !!company?.id,
+    staleTime: 5 * 60 * 1000,
+  });
 
-        // Deduplicate
-        const seen = new Set<string>();
-        setAccounts(merged.filter(a => { if (seen.has(a.id)) return false; seen.add(a.id); return true; }));
-      } catch (error) {
-        console.error(error);
-        toast.error(isRTL ? "خطأ في جلب الحسابات" : "Error loading accounts");
-      } finally {
-        setIsAccountsLoading(false);
-      }
-    };
-    fetchAccounts();
-  }, [user, isRTL]);
+  // Load ledger via server-side function (single query!)
+  const { data: ledgerData, isLoading } = useQuery({
+    queryKey: ["ledger-data", company?.id, selectedAccountId, dateFrom, dateTo],
+    queryFn: async () => {
+      if (!company?.id || !selectedAccountId) return null;
+      const { data, error } = await (supabase.rpc as any)("get_ledger", {
+        p_company_id: company.id,
+        p_account_id: selectedAccountId,
+        p_date_from: dateFrom || null,
+        p_date_to: dateTo || null,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!company?.id && !!selectedAccountId,
+  });
 
-  // Load ledger for selected account
-  useEffect(() => {
-    const fetchLedger = async () => {
-      if (!selectedAccountId || !companyId) {
-        setLedgerLines([]);
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        // Step 1: Fetch opening balance from dedicated table
-        const { data: obData } = await supabase
-          .from("opening_balances")
-          .select("debit, credit")
-          .eq("company_id", companyId)
-          .eq("account_id", selectedAccountId);
-
-        let obNet = 0;
-        (obData || []).forEach((ob: any) => {
-          obNet += (Number(ob.debit) || 0) - (Number(ob.credit) || 0);
-        });
-
-        // Step 2: If dateFrom is set, add prior journal movements to opening balance
-        if (dateFrom) {
-          const { data: priorEntries } = await supabase
-            .from("journal_entries")
-            .select("id")
-            .eq("company_id", companyId)
-            .eq("status", "posted")
-            .lt("entry_date", dateFrom);
-
-          if (priorEntries && priorEntries.length > 0) {
-            const priorIds = priorEntries.map(e => e.id);
-            for (let i = 0; i < priorIds.length; i += 100) {
-              const chunk = priorIds.slice(i, i + 100);
-              const { data: priorLines } = await supabase
-                .from("journal_entry_lines")
-                .select("debit, credit")
-                .eq("account_id", selectedAccountId)
-                .in("entry_id", chunk);
-              (priorLines || []).forEach((l: any) => {
-                obNet += (Number(l.debit) || 0) - (Number(l.credit) || 0);
-              });
-            }
-          }
-        }
-
-        // Step 3: Get posted journal entries for this company within date range
-        let entriesQuery = supabase
-          .from("journal_entries")
-          .select("id, entry_number, entry_date, description, status")
-          .eq("company_id", companyId)
-          .eq("status", "posted")
-          .order("entry_date");
-
-        if (dateFrom) entriesQuery = entriesQuery.gte("entry_date", dateFrom);
-        if (dateTo) entriesQuery = entriesQuery.lte("entry_date", dateTo);
-
-        const { data: entries, error: entriesError } = await entriesQuery;
-        if (entriesError) throw entriesError;
-
-        if (!entries || entries.length === 0) {
-          setOpeningBalance(obNet);
-          setLedgerLines([]);
-          setIsLoading(false);
-          return;
-        }
-
-        const entryIds = entries.map(e => e.id);
-        const entryMap = new Map(entries.map(e => [e.id, e]));
-
-        // Step 4: Get journal lines for this account using JOIN via entry_id IN (filtered entries)
-        let allLines: any[] = [];
-        for (let i = 0; i < entryIds.length; i += 100) {
-          const chunk = entryIds.slice(i, i + 100);
-          const { data: lines, error: linesError } = await supabase
-            .from("journal_entry_lines")
-            .select("id, entry_id, debit, credit, description")
-            .eq("account_id", selectedAccountId)
-            .in("entry_id", chunk);
-          if (linesError) throw linesError;
-          allLines = allLines.concat(lines || []);
-        }
-
-        // Build ledger lines
-        const ledger: LedgerLine[] = allLines.map((line: any) => {
-          const entry = entryMap.get(line.entry_id)!;
-          return {
-            id: line.id,
-            entry_id: line.entry_id,
-            entry_number: entry.entry_number,
-            entry_date: entry.entry_date,
-            description: line.description || entry.description,
-            debit: Number(line.debit) || 0,
-            credit: Number(line.credit) || 0,
-            running_balance: 0,
-            status: entry.status,
-          };
-        });
-
-        // Sort by date then entry_number
-        ledger.sort((a, b) => {
-          const d = a.entry_date.localeCompare(b.entry_date);
-          if (d !== 0) return d;
-          return a.entry_number.localeCompare(b.entry_number);
-        });
-
-        // Calculate running balance starting from opening balance
-        let balance = obNet;
-        ledger.forEach(line => {
-          balance += line.debit - line.credit;
-          line.running_balance = balance;
-        });
-
-        setOpeningBalance(obNet);
-        setLedgerLines(ledger);
-      } catch (error) {
-        console.error(error);
-        toast.error(isRTL ? "خطأ في جلب البيانات" : "Error loading ledger");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchLedger();
-  }, [selectedAccountId, companyId, dateFrom, dateTo, isRTL]);
+  const openingBalance = ledgerData?.opening_balance ?? 0;
+  const ledgerLines: LedgerLine[] = useMemo(() => {
+    if (!ledgerData?.lines) return [];
+    return (ledgerData.lines as any[]).map((l: any) => ({
+      id: l.id,
+      entry_id: l.entry_id,
+      entry_number: l.entry_number,
+      entry_date: l.entry_date,
+      description: l.description,
+      debit: Number(l.debit) || 0,
+      credit: Number(l.credit) || 0,
+      running_balance: Number(l.running_balance) || 0,
+      status: l.status,
+    }));
+  }, [ledgerData]);
 
   const selectedAccount = useMemo(
     () => accounts.find(a => a.id === selectedAccountId),
     [accounts, selectedAccountId]
   );
 
-  const totals = useMemo(() => {
-    const totalDebit = ledgerLines.reduce((s, l) => s + l.debit, 0);
-    const totalCredit = ledgerLines.reduce((s, l) => s + l.credit, 0);
-    const net = openingBalance + totalDebit - totalCredit;
-    return { totalDebit, totalCredit, net };
-  }, [ledgerLines, openingBalance]);
+  const totals = useMemo(() => ({
+    totalDebit: Number(ledgerData?.total_debit) || 0,
+    totalCredit: Number(ledgerData?.total_credit) || 0,
+    net: openingBalance + (Number(ledgerData?.total_debit) || 0) - (Number(ledgerData?.total_credit) || 0),
+  }), [ledgerData, openingBalance]);
 
   const getTypeBadge = (type: string) => {
     const map: Record<string, { label: string; color: string }> = {
@@ -348,18 +193,11 @@ const GeneralLedger = () => {
       <Card>
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Account Selector */}
             <div className="space-y-2">
               <Label>{isRTL ? "الحساب" : "Account"}</Label>
               <Popover open={accountOpen} onOpenChange={setAccountOpen}>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={accountOpen}
-                    className="w-full justify-between font-normal"
-                    disabled={isAccountsLoading}
-                  >
+                  <Button variant="outline" role="combobox" aria-expanded={accountOpen} className="w-full justify-between font-normal" disabled={isAccountsLoading}>
                     {isAccountsLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : selectedAccount ? (
@@ -384,10 +222,7 @@ const GeneralLedger = () => {
                           <CommandItem
                             key={account.id}
                             value={`${account.code} ${account.name} ${account.name_en || ""}`}
-                            onSelect={() => {
-                              setSelectedAccountId(account.id);
-                              setAccountOpen(false);
-                            }}
+                            onSelect={() => { setSelectedAccountId(account.id); setAccountOpen(false); }}
                           >
                             <Check className={cn("me-2 h-4 w-4", selectedAccountId === account.id ? "opacity-100" : "opacity-0")} />
                             <span className="font-mono text-sm text-muted-foreground me-2">{account.code}</span>
@@ -400,32 +235,18 @@ const GeneralLedger = () => {
                 </PopoverContent>
               </Popover>
             </div>
-
-            {/* Date From */}
             <div className="space-y-2">
               <Label>{isRTL ? "من تاريخ" : "From Date"}</Label>
               <div className="relative">
                 <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="ps-10"
-                />
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="ps-10" />
               </div>
             </div>
-
-            {/* Date To */}
             <div className="space-y-2">
               <Label>{isRTL ? "إلى تاريخ" : "To Date"}</Label>
               <div className="relative">
                 <Calendar className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="ps-10"
-                />
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="ps-10" />
               </div>
             </div>
           </div>
@@ -470,157 +291,133 @@ const GeneralLedger = () => {
           </Card>
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${totals.net >= 0 ? "bg-green-500/10" : "bg-orange-500/10"}`}>
-                <BookOpenCheck className={`h-5 w-5 ${totals.net >= 0 ? "text-green-600" : "text-orange-600"}`} />
+              <div className="p-2 rounded-lg bg-green-500/10">
+                <BookOpenCheck className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{isRTL ? "الرصيد" : "Balance"}</p>
-                <p className="font-semibold tabular-nums">{formatNumber(totals.net)}</p>
+                <p className={`font-semibold tabular-nums ${totals.net >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {formatNumber(Math.abs(totals.net))} {totals.net >= 0 ? (isRTL ? "مدين" : "Dr") : (isRTL ? "دائن" : "Cr")}
+                </p>
               </div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Transactions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpenCheck className="h-5 w-5" />
-            {isRTL ? "حركات الحساب" : "Account Transactions"}
-            {ledgerLines.length > 0 && (
-              <Badge variant="outline" className="ms-2">{ledgerLines.length} {isRTL ? "حركة" : "entries"}</Badge>
+      {/* Ledger Table */}
+      {selectedAccount && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpenCheck className="h-5 w-5" />
+              {isRTL ? "كشف حساب" : "Account Statement"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <TooltipProvider delayDuration={200}>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[110px]">{isRTL ? "التاريخ" : "Date"}</TableHead>
+                      <TableHead className="w-[120px]">{isRTL ? "رقم القيد" : "Entry #"}</TableHead>
+                      <TableHead>{isRTL ? "البيان" : "Description"}</TableHead>
+                      <TableHead className="w-[120px] text-end">{isRTL ? "مدين" : "Debit"}</TableHead>
+                      <TableHead className="w-[120px] text-end">{isRTL ? "دائن" : "Credit"}</TableHead>
+                      <TableHead className="w-[130px] text-end">{isRTL ? "الرصيد" : "Balance"}</TableHead>
+                      <TableHead className="w-[60px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* Opening Balance Row */}
+                    <TableRow className="bg-muted/30 font-medium">
+                      <TableCell colSpan={5} className={isRTL ? "text-start" : "text-start"}>
+                        {isRTL ? "رصيد أول المدة" : "Opening Balance"}
+                      </TableCell>
+                      <TableCell className={`text-end font-semibold tabular-nums ${openingBalance >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {formatNumber(Math.abs(openingBalance))}
+                      </TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+
+                    {ledgerLines.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                          {isRTL ? "لا توجد حركات في هذه الفترة" : "No movements in this period"}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      ledgerLines.map((line) => (
+                        <TableRow key={line.id} className="group">
+                          <TableCell className="text-muted-foreground">{line.entry_date}</TableCell>
+                          <TableCell>
+                            <span className="font-mono text-primary cursor-pointer hover:underline" onClick={() => navigate(`/client/journal/${line.entry_id}`)}>
+                              {line.entry_number}
+                            </span>
+                          </TableCell>
+                          <TableCell className="max-w-[250px] truncate">{line.description || "-"}</TableCell>
+                          <TableCell className="text-end tabular-nums">{line.debit > 0 ? formatNumber(line.debit) : "-"}</TableCell>
+                          <TableCell className="text-end tabular-nums">{line.credit > 0 ? formatNumber(line.credit) : "-"}</TableCell>
+                          <TableCell className={`text-end font-medium tabular-nums ${line.running_balance >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {formatNumber(Math.abs(line.running_balance))}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/journal/${line.entry_id}`)}>
+                                    <Eye className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{isRTL ? "عرض القيد" : "View Entry"}</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+
+                    {/* Totals Row */}
+                    {ledgerLines.length > 0 && (
+                      <TableRow className="bg-muted/50 font-bold border-t-2">
+                        <TableCell colSpan={3} className={isRTL ? "text-start" : "text-start"}>
+                          {isRTL ? "الإجمالي" : "Total"}
+                        </TableCell>
+                        <TableCell className="text-end tabular-nums">{formatNumber(totals.totalDebit)}</TableCell>
+                        <TableCell className="text-end tabular-nums">{formatNumber(totals.totalCredit)}</TableCell>
+                        <TableCell className={`text-end tabular-nums ${totals.net >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {formatNumber(Math.abs(totals.net))}
+                        </TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TooltipProvider>
             )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!selectedAccountId ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <BookOpenCheck className="h-12 w-12 mx-auto mb-4 opacity-30" />
-              <p className="text-lg">{isRTL ? "اختر حساباً لعرض حركاته" : "Select an account to view its transactions"}</p>
-            </div>
-          ) : isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : ledgerLines.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>{isRTL ? "لا توجد حركات لهذا الحساب" : "No transactions found for this account"}</p>
-            </div>
-          ) : (
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[50px] text-center">#</TableHead>
-                    <TableHead className="w-[120px]">{isRTL ? "رقم القيد" : "Entry #"}</TableHead>
-                    <TableHead className="w-[110px]">{isRTL ? "التاريخ" : "Date"}</TableHead>
-                    <TableHead>{isRTL ? "البيان" : "Description"}</TableHead>
-                    <TableHead className="w-[130px] text-end">{isRTL ? "مدين" : "Debit"}</TableHead>
-                    <TableHead className="w-[130px] text-end">{isRTL ? "دائن" : "Credit"}</TableHead>
-                    <TableHead className="w-[140px] text-end">{isRTL ? "الرصيد" : "Balance"}</TableHead>
-                    <TableHead className="w-[80px] text-center">{isRTL ? "إجراءات" : "Actions"}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* Opening Balance Row */}
-                  {openingBalance !== 0 && (
-                    <TableRow className="bg-blue-50/50 dark:bg-blue-950/20 font-medium">
-                      <TableCell className="text-center text-muted-foreground">-</TableCell>
-                      <TableCell className="text-muted-foreground">-</TableCell>
-                      <TableCell className="text-muted-foreground">-</TableCell>
-                      <TableCell>{isRTL ? "رصيد افتتاحي" : "Opening Balance"}</TableCell>
-                      <TableCell className="text-end tabular-nums">
-                        {openingBalance > 0 ? <span className="text-blue-600">{formatNumber(openingBalance)}</span> : <span className="text-muted-foreground">-</span>}
-                      </TableCell>
-                      <TableCell className="text-end tabular-nums">
-                        {openingBalance < 0 ? <span className="text-red-600">{formatNumber(Math.abs(openingBalance))}</span> : <span className="text-muted-foreground">-</span>}
-                      </TableCell>
-                      <TableCell className={`text-end tabular-nums font-semibold ${openingBalance >= 0 ? "text-green-600" : "text-orange-600"}`}>
-                        {formatNumber(openingBalance)}
-                      </TableCell>
-                      <TableCell />
-                    </TableRow>
-                  )}
-                  {ledgerLines.map((line, index) => (
-                    <TableRow
-                      key={line.id}
-                      className="hover:bg-muted/50 transition-colors group"
-                    >
-                      <TableCell className="text-center text-muted-foreground text-sm">{index + 1}</TableCell>
-                      <TableCell>
-                        <button
-                          className="font-mono text-sm text-primary hover:underline cursor-pointer"
-                          onClick={() => navigate(`/client/journal/${line.entry_id}`)}
-                        >
-                          {line.entry_number}
-                        </button>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{line.entry_date}</TableCell>
-                      <TableCell className="text-sm max-w-[250px] truncate">{line.description || "-"}</TableCell>
-                      <TableCell className="text-end tabular-nums font-medium">
-                        {line.debit > 0 ? (
-                          <span className="text-blue-600">{formatNumber(line.debit)}</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-end tabular-nums font-medium">
-                        {line.credit > 0 ? (
-                          <span className="text-red-600">{formatNumber(line.credit)}</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className={`text-end tabular-nums font-semibold ${line.running_balance >= 0 ? "text-green-600" : "text-orange-600"}`}>
-                        {formatNumber(line.running_balance)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <TooltipProvider>
-                          <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/journal/${line.entry_id}`)}>
-                                  <Eye className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "عرض القيد" : "View Entry"}</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/journal/${line.entry_id}/edit`)}>
-                                  <Edit className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "تعديل القيد" : "Edit Entry"}</TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TooltipProvider>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {/* Totals Row */}
-                  <TableRow className="bg-muted/50 font-bold border-t-2">
-                    <TableCell colSpan={4} className="text-end">
-                      {isRTL ? "الإجمالي" : "Total"}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums text-blue-600">
-                      {formatNumber(totals.totalDebit)}
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums text-red-600">
-                      {formatNumber(totals.totalCredit)}
-                    </TableCell>
-                    <TableCell className={`text-end tabular-nums ${totals.net >= 0 ? "text-green-600" : "text-orange-600"}`}>
-                      {formatNumber(totals.net)}
-                    </TableCell>
-                    <TableCell />
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Empty State */}
+      {!selectedAccount && (
+        <Card>
+          <CardContent className="py-16 text-center">
+            <BookOpenCheck className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
+            <h3 className="text-lg font-medium text-muted-foreground mb-2">
+              {isRTL ? "اختر حساباً لعرض الحركات" : "Select an account to view transactions"}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {isRTL ? "استخدم القائمة أعلاه لاختيار الحساب المطلوب" : "Use the dropdown above to select the desired account"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
