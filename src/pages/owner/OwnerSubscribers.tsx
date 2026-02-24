@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
-import { Search, Building2, Eye, Pencil, Pause, Ban, Trash2, Mail, Phone, Calendar, MapPin, Archive, Users } from "lucide-react";
+import { Search, Building2, Eye, Pencil, Pause, Ban, Trash2, Mail, Phone, Calendar, MapPin, Archive, Users, RotateCcw, KeyRound, Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -49,6 +50,8 @@ const OwnerSubscribers = () => {
   const [viewCompany, setViewCompany] = useState<any>(null);
   const [confirmAction, setConfirmAction] = useState<{ type: "suspend" | "terminate" | "delete"; company: any } | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [restoreCompany, setRestoreCompany] = useState<any>(null);
+  const [restorePassword, setRestorePassword] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["owner-subscribers", search, page, showArchived],
@@ -116,6 +119,35 @@ const OwnerSubscribers = () => {
       toast({
         title: isRTL ? "خطأ" : "Error",
         description: isRTL ? "حدث خطأ أثناء تنفيذ الإجراء" : "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async ({ companyId, newPassword }: { companyId: string; newPassword: string }) => {
+      const response = await supabase.functions.invoke("restore-subscriber", {
+        body: { companyId, newPassword },
+      });
+      if (response.error) throw new Error(response.error.message || "Restore failed");
+      if (response.data?.error) throw new Error(response.data.error);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["owner-subscribers"] });
+      toast({
+        title: isRTL ? "تم الاستعادة" : "Restored",
+        description: isRTL
+          ? `تم استعادة الحساب بنجاح. البريد: ${data.email}`
+          : `Account restored successfully. Email: ${data.email}`,
+      });
+      setRestoreCompany(null);
+      setRestorePassword("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: isRTL ? "خطأ" : "Error",
+        description: error.message || (isRTL ? "فشل في استعادة الحساب" : "Failed to restore account"),
         variant: "destructive",
       });
     },
@@ -327,6 +359,21 @@ const OwnerSubscribers = () => {
                               </TooltipTrigger>
                               <TooltipContent>{isRTL ? "حذف" : "Delete"}</TooltipContent>
                             </Tooltip>
+
+                            {isArchived && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost" size="icon"
+                                    className="h-8 w-8 hover:text-green-600"
+                                    onClick={() => { setRestoreCompany(company); setRestorePassword(""); }}
+                                  >
+                                    <RotateCcw className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{isRTL ? "استعادة" : "Restore"}</TooltipContent>
+                              </Tooltip>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -490,6 +537,62 @@ const OwnerSubscribers = () => {
               {actionMutation.isPending
                 ? (isRTL ? "جاري التنفيذ..." : "Processing...")
                 : (isRTL ? "تأكيد" : "Confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Restore Dialog */}
+      <Dialog open={!!restoreCompany} onOpenChange={() => { setRestoreCompany(null); setRestorePassword(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5" />
+              {isRTL ? "استعادة المشترك" : "Restore Subscriber"}
+            </DialogTitle>
+            <DialogDescription>
+              {isRTL
+                ? "سيتم استعادة الشركة وإعادة تفعيل الحساب مع كلمة مرور جديدة وتجربة مجانية لمدة 14 يوم."
+                : "The company will be restored, account reactivated with a new password, and a 14-day trial will be started."}
+            </DialogDescription>
+          </DialogHeader>
+          {restoreCompany && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
+                <Building2 className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <span className="font-medium">{restoreCompany.name}</span>
+                  {restoreCompany.email && (
+                    <p className="text-xs text-muted-foreground">{restoreCompany.email}</p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4" />
+                  {isRTL ? "كلمة المرور الجديدة" : "New Password"}
+                </Label>
+                <Input
+                  type="password"
+                  value={restorePassword}
+                  onChange={(e) => setRestorePassword(e.target.value)}
+                  placeholder={isRTL ? "أدخل كلمة مرور جديدة (6 أحرف على الأقل)" : "Enter new password (min 6 characters)"}
+                  dir="ltr"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setRestoreCompany(null); setRestorePassword(""); }}>
+              {isRTL ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              onClick={() => restoreMutation.mutate({ companyId: restoreCompany.id, newPassword: restorePassword })}
+              disabled={restoreMutation.isPending || restorePassword.length < 6}
+            >
+              {restoreMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+              {restoreMutation.isPending
+                ? (isRTL ? "جاري الاستعادة..." : "Restoring...")
+                : (isRTL ? "استعادة الحساب" : "Restore Account")}
             </Button>
           </DialogFooter>
         </DialogContent>

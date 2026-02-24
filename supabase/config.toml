@@ -15,3 +15,9 @@ verify_jwt = false
 [functions.accept-invitation]
 verify_jwt = false
 
+[functions.restore-subscriber]
+verify_jwt = false
+
+[functions.delete-subscriber]
+verify_jwt = false
+
