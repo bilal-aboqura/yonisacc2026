@@ -26,6 +26,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Lock,
+  Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -161,6 +162,7 @@ const OpeningBalances = () => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [flatAccounts, setFlatAccounts] = useState<Account[]>([]);
   const [balances, setBalances] = useState<Map<string, OpeningBalance>>(new Map());
+  const [savedBalances, setSavedBalances] = useState<Map<string, OpeningBalance>>(new Map());
   const [expandedAccounts, setExpandedAccounts] = useState<string[]>([]);
   const [fiscalPeriods, setFiscalPeriods] = useState<FiscalPeriod[]>([]);
   const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<string | null>(null);
@@ -168,12 +170,37 @@ const OpeningBalances = () => {
 
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
 
-  // Whether balances are locked (posted or fiscal period closed)
+  // Whether balances are locked (posted AND fiscal period closed)
   const isLocked = useMemo(() => {
-    if (isPosted) return true;
     const fp = fiscalPeriods.find(f => f.id === selectedFiscalYearId);
     return fp?.is_closed === true;
-  }, [isPosted, fiscalPeriods, selectedFiscalYearId]);
+  }, [fiscalPeriods, selectedFiscalYearId]);
+
+  // Track unsaved changes
+  const hasUnsavedChanges = useMemo(() => {
+    if (balances.size !== savedBalances.size) return true;
+    for (const [key, val] of balances.entries()) {
+      const saved = savedBalances.get(key);
+      if (!saved) return val.debit !== 0 || val.credit !== 0;
+      if (val.debit !== saved.debit || val.credit !== saved.credit) return true;
+    }
+    for (const [key] of savedBalances.entries()) {
+      if (!balances.has(key)) return true;
+    }
+    return false;
+  }, [balances, savedBalances]);
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     if (!user) {
@@ -185,10 +212,10 @@ const OpeningBalances = () => {
 
   // Re-fetch opening balances when fiscal year changes
   useEffect(() => {
-    if (companyId && selectedFiscalYearId !== undefined) {
+    if (companyId && flatAccounts.length > 0 && selectedFiscalYearId !== undefined) {
       fetchOpeningBalances();
     }
-  }, [selectedFiscalYearId, companyId]);
+  }, [selectedFiscalYearId, companyId, flatAccounts.length]);
 
   const fetchData = async () => {
     try {
@@ -282,10 +309,9 @@ const OpeningBalances = () => {
   };
 
   const fetchOpeningBalances = async () => {
-    if (!companyId) return;
+    if (!companyId || flatAccounts.length === 0) return;
 
     try {
-      // Fetch opening balances from the dedicated table
       let query = supabase
         .from("opening_balances" as any)
         .select("account_id, debit, credit, is_posted")
@@ -303,7 +329,6 @@ const OpeningBalances = () => {
       let posted = false;
 
       (obData || []).forEach((ob: any) => {
-        // Map account_id to the display id used in flatAccounts
         const account = flatAccounts.find(a => a.company_account_id === ob.account_id || a.id === ob.account_id);
         if (account) {
           newBalances.set(account.id, { debit: Number(ob.debit) || 0, credit: Number(ob.credit) || 0 });
@@ -312,6 +337,7 @@ const OpeningBalances = () => {
       });
 
       setBalances(newBalances);
+      setSavedBalances(new Map(newBalances));
       setIsPosted(posted);
     } catch (error) {
       console.error("Error fetching opening balances:", error);
@@ -405,17 +431,16 @@ const OpeningBalances = () => {
     }
   }, []);
 
-  const handleSave = async () => {
+  const saveBalances = async (post: boolean) => {
     if (!companyId) return;
 
-    if (!isBalanced) {
-      toast({ title: "خطأ", description: "الأرصدة غير متوازنة - يجب أن يتساوى إجمالي المدين مع إجمالي الدائن", variant: "destructive" });
+    if (post && !isBalanced) {
+      toast({ title: "خطأ", description: isRTL ? "الأرصدة غير متوازنة - يجب أن يتساوى إجمالي المدين مع إجمالي الدائن" : "Balances are not balanced", variant: "destructive" });
       return;
     }
 
     setSaving(true);
     try {
-      // Collect all opening balance records
       const records: any[] = [];
 
       for (const [accountId, balance] of balances.entries()) {
@@ -424,10 +449,8 @@ const OpeningBalances = () => {
         const account = flatAccounts.find(a => a.id === accountId) as any;
         if (!account) continue;
 
-        // Get the real account_id (from accounts table)
         let realAccountId = account.company_account_id;
 
-        // For global accounts without a linked record, create one first
         if (account.is_global && !realAccountId) {
           const { data: newAcc } = await supabase.from("accounts").insert({
             company_id: companyId,
@@ -441,7 +464,15 @@ const OpeningBalances = () => {
             global_account_id: account.global_account_id,
           }).select("id").single();
 
-          if (newAcc) realAccountId = newAcc.id;
+          if (newAcc) {
+            realAccountId = newAcc.id;
+            // Update flatAccounts with the new linked id
+            setFlatAccounts((prev) =>
+              prev.map((a) =>
+                a.id === accountId ? { ...a, company_account_id: newAcc.id } : a
+              )
+            );
+          }
         }
 
         if (!realAccountId) continue;
@@ -452,11 +483,11 @@ const OpeningBalances = () => {
           fiscal_year_id: selectedFiscalYearId || null,
           debit: balance.debit,
           credit: balance.credit,
-          is_posted: true,
+          is_posted: post,
         });
       }
 
-      // Delete existing opening balances for this fiscal year, then insert new ones
+      // Delete existing opening balances for this fiscal year
       let deleteQuery = supabase
         .from("opening_balances" as any)
         .delete()
@@ -468,18 +499,25 @@ const OpeningBalances = () => {
         deleteQuery = deleteQuery.is("fiscal_year_id", null);
       }
 
-      await deleteQuery;
+      const { error: deleteError } = await deleteQuery;
+      if (deleteError) throw deleteError;
 
       if (records.length > 0) {
         const { error } = await supabase.from("opening_balances" as any).insert(records);
         if (error) throw error;
       }
 
-      setIsPosted(true);
-      toast({ title: "تم الحفظ", description: "تم حفظ الأرصدة الافتتاحية بنجاح" });
+      if (post) setIsPosted(true);
+      setSavedBalances(new Map(balances));
+      toast({
+        title: isRTL ? "تم الحفظ" : "Saved",
+        description: post
+          ? (isRTL ? "تم ترحيل الأرصدة الافتتاحية بنجاح" : "Opening balances posted successfully")
+          : (isRTL ? "تم حفظ الأرصدة الافتتاحية كمسودة" : "Opening balances saved as draft"),
+      });
     } catch (error) {
       console.error("Error:", error);
-      toast({ title: "خطأ", description: "حدث خطأ في حفظ الأرصدة", variant: "destructive" });
+      toast({ title: "خطأ", description: isRTL ? "حدث خطأ في حفظ الأرصدة" : "Error saving balances", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -537,7 +575,12 @@ const OpeningBalances = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/client/accounts")}>
+          <Button variant="ghost" size="icon" onClick={() => {
+            if (hasUnsavedChanges) {
+              if (!window.confirm(isRTL ? "يوجد تغييرات غير محفوظة. هل تريد المغادرة؟" : "You have unsaved changes. Leave anyway?")) return;
+            }
+            navigate("/client/accounts");
+          }}>
             <BackIcon className="h-5 w-5" />
           </Button>
           <div>
@@ -571,13 +614,47 @@ const OpeningBalances = () => {
           <Button variant="outline" size="sm" onClick={collapseAll}>
             {isRTL ? "طي الكل" : "Collapse All"}
           </Button>
-          <Button onClick={handleSave} disabled={saving || !isBalanced || isLocked}>
+
+          {/* Save as Draft - always available */}
+          <Button
+            variant="outline"
+            onClick={() => saveBalances(false)}
+            disabled={saving || isLocked || !hasUnsavedChanges}
+          >
             {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
-            {isLocked ? <Lock className="h-4 w-4 me-2" /> : <Save className="h-4 w-4 me-2" />}
-            {isLocked ? (isRTL ? "مقفل" : "Locked") : t("common.save")}
+            <Save className="h-4 w-4 me-2" />
+            {isRTL ? "حفظ مسودة" : "Save Draft"}
+          </Button>
+
+          {/* Post - requires balance */}
+          <Button
+            onClick={() => saveBalances(true)}
+            disabled={saving || !isBalanced || isLocked}
+          >
+            {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+            {isLocked ? <Lock className="h-4 w-4 me-2" /> : <Send className="h-4 w-4 me-2" />}
+            {isLocked
+              ? (isRTL ? "مقفل" : "Locked")
+              : (isRTL ? "ترحيل" : "Post")}
           </Button>
         </div>
       </div>
+
+      {/* Unsaved Changes Warning */}
+      {hasUnsavedChanges && (
+        <Card className="border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="py-3">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                {isRTL
+                  ? "يوجد تغييرات غير محفوظة - اضغط \"حفظ مسودة\" لحفظ الأرصدة"
+                  : "You have unsaved changes - click \"Save Draft\" to save your balances"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Locked Warning */}
       {isLocked && (
@@ -587,8 +664,24 @@ const OpeningBalances = () => {
               <Lock className="h-5 w-5 text-amber-600" />
               <p className="text-sm text-amber-700 dark:text-amber-400">
                 {isRTL
-                  ? "الأرصدة الافتتاحية مقفلة ولا يمكن تعديلها بعد الترحيل"
-                  : "Opening balances are locked and cannot be edited after posting"}
+                  ? "الأرصدة الافتتاحية مقفلة لأن الفترة المالية مغلقة"
+                  : "Opening balances are locked because the fiscal period is closed"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Posted Status */}
+      {isPosted && !isLocked && (
+        <Card className="border-blue-500/50 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardContent className="py-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-blue-600" />
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                {isRTL
+                  ? "الأرصدة الافتتاحية مرحّلة - يمكنك تعديلها وإعادة الترحيل"
+                  : "Opening balances are posted - you can edit and re-post"}
               </p>
             </div>
           </CardContent>
@@ -611,7 +704,7 @@ const OpeningBalances = () => {
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {isBalanced
-                    ? (isRTL ? "يمكنك حفظ الأرصدة الافتتاحية" : "You can save the opening balances")
+                    ? (isRTL ? "يمكنك ترحيل الأرصدة الافتتاحية" : "You can post the opening balances")
                     : `${t("common.difference")}: ${formatCurrency(difference)} ${t("common.currency")}`}
                 </p>
               </div>
