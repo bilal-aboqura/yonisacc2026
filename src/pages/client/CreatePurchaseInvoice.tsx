@@ -101,20 +101,15 @@ const CreatePurchaseInvoice = () => {
 
   const fetchInitialData = async () => {
     try {
-      const { data: companyData, error: companyError } = await supabase
-        .from("companies")
-        .select("id")
-        .eq("owner_id", user?.id)
-        .single();
-
-      if (companyError) throw companyError;
-      setCompanyId(companyData.id);
+      const resolvedId = await (await import("@/hooks/useCompanyId")).fetchCompanyId(user?.id || "");
+      if (!resolvedId) throw new Error("No company found");
+      setCompanyId(resolvedId);
 
       // Fetch vendors (suppliers)
       const { data: vendorsData } = await supabase
         .from("contacts")
         .select("id, name, name_en, tax_number, address, phone")
-        .eq("company_id", companyData.id)
+        .eq("company_id", resolvedId)
         .eq("type", "vendor")
         .eq("is_active", true);
 
@@ -124,7 +119,7 @@ const CreatePurchaseInvoice = () => {
       const { data: productsData } = await supabase
         .from("products")
         .select("id, name, name_en, sku, purchase_price, tax_rate, unit")
-        .eq("company_id", companyData.id)
+        .eq("company_id", resolvedId)
         .eq("is_active", true);
 
       setProducts(productsData || []);
@@ -133,7 +128,7 @@ const CreatePurchaseInvoice = () => {
       const { count } = await supabase
         .from("invoices")
         .select("*", { count: "exact", head: true })
-        .eq("company_id", companyData.id)
+        .eq("company_id", resolvedId)
         .eq("type", "purchase");
 
       setInvoiceNumber(`PUR-${String((count || 0) + 1).padStart(6, "0")}`);

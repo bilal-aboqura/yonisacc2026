@@ -113,15 +113,8 @@ const CreateAccount = () => {
 
   const fetchInitialData = async () => {
     try {
-      const { data: companyData, error: companyError } = await supabase
-        .from("companies")
-        .select("id")
-        .eq("owner_id", user?.id)
-        .maybeSingle();
-
-      if (companyError) throw companyError;
-      
-      if (!companyData) {
+      const resolvedId = await (await import("@/hooks/useCompanyId")).fetchCompanyId(user?.id || "");
+      if (!resolvedId) {
         toast({
           title: "تنبيه",
           description: "يرجى إنشاء شركة أولاً",
@@ -130,7 +123,7 @@ const CreateAccount = () => {
         navigate("/client/settings");
         return;
       }
-      
+      const companyData = { id: resolvedId };
       setCompanyId(companyData.id);
 
       // Fetch global accounts (unified chart) + company custom accounts
