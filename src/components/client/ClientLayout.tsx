@@ -80,8 +80,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: Target, label: "مراكز التكلفة", labelEn: "Cost Centers", path: "/client/cost-centers", screenKey: "cost_centers" },
       { icon: BookOpen, label: "قيود اليومية", labelEn: "Journal Entries", path: "/client/journal", screenKey: "journal_entries" },
       { icon: Wallet, label: "الخزينة و البنوك", labelEn: "Treasury & Banks", path: "/client/treasury", screenKey: "treasury" },
-      { icon: BookOpenCheck, label: "دفتر الأستاذ", labelEn: "General Ledger", path: "/client/ledger", screenKey: "ledger" },
-      { icon: BarChart3, label: "تقارير مراكز التكلفة", labelEn: "Cost Center Reports", path: "/client/cost-centers/reports", screenKey: "cost_center_reports" },
+      
       { icon: ListChecks, label: "سجل العمليات", labelEn: "Operations Log", path: "/client/operations-log", screenKey: "operations_log" },
     ]
   },
@@ -129,12 +128,18 @@ const baseMenuItems: MenuItem[] = [
     path: "/client/inventory",
     screenKey: "products",
   },
-  { 
-    icon: BarChart3, 
-    label: "التقارير", 
-    labelEn: "Reports", 
-    path: "/client/reports",
-    screenKey: "reports",
+  {
+    icon: BarChart3,
+    label: "التقارير",
+    labelEn: "Reports",
+    children: [
+      { icon: BookOpenCheck, label: "دفتر الأستاذ", labelEn: "General Ledger", path: "/client/ledger", screenKey: "ledger" },
+      { icon: FileText, label: "ميزان المراجعة", labelEn: "Trial Balance", path: "/client/reports/trial-balance", screenKey: "trial_balance" },
+      { icon: TrendingUp, label: "قائمة الدخل", labelEn: "Income Statement", path: "/client/reports/income-statement", screenKey: "income_statement" },
+      { icon: BarChart3, label: "الميزانية العمومية", labelEn: "Balance Sheet", path: "/client/reports/balance-sheet", screenKey: "balance_sheet" },
+      { icon: Wallet, label: "التدفقات النقدية", labelEn: "Cash Flow", path: "/client/reports/cash-flow", screenKey: "cash_flow" },
+      { icon: BarChart3, label: "تقارير مراكز التكلفة", labelEn: "Cost Center Reports", path: "/client/cost-centers/reports", screenKey: "cost_center_reports" },
+    ]
   },
   { 
     icon: Settings, 
