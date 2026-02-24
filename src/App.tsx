@@ -26,6 +26,7 @@ import ClientReports from "./pages/client/ClientReports";
 import ClientSettings from "./pages/client/ClientSettings";
 import CreateSalesInvoice from "./pages/client/CreateSalesInvoice";
 import CreateContact from "./pages/client/CreateContact";
+import EditContact from "./pages/client/EditContact";
 import ViewInvoice from "./pages/client/ViewInvoice";
 import CreatePurchaseInvoice from "./pages/client/CreatePurchaseInvoice";
 import CreateJournalEntry from "./pages/client/CreateJournalEntry";
@@ -164,6 +165,7 @@ const App = () => (
               <Route path="inventory/new" element={<CreateProduct />} />
               <Route path="contacts" element={<ClientContacts />} />
               <Route path="contacts/new" element={<CreateContact />} />
+              <Route path="contacts/:id/edit" element={<EditContact />} />
               <Route path="reports" element={<ClientReports />} />
               <Route path="reports/income-statement" element={<IncomeStatement />} />
               <Route path="reports/balance-sheet" element={<BalanceSheet />} />
