@@ -44,7 +44,7 @@ export const useScreenAccess = () => {
   const hasNoScreenConfig = enabledScreenKeys?.size === 0;
 
   // Settings-related screen keys that are always mandatory
-  const mandatoryKeys = new Set(["settings", "company_settings", "users_management", "branches", "chart_of_accounts"]);
+  const mandatoryKeys = new Set(["dashboard", "settings", "company_settings", "users_management", "branches", "chart_of_accounts"]);
 
   /**
    * Check if a specific screen key is enabled.
