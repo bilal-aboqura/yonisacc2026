@@ -2832,6 +2832,10 @@ export type Database = {
         }
         Returns: string
       }
+      sync_plan_screens_to_subscribers: {
+        Args: { p_plan_id: string }
+        Returns: undefined
+      }
       verify_tenant_access: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
