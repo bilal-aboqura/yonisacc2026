@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTenantIsolation } from "@/hooks/useTenantIsolation";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { useScreenAccess } from "@/hooks/useScreenAccess";
 import {
   FileText,
   ShoppingCart,
@@ -81,6 +83,8 @@ const ClientDashboard = () => {
   const { isRTL } = useLanguage();
   const { user } = useAuth();
   const { companyId, company, isLoadingCompany } = useTenantIsolation();
+  const { isModuleEnabled } = useFeatureAccess();
+  const { isScreenEnabled } = useScreenAccess();
   const navigate = useNavigate();
   const [period, setPeriod] = useState("month");
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
@@ -148,21 +152,30 @@ const ClientDashboard = () => {
     staleTime: 60_000,
   });
 
-  // 3. Treasury balance (cash + bank accounts current balance)
+  // 3. Treasury balance via RPC (dynamic from opening_balances + journal_entry_lines)
   const { data: treasuryBalance = 0 } = useQuery({
     queryKey: ["dashboard-treasury", companyId],
     queryFn: async () => {
       if (!companyId) return 0;
-      // Cash and bank accounts (codes starting with 111)
-      const { data, error } = await supabase
+
+      // Get all account balances via RPC
+      const { data: balances, error: rpcError } = await supabase.rpc("get_account_balances", {
+        p_company_id: companyId,
+      });
+      if (rpcError) { console.error("Treasury RPC error:", rpcError); return 0; }
+
+      // Get cash & bank account IDs (codes starting with 111)
+      const { data: cashAccounts, error: accError } = await supabase
         .from("accounts")
-        .select("balance, code")
+        .select("id, code")
         .eq("company_id", companyId)
         .eq("is_parent", false)
         .like("code", "111%");
 
-      if (error) { console.error("Treasury query error:", error); return 0; }
-      return (data || []).reduce((sum, row) => sum + (row.balance || 0), 0);
+      if (accError) { console.error("Treasury accounts error:", accError); return 0; }
+
+      const balanceMap = (balances || {}) as Record<string, number>;
+      return (cashAccounts || []).reduce((sum, acc) => sum + (balanceMap[acc.id] || 0), 0);
     },
     enabled: !!companyId,
     staleTime: 60_000,
@@ -298,11 +311,11 @@ const ClientDashboard = () => {
   ];
 
   const quickActions = [
-    { title: isRTL ? "فاتورة مبيعات" : "Sales Invoice", icon: FileText, path: "/client/sales/new", color: "bg-green-500" },
-    { title: isRTL ? "فاتورة مشتريات" : "Purchase Invoice", icon: ShoppingCart, path: "/client/purchases/new", color: "bg-blue-500" },
-    { title: isRTL ? "قيد يومية" : "Journal Entry", icon: Plus, path: "/client/journal/new", color: "bg-purple-500" },
-    { title: isRTL ? "عميل جديد" : "New Customer", icon: Users, path: "/client/contacts/new", color: "bg-orange-500" },
-  ];
+    isModuleEnabled("sales") && isScreenEnabled("sales_invoices") && { title: isRTL ? "فاتورة مبيعات" : "Sales Invoice", icon: FileText, path: "/client/sales/new", color: "bg-green-500" },
+    isModuleEnabled("purchases") && isScreenEnabled("purchase_invoices") && { title: isRTL ? "فاتورة مشتريات" : "Purchase Invoice", icon: ShoppingCart, path: "/client/purchases/new", color: "bg-blue-500" },
+    isScreenEnabled("journal_entries") && { title: isRTL ? "قيد يومية" : "Journal Entry", icon: Plus, path: "/client/journal/new", color: "bg-purple-500" },
+    isModuleEnabled("sales") && isScreenEnabled("customers") && { title: isRTL ? "عميل جديد" : "New Customer", icon: Users, path: "/client/contacts/new", color: "bg-orange-500" },
+  ].filter(Boolean) as Array<{ title: string; icon: any; path: string; color: string }>;
 
   const getRefTypeLabel = (refType: string | null) => {
     switch (refType) {
