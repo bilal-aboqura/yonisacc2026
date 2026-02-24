@@ -273,7 +273,7 @@ const OwnerSubscriptions = () => {
       </Card>
 
       {/* Subscriptions Table */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border-0 shadow-lg rounded-2xl overflow-hidden">
         <CardContent className="p-0">
           <Table>
             <TableHeader>

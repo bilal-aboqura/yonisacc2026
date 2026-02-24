@@ -239,7 +239,7 @@ const TrialBalance = () => {
         )
       )}
 
-      <Card>
+      <Card className="shadow-sm border-border/60 rounded-2xl overflow-hidden">
         <CardHeader>
           <CardTitle>{isRTL ? "ميزان المراجعة" : "Trial Balance"}</CardTitle>
         </CardHeader>

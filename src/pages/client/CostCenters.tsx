@@ -3,19 +3,9 @@ import { useTenantIsolation } from "@/hooks/useTenantIsolation";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Target, Pencil, Trash2 } from "lucide-react";
+import { Target, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, StatusBadge } from "@/components/ui/data-table";
 
 const CostCenters = () => {
   const { isRTL } = useLanguage();
@@ -55,83 +45,30 @@ const CostCenters = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
-          {isRTL ? "مراكز التكلفة" : "Cost Centers"}
-        </h1>
-        <Button onClick={() => navigate("/client/cost-centers/new")}>
-          <Plus className="h-4 w-4 me-2" />
-          {isRTL ? "إضافة مركز تكلفة" : "Add Cost Center"}
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            {isRTL ? "مراكز التكلفة" : "Cost Centers"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              {isRTL ? "جاري التحميل..." : "Loading..."}
-            </div>
-          ) : costCenters.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              {isRTL ? "لا توجد مراكز تكلفة حالياً" : "No cost centers yet"}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{isRTL ? "الرمز" : "Code"}</TableHead>
-                  <TableHead>{isRTL ? "الاسم" : "Name"}</TableHead>
-                  <TableHead>{isRTL ? "الاسم (إنجليزي)" : "Name (EN)"}</TableHead>
-                  <TableHead>{isRTL ? "الأب" : "Parent"}</TableHead>
-                  <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-                  <TableHead>{isRTL ? "إجراءات" : "Actions"}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {costCenters.map((cc) => (
-                  <TableRow key={cc.id}>
-                    <TableCell className="font-mono">{cc.code}</TableCell>
-                    <TableCell>{cc.name}</TableCell>
-                    <TableCell>{cc.name_en || "-"}</TableCell>
-                    <TableCell>{getParentName(cc.parent_id)}</TableCell>
-                    <TableCell>
-                      <Badge variant={cc.is_active ? "default" : "secondary"}>
-                        {cc.is_active
-                          ? (isRTL ? "نشط" : "Active")
-                          : (isRTL ? "غير نشط" : "Inactive")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigate(`/client/cost-centers/${cc.id}/edit`)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(cc.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        title={isRTL ? "مراكز التكلفة" : "Cost Centers"}
+        icon={<Target className="h-5 w-5" />}
+        columns={[
+          { key: "code", header: isRTL ? "الرمز" : "Code", render: (cc: any) => <span className="font-mono">{cc.code}</span> },
+          { key: "name", header: isRTL ? "الاسم" : "Name" },
+          { key: "name_en", header: isRTL ? "الاسم (إنجليزي)" : "Name (EN)", render: (cc: any) => cc.name_en || "-", hideOnMobile: true },
+          { key: "parent", header: isRTL ? "الأب" : "Parent", render: (cc: any) => getParentName(cc.parent_id), hideOnMobile: true },
+          { key: "status", header: isRTL ? "الحالة" : "Status", render: (cc: any) => (
+            <StatusBadge config={{ label: cc.is_active ? (isRTL ? "نشط" : "Active") : (isRTL ? "غير نشط" : "Inactive"), variant: cc.is_active ? "success" : "secondary" }} />
+          )},
+        ]}
+        data={costCenters}
+        isLoading={isLoading}
+        rowKey={(cc: any) => cc.id}
+        actions={[
+          { label: isRTL ? "تعديل" : "Edit", icon: <Pencil className="h-4 w-4" />, onClick: (cc: any) => navigate(`/client/cost-centers/${cc.id}/edit`) },
+          { label: isRTL ? "حذف" : "Delete", icon: <Trash2 className="h-4 w-4" />, onClick: (cc: any) => handleDelete(cc.id), variant: "destructive" as const, separator: true },
+        ]}
+        searchPlaceholder={isRTL ? "بحث في مراكز التكلفة..." : "Search cost centers..."}
+        onSearch={(cc: any, term: string) => cc.code.toLowerCase().includes(term) || cc.name.toLowerCase().includes(term) || (cc.name_en || "").toLowerCase().includes(term)}
+        createButton={{ label: isRTL ? "إضافة مركز تكلفة" : "Add Cost Center", onClick: () => navigate("/client/cost-centers/new") }}
+        emptyState={{ icon: <Target className="h-10 w-10 text-muted-foreground/60" />, title: isRTL ? "لا توجد مراكز تكلفة" : "No cost centers yet", actionLabel: isRTL ? "إضافة" : "Add", onAction: () => navigate("/client/cost-centers/new") }}
+      />
     </div>
   );
 };
