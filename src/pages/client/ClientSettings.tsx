@@ -5,18 +5,147 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Building2, User, Bell, Shield, Palette, Users } from "lucide-react";
+import { Building2, User, Bell, Palette, Users, Loader2 } from "lucide-react";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import TeamManagement from "@/components/client/TeamManagement";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 const ClientSettings = () => {
   const { isRTL } = useLanguage();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Fetch company data
+  const { data: company, isLoading: loadingCompany } = useQuery({
+    queryKey: ["settings-company", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("owner_id", user.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch profile data
+  const { data: profile, isLoading: loadingProfile } = useQuery({
+    queryKey: ["settings-profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Company form state
+  const [companyName, setCompanyName] = useState("");
+  const [companyNameEn, setCompanyNameEn] = useState("");
+  const [companyEmail, setCompanyEmail] = useState("");
+  const [companyPhone, setCompanyPhone] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [commercialRegister, setCommercialRegister] = useState("");
+  const [taxNumber, setTaxNumber] = useState("");
+
+  // Profile form state
+  const [fullName, setFullName] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+
+  // Populate forms when data loads
+  useEffect(() => {
+    if (company) {
+      setCompanyName(company.name || "");
+      setCompanyNameEn(company.name_en || "");
+      setCompanyEmail(company.email || "");
+      setCompanyPhone(company.phone || "");
+      setCompanyAddress(company.address || "");
+      setCommercialRegister(company.commercial_register || "");
+      setTaxNumber(company.tax_number || "");
+    }
+  }, [company]);
+
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || "");
+      setProfilePhone(profile.phone || profile.phone_number || "");
+    }
+  }, [profile]);
+
+  // Save company mutation
+  const saveCompany = useMutation({
+    mutationFn: async () => {
+      if (!company?.id) throw new Error("No company found");
+      const { error } = await supabase
+        .from("companies")
+        .update({
+          name: companyName,
+          name_en: companyNameEn,
+          email: companyEmail,
+          phone: companyPhone,
+          address: companyAddress,
+          commercial_register: commercialRegister,
+          tax_number: taxNumber,
+        })
+        .eq("id", company.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings-company"] });
+      toast.success(isRTL ? "تم حفظ بيانات الشركة بنجاح" : "Company data saved successfully");
+    },
+    onError: () => {
+      toast.error(isRTL ? "فشل في حفظ البيانات" : "Failed to save data");
+    },
+  });
+
+  // Save profile mutation
+  const saveProfile = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) throw new Error("No user");
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: fullName,
+          phone: profilePhone,
+        })
+        .eq("user_id", user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings-profile"] });
+      toast.success(isRTL ? "تم حفظ الملف الشخصي بنجاح" : "Profile saved successfully");
+    },
+    onError: () => {
+      toast.error(isRTL ? "فشل في حفظ البيانات" : "Failed to save data");
+    },
+  });
+
+  const isLoading = loadingCompany || loadingProfile;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
-      {/* Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-foreground">
           {isRTL ? "الإعدادات" : "Settings"}
@@ -26,7 +155,6 @@ const ClientSettings = () => {
         </p>
       </div>
 
-      {/* Tabs */}
       <Tabs defaultValue="company" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 lg:w-auto lg:inline-grid">
           <TabsTrigger value="company" className="gap-2">
@@ -51,6 +179,7 @@ const ClientSettings = () => {
           </TabsTrigger>
         </TabsList>
 
+        {/* Company Tab */}
         <TabsContent value="company">
           <Card>
             <CardHeader>
@@ -63,36 +192,85 @@ const ClientSettings = () => {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{isRTL ? "اسم الشركة (عربي)" : "Company Name (Arabic)"}</Label>
-                  <Input placeholder={isRTL ? "اسم الشركة" : "Company name"} />
+                  <Input
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder={isRTL ? "اسم الشركة" : "Company name"}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{isRTL ? "اسم الشركة (إنجليزي)" : "Company Name (English)"}</Label>
-                  <Input placeholder="Company name" dir="ltr" />
+                  <Input
+                    value={companyNameEn}
+                    onChange={(e) => setCompanyNameEn(e.target.value)}
+                    placeholder="Company name"
+                    dir="ltr"
+                  />
                 </div>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{isRTL ? "البريد الإلكتروني" : "Email"}</Label>
-                  <Input type="email" placeholder="info@company.com" dir="ltr" />
+                  <Input
+                    type="email"
+                    value={companyEmail}
+                    onChange={(e) => setCompanyEmail(e.target.value)}
+                    placeholder="info@company.com"
+                    dir="ltr"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{isRTL ? "رقم الهاتف" : "Phone"}</Label>
-                  <Input placeholder="+966" dir="ltr" />
+                  <Input
+                    value={companyPhone}
+                    onChange={(e) => setCompanyPhone(e.target.value)}
+                    placeholder="+966"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{isRTL ? "السجل التجاري" : "Commercial Register"}</Label>
+                  <Input
+                    value={commercialRegister}
+                    onChange={(e) => setCommercialRegister(e.target.value)}
+                    placeholder={isRTL ? "رقم السجل التجاري" : "Commercial register number"}
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{isRTL ? "الرقم الضريبي" : "Tax Number"}</Label>
+                  <Input
+                    value={taxNumber}
+                    onChange={(e) => setTaxNumber(e.target.value)}
+                    placeholder={isRTL ? "الرقم الضريبي" : "Tax number"}
+                    dir="ltr"
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>{isRTL ? "العنوان" : "Address"}</Label>
-                <Input placeholder={isRTL ? "عنوان الشركة" : "Company address"} />
+                <Input
+                  value={companyAddress}
+                  onChange={(e) => setCompanyAddress(e.target.value)}
+                  placeholder={isRTL ? "عنوان الشركة" : "Company address"}
+                />
               </div>
-              <Button>{isRTL ? "حفظ التغييرات" : "Save Changes"}</Button>
+              <Button onClick={() => saveCompany.mutate()} disabled={saveCompany.isPending}>
+                {saveCompany.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+                {isRTL ? "حفظ التغييرات" : "Save Changes"}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* Team Tab */}
         <TabsContent value="team">
           <TeamManagement />
         </TabsContent>
 
+        {/* Profile Tab */}
         <TabsContent value="profile">
           <Card>
             <CardHeader>
@@ -105,7 +283,11 @@ const ClientSettings = () => {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{isRTL ? "الاسم الكامل" : "Full Name"}</Label>
-                  <Input placeholder={isRTL ? "الاسم الكامل" : "Full name"} />
+                  <Input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder={isRTL ? "الاسم الكامل" : "Full name"}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>{isRTL ? "البريد الإلكتروني" : "Email"}</Label>
@@ -114,13 +296,22 @@ const ClientSettings = () => {
               </div>
               <div className="space-y-2">
                 <Label>{isRTL ? "رقم الهاتف" : "Phone"}</Label>
-                <Input placeholder="+966" dir="ltr" />
+                <Input
+                  value={profilePhone}
+                  onChange={(e) => setProfilePhone(e.target.value)}
+                  placeholder="+966"
+                  dir="ltr"
+                />
               </div>
-              <Button>{isRTL ? "حفظ التغييرات" : "Save Changes"}</Button>
+              <Button onClick={() => saveProfile.mutate()} disabled={saveProfile.isPending}>
+                {saveProfile.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+                {isRTL ? "حفظ التغييرات" : "Save Changes"}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* Appearance Tab */}
         <TabsContent value="appearance">
           <Card>
             <CardHeader>
@@ -152,6 +343,7 @@ const ClientSettings = () => {
           </Card>
         </TabsContent>
 
+        {/* Notifications Tab */}
         <TabsContent value="notifications">
           <Card>
             <CardHeader>
