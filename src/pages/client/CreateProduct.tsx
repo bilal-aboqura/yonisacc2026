@@ -126,16 +126,9 @@ const CreateProduct = () => {
 
   const fetchInitialData = async () => {
     try {
-      const { data: companiesData, error: companyError } = await supabase
-        .from("companies")
-        .select("id")
-        .eq("owner_id", user?.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      const companyData = companiesData?.[0];
-
-      if (companyError || !companyData) throw companyError || new Error("No company found");
+      const resolvedId = await (await import("@/hooks/useCompanyId")).fetchCompanyId(user?.id || "");
+      if (!resolvedId) throw new Error("No company found");
+      const companyData = { id: resolvedId };
       setCompanyId(companyData.id);
 
       const { data: categoriesData } = await supabase

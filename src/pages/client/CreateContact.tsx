@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCompanyId } from "@/hooks/useCompanyId";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,21 +96,16 @@ const CreateContact = () => {
     setIsSaving(true);
 
     try {
-      // Get company
-      const { data: company } = await supabase
-        .from("companies")
-        .select("id")
-        .eq("owner_id", user.id)
-        .maybeSingle();
+      const companyId = await fetchCompanyId(user.id);
 
-      if (!company) {
+      if (!companyId) {
         toast.error(isRTL ? "لم يتم العثور على الشركة" : "Company not found");
         return;
       }
 
       // Create contact
       const { error } = await supabase.from("contacts").insert({
-        company_id: company.id,
+        company_id: companyId,
         name: formData.name.trim(),
         name_en: formData.name_en?.trim() || null,
         type: formData.type,

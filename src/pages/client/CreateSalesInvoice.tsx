@@ -137,11 +137,17 @@ const CreateSalesInvoice = () => {
       setIsLoading(true);
 
       try {
-        // Fetch company
+        // Fetch company (supports both owners and team members)
+        const resolvedId = await (await import("@/hooks/useCompanyId")).fetchCompanyId(user.id);
+        if (!resolvedId) {
+          setIsLoading(false);
+          return;
+        }
+
         const { data: companyData } = await supabase
           .from("companies")
           .select("*")
-          .eq("owner_id", user.id)
+          .eq("id", resolvedId)
           .maybeSingle();
 
         if (companyData) {
