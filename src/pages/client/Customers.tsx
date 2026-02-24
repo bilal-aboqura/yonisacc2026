@@ -27,7 +27,7 @@ const Customers = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contacts")
-        .select("*")
+        .select("*, accounts:account_id(code, name, name_en)")
         .eq("company_id", companyId!)
         .eq("type", "customer")
         .order("created_at", { ascending: false });
@@ -52,6 +52,14 @@ const Customers = () => {
   };
 
   const columns: DataTableColumn<any>[] = [
+    {
+      key: "account_code",
+      header: isRTL ? "رقم الحساب" : "Account Code",
+      width: 120,
+      render: (row) => (
+        <span className="font-mono text-xs text-primary">{row.accounts?.code || "-"}</span>
+      ),
+    },
     {
       key: "name",
       header: isRTL ? "الاسم" : "Name",
