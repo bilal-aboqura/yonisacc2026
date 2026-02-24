@@ -1,20 +1,12 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyId } from "@/hooks/useCompanyId";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Truck, Eye, Edit, Trash2 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+import { DataTable, StatusBadge } from "@/components/ui/data-table";
+import type { DataTableColumn, DataTableAction } from "@/components/ui/data-table";
+import { Truck, Eye, Edit, Trash2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -23,12 +15,10 @@ import { toast } from "sonner";
 import ContactViewDialog from "@/components/client/ContactViewDialog";
 
 const Vendors = () => {
-  const { t } = useTranslation();
   const { isRTL } = useLanguage();
   const navigate = useNavigate();
   const { companyId } = useCompanyId();
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState("");
   const [viewContact, setViewContact] = useState<any>(null);
   const [deleteContact, setDeleteContact] = useState<any>(null);
 
@@ -47,13 +37,6 @@ const Vendors = () => {
     enabled: !!companyId,
   });
 
-  const filtered = vendors.filter((v) =>
-    v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (v.name_en && v.name_en.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (v.phone && v.phone.includes(searchTerm)) ||
-    (v.email && v.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
   const handleDelete = async () => {
     if (!deleteContact) return;
     try {
@@ -68,128 +51,118 @@ const Vendors = () => {
     }
   };
 
+  const columns: DataTableColumn<any>[] = [
+    {
+      key: "name",
+      header: isRTL ? "الاسم" : "Name",
+      render: (row) => (
+        <span className="font-semibold text-foreground">
+          {isRTL ? row.name : (row.name_en || row.name)}
+        </span>
+      ),
+    },
+    {
+      key: "phone",
+      header: isRTL ? "الهاتف" : "Phone",
+      render: (row) => <span dir="ltr">{row.phone || "-"}</span>,
+    },
+    {
+      key: "email",
+      header: isRTL ? "البريد" : "Email",
+      render: (row) => <span className="text-muted-foreground">{row.email || "-"}</span>,
+      hideOnMobile: true,
+    },
+    {
+      key: "city",
+      header: isRTL ? "المدينة" : "City",
+      render: (row) => row.city || "-",
+      hideOnMobile: true,
+    },
+    {
+      key: "tax_number",
+      header: isRTL ? "الرقم الضريبي" : "Tax No.",
+      render: (row) => <span className="font-mono text-xs">{row.tax_number || "-"}</span>,
+      hideOnMobile: true,
+    },
+    {
+      key: "balance",
+      header: isRTL ? "الرصيد" : "Balance",
+      numeric: true,
+      render: (row) => (row.balance ?? 0).toLocaleString(),
+    },
+    {
+      key: "status",
+      header: isRTL ? "الحالة" : "Status",
+      width: 100,
+      render: (row) => (
+        <StatusBadge
+          config={row.is_active
+            ? { label: isRTL ? "نشط" : "Active", variant: "success" }
+            : { label: isRTL ? "غير نشط" : "Inactive", variant: "secondary" }
+          }
+        />
+      ),
+    },
+  ];
+
+  const actions: DataTableAction<any>[] = [
+    {
+      label: isRTL ? "عرض" : "View",
+      icon: <Eye className="h-4 w-4" />,
+      onClick: (row) => setViewContact(row),
+    },
+    {
+      label: isRTL ? "تعديل" : "Edit",
+      icon: <Edit className="h-4 w-4" />,
+      onClick: (row) => navigate(`/client/contacts/${row.id}/edit`),
+    },
+    {
+      label: isRTL ? "حذف" : "Delete",
+      icon: <Trash2 className="h-4 w-4" />,
+      onClick: (row) => setDeleteContact(row),
+      variant: "destructive",
+      separator: true,
+    },
+  ];
+
   return (
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            {isRTL ? "الموردين" : "Vendors"}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {isRTL ? "إدارة بيانات الموردين" : "Manage vendor data"}
-          </p>
-        </div>
-        <Button className="gap-2" onClick={() => navigate("/client/contacts/new?type=vendor")}>
-          <Plus className="h-4 w-4" />
-          {isRTL ? "إضافة مورد" : "Add Vendor"}
-        </Button>
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+          {isRTL ? "الموردين" : "Vendors"}
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          {isRTL ? "إدارة بيانات الموردين" : "Manage vendor data"}
+        </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Truck className="h-5 w-5" />
-            {isRTL ? "قائمة الموردين" : "Vendors List"}
-            <Badge variant="secondary" className="ms-2">{filtered.length}</Badge>
-          </CardTitle>
-          <div className="relative mt-2">
-            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={isRTL ? "بحث بالاسم أو الهاتف أو البريد..." : "Search by name, phone or email..."}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="ps-10"
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-12">
-              <Truck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                {isRTL ? "لا يوجد موردين بعد" : "No vendors yet"}
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {isRTL ? "ابدأ بإضافة أول مورد" : "Start by adding your first vendor"}
-              </p>
-              <Button className="gap-2" onClick={() => navigate("/client/contacts/new?type=vendor")}>
-                <Plus className="h-4 w-4" />
-                {isRTL ? "إضافة مورد" : "Add Vendor"}
-              </Button>
-            </div>
-          ) : (
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{isRTL ? "الاسم" : "Name"}</TableHead>
-                    <TableHead>{isRTL ? "الهاتف" : "Phone"}</TableHead>
-                    <TableHead>{isRTL ? "البريد" : "Email"}</TableHead>
-                    <TableHead>{isRTL ? "المدينة" : "City"}</TableHead>
-                    <TableHead>{isRTL ? "الرقم الضريبي" : "Tax No."}</TableHead>
-                    <TableHead>{isRTL ? "الرصيد" : "Balance"}</TableHead>
-                    <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-                    <TableHead>{isRTL ? "إجراءات" : "Actions"}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((vendor) => (
-                    <TableRow key={vendor.id}>
-                      <TableCell className="font-medium">
-                        {isRTL ? vendor.name : (vendor.name_en || vendor.name)}
-                      </TableCell>
-                      <TableCell>{vendor.phone || "-"}</TableCell>
-                      <TableCell>{vendor.email || "-"}</TableCell>
-                      <TableCell>{vendor.city || "-"}</TableCell>
-                      <TableCell>{vendor.tax_number || "-"}</TableCell>
-                      <TableCell>{(vendor.balance ?? 0).toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge variant={vendor.is_active ? "default" : "secondary"}>
-                          {vendor.is_active ? (isRTL ? "نشط" : "Active") : (isRTL ? "غير نشط" : "Inactive")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <div className="flex gap-1">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewContact(vendor)}>
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "عرض" : "View"}</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/client/contacts/${vendor.id}/edit`)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteContact(vendor)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "حذف" : "Delete"}</TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TooltipProvider>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        title={isRTL ? "قائمة الموردين" : "Vendors List"}
+        icon={<Truck className="h-5 w-5 text-primary" />}
+        columns={columns}
+        data={vendors}
+        isLoading={isLoading}
+        rowKey={(row) => row.id}
+        actions={actions}
+        searchPlaceholder={isRTL ? "بحث بالاسم أو الهاتف أو البريد..." : "Search by name, phone or email..."}
+        onSearch={(row, term) =>
+          row.name.toLowerCase().includes(term) ||
+          (row.name_en && row.name_en.toLowerCase().includes(term)) ||
+          (row.phone && row.phone.includes(term)) ||
+          (row.email && row.email.toLowerCase().includes(term))
+        }
+        createButton={{
+          label: isRTL ? "إضافة مورد" : "Add Vendor",
+          onClick: () => navigate("/client/contacts/new?type=vendor"),
+        }}
+        emptyState={{
+          icon: <Truck className="h-10 w-10 text-muted-foreground/60" />,
+          title: isRTL ? "لا يوجد موردين بعد" : "No vendors yet",
+          description: isRTL ? "ابدأ بإضافة أول مورد" : "Start by adding your first vendor",
+          actionLabel: isRTL ? "إضافة مورد" : "Add Vendor",
+          onAction: () => navigate("/client/contacts/new?type=vendor"),
+        }}
+      />
 
       <ContactViewDialog contact={viewContact} open={!!viewContact} onOpenChange={(open) => !open && setViewContact(null)} />
 
