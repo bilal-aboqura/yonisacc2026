@@ -21,3 +21,6 @@ verify_jwt = false
 [functions.delete-subscriber]
 verify_jwt = false
 
+[functions.reset-usage]
+verify_jwt = false
+

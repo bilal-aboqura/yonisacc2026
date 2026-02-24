@@ -45,6 +45,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import UsageLimitGuard from "@/components/client/UsageLimitGuard";
 
 interface Contact {
   id: string;
@@ -94,6 +96,7 @@ const CreateSalesInvoice = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const Arrow = isRTL ? ArrowRight : ArrowLeft;
+  const { incrementUsage } = useFeatureAccess();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -329,6 +332,9 @@ const CreateSalesInvoice = () => {
 
       if (itemsError) throw itemsError;
 
+      // Increment usage counter
+      await incrementUsage("sales_invoices");
+
       toast.success(
         status === "draft"
           ? (isRTL ? "تم حفظ الفاتورة كمسودة" : "Invoice saved as draft")
@@ -368,6 +374,7 @@ const CreateSalesInvoice = () => {
   }
 
   return (
+    <UsageLimitGuard usageType="sales_invoices">
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -797,6 +804,7 @@ const CreateSalesInvoice = () => {
         </div>
       </div>
     </div>
+    </UsageLimitGuard>
   );
 };
 

@@ -6,6 +6,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { useAutoPartsAccess } from "@/hooks/useAutoPartsAccess";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -154,16 +155,41 @@ const ClientLayout = () => {
   const { signOut, user, isLoading } = useAuth();
   const { isAutoPartsCompany } = useAutoPartsAccess();
   const { status: subStatus } = useSubscriptionGuard();
+  const { isModuleEnabled } = useFeatureAccess();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
 
-  // Build menu items dynamically based on activity type
-  const menuItems = isAutoPartsCompany
-    ? [...baseMenuItems.slice(0, 5), autoPartsMenuGroup, ...baseMenuItems.slice(5)]
-    : baseMenuItems;
+  // Build menu items dynamically based on activity type AND plan features
+  const menuItems = (() => {
+    let items = [...baseMenuItems];
+    
+    // Filter modules based on plan features
+    items = items.filter(item => {
+      switch (item.labelEn) {
+        case "Sales": return isModuleEnabled("sales");
+        case "Purchases": return isModuleEnabled("purchases");
+        case "Reports": return isModuleEnabled("reports");
+        case "Inventory": return isModuleEnabled("inventory");
+        case "Human Resources": return isModuleEnabled("hr");
+        default: return true;
+      }
+    });
+
+    // Add auto parts group if enabled AND company is auto parts type
+    if (isAutoPartsCompany && isModuleEnabled("auto_parts")) {
+      const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
+      if (reportsIdx !== -1) {
+        items.splice(reportsIdx, 0, autoPartsMenuGroup);
+      } else {
+        items.push(autoPartsMenuGroup);
+      }
+    }
+
+    return items;
+  })();
 
   // Require authentication for client area
   useEffect(() => {
