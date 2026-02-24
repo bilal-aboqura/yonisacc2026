@@ -20,8 +20,8 @@ import {
 } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Building2, Eye, Pencil, Pause, Ban, Trash2, Mail, Phone, Calendar, MapPin, Archive, Users, RotateCcw, KeyRound, Loader2, ShieldCheck, Shield, Monitor } from "lucide-react";
-import ManageAccessDialog from "@/components/owner/ManageAccessDialog";
 import ManagePermissionsDialog from "@/components/owner/ManagePermissionsDialog";
 import CompanyScreensDialog from "@/components/owner/CompanyScreensDialog";
 import { Label } from "@/components/ui/label";
@@ -51,6 +51,7 @@ const statusConfig: Record<string, { color: string; labelAr: string; labelEn: st
 const OwnerSubscribers = () => {
   const { isRTL } = useLanguage();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [viewCompany, setViewCompany] = useState<any>(null);
@@ -58,7 +59,7 @@ const OwnerSubscribers = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [restoreCompany, setRestoreCompany] = useState<any>(null);
   const [restorePassword, setRestorePassword] = useState("");
-  const [manageAccessCompany, setManageAccessCompany] = useState<any>(null);
+  
   const [managePermissionsCompany, setManagePermissionsCompany] = useState<any>(null);
   const [manageScreensCompany, setManageScreensCompany] = useState<any>(null);
 
@@ -324,7 +325,7 @@ const OwnerSubscribers = () => {
                                   variant="ghost" size="icon"
                                   className="h-8 w-8 hover:text-primary"
                                   disabled={isArchived}
-                                  onClick={() => setManageAccessCompany(company)}
+                                  onClick={() => navigate(`/owner/subscribers/${company.id}/access`)}
                                 >
                                   <ShieldCheck className="h-4 w-4" />
                                 </Button>
@@ -654,13 +655,8 @@ const OwnerSubscribers = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Manage Access Dialog */}
-      <ManageAccessDialog
-        open={!!manageAccessCompany}
-        onOpenChange={() => setManageAccessCompany(null)}
-        company={manageAccessCompany}
-        onSaved={() => queryClient.invalidateQueries({ queryKey: ["owner-subscribers"] })}
-      />
+
+
 
       {/* Manage Permissions Dialog */}
       <ManagePermissionsDialog
