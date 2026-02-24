@@ -162,7 +162,24 @@ const ManageCompanyAccess = () => {
     );
   };
 
+  // Settings screens are mandatory - find their IDs
+  const settingsScreenIds = useMemo(() => {
+    return new Set((groupedScreens["settings"] || []).map((s) => s.id));
+  }, [groupedScreens]);
+
+  // Ensure settings screens are always enabled
+  useEffect(() => {
+    if (settingsScreenIds.size > 0) {
+      setEnabledScreens((prev) => {
+        const next = new Set(prev);
+        settingsScreenIds.forEach((sid) => next.add(sid));
+        return next;
+      });
+    }
+  }, [settingsScreenIds]);
+
   const toggleScreen = (screenId: string) => {
+    if (settingsScreenIds.has(screenId)) return; // Cannot toggle settings
     setEnabledScreens((prev) => {
       const next = new Set(prev);
       if (next.has(screenId)) next.delete(screenId);
@@ -172,6 +189,7 @@ const ManageCompanyAccess = () => {
   };
 
   const toggleAllScreensInModule = (module: string) => {
+    if (module === "settings") return; // Cannot toggle settings
     const moduleScreenIds = groupedScreens[module]?.map((s) => s.id) || [];
     const allEnabled = moduleScreenIds.every((id) => enabledScreens.has(id));
     setEnabledScreens((prev) => {
@@ -337,6 +355,7 @@ const ManageCompanyAccess = () => {
                   const enabledCount = getModuleScreenCount(module);
                   const allEnabled = moduleScreens.every((s) => enabledScreens.has(s.id));
                   const someEnabled = enabledCount > 0 && !allEnabled;
+                  const isMandatory = module === "settings";
 
                   const overrideKey = config.overrideKey;
                   const moduleEnabled = overrideKey
@@ -364,10 +383,15 @@ const ManageCompanyAccess = () => {
 
                           <Icon className="h-5 w-5 text-primary shrink-0" />
 
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 flex items-center gap-2">
                             <span className="font-semibold">
                               {isRTL ? config.ar : config.en}
                             </span>
+                            {isMandatory && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                {isRTL ? "إجباري" : "Required"}
+                              </Badge>
+                            )}
                           </div>
 
                           <Badge
@@ -377,7 +401,7 @@ const ManageCompanyAccess = () => {
                             {enabledCount}/{moduleScreens.length}
                           </Badge>
 
-                          {overrideKey && (
+                          {overrideKey && !isMandatory && (
                             <Switch
                               checked={moduleEnabled}
                               onCheckedChange={(v) => setData((d) => ({ ...d, [overrideKey]: v }))}
@@ -390,28 +414,31 @@ const ManageCompanyAccess = () => {
                         <CollapsibleContent>
                           <div className="border-t">
                             {/* Select All */}
-                            <div
-                              className="flex items-center gap-3 px-5 py-2.5 bg-muted/30 border-b cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() => toggleAllScreensInModule(module)}
-                            >
-                              <Checkbox
-                                checked={allEnabled}
-                                onCheckedChange={() => toggleAllScreensInModule(module)}
-                              />
-                              <span className="text-xs font-medium text-muted-foreground">
-                                {isRTL ? "تحديد الكل" : "Select All"}
-                              </span>
-                            </div>
+                            {!isMandatory && (
+                              <div
+                                className="flex items-center gap-3 px-5 py-2.5 bg-muted/30 border-b cursor-pointer hover:bg-muted/50 transition-colors"
+                                onClick={() => toggleAllScreensInModule(module)}
+                              >
+                                <Checkbox
+                                  checked={allEnabled}
+                                  onCheckedChange={() => toggleAllScreensInModule(module)}
+                                />
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  {isRTL ? "تحديد الكل" : "Select All"}
+                                </span>
+                              </div>
+                            )}
 
                             {moduleScreens.map((screen) => (
                               <div
                                 key={screen.id}
-                                className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors cursor-pointer border-b last:border-b-0"
-                                onClick={() => toggleScreen(screen.id)}
+                                className={`flex items-center gap-3 px-5 py-3 transition-colors border-b last:border-b-0 ${isMandatory ? "opacity-70" : "hover:bg-muted/30 cursor-pointer"}`}
+                                onClick={() => !isMandatory && toggleScreen(screen.id)}
                               >
                                 <Checkbox
                                   checked={enabledScreens.has(screen.id)}
-                                  onCheckedChange={() => toggleScreen(screen.id)}
+                                  onCheckedChange={() => !isMandatory && toggleScreen(screen.id)}
+                                  disabled={isMandatory}
                                 />
                                 <span className="text-sm flex-1">
                                   {isRTL ? screen.name_ar : screen.name_en}
