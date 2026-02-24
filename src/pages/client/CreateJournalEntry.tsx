@@ -307,31 +307,6 @@ const CreateJournalEntry = () => {
   const totalCredit = lines.reduce((sum, line) => sum + (line.credit || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
 
-  const updateAccountBalances = async (validLines: typeof lines) => {
-    const accountIds = [...new Set(validLines.map(l => l.account_id))];
-    for (const accountId of accountIds) {
-      const { data: balanceData } = await supabase
-        .from("journal_entry_lines")
-        .select("debit, credit, entry_id")
-        .eq("account_id", accountId);
-      
-      if (balanceData) {
-        const { data: postedEntries } = await supabase
-          .from("journal_entries")
-          .select("id")
-          .eq("company_id", companyId!)
-          .eq("status", "posted");
-        const postedIds = new Set(postedEntries?.map((e: any) => e.id) || []);
-        
-        const net = balanceData
-          .filter((l: any) => postedIds.has(l.entry_id))
-          .reduce((sum: number, l: any) => sum + (l.debit || 0) - (l.credit || 0), 0);
-        
-        await supabase.from("accounts").update({ balance: net }).eq("id", accountId);
-      }
-    }
-  };
-
   const handleSave = async (status: "draft" | "posted") => {
     if (!companyId) return;
 
@@ -357,42 +332,25 @@ const CreateJournalEntry = () => {
 
     setSaving(true);
     try {
-      const { data: entryData, error: entryError } = await supabase
-        .from("journal_entries")
-        .insert({
-          company_id: companyId,
-          entry_number: entryNumber,
-          entry_date: entryDate,
-          description: description || null,
-          status,
-          total_debit: totalDebit,
-          total_credit: totalCredit,
-          created_by: user?.id,
-          posted_at: status === "posted" ? new Date().toISOString() : null,
-          posted_by: status === "posted" ? user?.id : null,
-        })
-        .select()
-        .single();
-
-      if (entryError) throw entryError;
-
-      const entryLines = validLines.map((line, index) => ({
-        entry_id: entryData.id,
+      // Atomic posting via single server-side function call
+      const linesJson = validLines.map((line, index) => ({
         account_id: line.account_id,
         description: line.description || null,
         debit: line.debit || 0,
         credit: line.credit || 0,
-        sort_order: index,
       }));
 
-      const { error: linesError } = await supabase.from("journal_entry_lines").insert(entryLines);
+      const { data: entryId, error } = await (supabase.rpc as any)("post_journal_entry", {
+        p_company_id: companyId,
+        p_entry_number: entryNumber,
+        p_entry_date: entryDate,
+        p_description: description || null,
+        p_status: status,
+        p_lines: linesJson,
+        p_created_by: user?.id,
+      });
 
-      if (linesError) throw linesError;
-
-      // Update account balances if entry is posted
-      if (status === "posted") {
-        await updateAccountBalances(validLines);
-      }
+      if (error) throw error;
 
       // Increment next_journal_number in company_settings
       await supabase
