@@ -88,6 +88,15 @@ const OwnerScreens = () => {
         const { error } = await supabase.from("plan_screens").insert(planScreensData);
         if (error) throw error;
       }
+
+      // Sync to all existing subscribers of this plan
+      const { error: syncError } = await supabase.rpc("sync_plan_screens_to_subscribers" as any, {
+        p_plan_id: selectedPlan,
+      });
+      if (syncError) {
+        console.error("Sync error:", syncError);
+        throw syncError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["plan-screens"] });
