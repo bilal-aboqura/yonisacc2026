@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyId } from "@/hooks/useCompanyId";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,16 +12,25 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Truck, Eye, Edit } from "lucide-react";
+import { Plus, Search, Truck, Eye, Edit, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import ContactViewDialog from "@/components/client/ContactViewDialog";
 
 const Vendors = () => {
   const { t } = useTranslation();
   const { isRTL } = useLanguage();
   const navigate = useNavigate();
   const { companyId } = useCompanyId();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewContact, setViewContact] = useState<any>(null);
+  const [deleteContact, setDeleteContact] = useState<any>(null);
 
   const { data: vendors = [], isLoading } = useQuery({
     queryKey: ["vendors", companyId],
@@ -44,6 +53,20 @@ const Vendors = () => {
     (v.phone && v.phone.includes(searchTerm)) ||
     (v.email && v.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const handleDelete = async () => {
+    if (!deleteContact) return;
+    try {
+      const { error } = await supabase.from("contacts").delete().eq("id", deleteContact.id);
+      if (error) throw error;
+      toast.success(isRTL ? "تم حذف المورد بنجاح" : "Vendor deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["vendors"] });
+    } catch (error: any) {
+      toast.error(error.message || (isRTL ? "خطأ في الحذف" : "Delete failed"));
+    } finally {
+      setDeleteContact(null);
+    }
+  };
 
   return (
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
@@ -134,7 +157,7 @@ const Vendors = () => {
                           <div className="flex gap-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewContact(vendor)}>
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
@@ -142,11 +165,19 @@ const Vendors = () => {
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/client/contacts/${vendor.id}/edit`)}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteContact(vendor)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{isRTL ? "حذف" : "Delete"}</TooltipContent>
                             </Tooltip>
                           </div>
                         </TooltipProvider>
@@ -159,6 +190,27 @@ const Vendors = () => {
           )}
         </CardContent>
       </Card>
+
+      <ContactViewDialog contact={viewContact} open={!!viewContact} onOpenChange={(open) => !open && setViewContact(null)} />
+
+      <AlertDialog open={!!deleteContact} onOpenChange={(open) => !open && setDeleteContact(null)}>
+        <AlertDialogContent className={isRTL ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{isRTL ? "تأكيد الحذف" : "Confirm Delete"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isRTL
+                ? `هل أنت متأكد من حذف المورد "${deleteContact?.name}"؟ لا يمكن التراجع عن هذا الإجراء.`
+                : `Are you sure you want to delete "${deleteContact?.name}"? This action cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isRTL ? "إلغاء" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isRTL ? "حذف" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
