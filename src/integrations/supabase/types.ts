@@ -514,6 +514,68 @@ export type Database = {
         }
         Relationships: []
       }
+      company_feature_overrides: {
+        Row: {
+          company_id: string
+          created_at: string
+          custom_override: boolean
+          id: string
+          max_journal_entries: number | null
+          max_purchase_invoices: number | null
+          max_sales_invoices: number | null
+          max_users: number | null
+          module_auto_parts: boolean | null
+          module_hr: boolean | null
+          module_inventory: boolean | null
+          module_purchases: boolean | null
+          module_reports: boolean | null
+          module_sales: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          custom_override?: boolean
+          id?: string
+          max_journal_entries?: number | null
+          max_purchase_invoices?: number | null
+          max_sales_invoices?: number | null
+          max_users?: number | null
+          module_auto_parts?: boolean | null
+          module_hr?: boolean | null
+          module_inventory?: boolean | null
+          module_purchases?: boolean | null
+          module_reports?: boolean | null
+          module_sales?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          custom_override?: boolean
+          id?: string
+          max_journal_entries?: number | null
+          max_purchase_invoices?: number | null
+          max_sales_invoices?: number | null
+          max_users?: number | null
+          module_auto_parts?: boolean | null
+          module_hr?: boolean | null
+          module_inventory?: boolean | null
+          module_purchases?: boolean | null
+          module_reports?: boolean | null
+          module_sales?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_feature_overrides_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_members: {
         Row: {
           company_id: string
@@ -2066,7 +2128,16 @@ export type Database = {
           max_branches: number | null
           max_entries: number | null
           max_invoices: number | null
+          max_journal_entries: number | null
+          max_purchase_invoices: number | null
+          max_sales_invoices: number | null
           max_users: number | null
+          module_auto_parts: boolean
+          module_hr: boolean
+          module_inventory: boolean
+          module_purchases: boolean
+          module_reports: boolean
+          module_sales: boolean
           name_ar: string
           name_en: string
           not_included_ar: string[] | null
@@ -2087,7 +2158,16 @@ export type Database = {
           max_branches?: number | null
           max_entries?: number | null
           max_invoices?: number | null
+          max_journal_entries?: number | null
+          max_purchase_invoices?: number | null
+          max_sales_invoices?: number | null
           max_users?: number | null
+          module_auto_parts?: boolean
+          module_hr?: boolean
+          module_inventory?: boolean
+          module_purchases?: boolean
+          module_reports?: boolean
+          module_sales?: boolean
           name_ar: string
           name_en: string
           not_included_ar?: string[] | null
@@ -2108,7 +2188,16 @@ export type Database = {
           max_branches?: number | null
           max_entries?: number | null
           max_invoices?: number | null
+          max_journal_entries?: number | null
+          max_purchase_invoices?: number | null
+          max_sales_invoices?: number | null
           max_users?: number | null
+          module_auto_parts?: boolean
+          module_hr?: boolean
+          module_inventory?: boolean
+          module_purchases?: boolean
+          module_reports?: boolean
+          module_sales?: boolean
           name_ar?: string
           name_en?: string
           not_included_ar?: string[] | null
@@ -2378,6 +2467,47 @@ export type Database = {
           },
         ]
       }
+      usage_tracking: {
+        Row: {
+          company_id: string
+          id: string
+          journal_entries_count: number
+          month: number
+          purchase_invoices_count: number
+          sales_invoices_count: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          company_id: string
+          id?: string
+          journal_entries_count?: number
+          month: number
+          purchase_invoices_count?: number
+          sales_invoices_count?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          company_id?: string
+          id?: string
+          journal_entries_count?: number
+          month?: number
+          purchase_invoices_count?: number
+          sales_invoices_count?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_tracking_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2491,6 +2621,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_usage_limit: {
+        Args: { p_company_id: string; p_usage_type: string }
+        Returns: Json
+      }
       create_default_chart_of_accounts: {
         Args: { p_company_id: string }
         Returns: undefined
@@ -2504,6 +2638,8 @@ export type Database = {
         Returns: undefined
       }
       get_account_balances: { Args: { p_company_id: string }; Returns: Json }
+      get_company_features: { Args: { p_company_id: string }; Returns: Json }
+      get_company_usage: { Args: { p_company_id: string }; Returns: Json }
       get_ledger: {
         Args: {
           p_account_id: string
@@ -2524,6 +2660,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_usage: {
+        Args: { p_company_id: string; p_usage_type: string }
+        Returns: undefined
       }
       is_company_owner: { Args: { _company_id: string }; Returns: boolean }
       log_access_denied: {
