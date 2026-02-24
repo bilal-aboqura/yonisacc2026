@@ -9,6 +9,7 @@ import { Building2, User, Bell, Palette, Users, Loader2 } from "lucide-react";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import TeamManagement from "@/components/client/TeamManagement";
+import CompanyLogoUpload from "@/components/client/CompanyLogoUpload";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -188,7 +189,18 @@ const ClientSettings = () => {
                 {isRTL ? "تحديث بيانات الشركة الأساسية" : "Update basic company information"}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {company?.id && (
+                <div className="space-y-2">
+                  <Label>{isRTL ? "شعار الشركة" : "Company Logo"}</Label>
+                  <CompanyLogoUpload
+                    companyId={company.id}
+                    currentLogoUrl={company.logo_url}
+                    isRTL={isRTL}
+                    onLogoUpdated={() => queryClient.invalidateQueries({ queryKey: ["settings-company"] })}
+                  />
+                </div>
+              )}
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{isRTL ? "اسم الشركة (عربي)" : "Company Name (Arabic)"}</Label>
