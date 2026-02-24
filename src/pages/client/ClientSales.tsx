@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Download, FileText } from "lucide-react";
+import PermissionGuard from "@/components/client/PermissionGuard";
 
 const ClientSales = () => {
   const { t } = useTranslation();
@@ -37,10 +38,20 @@ const ClientSales = () => {
             {isRTL ? "إدارة فواتير المبيعات والعملاء" : "Manage sales invoices and customers"}
           </p>
         </div>
-        <Button className="gap-2" onClick={() => navigate("/client/sales/new")}>
-          <Plus className="h-4 w-4" />
-          {isRTL ? "فاتورة جديدة" : "New Invoice"}
-        </Button>
+        <div className="flex gap-2">
+          <PermissionGuard featureKey="sales.export_excel">
+            <Button variant="outline" className="gap-2" size="sm">
+              <Download className="h-4 w-4" />
+              {isRTL ? "تصدير" : "Export"}
+            </Button>
+          </PermissionGuard>
+          <PermissionGuard featureKey="sales.create_invoice">
+            <Button className="gap-2" onClick={() => navigate("/client/sales/new")}>
+              <Plus className="h-4 w-4" />
+              {isRTL ? "فاتورة جديدة" : "New Invoice"}
+            </Button>
+          </PermissionGuard>
+        </div>
       </div>
 
       {/* Filters */}

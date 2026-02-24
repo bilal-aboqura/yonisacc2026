@@ -35,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/hooks/useLanguage";
 import { toast } from "@/hooks/use-toast";
+import PermissionGuard from "@/components/client/PermissionGuard";
 
 const ClientJournal = () => {
   const { t } = useTranslation();
@@ -254,10 +255,12 @@ const ClientJournal = () => {
             {t("client.journal.subtitle")}
           </p>
         </div>
-        <Button className="gap-2" onClick={() => navigate("/client/journal/new")}>
-          <Plus className="h-4 w-4" />
-          {t("client.journal.newEntry")}
-        </Button>
+        <PermissionGuard featureKey="accounting.create_journal">
+          <Button className="gap-2" onClick={() => navigate("/client/journal/new")}>
+            <Plus className="h-4 w-4" />
+            {t("client.journal.newEntry")}
+          </Button>
+        </PermissionGuard>
       </div>
 
       {/* Filters */}
@@ -339,14 +342,16 @@ const ClientJournal = () => {
                           </Tooltip>
 
                           {!entry.is_auto && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => navigate(`/client/journal/${entry.id}/edit`)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
-                            </Tooltip>
+                            <PermissionGuard featureKey="accounting.edit_journal">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => navigate(`/client/journal/${entry.id}/edit`)}>
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
+                              </Tooltip>
+                            </PermissionGuard>
                           )}
 
                           <Tooltip>
@@ -359,14 +364,16 @@ const ClientJournal = () => {
                           </Tooltip>
 
                           {!entry.is_auto && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteEntry({ id: entry.id, number: entry.entry_number })}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "حذف" : "Delete"}</TooltipContent>
-                            </Tooltip>
+                            <PermissionGuard featureKey="accounting.delete_journal">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteEntry({ id: entry.id, number: entry.entry_number })}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{isRTL ? "حذف" : "Delete"}</TooltipContent>
+                              </Tooltip>
+                            </PermissionGuard>
                           )}
                         </div>
                       </TableCell>
