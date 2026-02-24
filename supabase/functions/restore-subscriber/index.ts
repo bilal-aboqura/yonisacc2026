@@ -62,8 +62,22 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!newPassword || newPassword.length < 6) {
-      return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), {
+    if (!newPassword || newPassword.length < 8) {
+      return new Response(JSON.stringify({ error: "Password must be at least 8 characters", error_ar: "كلمة المرور يجب أن تكون 8 أحرف على الأقل" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Validate password strength
+    const hasLower = /[a-z]/.test(newPassword);
+    const hasUpper = /[A-Z]/.test(newPassword);
+    const hasDigit = /[0-9]/.test(newPassword);
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|<>?,./`~]/.test(newPassword);
+    if (!hasLower || !hasUpper || !hasDigit || !hasSpecial) {
+      return new Response(JSON.stringify({ 
+        error: "Password must contain uppercase, lowercase, number, and special character",
+        error_ar: "كلمة المرور يجب أن تحتوي على حرف كبير وصغير ورقم ورمز خاص"
+      }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
