@@ -28,6 +28,9 @@ import { toast } from "@/hooks/use-toast";
 
 const PAGE_SIZE = 20;
 
+const isStrongPassword = (pw: string) =>
+  pw.length >= 8 && /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw) && /[!@#$%^&*()_+\-=\[\]{};':"\\|<>?,./`~]/.test(pw);
+
 type SubscriptionStatus = "trialing" | "active" | "past_due" | "suspended" | "terminated" | "cancelled" | "pending" | "expired";
 
 const statusConfig: Record<string, { color: string; labelAr: string; labelEn: string }> = {
@@ -575,9 +578,14 @@ const OwnerSubscribers = () => {
                   type="password"
                   value={restorePassword}
                   onChange={(e) => setRestorePassword(e.target.value)}
-                  placeholder={isRTL ? "أدخل كلمة مرور جديدة (6 أحرف على الأقل)" : "Enter new password (min 6 characters)"}
+                  placeholder={isRTL ? "مثال: Pass@123" : "e.g. Pass@123"}
                   dir="ltr"
                 />
+                <p className="text-xs text-muted-foreground">
+                  {isRTL
+                    ? "يجب أن تحتوي على: حرف كبير، حرف صغير، رقم، ورمز خاص (8 أحرف على الأقل)"
+                    : "Must contain: uppercase, lowercase, number, and special character (min 8 chars)"}
+                </p>
               </div>
             </div>
           )}
@@ -587,7 +595,7 @@ const OwnerSubscribers = () => {
             </Button>
             <Button
               onClick={() => restoreMutation.mutate({ companyId: restoreCompany.id, newPassword: restorePassword })}
-              disabled={restoreMutation.isPending || restorePassword.length < 6}
+              disabled={restoreMutation.isPending || !isStrongPassword(restorePassword)}
             >
               {restoreMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
               {restoreMutation.isPending
