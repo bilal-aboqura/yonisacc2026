@@ -620,6 +620,48 @@ export type Database = {
           },
         ]
       }
+      company_permission_overrides: {
+        Row: {
+          allowed: boolean
+          company_id: string
+          created_at: string
+          feature_key: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          allowed?: boolean
+          company_id: string
+          created_at?: string
+          feature_key: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          allowed?: boolean
+          company_id?: string
+          created_at?: string
+          feature_key?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_permission_overrides_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_permission_overrides_feature_key_fkey"
+            columns: ["feature_key"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
+            referencedColumns: ["feature_key"]
+          },
+        ]
+      }
       company_settings: {
         Row: {
           cash_account_id: string | null
@@ -932,6 +974,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feature_flags: {
+        Row: {
+          created_at: string
+          description: string
+          description_ar: string | null
+          feature_key: string
+          id: string
+          module: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          description_ar?: string | null
+          feature_key: string
+          id?: string
+          module: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          description_ar?: string | null
+          feature_key?: string
+          id?: string
+          module?: string
+        }
+        Relationships: []
       }
       fiscal_periods: {
         Row: {
@@ -1642,6 +1711,45 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      plan_feature_permissions: {
+        Row: {
+          allowed: boolean
+          created_at: string
+          feature_key: string
+          id: string
+          plan_id: string
+        }
+        Insert: {
+          allowed?: boolean
+          created_at?: string
+          feature_key: string
+          id?: string
+          plan_id: string
+        }
+        Update: {
+          allowed?: boolean
+          created_at?: string
+          feature_key?: string
+          id?: string
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_feature_permissions_feature_key_fkey"
+            columns: ["feature_key"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
+            referencedColumns: ["feature_key"]
+          },
+          {
+            foreignKeyName: "plan_feature_permissions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plan_screens: {
         Row: {
@@ -2621,6 +2729,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_permission: {
+        Args: { p_company_id: string; p_feature_key: string }
+        Returns: Json
+      }
       check_usage_limit: {
         Args: { p_company_id: string; p_usage_type: string }
         Returns: Json
@@ -2639,6 +2751,7 @@ export type Database = {
       }
       get_account_balances: { Args: { p_company_id: string }; Returns: Json }
       get_company_features: { Args: { p_company_id: string }; Returns: Json }
+      get_company_permissions: { Args: { p_company_id: string }; Returns: Json }
       get_company_usage: { Args: { p_company_id: string }; Returns: Json }
       get_ledger: {
         Args: {
@@ -2647,6 +2760,10 @@ export type Database = {
           p_date_from?: string
           p_date_to?: string
         }
+        Returns: Json
+      }
+      get_plan_permissions_for_company: {
+        Args: { p_company_id: string }
         Returns: Json
       }
       get_trial_balance: {
