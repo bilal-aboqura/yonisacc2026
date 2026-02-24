@@ -1,131 +1,80 @@
 
-# تحويل دليل الحسابات إلى دليل موحد مشترك
+# Unified Table Styling Across the Platform
 
-## المشكلة الحالية
-كل شركة تحصل على نسخة منفصلة من الحسابات الافتراضية (is_system = true). هذا يعني:
-- تكرار البيانات: 10 شركات × 37 حساب = 370 صف مكرر
-- صعوبة تحديث الدليل الموحد لاحقاً
-- كل شركة "تملك" حسابات النظام في جدول `accounts`
+## Overview
+Apply the professional DataTable design system (already used in Customers, Vendors, Sales, Purchases, Quotes, Purchase Orders) to all remaining 14 pages that still use raw HTML tables.
 
-## الحل المقترح: جدول منفصل للحسابات الموحدة
+## Strategy
+Pages fall into two categories:
 
-### البنية الجديدة
+### Category A: Simple list tables -- migrate to DataTable component
+These pages have standard list data with actions and can directly use the reusable `DataTable` component:
 
-```text
-global_accounts (جدول جديد)
-├── id, code, name, name_en, type
-├── parent_code (لبناء الشجرة بدون uuid)
-├── is_parent, sort_order
-└── is_active
+1. **ClientJournal.tsx** - Journal entries (View/Edit/Print/Delete actions, status badges)
+2. **OperationsLog.tsx** - Operations log (tabs filtering kept outside DataTable, table content migrated)
+3. **CostCenters.tsx** - Cost centers (View/Edit/Delete actions)
+4. **OwnerMessages.tsx** - Contact messages (View action, read/unread badge)
+5. **OwnerActivities.tsx** - Verticals management (Edit/Toggle actions)
+6. **OwnerPlans.tsx** - Plans management
+7. **OwnerAuditLogs.tsx** - Audit logs (read-only, status badges)
+8. **OwnerSubscribers.tsx** - Subscribers (complex actions kept via DataTable actions prop)
+9. **OwnerSubscriptions.tsx** - Subscriptions management
+10. **autoparts/CarBrands.tsx** - Car brands list
+11. **autoparts/CarModels.tsx** - Car models list
+12. **autoparts/PartsCatalog.tsx** - Parts catalog
 
-accounts (الجدول الحالي - للحسابات المخصصة فقط)
-├── company_id (حسابات الشركة الخاصة بها)
-├── global_account_id (null = حساب خاص، رقم = مرتبط بالموحد)
-└── balance (الرصيد الافتتاحي الخاص بكل شركة)
-```
+### Category B: Specialized financial tables -- apply visual styling only
+These pages have unique structures (hierarchical rows, totals rows, multi-level headers, opening balance rows) that don't fit the generic DataTable. They will receive the same visual styling (zebra striping, hover effects, rounded card, header background) applied directly:
 
-### كيف تعمل الشاشة بعد التعديل
-1. **عرض الشجرة**: تجمع بين الحسابات الموحدة من `global_accounts` + الحسابات الخاصة بالشركة من `accounts`
-2. **الرصيد الافتتاحي**: يُحفظ في `accounts` (سجل واحد لكل شركة لكل حساب موحد)
-3. **إضافة حساب**: تضاف فقط للجدول `accounts` كحسابات مخصصة بجوار الشجرة الموحدة
+1. **reports/TrialBalance.tsx** - Has multi-row headers (rowSpan/colSpan), tree-indented rows, totals row
+2. **reports/CashFlow.tsx** - Has two separate tables (inflows/outflows) with totals rows
+3. **GeneralLedger.tsx** - Has opening balance row, running totals, special row styling
 
----
+## Technical Details
 
-## خطوات التنفيذ
+### Category A changes (per page):
+- Replace `Table, TableBody, TableCell, TableHead, TableHeader, TableRow` imports with `DataTable, StatusBadge` from `data-table`
+- Define `columns` array with proper `numeric`, `align`, `width` settings
+- Define `actions` array with View/Edit/Delete handlers
+- Configure `onSearch`, `emptyState`, `createButton` props
+- Remove manual search Input, Card wrapper, loading spinner (all handled by DataTable)
 
-### 1. Migration قاعدة البيانات
-- إنشاء جدول `global_accounts` مع سياسة RLS تسمح للجميع بالقراءة
-- نقل الحسابات الموحدة (is_system = true) من أي شركة إلى الجدول الجديد
-- إضافة عمود `global_account_id` في جدول `accounts` لربط الأرصدة
-- إضافة سياسات RLS للجدول الجديد
+### Category B changes (TrialBalance, CashFlow, GeneralLedger):
+- Wrap tables in `rounded-2xl shadow-sm border-border/60` Card
+- Add `bg-muted/60 dark:bg-muted/30` to table headers
+- Add zebra striping: `rowIdx % 2 === 1 && "bg-muted/20"`
+- Add hover: `hover:bg-primary/[0.03]`
+- Standardize cell padding to `px-4 py-3.5`
+- Add `border-b border-border/30` to cells
+- Wrap table in `overflow-auto rounded-lg border border-border/50`
 
-### 2. تعديل `src/pages/client/ClientAccounts.tsx`
-- **إزالة** زر "إنشاء الحسابات الافتراضية" وكل منطقه
-- **إزالة** `handleCreateDefaultAccounts` function
-- **إزالة** state `isCreatingDefaults`
-- **تحديث** جلب البيانات: جلب `global_accounts` أولاً ثم دمجها مع `accounts` الخاصة بالشركة
-- **تحديث** حفظ الرصيد الافتتاحي: يحفظ في جدول `accounts` بربط `global_account_id`
+### Special handling:
+- **OperationsLog.tsx**: Keep the Tabs component for filtering, but render DataTable inside each tab content
+- **ClientJournal.tsx**: Keep the Print action as a custom action in the dropdown; keep PermissionGuard wrapping for edit/delete
+- **OwnerSubscribers.tsx/OwnerSubscriptions.tsx**: These are complex pages (680/532 lines) with dialogs, sheets, and custom actions -- migrate the table portion to DataTable while keeping all modal/dialog logic intact
 
-### 3. تعديل `src/pages/client/CreateAccount.tsx`
-- تعديل قائمة "الحساب الرئيسي" لتشمل الحسابات الموحدة من `global_accounts`
+## Files to Edit (15 total)
 
-### 4. تعديل `src/pages/client/EditAccount.tsx`
-- تعديل قائمة "الحساب الرئيسي" لتشمل الحسابات الموحدة
+1. `src/pages/client/ClientJournal.tsx`
+2. `src/pages/client/OperationsLog.tsx`
+3. `src/pages/client/CostCenters.tsx`
+4. `src/pages/client/GeneralLedger.tsx`
+5. `src/pages/client/reports/TrialBalance.tsx`
+6. `src/pages/client/reports/CashFlow.tsx`
+7. `src/pages/client/autoparts/CarBrands.tsx`
+8. `src/pages/client/autoparts/CarModels.tsx`
+9. `src/pages/client/autoparts/PartsCatalog.tsx`
+10. `src/pages/owner/OwnerSubscribers.tsx`
+11. `src/pages/owner/OwnerSubscriptions.tsx`
+12. `src/pages/owner/OwnerAuditLogs.tsx`
+13. `src/pages/owner/OwnerMessages.tsx`
+14. `src/pages/owner/OwnerActivities.tsx`
+15. `src/pages/owner/OwnerPlans.tsx`
 
-### 5. تعديل `src/pages/client/OpeningBalances.tsx`
-- تحديث جلب البيانات لدمج الجدولين
-
----
-
-## التفاصيل التقنية
-
-### جدول `global_accounts` الجديد
-```sql
-CREATE TABLE public.global_accounts (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  code text NOT NULL UNIQUE,
-  name text NOT NULL,
-  name_en text,
-  type text NOT NULL,
-  parent_code text,  -- كود الحساب الأب (سهل البناء بدون FK)
-  is_parent boolean DEFAULT false,
-  sort_order integer DEFAULT 0,
-  is_active boolean DEFAULT true,
-  created_at timestamptz DEFAULT now()
-);
-
--- RLS: الكل يقرأ
-ALTER TABLE public.global_accounts ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can view global accounts"
-  ON public.global_accounts FOR SELECT USING (true);
-CREATE POLICY "Owners can manage global accounts"
-  ON public.global_accounts FOR ALL
-  USING (has_role(auth.uid(), 'owner'::app_role));
-```
-
-### عمود `global_account_id` في `accounts`
-```sql
-ALTER TABLE public.accounts 
-  ADD COLUMN global_account_id uuid REFERENCES public.global_accounts(id);
-```
-
-### نقل الحسابات الموحدة
-```sql
--- نقل الحسابات الموحدة من أول شركة إلى global_accounts
-INSERT INTO public.global_accounts (code, name, name_en, type, is_parent, sort_order)
-SELECT DISTINCT ON (code) code, name, name_en, type, is_parent, sort_order
-FROM public.accounts 
-WHERE is_system = true
-ORDER BY code, sort_order;
-
--- تحديث parent_code
-UPDATE public.global_accounts ga
-SET parent_code = (
-  SELECT ga2.code FROM public.global_accounts ga2
-  WHERE ga2.id = (
-    SELECT parent_id FROM public.accounts a
-    WHERE a.code = ga.code AND a.is_system = true
-    LIMIT 1
-  )
-);
-```
-
----
-
-## التغييرات على سلوك الشاشة
-
-| قبل | بعد |
-|-----|-----|
-| كل شركة عندها نسخة من الحسابات | الحسابات الموحدة مشتركة بين الجميع |
-| زر "إنشاء الحسابات الافتراضية" ظاهر | الزر محذوف نهائياً |
-| الرصيد محفوظ في نفس سجل الحساب | الرصيد محفوظ في سجل خاص بالشركة |
-| إضافة حساب يضاف للجدول المشترك | إضافة حساب يضاف لجدول الشركة فقط |
-
----
-
-## الملفات المعدلة
-1. **Migration SQL** - جدول جديد + نقل بيانات + عمود جديد
-2. `src/pages/client/ClientAccounts.tsx` - إزالة الزر + تحديث جلب البيانات
-3. `src/pages/client/CreateAccount.tsx` - تحديث قائمة الحسابات الرئيسية
-4. `src/pages/client/EditAccount.tsx` - تحديث قائمة الحسابات الرئيسية
-5. `src/pages/client/OpeningBalances.tsx` - تحديث جلب البيانات
+## Result
+- All tables across the platform will have consistent SaaS-level styling
+- Zebra striping, hover effects, rounded cards, proper alignment
+- RTL-optimized with numeric columns aligned correctly
+- Mobile-responsive card layout on small screens (via DataTable)
+- Unified action dropdown pattern
+- Search, pagination, and empty states standardized
