@@ -137,7 +137,7 @@ AccountRow.displayName = 'AccountRow';
 const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
   const { t } = useTranslation();
   const { isRTL } = useLanguage();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedAccounts, setExpandedAccounts] = useState<string[]>([]);
@@ -152,31 +152,42 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
   const [newBalance, setNewBalance] = useState("");
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchCompanyAndAccounts = async () => {
       if (!user) {
+        if (!isMounted) return;
         setCompanyId(null);
         setFlatAccounts([]);
         setIsLoading(false);
         return;
       }
 
+      if (isMounted) setIsLoading(true);
+
       try {
-        // Get company
         const { data: companyData, error: companyError } = await supabase
           .from("companies")
           .select("id")
           .eq("owner_id", user.id)
+          .is("deleted_at", null)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (companyError) throw companyError;
-        if (!companyData) return;
+        if (!companyData) {
+          if (isMounted) {
+            setCompanyId(null);
+            setFlatAccounts([]);
+          }
+          return;
+        }
 
+        if (!isMounted) return;
         setCompanyId(companyData.id);
 
-        // Fetch global accounts and company accounts in parallel
-        const [globalRes, companyRes] = await Promise.all([
+        const [globalRes, companyRes, linkedRes, balanceRes] = await Promise.all([
           supabase
             .from("global_accounts" as any)
             .select("*")
@@ -189,39 +200,36 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
             .is("global_account_id", null)
             .neq("is_system", true)
             .order("code"),
+          supabase
+            .from("accounts")
+            .select("id, global_account_id")
+            .eq("company_id", companyData.id)
+            .not("global_account_id", "is", null),
+          (supabase.rpc as any)("get_account_balances", {
+            p_company_id: companyData.id,
+          }),
         ]);
 
         if (globalRes.error) throw globalRes.error;
-
-        // Fetch company accounts that have global_account_id (for linking)
-        const { data: linkedAccountsData } = await supabase
-          .from("accounts")
-          .select("id, global_account_id")
-          .eq("company_id", companyData.id)
-          .not("global_account_id", "is", null);
+        if (companyRes.error) throw companyRes.error;
+        if (linkedRes.error) throw linkedRes.error;
+        if (balanceRes.error) throw balanceRes.error;
 
         const linkedMap = new Map<string, { id: string }>();
-        (linkedAccountsData || []).forEach((a: any) => {
+        (linkedRes.data || []).forEach((a: any) => {
           linkedMap.set(a.global_account_id, { id: a.id });
         });
 
-        // Compute dynamic balances via single server-side function call
-        const companyAccounts = (companyRes.data || []) as any[];
-
-        const { data: balanceData } = await (supabase.rpc as any)("get_account_balances", {
-          p_company_id: companyData.id,
-        });
-
         const balanceMap = new Map<string, number>();
-        if (balanceData && typeof balanceData === 'object') {
-          Object.entries(balanceData).forEach(([accountId, balance]) => {
+        if (balanceRes.data && typeof balanceRes.data === "object") {
+          Object.entries(balanceRes.data).forEach(([accountId, balance]) => {
             balanceMap.set(accountId, Number(balance) || 0);
           });
         }
 
         const globalAccounts = (globalRes.data || []) as any[];
+        const companyAccounts = (companyRes.data || []) as any[];
 
-        // Build merged flat list
         const merged: Account[] = [
           ...globalAccounts.map((ga: any) => {
             const linked = linkedMap.get(ga.id);
@@ -261,16 +269,22 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
           })),
         ];
 
-        setFlatAccounts(merged);
+        if (isMounted) {
+          setFlatAccounts(merged);
+        }
       } catch (error) {
         console.error("Error fetching accounts:", error);
         toast.error(isRTL ? "حدث خطأ في جلب الحسابات" : "Error fetching accounts");
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
     fetchCompanyAndAccounts();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, isRTL]);
 
   // Calculate total balance for an account including all children recursively
@@ -382,56 +396,87 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
     try {
       const balanceValue = parseFloat(newBalance) || 0;
 
-      if (balanceAccount.is_global) {
-        // For global accounts: upsert a record in accounts table linking to global_account
-        if (balanceAccount.company_account_id) {
-          // Update existing linked record
-          const { error } = await supabase
-            .from("accounts")
-            .update({ balance: balanceValue })
-            .eq("id", balanceAccount.company_account_id);
-          if (error) throw error;
-        } else {
-          // Create new linked record
-          const { data: inserted, error } = await supabase
-            .from("accounts")
-            .insert({
-              company_id: companyId,
-              code: balanceAccount.code,
-              name: balanceAccount.name,
-              name_en: balanceAccount.name_en,
-              type: balanceAccount.type,
-              is_parent: balanceAccount.is_parent,
-              is_system: false,
-              balance: balanceValue,
-              global_account_id: balanceAccount.global_account_id,
-            })
-            .select("id")
-            .single();
-          if (error) throw error;
+      let targetAccountId = balanceAccount.company_account_id || balanceAccount.id;
 
-          // Update local state with the new company_account_id
-          setFlatAccounts(prev => prev.map(a =>
-            a.id === balanceAccount.id
-              ? { ...a, company_account_id: inserted.id, balance: balanceValue }
-              : a
-          ));
-        }
-      } else {
-        // For custom company accounts: update directly
-        const { error } = await supabase
+      if (balanceAccount.is_global && !balanceAccount.company_account_id) {
+        const { data: inserted, error: createError } = await supabase
           .from("accounts")
-          .update({ balance: balanceValue })
-          .eq("id", balanceAccount.id);
-        if (error) throw error;
+          .insert({
+            company_id: companyId,
+            code: balanceAccount.code,
+            name: balanceAccount.name,
+            name_en: balanceAccount.name_en,
+            type: balanceAccount.type,
+            is_parent: balanceAccount.is_parent,
+            is_system: false,
+            global_account_id: balanceAccount.global_account_id,
+            is_active: true,
+          })
+          .select("id")
+          .single();
+
+        if (createError) throw createError;
+
+        targetAccountId = inserted.id;
+
+        setFlatAccounts((prev) =>
+          prev.map((a) =>
+            a.id === balanceAccount.id
+              ? { ...a, company_account_id: inserted.id }
+              : a,
+          ),
+        );
       }
 
-      // Update local state balance
-      setFlatAccounts(prev => prev.map(a =>
-        a.id === balanceAccount.id
-          ? { ...a, balance: balanceValue }
-          : a
-      ));
+      const debit = balanceValue > 0 ? balanceValue : 0;
+      const credit = balanceValue < 0 ? Math.abs(balanceValue) : 0;
+
+      const { error: deleteError } = await supabase
+        .from("opening_balances" as any)
+        .delete()
+        .eq("company_id", companyId)
+        .eq("account_id", targetAccountId)
+        .is("fiscal_year_id", null);
+
+      if (deleteError) throw deleteError;
+
+      if (debit > 0 || credit > 0) {
+        const { error: insertError } = await supabase
+          .from("opening_balances" as any)
+          .insert({
+            company_id: companyId,
+            account_id: targetAccountId,
+            debit,
+            credit,
+            fiscal_year_id: null,
+            is_posted: false,
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      const { data: balanceData, error: balanceError } = await (supabase.rpc as any)("get_account_balances", {
+        p_company_id: companyId,
+      });
+
+      if (balanceError) throw balanceError;
+
+      const balanceMap = new Map<string, number>();
+      if (balanceData && typeof balanceData === "object") {
+        Object.entries(balanceData).forEach(([accountId, balance]) => {
+          balanceMap.set(accountId, Number(balance) || 0);
+        });
+      }
+
+      setFlatAccounts((prev) =>
+        prev.map((a) => {
+          const sourceAccountId = a.is_global ? a.company_account_id : a.id;
+          return {
+            ...a,
+            balance: sourceAccountId ? balanceMap.get(sourceAccountId) || 0 : 0,
+          };
+        }),
+      );
 
       toast.success(isRTL ? "تم تحديث الرصيد الافتتاحي بنجاح" : "Opening balance updated successfully");
       setBalanceDialogOpen(false);
@@ -507,7 +552,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
 
   const totalAccountsCount = flatAccounts.length;
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

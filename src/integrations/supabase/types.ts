@@ -2503,6 +2503,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_account_balances: { Args: { p_company_id: string }; Returns: Json }
+      get_ledger: {
+        Args: {
+          p_account_id: string
+          p_company_id: string
+          p_date_from?: string
+          p_date_to?: string
+        }
+        Returns: Json
+      }
+      get_trial_balance: {
+        Args: { p_company_id: string; p_date_from?: string; p_date_to?: string }
+        Returns: Json
+      }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -2533,6 +2547,18 @@ export type Database = {
           _table_name: string
         }
         Returns: undefined
+      }
+      post_journal_entry: {
+        Args: {
+          p_company_id: string
+          p_created_by?: string
+          p_description: string
+          p_entry_date: string
+          p_entry_number: string
+          p_lines: Json
+          p_status: string
+        }
+        Returns: string
       }
       provision_tenant: {
         Args: {

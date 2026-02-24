@@ -93,7 +93,13 @@ const CreateTreasuryTransaction = forwardRef<HTMLDivElement>((_, ref) => {
   useEffect(() => {
     if (user) {
       fetchInitialData();
+      return;
     }
+
+    setCompanyId(null);
+    setContacts([]);
+    setAccounts([]);
+    setLoading(false);
   }, [user]);
 
   useEffect(() => {
@@ -104,40 +110,54 @@ const CreateTreasuryTransaction = forwardRef<HTMLDivElement>((_, ref) => {
 
   const fetchInitialData = async () => {
     try {
+      setLoading(true);
+
       const { data: companyData, error: companyError } = await supabase
         .from("companies")
         .select("id")
         .eq("owner_id", user?.id)
-        .single();
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (companyError) throw companyError;
+      if (!companyData) {
+        throw new Error("NO_ACTIVE_COMPANY");
+      }
+
       setCompanyId(companyData.id);
 
-      // Fetch contacts
-      const { data: contactsData } = await supabase
-        .from("contacts")
-        .select("id, name, name_en, type")
-        .eq("company_id", companyData.id)
-        .eq("is_active", true);
+      const [contactsRes, accountsRes] = await Promise.all([
+        supabase
+          .from("contacts")
+          .select("id, name, name_en, type")
+          .eq("company_id", companyData.id)
+          .eq("is_active", true),
+        supabase
+          .from("accounts")
+          .select("id, code, name, type")
+          .eq("company_id", companyData.id)
+          .eq("is_active", true)
+          .or("is_parent.is.null,is_parent.eq.false")
+          .in("type", ["asset"])
+          .order("code"),
+      ]);
 
-      setContacts(contactsData || []);
+      if (contactsRes.error) throw contactsRes.error;
+      if (accountsRes.error) throw accountsRes.error;
 
-      // Fetch cash/bank accounts
-      const { data: accountsData } = await supabase
-        .from("accounts")
-        .select("id, code, name, type")
-        .eq("company_id", companyData.id)
-        .eq("is_active", true)
-        .or("is_parent.is.null,is_parent.eq.false")
-        .in("type", ["asset"])
-        .order("code");
-
-      setAccounts(accountsData || []);
+      setContacts(contactsRes.data || []);
+      setAccounts(accountsRes.data || []);
     } catch (error: any) {
       console.error("Error fetching data:", error);
+      const description = error?.message === "NO_ACTIVE_COMPANY"
+        ? "لا توجد شركة نشطة مرتبطة بهذا الحساب"
+        : "حدث خطأ في تحميل البيانات";
+
       toast({
         title: "خطأ",
-        description: "حدث خطأ في تحميل البيانات",
+        description,
         variant: "destructive",
       });
     } finally {
