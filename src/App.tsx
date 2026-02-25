@@ -35,6 +35,8 @@ import EditJournalEntry from "./pages/client/EditJournalEntry";
 import CreateAccount from "./pages/client/CreateAccount";
 import EditAccount from "./pages/client/EditAccount";
 import CreateTreasuryTransaction from "./pages/client/CreateTreasuryTransaction";
+import ViewTreasuryTransaction from "./pages/client/ViewTreasuryTransaction";
+import EditTreasuryTransaction from "./pages/client/EditTreasuryTransaction";
 import CreateProduct from "./pages/client/CreateProduct";
 import OpeningBalances from "./pages/client/OpeningBalances";
 import IncomeStatement from "./pages/client/reports/IncomeStatement";
@@ -125,6 +127,8 @@ const App = () => (
               <Route path="journal/:id/edit" element={<EditJournalEntry />} />
               <Route path="treasury" element={<ClientTreasury />} />
               <Route path="treasury/new" element={<CreateTreasuryTransaction />} />
+              <Route path="treasury/:id" element={<ViewTreasuryTransaction />} />
+              <Route path="treasury/:id/edit" element={<EditTreasuryTransaction />} />
               <Route path="ledger" element={<GeneralLedger />} />
               <Route path="operations-log" element={<OperationsLog />} />
               

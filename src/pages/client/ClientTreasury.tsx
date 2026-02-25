@@ -13,7 +13,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Wallet, Plus, ArrowUpRight, ArrowDownRight, Building2, Loader2, BookOpen, Undo2, ArrowLeftRight, Eye, Pencil, Trash2, Copy } from "lucide-react";
+import { Wallet, Plus, ArrowUpRight, ArrowDownRight, Building2, Loader2, BookOpen, Undo2, ArrowLeftRight, Eye, Pencil, Trash2, Copy, Printer } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -44,6 +44,7 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [reverseTarget, setReverseTarget] = useState<TreasuryTransaction | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<TreasuryTransaction | null>(null);
 
   const { data: company } = useQuery({
     queryKey: ["treasury-company", user?.id],
@@ -283,37 +284,64 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
                         <p className="text-xs text-muted-foreground">{tx.transaction_date}</p>
                       </div>
                       <div className="flex gap-0.5">
-                        {/* View journal entry */}
-                        {tx.journal_entry_id && (
+                        {/* View */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/client/treasury/${tx.id}`)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{isRTL ? "معاينة" : "View"}</TooltipContent>
+                        </Tooltip>
+                        {/* Edit */}
+                        {tx.status !== "reversed" && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/client/journal/${tx.journal_entry_id}`)}>
-                                <Eye className="h-4 w-4" />
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/client/treasury/${tx.id}/edit`)}>
+                                <Pencil className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>{isRTL ? "عرض القيد" : "View Entry"}</TooltipContent>
+                            <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
                           </Tooltip>
                         )}
-                        {/* Copy (create similar) */}
+                        {/* Reverse */}
+                        {tx.status !== "reversed" && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setReverseTarget(tx)}>
+                                <Undo2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{isRTL ? "عكس العملية" : "Reverse"}</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {/* Print */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { navigate(`/client/treasury/${tx.id}`); setTimeout(() => window.print(), 500); }}>
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{isRTL ? "طباعة" : "Print"}</TooltipContent>
+                        </Tooltip>
+                        {/* Copy */}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/client/treasury/new?type=${tx.type}`)}>
                               <Copy className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>{isRTL ? "نسخ (إنشاء مشابه)" : "Copy (Create Similar)"}</TooltipContent>
+                          <TooltipContent>{isRTL ? "نسخ كعملية جديدة" : "Copy as new"}</TooltipContent>
                         </Tooltip>
-                        {/* Reverse / Delete */}
-                        {tx.status !== "reversed" && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setReverseTarget(tx)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>{isRTL ? "حذف (عكس العملية)" : "Delete (Reverse)"}</TooltipContent>
-                          </Tooltip>
-                        )}
+                        {/* Permanent Delete */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(tx)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{isRTL ? "حذف نهائي" : "Delete"}</TooltipContent>
+                        </Tooltip>
                       </div>
                     </div>
                   </div>
@@ -343,6 +371,42 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
             >
               {reverseMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
               {isRTL ? "عكس" : "Reverse"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* Permanent Delete Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{isRTL ? "حذف نهائي" : "Permanent Delete"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isRTL
+                ? `هل أنت متأكد من حذف العملية ${deleteTarget?.transaction_number} نهائياً؟ سيتم حذف القيد المحاسبي المرتبط. هذا الإجراء لا يمكن التراجع عنه.`
+                : `Permanently delete ${deleteTarget?.transaction_number}? The linked journal entry will also be deleted. This cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isRTL ? "إلغاء" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground"
+              onClick={async () => {
+                if (!deleteTarget) return;
+                try {
+                  if (deleteTarget.journal_entry_id) {
+                    await supabase.from("journal_entry_lines").delete().eq("entry_id", deleteTarget.journal_entry_id);
+                    await supabase.from("journal_entries").delete().eq("id", deleteTarget.journal_entry_id);
+                  }
+                  await supabase.from("treasury_transactions").delete().eq("id", deleteTarget.id);
+                  toast({ title: isRTL ? "تم الحذف النهائي" : "Permanently deleted" });
+                  queryClient.invalidateQueries({ queryKey: ["treasury-overview"] });
+                } catch (e: any) {
+                  toast({ title: isRTL ? "خطأ" : "Error", description: e?.message, variant: "destructive" });
+                }
+                setDeleteTarget(null);
+              }}
+            >
+              {isRTL ? "حذف نهائي" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
