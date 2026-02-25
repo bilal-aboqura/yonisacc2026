@@ -69,7 +69,12 @@ const OperationsLog = () => {
         purchase_invoice: { ar: "فاتورة مشتريات", en: "Purchase Invoice", color: "bg-blue-500/10 text-blue-600" },
         inventory: { ar: "حركة مخزون", en: "Inventory", color: "bg-amber-500/10 text-amber-600" },
         hr: { ar: "رواتب", en: "Payroll", color: "bg-purple-500/10 text-purple-600" },
-        treasury: { ar: "خزينة", en: "Treasury", color: "bg-cyan-500/10 text-cyan-600" },
+        receipt: { ar: "سند قبض", en: "Receipt", color: "bg-cyan-500/10 text-cyan-600" },
+        payment: { ar: "سند صرف", en: "Payment", color: "bg-orange-500/10 text-orange-600" },
+        deposit: { ar: "إيداع", en: "Deposit", color: "bg-teal-500/10 text-teal-600" },
+        withdrawal: { ar: "سحب", en: "Withdrawal", color: "bg-rose-500/10 text-rose-600" },
+        transfer: { ar: "تحويل", en: "Transfer", color: "bg-indigo-500/10 text-indigo-600" },
+        reversal: { ar: "عكس قيد", en: "Reversal", color: "bg-red-500/10 text-red-600" },
       };
       const src = sources[entry.reference_type];
       if (src) return src;
@@ -91,6 +96,11 @@ const OperationsLog = () => {
     if (tab === "purchases") return entries?.filter(e => e.reference_type === "purchase_invoice");
     if (tab === "inventory") return entries?.filter(e => e.reference_type === "inventory");
     if (tab === "hr") return entries?.filter(e => e.reference_type === "hr");
+    if (tab === "treasury") return entries?.filter(e => 
+      e.reference_type === "receipt" || e.reference_type === "payment" || 
+      e.reference_type === "deposit" || e.reference_type === "withdrawal" || 
+      e.reference_type === "transfer" || e.reference_type === "reversal"
+    );
     return entries;
   };
 
@@ -226,6 +236,7 @@ const OperationsLog = () => {
               <TabsTrigger value="purchases">{t("client.operationsLog.tabs.purchases")}</TabsTrigger>
               <TabsTrigger value="inventory">{t("client.operationsLog.tabs.inventory")}</TabsTrigger>
               <TabsTrigger value="hr">{t("client.operationsLog.tabs.hr")}</TabsTrigger>
+              <TabsTrigger value="treasury">{isRTL ? "الخزينة والصندوق" : "Treasury & Cash"}</TabsTrigger>
             </TabsList>
             <TabsContent value={activeTab}>
               {renderTable(filtered)}

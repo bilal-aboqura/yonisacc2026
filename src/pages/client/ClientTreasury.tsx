@@ -13,8 +13,11 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Wallet, Plus, ArrowUpRight, ArrowDownRight, Building2, Loader2, BookOpen, Undo2, ArrowLeftRight } from "lucide-react";
+import { Wallet, Plus, ArrowUpRight, ArrowDownRight, Building2, Loader2, BookOpen, Undo2, ArrowLeftRight, Eye, Pencil, Trash2, Copy } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TreasuryAccount {
   id: string;
@@ -258,50 +261,65 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
               {isRTL ? "لا توجد عمليات بعد" : "No transactions yet"}
             </div>
           ) : (
-            <div className="space-y-3">
-              {recentTransactions.map((tx) => (
-                <div key={tx.id} className={`flex items-center justify-between p-3 rounded-lg bg-muted/40 ${tx.status === "reversed" ? "opacity-50" : ""}`}>
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{tx.transaction_number}</p>
-                        <Badge variant={getTypeBadgeVariant(tx.type)} className="text-xs">{getTypeLabel(tx.type)}</Badge>
-                        {tx.status === "reversed" && (
-                          <Badge variant="outline" className="text-xs">{isRTL ? "معكوس" : "Reversed"}</Badge>
+            <TooltipProvider delayDuration={200}>
+              <div className="space-y-3">
+                {recentTransactions.map((tx) => (
+                  <div key={tx.id} className={`flex items-center justify-between p-3 rounded-lg bg-muted/40 ${tx.status === "reversed" ? "opacity-50" : ""}`}>
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{tx.transaction_number}</p>
+                          <Badge variant={getTypeBadgeVariant(tx.type)} className="text-xs">{getTypeLabel(tx.type)}</Badge>
+                          {tx.status === "reversed" && (
+                            <Badge variant="outline" className="text-xs">{isRTL ? "معكوس" : "Reversed"}</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{tx.description || (isRTL ? "بدون بيان" : "No description")}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-end">
+                        <p className="font-semibold tabular-nums">{tx.amount.toLocaleString()} {t("common.currency")}</p>
+                        <p className="text-xs text-muted-foreground">{tx.transaction_date}</p>
+                      </div>
+                      <div className="flex gap-0.5">
+                        {/* View journal entry */}
+                        {tx.journal_entry_id && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/client/journal/${tx.journal_entry_id}`)}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{isRTL ? "عرض القيد" : "View Entry"}</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {/* Copy (create similar) */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/client/treasury/new?type=${tx.type}`)}>
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{isRTL ? "نسخ (إنشاء مشابه)" : "Copy (Create Similar)"}</TooltipContent>
+                        </Tooltip>
+                        {/* Reverse / Delete */}
+                        {tx.status !== "reversed" && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setReverseTarget(tx)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{isRTL ? "حذف (عكس العملية)" : "Delete (Reverse)"}</TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{tx.description || (isRTL ? "بدون بيان" : "No description")}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-end">
-                      <p className="font-semibold tabular-nums">{tx.amount.toLocaleString()} {t("common.currency")}</p>
-                      <p className="text-xs text-muted-foreground">{tx.transaction_date}</p>
-                    </div>
-                    <div className="flex gap-1">
-                      {tx.journal_entry_id && (
-                        <Button
-                          variant="ghost" size="icon" className="h-8 w-8"
-                          onClick={() => navigate(`/client/journal/${tx.journal_entry_id}`)}
-                          title={isRTL ? "عرض القيد" : "View Entry"}
-                        >
-                          <BookOpen className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {tx.status !== "reversed" && (
-                        <Button
-                          variant="ghost" size="icon" className="h-8 w-8 text-destructive"
-                          onClick={() => setReverseTarget(tx)}
-                          title={isRTL ? "عكس العملية" : "Reverse"}
-                        >
-                          <Undo2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </TooltipProvider>
           )}
         </CardContent>
       </Card>

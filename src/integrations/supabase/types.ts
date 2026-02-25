@@ -2475,11 +2475,13 @@ export type Database = {
           description: string | null
           id: string
           invoice_id: string | null
+          journal_entry_id: string | null
           payment_method: string | null
           reference_number: string | null
           status: string | null
           transaction_date: string
           transaction_number: string
+          transfer_account_id: string | null
           type: string
         }
         Insert: {
@@ -2492,11 +2494,13 @@ export type Database = {
           description?: string | null
           id?: string
           invoice_id?: string | null
+          journal_entry_id?: string | null
           payment_method?: string | null
           reference_number?: string | null
           status?: string | null
           transaction_date?: string
           transaction_number: string
+          transfer_account_id?: string | null
           type: string
         }
         Update: {
@@ -2509,11 +2513,13 @@ export type Database = {
           description?: string | null
           id?: string
           invoice_id?: string | null
+          journal_entry_id?: string | null
           payment_method?: string | null
           reference_number?: string | null
           status?: string | null
           transaction_date?: string
           transaction_number?: string
+          transfer_account_id?: string | null
           type?: string
         }
         Relationships: [
@@ -2543,6 +2549,20 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treasury_transactions_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treasury_transactions_transfer_account_id_fkey"
+            columns: ["transfer_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -2827,6 +2847,24 @@ export type Database = {
         }
         Returns: string
       }
+      post_treasury_transaction: {
+        Args: {
+          p_amount: number
+          p_company_id: string
+          p_contact_id?: string
+          p_created_by?: string
+          p_description?: string
+          p_invoice_id?: string
+          p_payment_method?: string
+          p_reference_number?: string
+          p_transaction_date: string
+          p_transaction_number: string
+          p_transfer_account_id?: string
+          p_treasury_account_id: string
+          p_type: string
+        }
+        Returns: Json
+      }
       provision_tenant: {
         Args: {
           p_activity_type?: string
@@ -2841,6 +2879,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      reverse_treasury_transaction: {
+        Args: { p_company_id: string; p_transaction_id: string }
+        Returns: Json
       }
       sync_plan_screens_to_subscribers: {
         Args: { p_plan_id: string }
