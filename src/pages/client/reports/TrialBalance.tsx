@@ -8,12 +8,15 @@ import { Label } from "@/components/ui/label";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ArrowRight, Download, Printer, Loader2, CheckCircle2, XCircle, Calendar } from "lucide-react";
+import { ArrowRight, Loader2, CheckCircle2, XCircle, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useLanguage } from "@/hooks/useLanguage";
+import { usePrintSettings } from "@/hooks/usePrintSettings";
+import ReportActions from "@/components/print/ReportActions";
+import { PrintableDocument, CompanyInfo } from "@/components/print/types";
+import { exportToExcel } from "@/lib/exportUtils";
 
 interface AccountNode {
   id: string;
@@ -44,17 +47,18 @@ const TrialBalance = () => {
   const [dateTo, setDateTo] = useState("");
 
   const { data: company } = useQuery({
-    queryKey: ["user-company", user?.id],
+    queryKey: ["user-company-full", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data } = await supabase.from("companies").select("id").eq("owner_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data } = await supabase.from("companies").select("id, name, name_en, logo_url, tax_number, commercial_register, address, phone, email, currency").eq("owner_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
       return data;
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
   });
 
-  // Single server-side call for trial balance
+  const { settings: printSettings } = usePrintSettings(company?.id);
+
   const { data: tbData, isLoading: loading } = useQuery({
     queryKey: ["trial-balance", company?.id, dateFrom, dateTo],
     queryFn: async () => {
@@ -70,47 +74,29 @@ const TrialBalance = () => {
     enabled: !!company?.id,
   });
 
-  // Build tree + aggregate from server data
+  // Build tree + aggregate
   const allAccounts = useMemo(() => {
     if (!tbData?.accounts) return [];
     const rawAccounts = tbData.accounts as any[];
-
     const nodes: AccountNode[] = rawAccounts.map((a: any) => ({
-      id: a.id,
-      code: a.code,
-      name: a.name,
-      name_en: a.name_en,
-      type: a.type,
-      parent_id: a.parent_id,
-      is_parent: !!a.is_parent,
-      children: [],
-      openingDebit: Number(a.opening_debit) || 0,
-      openingCredit: Number(a.opening_credit) || 0,
-      movementDebit: Number(a.movement_debit) || 0,
-      movementCredit: Number(a.movement_credit) || 0,
-      aggOpeningDebit: 0, aggOpeningCredit: 0,
-      aggMovementDebit: 0, aggMovementCredit: 0,
+      id: a.id, code: a.code, name: a.name, name_en: a.name_en, type: a.type,
+      parent_id: a.parent_id, is_parent: !!a.is_parent, children: [],
+      openingDebit: Number(a.opening_debit) || 0, openingCredit: Number(a.opening_credit) || 0,
+      movementDebit: Number(a.movement_debit) || 0, movementCredit: Number(a.movement_credit) || 0,
+      aggOpeningDebit: 0, aggOpeningCredit: 0, aggMovementDebit: 0, aggMovementCredit: 0,
       aggEndingDebit: 0, aggEndingCredit: 0,
     }));
-
     const nodeMap = new Map<string, AccountNode>();
     nodes.forEach(n => nodeMap.set(n.id, n));
-
     const roots: AccountNode[] = [];
     nodes.forEach(n => {
-      if (n.parent_id && nodeMap.has(n.parent_id)) {
-        nodeMap.get(n.parent_id)!.children.push(n);
-      } else {
-        roots.push(n);
-      }
+      if (n.parent_id && nodeMap.has(n.parent_id)) nodeMap.get(n.parent_id)!.children.push(n);
+      else roots.push(n);
     });
-
     const aggregate = (node: AccountNode) => {
       if (node.children.length === 0) {
-        node.aggOpeningDebit = node.openingDebit;
-        node.aggOpeningCredit = node.openingCredit;
-        node.aggMovementDebit = node.movementDebit;
-        node.aggMovementCredit = node.movementCredit;
+        node.aggOpeningDebit = node.openingDebit; node.aggOpeningCredit = node.openingCredit;
+        node.aggMovementDebit = node.movementDebit; node.aggMovementCredit = node.movementCredit;
       } else {
         node.children.forEach(child => aggregate(child));
         node.aggOpeningDebit = node.children.reduce((s, c) => s + c.aggOpeningDebit, 0);
@@ -122,7 +108,6 @@ const TrialBalance = () => {
       node.aggEndingDebit = endingNet > 0 ? endingNet : 0;
       node.aggEndingCredit = endingNet < 0 ? Math.abs(endingNet) : 0;
     };
-
     roots.forEach(r => aggregate(r));
     return roots;
   }, [tbData]);
@@ -165,13 +150,90 @@ const TrialBalance = () => {
 
   const getTypeName = (type: string) => {
     const names: Record<string, { ar: string; en: string }> = {
-      asset: { ar: "أصول", en: "Assets" },
-      liability: { ar: "خصوم", en: "Liabilities" },
-      equity: { ar: "حقوق ملكية", en: "Equity" },
-      revenue: { ar: "إيرادات", en: "Revenue" },
+      asset: { ar: "أصول", en: "Assets" }, liability: { ar: "خصوم", en: "Liabilities" },
+      equity: { ar: "حقوق ملكية", en: "Equity" }, revenue: { ar: "إيرادات", en: "Revenue" },
       expense: { ar: "مصروفات", en: "Expenses" },
     };
     return isRTL ? (names[type]?.ar || type) : (names[type]?.en || type);
+  };
+
+  // Build print document from already-fetched data
+  const printDoc: PrintableDocument = useMemo(() => ({
+    title: isRTL ? "ميزان المراجعة" : "Trial Balance",
+    subtitle: dateFrom || dateTo
+      ? `${dateFrom || "..."} → ${dateTo || "..."}`
+      : isRTL ? "جميع الفترات" : "All Periods",
+    date: new Date().toISOString().split("T")[0],
+    table: {
+      headers: [
+        isRTL ? "الرمز" : "Code",
+        isRTL ? "اسم الحساب" : "Account",
+        isRTL ? "افتتاحي مدين" : "Op. Debit",
+        isRTL ? "افتتاحي دائن" : "Op. Credit",
+        isRTL ? "حركة مدين" : "Mov. Debit",
+        isRTL ? "حركة دائن" : "Mov. Credit",
+        isRTL ? "ختامي مدين" : "End. Debit",
+        isRTL ? "ختامي دائن" : "End. Credit",
+      ],
+      rows: flatRows.map(({ node }) => [
+        node.code,
+        isRTL ? node.name : (node.name_en || node.name),
+        node.aggOpeningDebit,
+        node.aggOpeningCredit,
+        node.aggMovementDebit,
+        node.aggMovementCredit,
+        node.aggEndingDebit,
+        node.aggEndingCredit,
+      ]),
+      totals: [
+        "", isRTL ? "الإجمالي" : "Total",
+        totals.openingDebit, totals.openingCredit,
+        totals.movementDebit, totals.movementCredit,
+        totals.endingDebit, totals.endingCredit,
+      ],
+    },
+  }), [flatRows, totals, dateFrom, dateTo, isRTL]);
+
+  const companyInfo: CompanyInfo = {
+    name: company?.name || "", name_en: company?.name_en,
+    logo_url: company?.logo_url, tax_number: company?.tax_number,
+    commercial_register: company?.commercial_register, address: company?.address,
+    phone: company?.phone, email: company?.email,
+  };
+
+  const handleExportExcel = () => {
+    const today = new Date().toISOString().split("T")[0];
+    exportToExcel({
+      filename: `TrialBalance_${company?.name_en || company?.name || "Report"}_${today}`,
+      title: isRTL ? "ميزان المراجعة" : "Trial Balance",
+      subtitle: dateFrom || dateTo ? `${dateFrom || "..."} → ${dateTo || "..."}` : undefined,
+      columns: [
+        { header: isRTL ? "الرمز" : "Code", key: "code", format: "text" },
+        { header: isRTL ? "اسم الحساب" : "Account", key: "name", format: "text" },
+        { header: isRTL ? "افتتاحي مدين" : "Op. Debit", key: "openingDebit", format: "number" },
+        { header: isRTL ? "افتتاحي دائن" : "Op. Credit", key: "openingCredit", format: "number" },
+        { header: isRTL ? "حركة مدين" : "Mov. Debit", key: "movementDebit", format: "number" },
+        { header: isRTL ? "حركة دائن" : "Mov. Credit", key: "movementCredit", format: "number" },
+        { header: isRTL ? "ختامي مدين" : "End. Debit", key: "endingDebit", format: "number" },
+        { header: isRTL ? "ختامي دائن" : "End. Credit", key: "endingCredit", format: "number" },
+      ],
+      rows: flatRows.map(({ node }) => ({
+        code: node.code,
+        name: isRTL ? node.name : (node.name_en || node.name),
+        openingDebit: node.aggOpeningDebit,
+        openingCredit: node.aggOpeningCredit,
+        movementDebit: node.aggMovementDebit,
+        movementCredit: node.aggMovementCredit,
+        endingDebit: node.aggEndingDebit,
+        endingCredit: node.aggEndingCredit,
+      })),
+      totals: {
+        code: "", name: isRTL ? "الإجمالي" : "Total",
+        openingDebit: totals.openingDebit, openingCredit: totals.openingCredit,
+        movementDebit: totals.movementDebit, movementCredit: totals.movementCredit,
+        endingDebit: totals.endingDebit, endingCredit: totals.endingCredit,
+      },
+    });
   };
 
   if (loading) {
@@ -194,10 +256,13 @@ const TrialBalance = () => {
             <p className="text-muted-foreground">{isRTL ? "أرصدة جميع الحسابات مع الحركات" : "All account balances with movements"}</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon"><Printer className="h-4 w-4" /></Button>
-          <Button variant="outline" size="icon"><Download className="h-4 w-4" /></Button>
-        </div>
+        <ReportActions
+          printSettings={printSettings}
+          company={companyInfo}
+          document={printDoc}
+          isRTL={isRTL}
+          onExportExcel={handleExportExcel}
+        />
       </div>
 
       <Card>
