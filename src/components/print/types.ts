@@ -64,3 +64,25 @@ export interface PrintableDocument {
   };
   notes?: string;
 }
+
+/** Document types that determine which print layout to use */
+export type PrintDocumentType = "journal" | "report" | "receipt" | "payment";
+
+/** Voucher-specific data for receipt/payment documents */
+export interface VoucherData {
+  voucherNumber: string;
+  date: string;
+  type: "receipt" | "payment";
+  /** For receipt: received from. For payment: paid to. */
+  contactName?: string;
+  amount: number;
+  amountInWords?: string;
+  paymentMethod?: string;
+  reference?: string;
+  description?: string;
+  notes?: string;
+  /** Signature labels */
+  preparedBy?: string;
+  receivedBy?: string;
+  approvedBy?: string;
+}
