@@ -394,8 +394,9 @@
   }
 }
 
-/* Print Engine Styles */
+/* Print Engine Styles - A4 Portrait Professional Layout */
 @media print {
+  /* Hide everything except print content */
   body * {
     visibility: hidden;
   }
@@ -407,15 +408,33 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    color: #1a1a1a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-  .print\\:hidden {
+  .print\:hidden {
     display: none !important;
   }
-  @page {
-    size: A4;
-    margin: 10mm;
+  /* Hide Lovable badge, iframes, fixed elements */
+  iframe,
+  [data-lovable],
+  a[href*="lovable"],
+  div[style*="position: fixed"],
+  .lovable-badge,
+  #lovable-badge {
+    display: none !important;
+    visibility: hidden !important;
   }
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm;
+  }
+  /* Table pagination */
   table {
     page-break-inside: auto;
   }
@@ -428,5 +447,19 @@
   }
   tfoot {
     display: table-footer-group;
+  }
+  /* Prevent orphaned totals */
+  .print-layout table tr:last-child {
+    page-break-before: avoid;
+  }
+  /* Ensure no links show as underlined text */
+  .print-layout a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+  /* Remove shadows and borders from cards */
+  .print-layout .shadow-lg,
+  .print-layout .shadow {
+    box-shadow: none !important;
   }
 }
