@@ -2,28 +2,49 @@ import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
 import { PrintLayout } from "./PrintLayout";
-import { PrintSettings, CompanyInfo, PrintableDocument } from "./types";
+import { VoucherLayout } from "./VoucherLayout";
+import { PrintSettings, CompanyInfo, PrintableDocument, PrintDocumentType, VoucherData } from "./types";
 
-interface PrintDialogProps {
+interface PrintDialogBaseProps {
   open: boolean;
   onClose: () => void;
   settings: PrintSettings;
   company: CompanyInfo;
-  document: PrintableDocument;
   isRTL?: boolean;
   children?: React.ReactNode;
 }
 
-export const PrintDialog: React.FC<PrintDialogProps> = ({
-  open, onClose, settings, company, document: doc, isRTL = true, children,
-}) => {
+/** For journal/report documents */
+interface PrintDialogReportProps extends PrintDialogBaseProps {
+  documentType?: "journal" | "report";
+  document: PrintableDocument;
+  voucher?: never;
+}
+
+/** For receipt/payment vouchers */
+interface PrintDialogVoucherProps extends PrintDialogBaseProps {
+  documentType: "receipt" | "payment";
+  voucher: VoucherData;
+  document?: never;
+}
+
+type PrintDialogProps = PrintDialogReportProps | PrintDialogVoucherProps;
+
+export const PrintDialog: React.FC<PrintDialogProps> = (props) => {
+  const {
+    open, onClose, settings, company, isRTL = true, children,
+  } = props;
+
   const printRef = useRef<HTMLDivElement>(null);
+  const docType: PrintDocumentType = props.documentType || "journal";
 
   const handlePrint = () => {
     window.print();
   };
 
   if (!open) return null;
+
+  const isVoucher = docType === "receipt" || docType === "payment";
 
   return (
     <div className="fixed inset-0 z-[100] bg-background/95 overflow-auto">
@@ -52,14 +73,23 @@ export const PrintDialog: React.FC<PrintDialogProps> = ({
             padding: "15mm",
           }}
         >
-          <PrintLayout
-            settings={settings}
-            company={company}
-            document={doc}
-            isRTL={isRTL}
-          >
-            {children}
-          </PrintLayout>
+          {isVoucher && 'voucher' in props && props.voucher ? (
+            <VoucherLayout
+              settings={settings}
+              company={company}
+              voucher={props.voucher}
+              isRTL={isRTL}
+            />
+          ) : 'document' in props && props.document ? (
+            <PrintLayout
+              settings={settings}
+              company={company}
+              document={props.document}
+              isRTL={isRTL}
+            >
+              {children}
+            </PrintLayout>
+          ) : null}
         </div>
       </div>
     </div>

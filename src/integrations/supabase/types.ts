@@ -662,6 +662,86 @@ export type Database = {
           },
         ]
       }
+      company_print_settings: {
+        Row: {
+          bottom_offset: number | null
+          company_id: string
+          created_at: string
+          font_family: string | null
+          footer_text: string | null
+          id: string
+          left_offset: number | null
+          letterhead_file_url: string | null
+          letterhead_type: string | null
+          primary_color: string | null
+          right_offset: number | null
+          show_commercial_register: boolean
+          show_footer: boolean
+          show_logo: boolean
+          show_opening_balance: boolean
+          show_signature: boolean
+          show_tax_number: boolean
+          signature_url: string | null
+          template_style: string | null
+          top_offset: number | null
+          updated_at: string
+        }
+        Insert: {
+          bottom_offset?: number | null
+          company_id: string
+          created_at?: string
+          font_family?: string | null
+          footer_text?: string | null
+          id?: string
+          left_offset?: number | null
+          letterhead_file_url?: string | null
+          letterhead_type?: string | null
+          primary_color?: string | null
+          right_offset?: number | null
+          show_commercial_register?: boolean
+          show_footer?: boolean
+          show_logo?: boolean
+          show_opening_balance?: boolean
+          show_signature?: boolean
+          show_tax_number?: boolean
+          signature_url?: string | null
+          template_style?: string | null
+          top_offset?: number | null
+          updated_at?: string
+        }
+        Update: {
+          bottom_offset?: number | null
+          company_id?: string
+          created_at?: string
+          font_family?: string | null
+          footer_text?: string | null
+          id?: string
+          left_offset?: number | null
+          letterhead_file_url?: string | null
+          letterhead_type?: string | null
+          primary_color?: string | null
+          right_offset?: number | null
+          show_commercial_register?: boolean
+          show_footer?: boolean
+          show_logo?: boolean
+          show_opening_balance?: boolean
+          show_signature?: boolean
+          show_tax_number?: boolean
+          signature_url?: string | null
+          template_style?: string | null
+          top_offset?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_print_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_settings: {
         Row: {
           cash_account_id: string | null

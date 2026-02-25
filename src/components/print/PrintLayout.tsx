@@ -139,11 +139,13 @@ function PrintHeader({ settings, company, doc, style, pc, isRTL }: {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      paddingBottom: style === "minimal" ? "6px" : "12px",
+      paddingTop: style === "modern" ? "16px" : style === "government" ? "12px" : "0",
+      paddingBottom: style === "minimal" ? "6px" : style === "modern" ? "16px" : style === "government" ? "12px" : "12px",
+      paddingLeft: style === "modern" ? "16px" : style === "government" ? "12px" : "0",
+      paddingRight: style === "modern" ? "16px" : style === "government" ? "12px" : "0",
       marginBottom: style === "minimal" ? "8px" : "16px",
       borderBottom: headerBorder,
       background: style === "modern" ? `linear-gradient(135deg, ${pc}11, ${pc}05)` : "transparent",
-      padding: style === "modern" ? "16px" : style === "government" ? "12px" : "0 0 12px 0",
       borderRadius: style === "modern" ? "8px" : "0",
     }}>
       {/* Company Info */}

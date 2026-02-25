@@ -12,7 +12,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePrintSettings } from "@/hooks/usePrintSettings";
 import { PrintDialog } from "@/components/print/PrintDialog";
-import { PrintableDocument, CompanyInfo } from "@/components/print/types";
+import { CompanyInfo, VoucherData } from "@/components/print/types";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -382,46 +382,78 @@ const ViewTreasuryTransaction = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {/* Print Dialog */}
-      {tx && journalLines && (
-        <PrintDialog
-          open={showPrint}
-          onClose={() => setShowPrint(false)}
-          settings={printSettings}
-          company={{
-            name: company?.name || "",
-            name_en: company?.name_en,
-            logo_url: company?.logo_url,
-            tax_number: company?.tax_number,
-            commercial_register: company?.commercial_register,
-            address: company?.address,
-            phone: company?.phone,
-            email: company?.email,
-          }}
-          document={{
-            title: typeLabel,
-            number: tx.transaction_number,
+      {/* Print Dialog - Voucher Layout for Receipt/Payment */}
+      {tx && (() => {
+        const isVoucherType = tx.type === "receipt" || tx.type === "payment";
+        const companyInfo: CompanyInfo = {
+          name: company?.name || "",
+          name_en: company?.name_en,
+          logo_url: company?.logo_url,
+          tax_number: company?.tax_number,
+          commercial_register: company?.commercial_register,
+          address: company?.address,
+          phone: company?.phone,
+          email: company?.email,
+        };
+
+        if (isVoucherType) {
+          const voucherData: VoucherData = {
+            voucherNumber: tx.transaction_number,
             date: tx.transaction_date,
-            extraFields: [
-              { label: isRTL ? "المبلغ" : "Amount", value: `${fmt(Number(tx.amount))} ${currency}` },
-              ...(contact ? [{ label: isRTL ? "الجهة" : "Contact", value: isRTL ? contact.name : (contact.name_en || contact.name) }] : []),
-              ...(tx.description ? [{ label: isRTL ? "البيان" : "Description", value: tx.description }] : []),
-            ],
-            table: journalLines.length > 0 ? {
-              headers: ["#", isRTL ? "رمز الحساب" : "Code", isRTL ? "اسم الحساب" : "Account", isRTL ? "مدين" : "Debit", isRTL ? "دائن" : "Credit"],
-              rows: journalLines.map((line: any, i: number) => [
-                i + 1,
-                line.accounts?.code || "-",
-                isRTL ? (line.accounts?.name || "-") : (line.accounts?.name_en || line.accounts?.name || "-"),
-                Number(line.debit) || 0,
-                Number(line.credit) || 0,
-              ]),
-              totals: ["", "", isRTL ? "الإجمالي" : "Total", Number(journalEntry?.total_debit) || 0, Number(journalEntry?.total_credit) || 0],
-            } : undefined,
-          }}
-          isRTL={isRTL}
-        />
-      )}
+            type: tx.type as "receipt" | "payment",
+            contactName: contact ? (isRTL ? contact.name : (contact.name_en || contact.name)) : undefined,
+            amount: Number(tx.amount) || 0,
+            description: tx.description || undefined,
+            paymentMethod: tx.type === "receipt" ? (isRTL ? "نقدي" : "Cash") : (isRTL ? "نقدي" : "Cash"),
+            reference: tx.transaction_number,
+          };
+
+          return (
+            <PrintDialog
+              open={showPrint}
+              onClose={() => setShowPrint(false)}
+              settings={printSettings}
+              company={companyInfo}
+              documentType={tx.type as "receipt" | "payment"}
+              voucher={voucherData}
+              isRTL={isRTL}
+            />
+          );
+        }
+
+        // For deposit/withdrawal/transfer, use report-style layout
+        return (
+          <PrintDialog
+            open={showPrint}
+            onClose={() => setShowPrint(false)}
+            settings={printSettings}
+            company={companyInfo}
+            documentType="journal"
+            document={{
+              title: typeLabel,
+              number: tx.transaction_number,
+              date: tx.transaction_date,
+              extraFields: [
+                { label: isRTL ? "المبلغ" : "Amount", value: `${fmt(Number(tx.amount))} ${currency}` },
+                ...(contact ? [{ label: isRTL ? "الجهة" : "Contact", value: isRTL ? contact.name : (contact.name_en || contact.name) }] : []),
+                ...(tx.description ? [{ label: isRTL ? "البيان" : "Description", value: tx.description }] : []),
+              ],
+              table: journalLines && journalLines.length > 0 ? {
+                headers: ["#", isRTL ? "رمز الحساب" : "Code", isRTL ? "اسم الحساب" : "Account", isRTL ? "مدين" : "Debit", isRTL ? "دائن" : "Credit"],
+                rows: journalLines.map((line: any, i: number) => [
+                  i + 1,
+                  line.accounts?.code || "-",
+                  isRTL ? (line.accounts?.name || "-") : (line.accounts?.name_en || line.accounts?.name || "-"),
+                  Number(line.debit) || 0,
+                  Number(line.credit) || 0,
+                ]),
+                totals: ["", "", isRTL ? "الإجمالي" : "Total", Number(journalEntry?.total_debit) || 0, Number(journalEntry?.total_credit) || 0],
+              } : undefined,
+            }}
+            isRTL={isRTL}
+          />
+        );
+      })()}
     </div>
   );
 };
