@@ -855,6 +855,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          account_id: string | null
           address: string | null
           balance: number | null
           city: string | null
@@ -876,6 +877,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
           address?: string | null
           balance?: number | null
           city?: string | null
@@ -897,6 +899,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
           address?: string | null
           balance?: number | null
           city?: string | null
@@ -918,6 +921,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contacts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contacts_company_id_fkey"
             columns: ["company_id"]
