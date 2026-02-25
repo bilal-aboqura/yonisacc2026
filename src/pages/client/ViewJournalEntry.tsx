@@ -132,15 +132,44 @@ const ViewJournalEntry = () => {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{isRTL ? "الحالة" : "Status"}</p>
-              <Badge variant={entry.status === "posted" ? "default" : "secondary"} className={entry.status === "posted" ? "bg-green-600" : ""}>
-                {entry.status === "posted" ? (isRTL ? "مرحّل" : "Posted") : (isRTL ? "مسودة" : "Draft")}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant={entry.status === "posted" ? "default" : "secondary"} className={entry.status === "posted" ? "bg-green-600" : ""}>
+                  {entry.status === "posted" ? (isRTL ? "مرحّل" : "Posted") : (isRTL ? "مسودة" : "Draft")}
+                </Badge>
+                {entry.is_auto && (
+                  <Badge variant="outline" className="text-xs">
+                    {isRTL ? "آلي" : "Auto"}
+                  </Badge>
+                )}
+              </div>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{isRTL ? "البيان" : "Description"}</p>
               <p className="font-medium">{entry.description || "-"}</p>
             </div>
           </div>
+          {entry.reference_type && (
+            <div className="mt-4 p-3 rounded-lg bg-muted/50 flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">{isRTL ? "المصدر:" : "Source:"}</span>
+              <Badge variant="secondary">
+                {entry.reference_type === "receipt" ? (isRTL ? "سند قبض" : "Receipt") :
+                 entry.reference_type === "payment" ? (isRTL ? "سند صرف" : "Payment") :
+                 entry.reference_type === "deposit" ? (isRTL ? "إيداع" : "Deposit") :
+                 entry.reference_type === "withdrawal" ? (isRTL ? "سحب" : "Withdrawal") :
+                 entry.reference_type === "transfer" ? (isRTL ? "تحويل" : "Transfer") :
+                 entry.reference_type === "reversal" ? (isRTL ? "عكس قيد" : "Reversal") :
+                 entry.reference_type}
+              </Badge>
+              {entry.reference_id && (
+                <Button
+                  variant="link" size="sm" className="h-auto p-0"
+                  onClick={() => navigate("/client/treasury")}
+                >
+                  {isRTL ? "عرض العملية" : "View Transaction"}
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
