@@ -304,17 +304,6 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
                             <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
                           </Tooltip>
                         )}
-                        {/* Reverse */}
-                        {tx.status !== "reversed" && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setReverseTarget(tx)}>
-                                <Undo2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>{isRTL ? "عكس العملية" : "Reverse"}</TooltipContent>
-                          </Tooltip>
-                        )}
                         {/* Print */}
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -323,15 +312,6 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>{isRTL ? "طباعة" : "Print"}</TooltipContent>
-                        </Tooltip>
-                        {/* Copy */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/client/treasury/new?type=${tx.type}`)}>
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>{isRTL ? "نسخ كعملية جديدة" : "Copy as new"}</TooltipContent>
                         </Tooltip>
                         {/* Permanent Delete */}
                         <Tooltip>
