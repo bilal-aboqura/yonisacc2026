@@ -393,3 +393,40 @@
     transition: transform 0.2s ease-out;
   }
 }
+
+/* Print Engine Styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-layout,
+  .print-layout * {
+    visibility: visible !important;
+  }
+  .print-layout {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .print\\:hidden {
+    display: none !important;
+  }
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
+}

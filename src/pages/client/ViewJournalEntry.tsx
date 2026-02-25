@@ -11,6 +11,10 @@ import { ArrowRight, ArrowLeft, BookOpen, Loader2, Printer } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePrintSettings } from "@/hooks/usePrintSettings";
+import { PrintDialog } from "@/components/print/PrintDialog";
+import { PrintableDocument, CompanyInfo } from "@/components/print/types";
+import { useState } from "react";
 
 const ViewJournalEntry = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,16 +23,19 @@ const ViewJournalEntry = () => {
   const { isRTL, currentLanguage } = useLanguage();
   const { user } = useAuth();
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
+  const [showPrint, setShowPrint] = useState(false);
 
   const { data: company } = useQuery({
     queryKey: ["user-company", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data } = await supabase.from("companies").select("id, currency, name").eq("owner_id", user.id).limit(1).maybeSingle();
+      const { data } = await supabase.from("companies").select("id, currency, name, name_en, logo_url, tax_number, commercial_register, address, phone, email").eq("owner_id", user.id).limit(1).maybeSingle();
       return data;
     },
     enabled: !!user?.id,
   });
+
+  const { settings } = usePrintSettings(company?.id);
 
   const { data: entry, isLoading } = useQuery({
     queryKey: ["journal-entry", id],
@@ -63,8 +70,40 @@ const ViewJournalEntry = () => {
   const currency = isRTL ? "ر.س" : (company?.currency || "SAR");
   const fmt = (n: number | null) => (n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const handlePrint = () => {
-    window.print();
+  // Build printable document
+  const printDoc: PrintableDocument | null = entry && lines ? {
+    title: isRTL ? "قيد محاسبي" : "Journal Entry",
+    subtitle: entry.is_auto ? (isRTL ? "قيد آلي" : "Auto Entry") : undefined,
+    number: entry.entry_number,
+    date: entry.entry_date,
+    extraFields: [
+      { label: isRTL ? "الحالة" : "Status", value: entry.status === "posted" ? (isRTL ? "مرحّل" : "Posted") : (isRTL ? "مسودة" : "Draft") },
+      ...(entry.description ? [{ label: isRTL ? "البيان" : "Description", value: entry.description }] : []),
+      ...(entry.reference_type ? [{ label: isRTL ? "المصدر" : "Source", value: entry.reference_type }] : []),
+    ],
+    table: {
+      headers: ["#", isRTL ? "رمز الحساب" : "Code", isRTL ? "اسم الحساب" : "Account", isRTL ? "مدين" : "Debit", isRTL ? "دائن" : "Credit"],
+      rows: lines.map((line: any, i: number) => [
+        i + 1,
+        line.accounts?.code || "-",
+        currentLanguage === "en" ? (line.accounts?.name_en || line.accounts?.name || "-") : (line.accounts?.name || "-"),
+        Number(line.debit) || 0,
+        Number(line.credit) || 0,
+      ]),
+      totals: ["", "", isRTL ? "الإجمالي" : "Total", Number(entry.total_debit) || 0, Number(entry.total_credit) || 0],
+    },
+    notes: entry.description || undefined,
+  } : null;
+
+  const companyInfo: CompanyInfo = {
+    name: company?.name || "",
+    name_en: company?.name_en,
+    logo_url: company?.logo_url,
+    tax_number: company?.tax_number,
+    commercial_register: company?.commercial_register,
+    address: company?.address,
+    phone: company?.phone,
+    email: company?.email,
   };
 
   if (isLoading) {
@@ -87,9 +126,9 @@ const ViewJournalEntry = () => {
   }
 
   return (
-    <div className="space-y-6 print:space-y-4">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between print:hidden">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/client/journal")}>
             <BackIcon className="h-5 w-5" />
@@ -105,7 +144,7 @@ const ViewJournalEntry = () => {
               {isRTL ? "تعديل" : "Edit"}
             </Button>
           )}
-          <Button variant="outline" onClick={handlePrint} className="gap-2">
+          <Button variant="outline" onClick={() => setShowPrint(true)} className="gap-2">
             <Printer className="h-4 w-4" />
             {isRTL ? "طباعة" : "Print"}
           </Button>
@@ -137,9 +176,7 @@ const ViewJournalEntry = () => {
                   {entry.status === "posted" ? (isRTL ? "مرحّل" : "Posted") : (isRTL ? "مسودة" : "Draft")}
                 </Badge>
                 {entry.is_auto && (
-                  <Badge variant="outline" className="text-xs">
-                    {isRTL ? "آلي" : "Auto"}
-                  </Badge>
+                  <Badge variant="outline" className="text-xs">{isRTL ? "آلي" : "Auto"}</Badge>
                 )}
               </div>
             </div>
@@ -161,10 +198,7 @@ const ViewJournalEntry = () => {
                  entry.reference_type}
               </Badge>
               {entry.reference_id && (
-                <Button
-                  variant="link" size="sm" className="h-auto p-0"
-                  onClick={() => navigate("/client/treasury")}
-                >
+                <Button variant="link" size="sm" className="h-auto p-0" onClick={() => navigate("/client/treasury")}>
                   {isRTL ? "عرض العملية" : "View Transaction"}
                 </Button>
               )}
@@ -216,6 +250,18 @@ const ViewJournalEntry = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Print Dialog */}
+      {printDoc && (
+        <PrintDialog
+          open={showPrint}
+          onClose={() => setShowPrint(false)}
+          settings={settings}
+          company={companyInfo}
+          document={printDoc}
+          isRTL={isRTL}
+        />
+      )}
     </div>
   );
 };

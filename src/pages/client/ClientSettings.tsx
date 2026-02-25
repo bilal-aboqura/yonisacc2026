@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, User, Bell, Palette, Users, Loader2 } from "lucide-react";
+import { Building2, User, Bell, Palette, Users, Loader2, Printer } from "lucide-react";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import TeamManagement from "@/components/client/TeamManagement";
 import CompanyLogoUpload from "@/components/client/CompanyLogoUpload";
+import PrintSettingsTab from "@/components/print/PrintSettingsTab";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -157,7 +158,7 @@ const ClientSettings = () => {
       </div>
 
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 lg:w-auto lg:inline-grid">
           <TabsTrigger value="company" className="gap-2">
             <Building2 className="h-4 w-4" />
             {isRTL ? "الشركة" : "Company"}
@@ -169,6 +170,10 @@ const ClientSettings = () => {
           <TabsTrigger value="profile" className="gap-2">
             <User className="h-4 w-4" />
             {isRTL ? "الملف الشخصي" : "Profile"}
+          </TabsTrigger>
+          <TabsTrigger value="print" className="gap-2">
+            <Printer className="h-4 w-4" />
+            {isRTL ? "الطباعة" : "Print"}
           </TabsTrigger>
           <TabsTrigger value="appearance" className="gap-2">
             <Palette className="h-4 w-4" />
@@ -321,6 +326,19 @@ const ClientSettings = () => {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Print Tab */}
+        <TabsContent value="print">
+          {company?.id ? (
+            <PrintSettingsTab companyId={company.id} />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                {isRTL ? "لا توجد شركة مرتبطة" : "No company linked"}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Appearance Tab */}

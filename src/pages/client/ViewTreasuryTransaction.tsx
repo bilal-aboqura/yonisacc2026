@@ -10,6 +10,9 @@ import { ArrowRight, BookOpen, Loader2, Printer, Pencil, Undo2, Copy, Trash2 } f
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePrintSettings } from "@/hooks/usePrintSettings";
+import { PrintDialog } from "@/components/print/PrintDialog";
+import { PrintableDocument, CompanyInfo } from "@/components/print/types";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -38,16 +41,19 @@ const ViewTreasuryTransaction = () => {
   const queryClient = useQueryClient();
   const [showReverse, setShowReverse] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showPrint, setShowPrint] = useState(false);
 
   const { data: company } = useQuery({
     queryKey: ["user-company", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data } = await supabase.from("companies").select("id, currency").eq("owner_id", user.id).limit(1).maybeSingle();
+      const { data } = await supabase.from("companies").select("id, currency, name, name_en, logo_url, tax_number, commercial_register, address, phone, email").eq("owner_id", user.id).limit(1).maybeSingle();
       return data;
     },
     enabled: !!user?.id,
   });
+
+  const { settings: printSettings } = usePrintSettings(company?.id);
 
   const { data: tx, isLoading } = useQuery({
     queryKey: ["treasury-tx", id],
@@ -206,7 +212,7 @@ const ViewTreasuryTransaction = () => {
             )}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={() => window.print()}>
+                <Button variant="outline" size="icon" onClick={() => setShowPrint(true)}>
                   <Printer className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -376,6 +382,46 @@ const ViewTreasuryTransaction = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Print Dialog */}
+      {tx && journalLines && (
+        <PrintDialog
+          open={showPrint}
+          onClose={() => setShowPrint(false)}
+          settings={printSettings}
+          company={{
+            name: company?.name || "",
+            name_en: company?.name_en,
+            logo_url: company?.logo_url,
+            tax_number: company?.tax_number,
+            commercial_register: company?.commercial_register,
+            address: company?.address,
+            phone: company?.phone,
+            email: company?.email,
+          }}
+          document={{
+            title: typeLabel,
+            number: tx.transaction_number,
+            date: tx.transaction_date,
+            extraFields: [
+              { label: isRTL ? "المبلغ" : "Amount", value: `${fmt(Number(tx.amount))} ${currency}` },
+              ...(contact ? [{ label: isRTL ? "الجهة" : "Contact", value: isRTL ? contact.name : (contact.name_en || contact.name) }] : []),
+              ...(tx.description ? [{ label: isRTL ? "البيان" : "Description", value: tx.description }] : []),
+            ],
+            table: journalLines.length > 0 ? {
+              headers: ["#", isRTL ? "رمز الحساب" : "Code", isRTL ? "اسم الحساب" : "Account", isRTL ? "مدين" : "Debit", isRTL ? "دائن" : "Credit"],
+              rows: journalLines.map((line: any, i: number) => [
+                i + 1,
+                line.accounts?.code || "-",
+                isRTL ? (line.accounts?.name || "-") : (line.accounts?.name_en || line.accounts?.name || "-"),
+                Number(line.debit) || 0,
+                Number(line.credit) || 0,
+              ]),
+              totals: ["", "", isRTL ? "الإجمالي" : "Total", Number(journalEntry?.total_debit) || 0, Number(journalEntry?.total_credit) || 0],
+            } : undefined,
+          }}
+          isRTL={isRTL}
+        />
+      )}
     </div>
   );
 };
