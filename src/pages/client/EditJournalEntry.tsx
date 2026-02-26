@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
+import CostCenterCombobox, { CostCenter } from "@/components/client/CostCenterCombobox";
 
 interface Account {
   id: string;
@@ -40,6 +41,7 @@ interface EntryLine {
   description: string;
   debit: number;
   credit: number;
+  cost_center_id: string;
 }
 
 const AccountCombobox = ({
@@ -96,6 +98,7 @@ const EditJournalEntry = () => {
   const [entryDate, setEntryDate] = useState("");
   const [description, setDescription] = useState("");
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
   const [lines, setLines] = useState<EntryLine[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -123,7 +126,7 @@ const EditJournalEntry = () => {
 
       // Get lines
       const { data: entryLines } = await supabase
-        .from("journal_entry_lines").select("*").eq("entry_id", id!).order("sort_order");
+        .from("journal_entry_lines").select("*, cost_center_id").eq("entry_id", id!).order("sort_order");
 
       setLines((entryLines || []).map((l: any) => ({
         id: l.id,
@@ -131,13 +134,15 @@ const EditJournalEntry = () => {
         description: l.description || "",
         debit: l.debit || 0,
         credit: l.credit || 0,
+        cost_center_id: l.cost_center_id || "",
       })));
 
       // Get accounts (same logic as CreateJournalEntry)
-      const [globalRes, customRes, linkedRes] = await Promise.all([
+      const [globalRes, customRes, linkedRes, ccRes] = await Promise.all([
         supabase.from("global_accounts" as any).select("id, code, name, name_en, type, is_parent, is_active").eq("is_active", true).order("sort_order"),
         supabase.from("accounts").select("id, code, name, name_en, type, is_parent, global_account_id").eq("company_id", comp.id).eq("is_active", true).is("global_account_id", null).or("is_parent.is.null,is_parent.eq.false").order("code"),
         supabase.from("accounts").select("id, global_account_id").eq("company_id", comp.id).not("global_account_id", "is", null),
+        supabase.from("cost_centers").select("id, code, name, name_en").eq("company_id", comp.id).eq("is_active", true).order("code"),
       ]);
 
       const linkedMap = new Map<string, string>();
@@ -156,6 +161,7 @@ const EditJournalEntry = () => {
       const unique = merged.filter((a) => { if (seen.has(a.id)) return false; seen.add(a.id); return true; });
       unique.sort((a, b) => a.code.localeCompare(b.code));
       setAccounts(unique);
+      setCostCenters((ccRes.data || []) as CostCenter[]);
     } catch (error: any) {
       console.error("Error loading:", error);
       toast({ title: t("common.error"), description: error?.message || "Error loading data", variant: "destructive" });
@@ -182,7 +188,7 @@ const EditJournalEntry = () => {
   };
 
   const addLine = () => {
-    setLines((prev) => [...prev, { id: crypto.randomUUID(), account_id: "", description: "", debit: 0, credit: 0 }]);
+    setLines((prev) => [...prev, { id: crypto.randomUUID(), account_id: "", description: "", debit: 0, credit: 0, cost_center_id: "" }]);
   };
 
   const removeLine = (lineId: string) => {
@@ -230,6 +236,7 @@ const EditJournalEntry = () => {
         debit: l.debit || 0,
         credit: l.credit || 0,
         sort_order: i,
+        cost_center_id: l.cost_center_id || null,
       }));
       const { error: linesErr } = await supabase.from("journal_entry_lines").insert(newLines);
       if (linesErr) throw linesErr;
@@ -311,8 +318,11 @@ const EditJournalEntry = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[300px]">{t("client.journal.create.account")}</TableHead>
+                <TableHead className="w-[280px]">{t("client.journal.create.account")}</TableHead>
                 <TableHead>{t("client.journal.create.lineDescription")}</TableHead>
+                {costCenters.length > 0 && (
+                  <TableHead className="w-[180px]">{isRTL ? "مركز التكلفة" : "Cost Center"}</TableHead>
+                )}
                 <TableHead className="w-32">{t("client.journal.debit")}</TableHead>
                 <TableHead className="w-32">{t("client.journal.credit")}</TableHead>
                 <TableHead className="w-10"></TableHead>
@@ -334,6 +344,16 @@ const EditJournalEntry = () => {
                   <TableCell>
                     <Input value={line.description} onChange={(e) => updateLine(line.id, "description", e.target.value)} />
                   </TableCell>
+                  {costCenters.length > 0 && (
+                    <TableCell>
+                      <CostCenterCombobox
+                        costCenters={costCenters}
+                        value={line.cost_center_id}
+                        onSelect={(v) => updateLine(line.id, "cost_center_id", v)}
+                        isRTL={isRTL}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <Input type="number" min="0" step="0.01" value={line.debit || ""} onChange={(e) => updateLine(line.id, "debit", Number(e.target.value))} className="text-center" />
                   </TableCell>
@@ -348,7 +368,7 @@ const EditJournalEntry = () => {
                 </TableRow>
               ))}
               <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={2} className={isRTL ? "text-left" : "text-right"}>
+                <TableCell colSpan={costCenters.length > 0 ? 3 : 2} className={isRTL ? "text-left" : "text-right"}>
                   {t("client.journal.create.total")}
                 </TableCell>
                 <TableCell className="text-center">{totalDebit.toFixed(2)}</TableCell>
