@@ -58,7 +58,7 @@ const ViewJournalEntry = () => {
       if (!id) return [];
       const { data, error } = await supabase
         .from("journal_entry_lines")
-        .select("*, accounts:account_id(code, name, name_en)")
+        .select("*, accounts:account_id(code, name, name_en), cost_centers:cost_center_id(code, name, name_en)")
         .eq("entry_id", id)
         .order("sort_order");
       if (error) throw error;
@@ -220,6 +220,9 @@ const ViewJournalEntry = () => {
                 <TableHead>{isRTL ? "رمز الحساب" : "Account Code"}</TableHead>
                 <TableHead>{isRTL ? "اسم الحساب" : "Account Name"}</TableHead>
                 <TableHead>{isRTL ? "البيان" : "Description"}</TableHead>
+                {lines?.some((l: any) => l.cost_center_id) && (
+                  <TableHead>{isRTL ? "مركز التكلفة" : "Cost Center"}</TableHead>
+                )}
                 <TableHead>{t("client.journal.debit")}</TableHead>
                 <TableHead>{t("client.journal.credit")}</TableHead>
               </TableRow>
@@ -235,12 +238,19 @@ const ViewJournalEntry = () => {
                       : (line.accounts?.name || "-")}
                   </TableCell>
                   <TableCell>{line.description || "-"}</TableCell>
+                  {lines?.some((l: any) => l.cost_center_id) && (
+                    <TableCell>
+                      {line.cost_centers
+                        ? `${line.cost_centers.code} - ${isRTL ? line.cost_centers.name : (line.cost_centers.name_en || line.cost_centers.name)}`
+                        : "-"}
+                    </TableCell>
+                  )}
                   <TableCell>{fmt(line.debit)} {currency}</TableCell>
                   <TableCell>{fmt(line.credit)} {currency}</TableCell>
                 </TableRow>
               ))}
               <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={4} className={isRTL ? "text-left" : "text-right"}>
+                <TableCell colSpan={lines?.some((l: any) => l.cost_center_id) ? 5 : 4} className={isRTL ? "text-left" : "text-right"}>
                   {isRTL ? "الإجمالي" : "Total"}
                 </TableCell>
                 <TableCell>{fmt(entry.total_debit)} {currency}</TableCell>

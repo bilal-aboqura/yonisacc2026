@@ -47,6 +47,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import UsageLimitGuard from "@/components/client/UsageLimitGuard";
+import CostCenterCombobox, { CostCenter } from "@/components/client/CostCenterCombobox";
 
 interface Account {
   id: string;
@@ -64,6 +65,7 @@ interface EntryLine {
   description: string;
   debit: number;
   credit: number;
+  cost_center_id: string;
 }
 
 // Searchable Account Combobox
@@ -146,9 +148,10 @@ const CreateJournalEntry = () => {
   const [description, setDescription] = useState("");
 
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
   const [lines, setLines] = useState<EntryLine[]>([
-    { id: crypto.randomUUID(), account_id: "", account_name: "", description: "", debit: 0, credit: 0 },
-    { id: crypto.randomUUID(), account_id: "", account_name: "", description: "", debit: 0, credit: 0 },
+    { id: crypto.randomUUID(), account_id: "", account_name: "", description: "", debit: 0, credit: 0, cost_center_id: "" },
+    { id: crypto.randomUUID(), account_id: "", account_name: "", description: "", debit: 0, credit: 0, cost_center_id: "" },
   ]);
 
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
@@ -174,7 +177,7 @@ const CreateJournalEntry = () => {
       setCompanyId(companyData.id);
 
       // Fetch global accounts, company custom accounts, and linked accounts in parallel
-      const [globalRes, customRes, linkedRes] = await Promise.all([
+      const [globalRes, customRes, linkedRes, ccRes] = await Promise.all([
         supabase
           .from("global_accounts" as any)
           .select("id, code, name, name_en, type, is_parent, is_active")
@@ -193,6 +196,12 @@ const CreateJournalEntry = () => {
           .select("id, global_account_id")
           .eq("company_id", companyData.id)
           .not("global_account_id", "is", null),
+        supabase
+          .from("cost_centers")
+          .select("id, code, name, name_en")
+          .eq("company_id", companyData.id)
+          .eq("is_active", true)
+          .order("code"),
       ]);
 
       if (globalRes.error) throw globalRes.error;
@@ -241,6 +250,7 @@ const CreateJournalEntry = () => {
       uniqueAccounts.sort((a, b) => a.code.localeCompare(b.code));
 
       setAccounts(uniqueAccounts);
+      setCostCenters((ccRes.data || []) as CostCenter[]);
 
       // Generate entry number using company_settings for accuracy
       const { data: settings } = await supabase
@@ -297,7 +307,7 @@ const CreateJournalEntry = () => {
   const addLine = () => {
     setLines((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), account_id: "", account_name: "", description: "", debit: 0, credit: 0 },
+      { id: crypto.randomUUID(), account_id: "", account_name: "", description: "", debit: 0, credit: 0, cost_center_id: "" },
     ]);
   };
 
@@ -341,6 +351,7 @@ const CreateJournalEntry = () => {
         description: line.description || null,
         debit: line.debit || 0,
         credit: line.credit || 0,
+        cost_center_id: line.cost_center_id || null,
       }));
 
       const { data: entryId, error } = await (supabase.rpc as any)("post_journal_entry", {
@@ -475,8 +486,11 @@ const CreateJournalEntry = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[300px]">{t("client.journal.create.account")}</TableHead>
+                <TableHead className="w-[280px]">{t("client.journal.create.account")}</TableHead>
                 <TableHead>{t("client.journal.create.lineDescription")}</TableHead>
+                {costCenters.length > 0 && (
+                  <TableHead className="w-[180px]">{isRTL ? "مركز التكلفة" : "Cost Center"}</TableHead>
+                )}
                 <TableHead className="w-32">{t("client.journal.debit")}</TableHead>
                 <TableHead className="w-32">{t("client.journal.credit")}</TableHead>
                 <TableHead className="w-10"></TableHead>
@@ -502,6 +516,16 @@ const CreateJournalEntry = () => {
                       placeholder={t("client.journal.create.lineDescriptionPlaceholder")}
                     />
                   </TableCell>
+                  {costCenters.length > 0 && (
+                    <TableCell>
+                      <CostCenterCombobox
+                        costCenters={costCenters}
+                        value={line.cost_center_id}
+                        onSelect={(v) => updateLine(line.id, "cost_center_id", v)}
+                        isRTL={isRTL}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <Input
                       type="number"
@@ -536,7 +560,7 @@ const CreateJournalEntry = () => {
               ))}
               {/* Totals Row */}
               <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={2} className={isRTL ? "text-left" : "text-right"}>
+                <TableCell colSpan={costCenters.length > 0 ? 3 : 2} className={isRTL ? "text-left" : "text-right"}>
                   {t("client.journal.create.total")}
                 </TableCell>
                 <TableCell className="text-center">{totalDebit.toFixed(2)}</TableCell>
