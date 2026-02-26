@@ -27,6 +27,11 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import ReportActions from "@/components/print/ReportActions";
+import { usePrintSettings } from "@/hooks/usePrintSettings";
+import { usePermissions } from "@/hooks/usePermissions";
+import { exportToExcel } from "@/lib/exportUtils";
+import { PrintableDocument, CompanyInfo } from "@/components/print/types";
 
 interface Account {
   id: string;
@@ -66,7 +71,7 @@ const GeneralLedger = () => {
       if (!user?.id) return null;
       const { data } = await supabase
         .from("companies")
-        .select("id")
+        .select("id, name, name_en, logo_url, tax_number, commercial_register, address, phone, email, currency")
         .eq("owner_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -76,6 +81,10 @@ const GeneralLedger = () => {
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
   });
+
+  const { settings: printSettings } = usePrintSettings(company?.id);
+  const { hasPermission } = usePermissions();
+  const canExport = hasPermission("reports.export_reports");
 
   // Load accounts (cached 5 min)
   const { data: accounts = [], isLoading: isAccountsLoading } = useQuery({
@@ -165,6 +174,83 @@ const GeneralLedger = () => {
 
   const formatNumber = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  const companyInfo: CompanyInfo = {
+    name: company?.name || "",
+    name_en: company?.name_en,
+    logo_url: company?.logo_url,
+    tax_number: company?.tax_number,
+    commercial_register: company?.commercial_register,
+    address: company?.address,
+    phone: company?.phone,
+    email: company?.email,
+  };
+
+  const printDoc: PrintableDocument = useMemo(() => {
+    const accountLabel = selectedAccount
+      ? `${selectedAccount.code} - ${isRTL ? selectedAccount.name : (selectedAccount.name_en || selectedAccount.name)}`
+      : "";
+    const headers = [
+      isRTL ? "التاريخ" : "Date",
+      isRTL ? "رقم القيد" : "Entry #",
+      isRTL ? "البيان" : "Description",
+      isRTL ? "مدين" : "Debit",
+      isRTL ? "دائن" : "Credit",
+      isRTL ? "الرصيد" : "Balance",
+    ];
+    const rows: (string | number)[][] = [
+      [isRTL ? "رصيد أول المدة" : "Opening Balance", "", "", "", "", formatNumber(openingBalance)],
+      ...ledgerLines.map((l) => [
+        l.entry_date,
+        l.entry_number,
+        l.description || "-",
+        l.debit > 0 ? formatNumber(l.debit) : "-",
+        l.credit > 0 ? formatNumber(l.credit) : "-",
+        formatNumber(Math.abs(l.running_balance)),
+      ]),
+    ];
+    const totalsRow = [
+      isRTL ? "الإجمالي" : "Total", "", "",
+      formatNumber(totals.totalDebit),
+      formatNumber(totals.totalCredit),
+      formatNumber(Math.abs(totals.net)),
+    ];
+    return {
+      title: isRTL ? "دفتر الأستاذ" : "General Ledger",
+      subtitle: accountLabel,
+      date: dateFrom && dateTo ? `${dateFrom} → ${dateTo}` : undefined,
+      table: { headers, rows, totals: totalsRow },
+    };
+  }, [selectedAccount, ledgerLines, totals, openingBalance, isRTL, dateFrom, dateTo]);
+
+  const handleExportExcel = () => {
+    if (!selectedAccount) return;
+    const accountLabel = `${selectedAccount.code}-${isRTL ? selectedAccount.name : (selectedAccount.name_en || selectedAccount.name)}`;
+    const cols = [
+      { header: isRTL ? "التاريخ" : "Date", key: "date", format: "text" as const },
+      { header: isRTL ? "رقم القيد" : "Entry #", key: "entry", format: "text" as const },
+      { header: isRTL ? "البيان" : "Description", key: "desc", format: "text" as const },
+      { header: isRTL ? "مدين" : "Debit", key: "debit", format: "number" as const },
+      { header: isRTL ? "دائن" : "Credit", key: "credit", format: "number" as const },
+      { header: isRTL ? "الرصيد" : "Balance", key: "balance", format: "number" as const },
+    ];
+    const excelRows = [
+      { date: isRTL ? "رصيد أول المدة" : "Opening Balance", entry: "", desc: "", debit: 0, credit: 0, balance: openingBalance },
+      ...ledgerLines.map((l) => ({
+        date: l.entry_date, entry: l.entry_number, desc: l.description || "",
+        debit: l.debit, credit: l.credit, balance: l.running_balance,
+      })),
+    ];
+    const dateSuffix = new Date().toISOString().slice(0, 10);
+    exportToExcel({
+      filename: `Ledger_${accountLabel}_${dateSuffix}`,
+      columns: cols,
+      rows: excelRows,
+      totals: { date: isRTL ? "الإجمالي" : "Total", entry: "", desc: "", debit: totals.totalDebit, credit: totals.totalCredit, balance: totals.net },
+      title: isRTL ? "دفتر الأستاذ" : "General Ledger",
+      subtitle: accountLabel,
+    });
+  };
+
   return (
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
       {/* Header */}
@@ -177,7 +263,17 @@ const GeneralLedger = () => {
             {isRTL ? "عرض حركات الحسابات التفصيلية" : "View detailed account transactions"}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {selectedAccount && ledgerLines.length > 0 && (
+            <ReportActions
+              printSettings={printSettings}
+              company={companyInfo}
+              document={printDoc}
+              isRTL={isRTL}
+              onExportExcel={handleExportExcel}
+              canExport={canExport}
+            />
+          )}
           <Button variant="outline" className="gap-2" onClick={() => navigate("/client/journal")}>
             <BookOpen className="h-4 w-4" />
             {isRTL ? "قيود اليومية" : "Journal Entries"}
