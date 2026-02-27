@@ -212,20 +212,30 @@ const ClientDashboard = () => {
     staleTime: 60_000,
   });
 
-  // 5. Inventory value (sum of quantity * cost_price for all products)
+  // 5. Inventory value from Chart of Accounts (code 113% = Inventory accounts)
   const { data: inventoryValue = 0 } = useQuery({
     queryKey: ["dashboard-inventory", companyId],
     queryFn: async () => {
       if (!companyId) return 0;
-      const { data, error } = await supabase
-        .from("products")
-        .select("purchase_price")
-        .eq("company_id", companyId)
-        .eq("is_active", true)
-        .eq("is_service", false);
 
-      if (error) { console.error("Inventory query error:", error); return 0; }
-      return (data || []).reduce((sum, p) => sum + (p.purchase_price || 0), 0);
+      // Get all account balances via RPC
+      const { data: balances, error: rpcError } = await supabase.rpc("get_account_balances", {
+        p_company_id: companyId,
+      });
+      if (rpcError) { console.error("Inventory RPC error:", rpcError); return 0; }
+
+      // Get inventory account IDs (codes starting with 113)
+      const { data: invAccounts, error: accError } = await supabase
+        .from("accounts")
+        .select("id, code")
+        .eq("company_id", companyId)
+        .eq("is_parent", false)
+        .like("code", "113%");
+
+      if (accError) { console.error("Inventory accounts error:", accError); return 0; }
+
+      const balanceMap = (balances || {}) as Record<string, number>;
+      return (invAccounts || []).reduce((sum, acc) => sum + (balanceMap[acc.id] || 0), 0);
     },
     enabled: !!companyId,
     staleTime: 60_000,
