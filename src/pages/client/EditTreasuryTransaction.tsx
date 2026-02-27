@@ -1,5 +1,6 @@
 import { useState, useEffect, forwardRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,7 @@ const EditTreasuryTransaction = forwardRef<HTMLDivElement>((_, ref) => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [transactionType, setTransactionType] = useState("");
@@ -171,6 +173,13 @@ const EditTreasuryTransaction = forwardRef<HTMLDivElement>((_, ref) => {
         title: "تم التعديل بنجاح",
         description: `تم تحديث العملية وإعادة إنشاء القيد المحاسبي ${data?.journal_entry_number || ""} تلقائياً`,
       });
+
+      // Invalidate all balance-related queries
+      queryClient.invalidateQueries({ queryKey: ["treasury-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["account-balances"] });
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["general-ledger"] });
+      queryClient.invalidateQueries({ queryKey: ["client-accounts"] });
 
       navigate("/client/treasury");
     } catch (error: any) {
