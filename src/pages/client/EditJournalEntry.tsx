@@ -154,30 +154,47 @@ const EditJournalEntry = () => {
         cost_center_id: l.cost_center_id || "",
       })));
 
-      // Get accounts (same logic as CreateJournalEntry)
-      const [globalRes, customRes, linkedRes, ccRes] = await Promise.all([
-        supabase.from("global_accounts" as any).select("id, code, name, name_en, type, is_parent, is_active").eq("is_active", true).order("sort_order"),
-        supabase.from("accounts").select("id, code, name, name_en, type, is_parent, global_account_id").eq("company_id", comp.id).eq("is_active", true).is("global_account_id", null).or("is_parent.is.null,is_parent.eq.false").order("code"),
-        supabase.from("accounts").select("id, global_account_id").eq("company_id", comp.id).not("global_account_id", "is", null),
-        supabase.from("cost_centers").select("id, code, name, name_en").eq("company_id", comp.id).eq("is_active", true).order("code"),
+      // Get all company leaf accounts directly + global account metadata for display
+      const [allCompanyAccounts, globalRes, ccRes] = await Promise.all([
+        supabase
+          .from("accounts")
+          .select("id, code, name, name_en, type, is_parent, global_account_id")
+          .eq("company_id", comp.id)
+          .eq("is_active", true)
+          .or("is_parent.is.null,is_parent.eq.false")
+          .order("code"),
+        supabase
+          .from("global_accounts" as any)
+          .select("id, code, name, name_en, type")
+          .eq("is_active", true)
+          .eq("is_parent", false),
+        supabase
+          .from("cost_centers")
+          .select("id, code, name, name_en")
+          .eq("company_id", comp.id)
+          .eq("is_active", true)
+          .order("code"),
       ]);
 
-      const linkedMap = new Map<string, string>();
-      (linkedRes.data || []).forEach((a: any) => linkedMap.set(a.global_account_id, a.id));
+      // Build global account lookup for better display names
+      const globalMap = new Map<string, any>();
+      (globalRes.data || []).forEach((ga: any) => globalMap.set(ga.id, ga));
 
-      const merged: Account[] = [
-        ...(globalRes.data || []).filter((ga: any) => !ga.is_parent && linkedMap.has(ga.id)).map((ga: any) => ({
-          id: linkedMap.get(ga.id)!, code: ga.code, name: ga.name, name_en: ga.name_en, type: ga.type, is_parent: false,
-        })),
-        ...(customRes.data || []).map((a: any) => ({
-          id: a.id, code: a.code, name: a.name, name_en: a.name_en, type: a.type, is_parent: a.is_parent,
-        })),
-      ];
+      // Use company accounts, enriching with global account display info
+      const accountsList: Account[] = (allCompanyAccounts.data || []).map((a: any) => {
+        const ga = a.global_account_id ? globalMap.get(a.global_account_id) : null;
+        return {
+          id: a.id,
+          code: ga?.code || a.code,
+          name: ga?.name || a.name,
+          name_en: ga?.name_en || a.name_en,
+          type: ga?.type || a.type,
+          is_parent: a.is_parent,
+        };
+      });
 
-      const seen = new Set<string>();
-      const unique = merged.filter((a) => { if (seen.has(a.id)) return false; seen.add(a.id); return true; });
-      unique.sort((a, b) => a.code.localeCompare(b.code));
-      setAccounts(unique);
+      accountsList.sort((a, b) => a.code.localeCompare(b.code));
+      setAccounts(accountsList);
       setCostCenters((ccRes.data || []) as CostCenter[]);
     } catch (error: any) {
       console.error("Error loading:", error);
