@@ -140,6 +140,11 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
         description: isRTL ? `تم إنشاء قيد عكسي ${data?.reverse_journal_number || ""}` : `Reversal entry ${data?.reverse_journal_number || ""} created`,
       });
       queryClient.invalidateQueries({ queryKey: ["treasury-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["account-balances"] });
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["general-ledger"] });
+      queryClient.invalidateQueries({ queryKey: ["trial-balance"] });
+      queryClient.invalidateQueries({ queryKey: ["client-accounts"] });
       setReverseTarget(null);
     },
     onError: (error: any) => {
@@ -372,14 +377,23 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
               className="bg-destructive text-destructive-foreground"
               onClick={async () => {
                 if (!deleteTarget) return;
-                try {
+              try {
                   if (deleteTarget.journal_entry_id) {
-                    await supabase.from("journal_entry_lines").delete().eq("entry_id", deleteTarget.journal_entry_id);
-                    await supabase.from("journal_entries").delete().eq("id", deleteTarget.journal_entry_id);
+                    const { error: linesErr } = await supabase.from("journal_entry_lines").delete().eq("entry_id", deleteTarget.journal_entry_id);
+                    if (linesErr) throw linesErr;
+                    const { error: entryErr } = await supabase.from("journal_entries").delete().eq("id", deleteTarget.journal_entry_id);
+                    if (entryErr) throw entryErr;
                   }
-                  await supabase.from("treasury_transactions").delete().eq("id", deleteTarget.id);
+                  const { error: txErr } = await supabase.from("treasury_transactions").delete().eq("id", deleteTarget.id);
+                  if (txErr) throw txErr;
                   toast({ title: isRTL ? "تم الحذف النهائي" : "Permanently deleted" });
+                  // Invalidate all balance-related queries to sync across pages
                   queryClient.invalidateQueries({ queryKey: ["treasury-overview"] });
+                  queryClient.invalidateQueries({ queryKey: ["account-balances"] });
+                  queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+                  queryClient.invalidateQueries({ queryKey: ["general-ledger"] });
+                  queryClient.invalidateQueries({ queryKey: ["trial-balance"] });
+                  queryClient.invalidateQueries({ queryKey: ["client-accounts"] });
                 } catch (e: any) {
                   toast({ title: isRTL ? "خطأ" : "Error", description: e?.message, variant: "destructive" });
                 }
