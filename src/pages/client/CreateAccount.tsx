@@ -235,13 +235,19 @@ const CreateAccount = () => {
         return;
       }
 
+      // Resolve parent_id: global accounts can't be used as direct parent_id
+      let resolvedParentId: string | null = null;
+      if (parentId && !parentId.startsWith("global_")) {
+        resolvedParentId = parentId;
+      }
+
       const { error } = await supabase.from("accounts").insert({
         company_id: companyId,
         code: code.trim(),
         name: name.trim(),
         name_en: nameEn.trim() || null,
         type: accountType,
-        parent_id: parentId || null,
+        parent_id: resolvedParentId,
         cost_center_id: costCenterId || null,
         is_parent: isParent,
         balance: openingBalance,
