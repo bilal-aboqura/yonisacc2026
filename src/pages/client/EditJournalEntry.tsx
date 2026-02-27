@@ -156,13 +156,12 @@ const EditJournalEntry = () => {
         cost_center_id: l.cost_center_id || "",
       })));
 
-      // Get all company leaf accounts (include inactive to show existing line accounts)
+      // Get ALL company accounts (no filters except company_id to ensure line accounts are found)
       const [allCompanyAccounts, globalRes, ccRes] = await Promise.all([
         supabase
           .from("accounts")
           .select("id, code, name, name_en, type, is_parent, global_account_id")
           .eq("company_id", cId)
-          .or("is_parent.is.null,is_parent.eq.false")
           .order("code"),
         supabase
           .from("global_accounts" as any)
@@ -180,18 +179,24 @@ const EditJournalEntry = () => {
       const globalMap = new Map<string, any>();
       (globalRes.data || []).forEach((ga: any) => globalMap.set(ga.id, ga));
 
+      // Collect account IDs from entry lines to ensure they're always included
+      const lineAccountIds = new Set((entryLines || []).map((l: any) => l.account_id));
+
       // Use company accounts, enriching with global account display info
-      const accountsList: Account[] = (allCompanyAccounts.data || []).map((a: any) => {
-        const ga = a.global_account_id ? globalMap.get(a.global_account_id) : null;
-        return {
-          id: a.id,
-          code: ga?.code || a.code,
-          name: ga?.name || a.name,
-          name_en: ga?.name_en || a.name_en,
-          type: ga?.type || a.type,
-          is_parent: a.is_parent,
-        };
-      });
+      // Include leaf accounts + any account referenced by entry lines
+      const accountsList: Account[] = (allCompanyAccounts.data || [])
+        .filter((a: any) => !a.is_parent || lineAccountIds.has(a.id))
+        .map((a: any) => {
+          const ga = a.global_account_id ? globalMap.get(a.global_account_id) : null;
+          return {
+            id: a.id,
+            code: ga?.code || a.code,
+            name: ga?.name || a.name,
+            name_en: ga?.name_en || a.name_en,
+            type: ga?.type || a.type,
+            is_parent: false,
+          };
+        });
 
       accountsList.sort((a, b) => a.code.localeCompare(b.code));
       setAccounts(accountsList);
