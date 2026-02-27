@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,12 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   ArrowRight,
   ArrowLeft,
@@ -154,7 +160,26 @@ const CreateJournalEntry = () => {
     { id: crypto.randomUUID(), account_id: "", account_name: "", description: "", debit: 0, credit: 0, cost_center_id: "" },
   ]);
 
+  // Balance cache: account_id -> current balance
+  const [balanceCache, setBalanceCache] = useState<Record<string, number>>({});
+
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
+
+  // Fetch all balances once when companyId is available
+  const fetchBalances = useCallback(async (cId: string) => {
+    try {
+      const { data, error } = await (supabase.rpc as any)("get_account_balances", { p_company_id: cId });
+      if (!error && data) {
+        const balances: Record<string, number> = {};
+        Object.entries(data).forEach(([accountId, balance]) => {
+          balances[accountId] = Number(balance) || 0;
+        });
+        setBalanceCache(balances);
+      }
+    } catch (e) {
+      console.error("Error fetching balances:", e);
+    }
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -174,7 +199,8 @@ const CreateJournalEntry = () => {
 
       if (companyError) throw companyError;
       if (!companyData) return;
-      setCompanyId(companyData.id);
+      // Fetch balances for preview
+      fetchBalances(companyData.id);
 
       // Fetch global accounts, company custom accounts, and linked accounts in parallel
       const [globalRes, customRes, linkedRes, ccRes] = await Promise.all([
@@ -319,6 +345,22 @@ const CreateJournalEntry = () => {
   const totalDebit = lines.reduce((sum, line) => sum + (line.debit || 0), 0);
   const totalCredit = lines.reduce((sum, line) => sum + (line.credit || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
+
+  // Calculate balance after entry for a line (UI-only)
+  const getBalanceAfter = (line: EntryLine): number | null => {
+    if (!line.account_id) return null;
+    const account = accounts.find(a => a.id === line.account_id);
+    if (!account) return null;
+    const currentBalance = balanceCache[line.account_id] ?? 0;
+    // Debit-normal accounts: asset, expense
+    // Credit-normal accounts: liability, equity, revenue
+    const isDebitNormal = ['asset', 'expense'].includes(account.type);
+    if (isDebitNormal) {
+      return currentBalance + (line.debit || 0) - (line.credit || 0);
+    } else {
+      return currentBalance - (line.debit || 0) + (line.credit || 0);
+    }
+  };
 
   const handleSave = async (status: "draft" | "posted") => {
     if (!companyId) return;
@@ -493,6 +535,9 @@ const CreateJournalEntry = () => {
                 )}
                 <TableHead className="w-32">{t("client.journal.debit")}</TableHead>
                 <TableHead className="w-32">{t("client.journal.credit")}</TableHead>
+                <TableHead className="w-28 text-center">
+                  <span className="text-xs text-muted-foreground">{isRTL ? "الرصيد بعد" : "Balance After"}</span>
+                </TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
@@ -547,6 +592,33 @@ const CreateJournalEntry = () => {
                     />
                   </TableCell>
                   <TableCell>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className={`text-xs text-end tabular-nums cursor-default ${
+                            (() => {
+                              const bal = getBalanceAfter(line);
+                              if (bal === null) return 'text-muted-foreground';
+                              return bal < 0 ? 'text-destructive' : 'text-muted-foreground';
+                            })()
+                          }`}>
+                            {(() => {
+                              const bal = getBalanceAfter(line);
+                              if (bal === null) return '—';
+                              return bal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            })()}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{isRTL ? "الرصيد الحالي قبل الترحيل" : "Current Balance Before Posting"}</p>
+                          <p className="font-mono text-xs">
+                            {(balanceCache[line.account_id] ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
+                  <TableCell>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -565,6 +637,7 @@ const CreateJournalEntry = () => {
                 </TableCell>
                 <TableCell className="text-center">{totalDebit.toFixed(2)}</TableCell>
                 <TableCell className="text-center">{totalCredit.toFixed(2)}</TableCell>
+                <TableCell></TableCell>
                 <TableCell></TableCell>
               </TableRow>
             </TableBody>
