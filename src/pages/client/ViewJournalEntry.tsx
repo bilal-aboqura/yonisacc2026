@@ -1,13 +1,13 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ArrowRight, ArrowLeft, BookOpen, Loader2, Printer } from "lucide-react";
+import { ArrowRight, ArrowLeft, BookOpen, Loader2, Printer, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +15,7 @@ import { usePrintSettings } from "@/hooks/usePrintSettings";
 import { PrintDialog } from "@/components/print/PrintDialog";
 import { PrintableDocument, CompanyInfo } from "@/components/print/types";
 import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const ViewJournalEntry = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,31 @@ const ViewJournalEntry = () => {
   const { user } = useAuth();
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
   const [showPrint, setShowPrint] = useState(false);
+  const queryClient = useQueryClient();
+
+  const postMutation = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error("No entry id");
+      // Verify balanced before posting
+      const { data: entryData } = await supabase.from("journal_entries").select("total_debit, total_credit").eq("id", id).single();
+      if (entryData && Math.abs((entryData.total_debit || 0) - (entryData.total_credit || 0)) > 0.01) {
+        throw new Error(isRTL ? "القيد غير متوازن. لا يمكن الترحيل." : "Entry is not balanced. Cannot post.");
+      }
+      const { error } = await supabase
+        .from("journal_entries")
+        .update({ status: "posted", posted_at: new Date().toISOString(), posted_by: user?.id })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal-entry", id] });
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      toast({ title: isRTL ? "تم الترحيل" : "Posted", description: isRTL ? "تم ترحيل القيد بنجاح" : "Entry posted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: isRTL ? "خطأ" : "Error", description: error?.message || "Failed to post", variant: "destructive" });
+    },
+  });
 
   const { data: company } = useQuery({
     queryKey: ["user-company", user?.id],
@@ -139,6 +165,16 @@ const ViewJournalEntry = () => {
           </div>
         </div>
         <div className="flex gap-2">
+          {!entry.is_auto && entry.status === "draft" && (
+            <Button 
+              onClick={() => postMutation.mutate()} 
+              disabled={postMutation.isPending}
+              className="gap-2"
+            >
+              {postMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {isRTL ? "ترحيل القيد" : "Post Entry"}
+            </Button>
+          )}
           {!entry.is_auto && (
             <Button variant="outline" onClick={() => navigate(`/client/journal/${id}/edit`)}>
               {isRTL ? "تعديل" : "Edit"}
