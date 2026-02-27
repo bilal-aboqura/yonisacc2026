@@ -198,7 +198,6 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
             .select("*")
             .eq("company_id", companyData.id)
             .is("global_account_id", null)
-            .neq("is_system", true)
             .order("code"),
           supabase
             .from("accounts")
