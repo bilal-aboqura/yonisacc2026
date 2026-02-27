@@ -207,37 +207,20 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
         if (!isMounted) return;
         setCompanyId(companyData.id);
 
-        const [globalRes, companyRes, linkedRes, balanceRes] = await Promise.all([
+        const [accountsRes, balanceRes] = await Promise.all([
           supabase
-            .from("global_accounts" as any)
+            .from("accounts")
             .select("*")
+            .eq("company_id", companyData.id)
             .eq("is_active", true)
-            .order("sort_order"),
-          supabase
-            .from("accounts")
-            .select("*")
-            .eq("company_id", companyData.id)
-            .is("global_account_id", null)
             .order("code"),
-          supabase
-            .from("accounts")
-            .select("id, global_account_id")
-            .eq("company_id", companyData.id)
-            .not("global_account_id", "is", null),
           (supabase.rpc as any)("get_account_balances", {
             p_company_id: companyData.id,
           }),
         ]);
 
-        if (globalRes.error) throw globalRes.error;
-        if (companyRes.error) throw companyRes.error;
-        if (linkedRes.error) throw linkedRes.error;
+        if (accountsRes.error) throw accountsRes.error;
         if (balanceRes.error) throw balanceRes.error;
-
-        const linkedMap = new Map<string, { id: string }>();
-        (linkedRes.data || []).forEach((a: any) => {
-          linkedMap.set(a.global_account_id, { id: a.id });
-        });
 
         const balanceMap = new Map<string, number>();
         if (balanceRes.data && typeof balanceRes.data === "object") {
@@ -246,47 +229,22 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
           });
         }
 
-        const globalAccounts = (globalRes.data || []) as any[];
-        const companyAccounts = (companyRes.data || []) as any[];
-
-        const merged: Account[] = [
-          ...globalAccounts.map((ga: any) => {
-            const linked = linkedMap.get(ga.id);
-            const dynamicBalance = linked ? (balanceMap.get(linked.id) || 0) : 0;
-            return {
-              id: "global_" + ga.id,
-              code: ga.code,
-              name: ga.name,
-              name_en: ga.name_en,
-              type: ga.type,
-              balance: dynamicBalance,
-              parent_id: null,
-              parent_code: ga.parent_code,
-              is_active: ga.is_active,
-              is_parent: ga.is_parent,
-              is_system: true,
-              is_global: true,
-              global_account_id: ga.id,
-              company_account_id: linked?.id ?? null,
-            };
-          }),
-          ...companyAccounts.map((a: any) => ({
-            id: a.id,
-            code: a.code,
-            name: a.name,
-            name_en: a.name_en,
-            type: a.type,
-            balance: balanceMap.get(a.id) || 0,
-            parent_id: a.parent_id,
-            parent_code: null,
-            is_active: a.is_active,
-            is_parent: a.is_parent,
-            is_system: false,
-            is_global: false,
-            global_account_id: null,
-            company_account_id: a.id,
-          })),
-        ];
+        const merged: Account[] = (accountsRes.data || []).map((a: any) => ({
+          id: a.id,
+          code: a.code,
+          name: a.name,
+          name_en: a.name_en,
+          type: a.type,
+          balance: balanceMap.get(a.id) || 0,
+          parent_id: a.parent_id,
+          parent_code: null,
+          is_active: a.is_active,
+          is_parent: a.is_parent,
+          is_system: a.is_system || false,
+          is_global: false,
+          global_account_id: a.global_account_id,
+          company_account_id: a.id,
+        }));
 
         if (isMounted) {
           setFlatAccounts(merged);
@@ -318,32 +276,16 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
 
   // Build tree: global accounts use parent_code, company accounts use parent_id
   const accounts = useMemo(() => {
-    // Map by id for company accounts, also map global accounts by code
     const byId = new Map<string, Account>();
-    const globalByCode = new Map<string, Account>();
     const roots: Account[] = [];
 
     flatAccounts.forEach((account) => {
-      const node = { ...account, children: [] };
-      byId.set(account.id, node);
-      if (account.is_global) {
-        globalByCode.set(account.code, node);
-      }
+      byId.set(account.id, { ...account, children: [] });
     });
 
     flatAccounts.forEach((account) => {
       const node = byId.get(account.id)!;
-
-      if (account.is_global && account.parent_code) {
-        const parentNode = globalByCode.get(account.parent_code);
-        if (parentNode) {
-          parentNode.children = parentNode.children || [];
-          parentNode.children.push(node);
-          return;
-        }
-      }
-
-      if (!account.is_global && account.parent_id) {
+      if (account.parent_id) {
         const parentNode = byId.get(account.parent_id);
         if (parentNode) {
           parentNode.children = parentNode.children || [];
@@ -351,30 +293,12 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
           return;
         }
       }
-
-      // Company account with no parent_id: try to find global parent by code prefix
-      if (!account.is_global && !account.parent_id && account.code) {
-        let bestMatch: Account | null = null;
-        let bestLen = 0;
-        globalByCode.forEach((gNode, gCode) => {
-          if (account.code.startsWith(gCode) && account.code !== gCode && gCode.length > bestLen) {
-            bestMatch = gNode;
-            bestLen = gCode.length;
-          }
-        });
-        if (bestMatch) {
-          (bestMatch as Account).children = (bestMatch as Account).children || [];
-          (bestMatch as Account).children!.push(node);
-          return;
-        }
-      }
-
-      if (!account.parent_code && !account.parent_id) {
+      // No parent or parent not found - it's a root
+      if (!account.parent_id) {
         roots.push(node);
       }
     });
 
-    // Sort children by code at each level
     const sortChildren = (nodes: Account[]) => {
       nodes.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
       nodes.forEach(n => {
@@ -416,12 +340,8 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
 
   const handleEditAccount = useCallback((account: Account, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (account.is_global) {
-      // Always navigate using global account id in global edit mode
-      // EditAccount expects :id to be global_accounts.id when ?global=true
-      if (account.global_account_id) {
-        navigate(`/client/accounts/${account.global_account_id}/edit?global=true`);
-      }
+    if (account.global_account_id) {
+      navigate(`/client/accounts/${account.global_account_id}/edit?global=true`);
     } else {
       navigate(`/client/accounts/${account.id}/edit`);
     }
