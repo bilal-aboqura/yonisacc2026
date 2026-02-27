@@ -235,10 +235,58 @@ const CreateAccount = () => {
         return;
       }
 
-      // Resolve parent_id: global accounts can't be used as direct parent_id
+      // Resolve parent_id: find or create company account for global parents
       let resolvedParentId: string | null = null;
       if (parentId && !parentId.startsWith("global_")) {
         resolvedParentId = parentId;
+      } else if (parentId && parentId.startsWith("global_")) {
+        const globalId = parentId.replace("global_", "");
+        const selectedParent = allAccounts.find((a) => a.id === parentId);
+        
+        if (selectedParent) {
+          // Check if a company account already exists for this global account
+          const { data: existingCompanyAccount } = await supabase
+            .from("accounts")
+            .select("id")
+            .eq("company_id", companyId)
+            .eq("global_account_id", globalId)
+            .maybeSingle();
+
+          if (existingCompanyAccount) {
+            resolvedParentId = existingCompanyAccount.id;
+          } else {
+            // Also try matching by code
+            const { data: codeMatch } = await supabase
+              .from("accounts")
+              .select("id")
+              .eq("company_id", companyId)
+              .eq("code", selectedParent.code)
+              .maybeSingle();
+
+            if (codeMatch) {
+              resolvedParentId = codeMatch.id;
+            } else {
+              // Create the parent company account from global template
+              const { data: createdParent, error: createError } = await supabase
+                .from("accounts")
+                .insert({
+                  company_id: companyId,
+                  code: selectedParent.code,
+                  name: selectedParent.name,
+                  name_en: selectedParent.name_en,
+                  type: selectedParent.type,
+                  is_parent: true,
+                  is_active: true,
+                  global_account_id: globalId,
+                })
+                .select("id")
+                .single();
+
+              if (createError) throw createError;
+              resolvedParentId = createdParent.id;
+            }
+          }
+        }
       }
 
       const { error } = await supabase.from("accounts").insert({
