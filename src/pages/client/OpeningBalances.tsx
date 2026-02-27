@@ -256,70 +256,42 @@ const OpeningBalances = () => {
       setCompanyId(companyData.id);
 
       // Fetch fiscal periods and accounts in parallel
-      const [fpRes, globalRes, linkedRes, customRes] = await Promise.all([
+      const [fpRes, accountsRes] = await Promise.all([
         supabase
           .from("fiscal_periods")
           .select("id, name, start_date, end_date, is_closed")
           .eq("company_id", companyData.id)
           .order("start_date", { ascending: false }),
         supabase
-          .from("global_accounts" as any)
-          .select("id, code, name, name_en, type, parent_code, is_active, is_parent")
-          .eq("is_active", true)
-          .order("sort_order"),
-        supabase
           .from("accounts")
-          .select("id, global_account_id, balance")
+          .select("id, code, name, name_en, type, balance, parent_id, is_active, is_parent, is_system, global_account_id")
           .eq("company_id", companyData.id)
-          .not("global_account_id", "is", null),
-        supabase
-          .from("accounts")
-          .select("id, code, name, name_en, type, balance, parent_id, is_active, is_parent")
-          .eq("company_id", companyData.id)
-          .is("global_account_id", null)
           .eq("is_active", true)
           .order("code"),
       ]);
 
       setFiscalPeriods((fpRes.data || []) as FiscalPeriod[]);
 
-      const linkedMap = new Map<string, { id: string; balance: number | null }>();
-      (linkedRes.data || []).forEach((a: any) => {
-        linkedMap.set(a.global_account_id, { id: a.id, balance: a.balance });
-      });
-
-      const mergedAccounts: Account[] = [
-        ...(globalRes.data || []).map((ga: any) => {
-          const linked = linkedMap.get(ga.id);
-          return {
-            id: linked?.id ?? "global_" + ga.id,
-            code: ga.code,
-            name: ga.name,
-            name_en: ga.name_en,
-            type: ga.type,
-            balance: linked?.balance ?? 0,
-            parent_id: null,
-            parent_code: ga.parent_code,
-            is_active: ga.is_active,
-            is_parent: ga.is_parent,
-            is_global: true,
-            global_account_id: ga.id,
-            company_account_id: linked?.id ?? null,
-          } as any;
-        }),
-        ...(customRes.data || []).map((a: any) => ({
-          ...a,
-          parent_code: null,
-          is_global: false,
-          global_account_id: null,
-          company_account_id: a.id,
-        })),
-      ];
+      const mergedAccounts: Account[] = (accountsRes.data || []).map((a: any) => ({
+        id: a.id,
+        code: a.code,
+        name: a.name,
+        name_en: a.name_en,
+        type: a.type,
+        balance: a.balance || 0,
+        parent_id: a.parent_id,
+        parent_code: null,
+        is_active: a.is_active,
+        is_parent: a.is_parent,
+        is_global: false,
+        global_account_id: a.global_account_id,
+        company_account_id: a.id,
+      }));
 
       setFlatAccounts(mergedAccounts);
 
       // Expand root accounts
-      const rootIds = mergedAccounts.filter((a: any) => !a.parent_id && !a.parent_code).map((a: any) => a.id);
+      const rootIds = mergedAccounts.filter((a: any) => !a.parent_id).map((a: any) => a.id);
       setExpandedAccounts(rootIds);
     } catch (error) {
       console.error("Error:", error);
@@ -350,7 +322,7 @@ const OpeningBalances = () => {
       let posted = false;
 
       (obData || []).forEach((ob: any) => {
-        const account = flatAccounts.find(a => a.company_account_id === ob.account_id || a.id === ob.account_id);
+        const account = flatAccounts.find(a => a.id === ob.account_id);
         if (account) {
           newBalances.set(account.id, { debit: Number(ob.debit) || 0, credit: Number(ob.credit) || 0 });
         }
@@ -368,47 +340,25 @@ const OpeningBalances = () => {
   // Build tree
   const accountsTree = useMemo(() => {
     const byId = new Map<string, Account>();
-    const globalByCode = new Map<string, Account>();
     const roots: Account[] = [];
 
     flatAccounts.forEach((account) => {
-      const node = { ...account, children: [] };
-      byId.set(account.id, node);
-      if (account.is_global && account.code) {
-        globalByCode.set(account.code, node);
-      }
+      byId.set(account.id, { ...account, children: [] });
     });
 
     flatAccounts.forEach((account) => {
       const node = byId.get(account.id)!;
-      if (account.is_global && account.parent_code) {
-        const parentNode = globalByCode.get(account.parent_code);
-        if (parentNode) { parentNode.children = parentNode.children || []; parentNode.children.push(node); return; }
-      }
-      if (!account.is_global && account.parent_id) {
+      if (account.parent_id) {
         const parentNode = byId.get(account.parent_id);
-        if (parentNode) { parentNode.children = parentNode.children || []; parentNode.children.push(node); return; }
-      }
-      // Company account with no parent_id: match by code prefix to global parent
-      if (!account.is_global && !account.parent_id && account.code) {
-        let bestMatch: Account | null = null;
-        let bestLen = 0;
-        globalByCode.forEach((gNode, gCode) => {
-          if (account.code.startsWith(gCode) && account.code !== gCode && gCode.length > bestLen) {
-            bestMatch = gNode;
-            bestLen = gCode.length;
-          }
-        });
-        if (bestMatch) {
-          (bestMatch as Account).children = (bestMatch as Account).children || [];
-          (bestMatch as Account).children!.push(node);
+        if (parentNode) {
+          parentNode.children = parentNode.children || [];
+          parentNode.children.push(node);
           return;
         }
       }
-      if (!account.parent_code && !account.parent_id) roots.push(node);
+      if (!account.parent_id) roots.push(node);
     });
 
-    // Sort children by code at each level
     const sortChildren = (nodes: Account[]) => {
       nodes.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
       nodes.forEach(n => { if (n.children && n.children.length > 0) sortChildren(n.children); });
@@ -490,60 +440,12 @@ const OpeningBalances = () => {
       for (const [accountId, balance] of balances.entries()) {
         if (balance.debit === 0 && balance.credit === 0) continue;
 
-        const account = flatAccounts.find(a => a.id === accountId) as any;
+        const account = flatAccounts.find(a => a.id === accountId);
         if (!account) continue;
-
-        let realAccountId = account.company_account_id;
-
-        if (account.is_global && !realAccountId) {
-          // First try to find existing company account by code
-          const { data: existingAcc } = await supabase
-            .from("accounts")
-            .select("id")
-            .eq("company_id", companyId)
-            .eq("code", account.code)
-            .maybeSingle();
-
-          if (existingAcc) {
-            realAccountId = existingAcc.id;
-            // Link global account for future lookups
-            await supabase
-              .from("accounts")
-              .update({ global_account_id: account.global_account_id })
-              .eq("id", existingAcc.id);
-          } else {
-            // Only create if truly missing
-            const { data: newAcc } = await supabase.from("accounts").insert({
-              company_id: companyId,
-              code: account.code,
-              name: account.name,
-              name_en: account.name_en,
-              type: account.type,
-              is_parent: account.is_parent,
-              is_system: false,
-              balance: 0,
-              global_account_id: account.global_account_id,
-            }).select("id").single();
-
-            if (newAcc) {
-              realAccountId = newAcc.id;
-            }
-          }
-
-          if (realAccountId) {
-            setFlatAccounts((prev) =>
-              prev.map((a) =>
-                a.id === accountId ? { ...a, company_account_id: realAccountId } : a
-              )
-            );
-          }
-        }
-
-        if (!realAccountId) continue;
 
         records.push({
           company_id: companyId,
-          account_id: realAccountId,
+          account_id: account.id,
           fiscal_year_id: selectedFiscalYearId || null,
           debit: balance.debit,
           credit: balance.credit,
