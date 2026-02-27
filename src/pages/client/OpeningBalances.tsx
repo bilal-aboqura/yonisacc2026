@@ -62,6 +62,21 @@ interface FiscalPeriod {
   is_closed: boolean;
 }
 
+const calculateAccountTotals = (account: Account, balances: Map<string, OpeningBalance>): OpeningBalance => {
+  const hasChildren = account.children && account.children.length > 0;
+  if (!hasChildren) {
+    return balances.get(account.id) || { debit: 0, credit: 0 };
+  }
+  let debit = 0;
+  let credit = 0;
+  for (const child of account.children!) {
+    const childTotal = calculateAccountTotals(child, balances);
+    debit += childTotal.debit;
+    credit += childTotal.credit;
+  }
+  return { debit, credit };
+};
+
 // Memoized account row component
 const AccountBalanceRow = memo(({
   account,
@@ -85,8 +100,12 @@ const AccountBalanceRow = memo(({
   isLocked: boolean;
 }) => {
   const hasChildren = account.children && account.children.length > 0;
-  const balance = balances.get(account.id) || { debit: 0, credit: 0 };
   const isLeafAccount = !hasChildren;
+  const balance = isLeafAccount
+    ? (balances.get(account.id) || { debit: 0, credit: 0 })
+    : calculateAccountTotals(account, balances);
+
+  const formatNum = (n: number) => n ? n.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "";
 
   return (
     <div
@@ -126,7 +145,9 @@ const AccountBalanceRow = memo(({
             disabled={isLocked}
           />
         ) : (
-          <div className="h-8 flex items-center justify-center text-sm text-muted-foreground">-</div>
+          <div className="h-8 flex items-center justify-center text-sm font-semibold text-muted-foreground">
+            {balance.debit > 0 ? formatNum(balance.debit) : "-"}
+          </div>
         )}
       </div>
 
@@ -143,13 +164,14 @@ const AccountBalanceRow = memo(({
             disabled={isLocked}
           />
         ) : (
-          <div className="h-8 flex items-center justify-center text-sm text-muted-foreground">-</div>
+          <div className="h-8 flex items-center justify-center text-sm font-semibold text-muted-foreground">
+            {balance.credit > 0 ? formatNum(balance.credit) : "-"}
+          </div>
         )}
       </div>
     </div>
   );
 });
-AccountBalanceRow.displayName = "AccountBalanceRow";
 
 const OpeningBalances = () => {
   const navigate = useNavigate();
