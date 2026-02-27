@@ -127,37 +127,27 @@ const EditJournalEntry = () => {
 
   const loadData = async () => {
     try {
-      // Use fetchCompanyId for owner + team member support
-      const { data: comp } = await supabase
-        .from("companies").select("id").eq("owner_id", user!.id).is("deleted_at", null).limit(1).maybeSingle();
-      if (!comp) return;
-      const cId = comp.id;
-      setCompanyId(cId);
-      fetchBalances(cId);
-
-      // Get entry
+      // Load entry first and use its company_id to avoid mismatched accounts across companies
       const { data: entry, error: entryErr } = await supabase
-        .from("journal_entries").select("*").eq("id", id!).single();
+        .from("journal_entries")
+        .select("id, company_id, entry_number, entry_date, description")
+        .eq("id", id!)
+        .single();
       if (entryErr) throw entryErr;
+
+      const cId = entry.company_id as string;
+      setCompanyId(cId);
       setEntryNumber(entry.entry_number);
       setEntryDate(entry.entry_date);
       setDescription(entry.description || "");
 
-      // Get lines
-      const { data: entryLines } = await supabase
-        .from("journal_entry_lines").select("*, cost_center_id").eq("entry_id", id!).order("sort_order");
-
-      setLines((entryLines || []).map((l: any) => ({
-        id: l.id,
-        account_id: l.account_id,
-        description: l.description || "",
-        debit: l.debit || 0,
-        credit: l.credit || 0,
-        cost_center_id: l.cost_center_id || "",
-      })));
-
-      // Get ALL company accounts (no filters except company_id to ensure line accounts are found)
-      const [allCompanyAccounts, globalRes, ccRes] = await Promise.all([
+      // Load lines + account/cost-center options in parallel
+      const [linesRes, allCompanyAccounts, globalRes, ccRes] = await Promise.all([
+        supabase
+          .from("journal_entry_lines")
+          .select("*, accounts:account_id(code, name, name_en), cost_center_id")
+          .eq("entry_id", id!)
+          .order("sort_order"),
         supabase
           .from("accounts")
           .select("id, code, name, name_en, type, is_parent, global_account_id")
@@ -175,17 +165,26 @@ const EditJournalEntry = () => {
           .order("code"),
       ]);
 
-      // Build global account lookup for better display names
+      const entryLines = (linesRes.data || []) as any[];
+      setLines(entryLines.map((l: any) => ({
+        id: l.id,
+        account_id: l.account_id,
+        description: l.description || "",
+        debit: l.debit || 0,
+        credit: l.credit || 0,
+        cost_center_id: l.cost_center_id || "",
+      })));
+
+      // Balance cache for preview column
+      fetchBalances(cId);
+
+      // Build global account lookup for display names
       const globalMap = new Map<string, any>();
       (globalRes.data || []).forEach((ga: any) => globalMap.set(ga.id, ga));
 
-      // Collect account IDs from entry lines to ensure they're always included
-      const lineAccountIds = new Set((entryLines || []).map((l: any) => l.account_id));
-
-      // Use company accounts, enriching with global account display info
-      // Include leaf accounts + any account referenced by entry lines
-      const accountsList: Account[] = (allCompanyAccounts.data || [])
-        .filter((a: any) => !a.is_parent || lineAccountIds.has(a.id))
+      // Build base list from company accounts
+      const accountsList: Account[] = ((allCompanyAccounts.data || []) as any[])
+        .filter((a: any) => !a.is_parent)
         .map((a: any) => {
           const ga = a.global_account_id ? globalMap.get(a.global_account_id) : null;
           return {
@@ -197,6 +196,22 @@ const EditJournalEntry = () => {
             is_parent: false,
           };
         });
+
+      // Ensure selected line accounts are always present in dropdown (even if inactive/not in base list)
+      const existingIds = new Set(accountsList.map((a) => a.id));
+      entryLines.forEach((l: any) => {
+        if (!l.account_id || existingIds.has(l.account_id)) return;
+        const linked = l.accounts;
+        accountsList.push({
+          id: l.account_id,
+          code: linked?.code || "",
+          name: linked?.name || (isRTL ? "حساب" : "Account"),
+          name_en: linked?.name_en || null,
+          type: "asset",
+          is_parent: false,
+        });
+        existingIds.add(l.account_id);
+      });
 
       accountsList.sort((a, b) => a.code.localeCompare(b.code));
       setAccounts(accountsList);
