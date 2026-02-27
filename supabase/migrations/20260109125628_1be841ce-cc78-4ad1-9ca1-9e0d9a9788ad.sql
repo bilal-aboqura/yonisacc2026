@@ -125,7 +125,46 @@ BEGIN
   INSERT INTO accounts (company_id, code, name, name_en, type, is_parent, is_system, sort_order, parent_id) VALUES
   (p_company_id, '531', 'مصروفات الإعلان', 'Advertising', 'expense', false, true, 59, (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '53')),
   (p_company_id, '532', 'مصروفات التسويق', 'Marketing', 'expense', false, true, 60, (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '53'));
+  
+  INSERT INTO accounts (company_id, code, name, name_en, type, is_parent, is_system, sort_order, parent_id) VALUES
+  (p_company_id, '114', 'مصروفات مدفوعة مقدماً', 'Prepaid Expenses', 'asset', false, true, 8,
+    (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '11')),
 
+  (p_company_id, '115', 'ضريبة القيمة المضافة - مشتريات', 'VAT Receivable', 'asset', false, true, 9,
+    (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '11')),
+
+  (p_company_id, '116', 'أطراف ذات علاقة مدينة', 'Due from Related Parties', 'asset', false, true, 10,
+    (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '11'));
+
+  -- Additional Current Liabilities
+  INSERT INTO accounts (company_id, code, name, name_en, type, is_parent, is_system, sort_order, parent_id) VALUES
+  (p_company_id, '213', 'ضريبة القيمة المضافة - مبيعات', 'VAT Payable - Sales', 'liability', false, true, 24,
+    (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '21')),
+
+  (p_company_id, '214', 'تسوية ضريبة القيمة المضافة', 'VAT Clearing', 'liability', false, true, 25,
+    (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '21')),
+
+  (p_company_id, '215', 'مخصص الزكاة الشرعية', 'Zakat Provision', 'liability', false, true, 26,
+    (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '21')),
+
+  (p_company_id, '216', 'أطراف ذات علاقة دائنة', 'Due to Related Parties', 'liability', false, true, 27,
+    (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '21')),
+
+  (p_company_id, '217', 'قروض قصيرة الأجل', 'Short-term Loans', 'liability', false, true, 28,
+    (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '21'));
+
+  -- Additional Long-term Liabilities
+  INSERT INTO accounts (company_id, code, name, name_en, type, is_parent, is_system, sort_order, parent_id) VALUES
+  (p_company_id, '222', 'مخصص مكافأة نهاية الخدمة', 'End of Service Provision', 'liability', false, true, 29,
+    (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '22')),
+
+  (p_company_id, '223', 'قروض طويلة الأجل', 'Long-term Loans', 'liability', false, true, 30,
+    (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '22'));
+
+  -- Additional Equity
+  INSERT INTO accounts (company_id, code, name, name_en, type, is_parent, is_system, sort_order, parent_id) VALUES
+  (p_company_id, '34', 'احتياطي نظامي', 'Statutory Reserve', 'equity', false, true, 34,
+    (SELECT id FROM accounts WHERE company_id = p_company_id AND code = '3'));
 END;
 $$;
 
