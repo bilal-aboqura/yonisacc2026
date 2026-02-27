@@ -224,13 +224,13 @@ const ClientDashboard = () => {
       });
       if (rpcError) { console.error("Inventory RPC error:", rpcError); return 0; }
 
-      // Get inventory account IDs (codes starting with 113)
+      // Get inventory account IDs (code 113 and all sub-accounts)
       const { data: invAccounts, error: accError } = await supabase
         .from("accounts")
         .select("id, code")
         .eq("company_id", companyId)
-        .eq("is_parent", false)
-        .like("code", "113%");
+        .or("is_parent.is.null,is_parent.eq.false")
+        .or("code.eq.113,code.like.113%");
 
       if (accError) { console.error("Inventory accounts error:", accError); return 0; }
 
