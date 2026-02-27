@@ -70,23 +70,14 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
     queryFn: async () => {
       if (!company?.id) return { accounts: [], transactions: [] };
 
-      const { data: cashBankGlobals } = await supabase
-        .from("global_accounts" as any)
-        .select("id")
-        .eq("is_active", true)
-        .like("code", "111%")
-        .eq("is_parent", false);
-
-      const cashBankGlobalIds = (cashBankGlobals || []).map((g: any) => g.id);
-
       const [accountsRes, transactionsRes, balancesRes] = await Promise.all([
         supabase
           .from("accounts")
-          .select("id, name, name_en")
+          .select("id, code, name, name_en")
           .eq("company_id", company.id)
           .eq("is_active", true)
+          .like("code", "111%")
           .or("is_parent.is.null,is_parent.eq.false")
-          .in("global_account_id", cashBankGlobalIds.length > 0 ? cashBankGlobalIds : ["__none__"])
           .order("code"),
         supabase
           .from("treasury_transactions")
@@ -122,7 +113,7 @@ const ClientTreasury = forwardRef<HTMLDivElement>((_, ref) => {
       };
     },
     enabled: !!company?.id,
-    staleTime: 60 * 1000,
+    staleTime: 0,
   });
 
   const reverseMutation = useMutation({
