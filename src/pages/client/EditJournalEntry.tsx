@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,9 @@ import {
 import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   ArrowRight, ArrowLeft, Plus, Trash2, Save, BookOpen, Loader2,
   AlertCircle, CheckCircle2, ChevronsUpDown, Check,
@@ -102,19 +104,34 @@ const EditJournalEntry = () => {
   const [lines, setLines] = useState<EntryLine[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [balanceCache, setBalanceCache] = useState<Record<string, number>>({});
 
-  // Load entry + accounts
+  const fetchBalances = useCallback(async (cId: string) => {
+    try {
+      const { data, error } = await (supabase.rpc as any)("get_account_balances", { p_company_id: cId });
+      if (!error && data) {
+        const balances: Record<string, number> = {};
+        Object.entries(data).forEach(([accountId, balance]) => {
+          balances[accountId] = Number(balance) || 0;
+        });
+        setBalanceCache(balances);
+      }
+    } catch (e) {
+      console.error("Error fetching balances:", e);
+    }
+  }, []);
+
   useEffect(() => {
     if (user && id) loadData();
   }, [user, id]);
 
   const loadData = async () => {
     try {
-      // Get company
       const { data: comp } = await supabase
         .from("companies").select("id").eq("owner_id", user!.id).limit(1).maybeSingle();
       if (!comp) return;
       setCompanyId(comp.id);
+      fetchBalances(comp.id);
 
       // Get entry
       const { data: entry, error: entryErr } = await supabase
@@ -199,6 +216,19 @@ const EditJournalEntry = () => {
   const totalDebit = lines.reduce((s, l) => s + (l.debit || 0), 0);
   const totalCredit = lines.reduce((s, l) => s + (l.credit || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
+
+  const getBalanceAfter = (line: EntryLine): number | null => {
+    if (!line.account_id) return null;
+    const account = accounts.find(a => a.id === line.account_id);
+    if (!account) return null;
+    const currentBalance = balanceCache[line.account_id] ?? 0;
+    const isDebitNormal = ['asset', 'expense'].includes(account.type);
+    if (isDebitNormal) {
+      return currentBalance + (line.debit || 0) - (line.credit || 0);
+    } else {
+      return currentBalance - (line.debit || 0) + (line.credit || 0);
+    }
+  };
 
   const handleSave = async () => {
     if (!companyId || !id) return;
@@ -325,6 +355,9 @@ const EditJournalEntry = () => {
                 )}
                 <TableHead className="w-32">{t("client.journal.debit")}</TableHead>
                 <TableHead className="w-32">{t("client.journal.credit")}</TableHead>
+                <TableHead className="w-28 text-center">
+                  <span className="text-xs text-muted-foreground">{isRTL ? "الرصيد بعد" : "Balance After"}</span>
+                </TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
@@ -361,6 +394,33 @@ const EditJournalEntry = () => {
                     <Input type="number" min="0" step="0.01" value={line.credit || ""} onChange={(e) => updateLine(line.id, "credit", Number(e.target.value))} className="text-center" />
                   </TableCell>
                   <TableCell>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className={`text-xs text-end tabular-nums cursor-default ${
+                            (() => {
+                              const bal = getBalanceAfter(line);
+                              if (bal === null) return 'text-muted-foreground';
+                              return bal < 0 ? 'text-destructive' : 'text-muted-foreground';
+                            })()
+                          }`}>
+                            {(() => {
+                              const bal = getBalanceAfter(line);
+                              if (bal === null) return '—';
+                              return bal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            })()}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{isRTL ? "الرصيد الحالي قبل الترحيل" : "Current Balance Before Posting"}</p>
+                          <p className="font-mono text-xs">
+                            {(balanceCache[line.account_id] ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
+                  <TableCell>
                     <Button variant="ghost" size="icon" onClick={() => removeLine(line.id)} disabled={lines.length <= 2}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -373,6 +433,7 @@ const EditJournalEntry = () => {
                 </TableCell>
                 <TableCell className="text-center">{totalDebit.toFixed(2)}</TableCell>
                 <TableCell className="text-center">{totalCredit.toFixed(2)}</TableCell>
+                <TableCell></TableCell>
                 <TableCell></TableCell>
               </TableRow>
             </TableBody>
