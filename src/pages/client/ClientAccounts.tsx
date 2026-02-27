@@ -333,10 +333,36 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
         }
       }
 
+      // Company account with no parent_id: try to find global parent by code prefix
+      if (!account.is_global && !account.parent_id && account.code) {
+        let bestMatch: Account | null = null;
+        let bestLen = 0;
+        globalByCode.forEach((gNode, gCode) => {
+          if (account.code.startsWith(gCode) && account.code !== gCode && gCode.length > bestLen) {
+            bestMatch = gNode;
+            bestLen = gCode.length;
+          }
+        });
+        if (bestMatch) {
+          (bestMatch as Account).children = (bestMatch as Account).children || [];
+          (bestMatch as Account).children!.push(node);
+          return;
+        }
+      }
+
       if (!account.parent_code && !account.parent_id) {
         roots.push(node);
       }
     });
+
+    // Sort children by code at each level
+    const sortChildren = (nodes: Account[]) => {
+      nodes.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+      nodes.forEach(n => {
+        if (n.children && n.children.length > 0) sortChildren(n.children);
+      });
+    };
+    sortChildren(roots);
 
     return roots;
   }, [flatAccounts]);
