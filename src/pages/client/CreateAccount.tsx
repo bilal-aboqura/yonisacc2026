@@ -91,24 +91,29 @@ const CreateAccount = () => {
   const generateNextCode = async (parent: ParentAccount) => {
     if (!companyId) return;
     
-    // Get all children of this parent
+    // Get all children of this parent (both local and check all codes for uniqueness)
+    const parentIdForQuery = parent.id.startsWith("global_") ? parent.id : parent.id;
+    
     const { data: children } = await supabase
       .from("accounts")
       .select("code")
       .eq("company_id", companyId)
-      .eq("parent_id", parent.id)
+      .like("code", `${parent.code}%`)
+      .neq("code", parent.code)
       .order("code", { ascending: false });
 
-    if (children && children.length > 0) {
-      // Get the highest code and increment
-      const lastCode = children[0].code;
-      const nextNum = parseInt(lastCode) + 1;
-      setCode(nextNum.toString());
-    } else {
-      // First child - add 1 to parent code
-      const newCode = parent.code + "1";
-      setCode(newCode);
+    const existingCodes = new Set((children || []).map(c => c.code));
+    
+    // Try incrementing from parent code + 1, parent code + 2, etc.
+    let suffix = 1;
+    let newCode = parent.code + suffix.toString();
+    
+    while (existingCodes.has(newCode)) {
+      suffix++;
+      newCode = parent.code + suffix.toString();
     }
+    
+    setCode(newCode);
   };
 
   const fetchInitialData = async () => {
