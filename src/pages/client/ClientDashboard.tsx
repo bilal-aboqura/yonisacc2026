@@ -224,18 +224,20 @@ const ClientDashboard = () => {
       });
       if (rpcError) { console.error("Inventory RPC error:", rpcError); return 0; }
 
-      // Get inventory account IDs (code 113 and all sub-accounts)
+      // Get inventory leaf account IDs (code starts with 113)
       const { data: invAccounts, error: accError } = await supabase
         .from("accounts")
-        .select("id, code")
+        .select("id, code, is_parent")
         .eq("company_id", companyId)
-        .or("is_parent.is.null,is_parent.eq.false")
-        .or("code.eq.113,code.like.113%");
+        .like("code", "113%");
+
+      // Filter to leaf accounts only (is_parent = false or null)
+      const leafInvAccounts = (invAccounts || []).filter((a: any) => !a.is_parent);
 
       if (accError) { console.error("Inventory accounts error:", accError); return 0; }
 
       const balanceMap = (balances || {}) as Record<string, number>;
-      return (invAccounts || []).reduce((sum, acc) => sum + (balanceMap[acc.id] || 0), 0);
+      return leafInvAccounts.reduce((sum, acc: any) => sum + (balanceMap[acc.id] || 0), 0);
     },
     enabled: !!companyId,
     staleTime: 60_000,
