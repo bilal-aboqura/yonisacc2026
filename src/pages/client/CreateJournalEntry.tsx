@@ -199,6 +199,7 @@ const CreateJournalEntry = () => {
 
       if (companyError) throw companyError;
       if (!companyData) return;
+      setCompanyId(companyData.id);
       // Fetch balances for preview
       fetchBalances(companyData.id);
 
