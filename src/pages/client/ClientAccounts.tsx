@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { 
   Plus, 
@@ -20,7 +21,8 @@ import {
   FileText,
   Pencil,
   DollarSign,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
 
 // Unified type that works for both global and company accounts
@@ -52,6 +54,7 @@ const AccountRow = memo(({
   onToggle, 
   onEdit, 
   onBalance,
+  onDelete,
   getTypeColor,
   getTypeName,
   displayBalance
@@ -64,6 +67,7 @@ const AccountRow = memo(({
   onToggle: (id: string) => void;
   onEdit: (account: Account, e: React.MouseEvent) => void;
   onBalance: (account: Account, e: React.MouseEvent) => void;
+  onDelete: (account: Account, e: React.MouseEvent) => void;
   getTypeColor: (type: string) => string;
   getTypeName: (type: string) => string;
   displayBalance: number;
@@ -127,6 +131,17 @@ const AccountRow = memo(({
         >
           <Pencil className="h-4 w-4 text-blue-600" />
         </Button>
+        {!account.is_global && !account.is_system && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => onDelete(account, e)}
+            title={isRTL ? "حذف" : "Delete"}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -145,6 +160,11 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
   const [isLoading, setIsLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Delete Confirmation
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAccount, setDeleteAccount] = useState<Account | null>(null);
 
   // Opening Balance Dialog
   const [balanceDialogOpen, setBalanceDialogOpen] = useState(false);
@@ -414,6 +434,104 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
     setBalanceDialogOpen(true);
   }, []);
 
+  const handleDeleteAccount = useCallback((account: Account, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteAccount(account);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const confirmDeleteAccount = async () => {
+    if (!deleteAccount || !companyId) return;
+    
+    setIsDeleting(true);
+    try {
+      const accountId = deleteAccount.company_account_id || deleteAccount.id;
+      
+      // Check for journal entry lines
+      const { count: journalCount } = await supabase
+        .from("journal_entry_lines")
+        .select("id", { count: "exact", head: true })
+        .eq("account_id", accountId);
+
+      if (journalCount && journalCount > 0) {
+        toast.error(isRTL ? "لا يمكن حذف الحساب - يوجد عليه قيود يومية" : "Cannot delete account - has journal entries");
+        setDeleteDialogOpen(false);
+        setIsDeleting(false);
+        return;
+      }
+
+      // Check for opening balances
+      const { count: obCount } = await supabase
+        .from("opening_balances")
+        .select("id", { count: "exact", head: true })
+        .eq("account_id", accountId);
+
+      if (obCount && obCount > 0) {
+        toast.error(isRTL ? "لا يمكن حذف الحساب - يوجد عليه أرصدة افتتاحية" : "Cannot delete account - has opening balances");
+        setDeleteDialogOpen(false);
+        setIsDeleting(false);
+        return;
+      }
+
+      // Check for child accounts
+      const { count: childCount } = await supabase
+        .from("accounts")
+        .select("id", { count: "exact", head: true })
+        .eq("parent_id", accountId);
+
+      if (childCount && childCount > 0) {
+        toast.error(isRTL ? "لا يمكن حذف الحساب - يحتوي على حسابات فرعية" : "Cannot delete account - has child accounts");
+        setDeleteDialogOpen(false);
+        setIsDeleting(false);
+        return;
+      }
+
+      // Check for invoices
+      const { count: contactCount } = await supabase
+        .from("contacts")
+        .select("id", { count: "exact", head: true })
+        .eq("account_id", accountId);
+
+      if (contactCount && contactCount > 0) {
+        toast.error(isRTL ? "لا يمكن حذف الحساب - مرتبط بجهات اتصال" : "Cannot delete account - linked to contacts");
+        setDeleteDialogOpen(false);
+        setIsDeleting(false);
+        return;
+      }
+
+      // Check treasury transactions
+      const { count: treasuryCount } = await supabase
+        .from("treasury_transactions")
+        .select("id", { count: "exact", head: true })
+        .eq("account_id", accountId);
+
+      if (treasuryCount && treasuryCount > 0) {
+        toast.error(isRTL ? "لا يمكن حذف الحساب - يوجد عليه حركات خزينة" : "Cannot delete account - has treasury transactions");
+        setDeleteDialogOpen(false);
+        setIsDeleting(false);
+        return;
+      }
+
+      // Safe to delete
+      const { error } = await supabase
+        .from("accounts")
+        .delete()
+        .eq("id", accountId)
+        .eq("company_id", companyId);
+
+      if (error) throw error;
+
+      setFlatAccounts((prev) => prev.filter((a) => a.id !== deleteAccount.id));
+      toast.success(isRTL ? "تم حذف الحساب بنجاح" : "Account deleted successfully");
+      setDeleteDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error deleting account:", error);
+      toast.error(isRTL ? "حدث خطأ في حذف الحساب" : "Error deleting account");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleSaveBalance = async () => {
     if (!balanceAccount || !companyId) return;
 
@@ -562,6 +680,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
           onToggle={toggleExpand}
           onEdit={handleEditAccount}
           onBalance={handleOpenBalanceDialog}
+          onDelete={handleDeleteAccount}
           getTypeColor={getTypeColor}
           getTypeName={getTypeName}
           displayBalance={totalBalance}
@@ -573,7 +692,7 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
         )}
       </div>
     );
-  }, [expandedAccounts, isRTL, t, toggleExpand, handleEditAccount, handleOpenBalanceDialog, getTypeColor, getTypeName, calculateTotalBalance]);
+  }, [expandedAccounts, isRTL, t, toggleExpand, handleEditAccount, handleOpenBalanceDialog, handleDeleteAccount, getTypeColor, getTypeName, calculateTotalBalance]);
 
   const totalAccountsCount = flatAccounts.length;
 
@@ -698,6 +817,36 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isRTL ? "تأكيد حذف الحساب" : "Confirm Account Deletion"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isRTL 
+                ? `هل أنت متأكد من حذف الحساب "${deleteAccount?.code} - ${deleteAccount?.name}"؟ لا يمكن التراجع عن هذا الإجراء.`
+                : `Are you sure you want to delete account "${deleteAccount?.code} - ${deleteAccount?.name_en || deleteAccount?.name}"? This action cannot be undone.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              {isRTL ? "إلغاء" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteAccount}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+              {isRTL ? "حذف" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 });
