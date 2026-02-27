@@ -78,7 +78,7 @@ const CashFlow = () => {
   const netCashFlow = totalInflow - totalOutflow;
 
   const formatCurrency = (amount: number) => {
-    return amount.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const getTypeLabel = (type: string) => {
