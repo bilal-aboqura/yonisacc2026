@@ -127,11 +127,13 @@ const EditJournalEntry = () => {
 
   const loadData = async () => {
     try {
+      // Use fetchCompanyId for owner + team member support
       const { data: comp } = await supabase
-        .from("companies").select("id").eq("owner_id", user!.id).limit(1).maybeSingle();
+        .from("companies").select("id").eq("owner_id", user!.id).is("deleted_at", null).limit(1).maybeSingle();
       if (!comp) return;
-      setCompanyId(comp.id);
-      fetchBalances(comp.id);
+      const cId = comp.id;
+      setCompanyId(cId);
+      fetchBalances(cId);
 
       // Get entry
       const { data: entry, error: entryErr } = await supabase
@@ -154,24 +156,22 @@ const EditJournalEntry = () => {
         cost_center_id: l.cost_center_id || "",
       })));
 
-      // Get all company leaf accounts directly + global account metadata for display
+      // Get all company leaf accounts (include inactive to show existing line accounts)
       const [allCompanyAccounts, globalRes, ccRes] = await Promise.all([
         supabase
           .from("accounts")
           .select("id, code, name, name_en, type, is_parent, global_account_id")
-          .eq("company_id", comp.id)
-          .eq("is_active", true)
+          .eq("company_id", cId)
           .or("is_parent.is.null,is_parent.eq.false")
           .order("code"),
         supabase
           .from("global_accounts" as any)
           .select("id, code, name, name_en, type")
-          .eq("is_active", true)
           .eq("is_parent", false),
         supabase
           .from("cost_centers")
           .select("id, code, name, name_en")
-          .eq("company_id", comp.id)
+          .eq("company_id", cId)
           .eq("is_active", true)
           .order("code"),
       ]);
