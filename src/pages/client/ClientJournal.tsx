@@ -30,7 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Search, BookOpen, Loader2, Eye, Edit, Trash2, Printer } from "lucide-react";
+import { Plus, Search, BookOpen, Loader2, Eye, Edit, Trash2, Printer, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -104,6 +104,34 @@ const ClientJournal = () => {
       toast({
         title: isRTL ? "خطأ" : "Error",
         description: error?.message || (isRTL ? "فشل في حذف القيد" : "Failed to delete entry"),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const postMutation = useMutation({
+    mutationFn: async (entryId: string) => {
+      const { error } = await supabase
+        .from("journal_entries")
+        .update({
+          status: "posted",
+          posted_at: new Date().toISOString(),
+          posted_by: user?.id,
+        })
+        .eq("id", entryId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      toast({
+        title: isRTL ? "تم الترحيل" : "Posted",
+        description: isRTL ? "تم ترحيل القيد بنجاح" : "Journal entry posted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: isRTL ? "خطأ" : "Error",
+        description: error?.message || (isRTL ? "فشل في ترحيل القيد" : "Failed to post entry"),
         variant: "destructive",
       });
     },
@@ -350,6 +378,25 @@ const ClientJournal = () => {
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
+                              </Tooltip>
+                            </PermissionGuard>
+                          )}
+
+                          {!entry.is_auto && entry.status === 'draft' && (
+                            <PermissionGuard featureKey="accounting.create_journal">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-muted-foreground hover:text-green-600" 
+                                    onClick={() => postMutation.mutate(entry.id)}
+                                    disabled={postMutation.isPending}
+                                  >
+                                    <CheckCircle2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{isRTL ? "ترحيل" : "Post"}</TooltipContent>
                               </Tooltip>
                             </PermissionGuard>
                           )}

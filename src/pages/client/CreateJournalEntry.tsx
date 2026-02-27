@@ -376,7 +376,8 @@ const CreateJournalEntry = () => {
       return;
     }
 
-    if (!isBalanced) {
+    // Only require balance for posting, not for drafts
+    if (status === "posted" && !isBalanced) {
       toast({
         title: t("common.error"),
         description: t("client.journal.create.errors.notBalanced"),
@@ -387,26 +388,57 @@ const CreateJournalEntry = () => {
 
     setSaving(true);
     try {
-      // Atomic posting via single server-side function call
-      const linesJson = validLines.map((line, index) => ({
-        account_id: line.account_id,
-        description: line.description || null,
-        debit: line.debit || 0,
-        credit: line.credit || 0,
-        cost_center_id: line.cost_center_id || null,
-      }));
+      if (status === "draft") {
+        // Save draft directly (no balance validation needed)
+        const { data: entryData, error: entryErr } = await supabase
+          .from("journal_entries")
+          .insert({
+            company_id: companyId,
+            entry_number: entryNumber,
+            entry_date: entryDate,
+            description: description || null,
+            status: "draft",
+            total_debit: totalDebit,
+            total_credit: totalCredit,
+            created_by: user?.id,
+            is_auto: false,
+          })
+          .select("id")
+          .single();
+        if (entryErr) throw entryErr;
 
-      const { data: entryId, error } = await (supabase.rpc as any)("post_journal_entry", {
-        p_company_id: companyId,
-        p_entry_number: entryNumber,
-        p_entry_date: entryDate,
-        p_description: description || null,
-        p_status: status,
-        p_lines: linesJson,
-        p_created_by: user?.id,
-      });
+        const linesData = validLines.map((line, i) => ({
+          entry_id: entryData.id,
+          account_id: line.account_id,
+          description: line.description || null,
+          debit: line.debit || 0,
+          credit: line.credit || 0,
+          sort_order: i,
+          cost_center_id: line.cost_center_id || null,
+        }));
+        const { error: linesErr } = await supabase.from("journal_entry_lines").insert(linesData);
+        if (linesErr) throw linesErr;
+      } else {
+        // Posted: use atomic RPC with balance validation
+        const linesJson = validLines.map((line) => ({
+          account_id: line.account_id,
+          description: line.description || null,
+          debit: line.debit || 0,
+          credit: line.credit || 0,
+          cost_center_id: line.cost_center_id || null,
+        }));
 
-      if (error) throw error;
+        const { error } = await (supabase.rpc as any)("post_journal_entry", {
+          p_company_id: companyId,
+          p_entry_number: entryNumber,
+          p_entry_date: entryDate,
+          p_description: description || null,
+          p_status: status,
+          p_lines: linesJson,
+          p_created_by: user?.id,
+        });
+        if (error) throw error;
+      }
 
       // Increment next_journal_number in company_settings
       await supabase
