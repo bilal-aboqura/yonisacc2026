@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/select";
 import { ArrowRight, Download, Printer, Loader2, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import useTenantIsolation from "@/hooks/useTenantIsolation";
 import { toast } from "@/hooks/use-toast";
 
 interface Transaction {
@@ -33,42 +34,25 @@ interface Transaction {
 
 const CashFlow = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { companyId, isLoadingCompany } = useTenantIsolation();
 
-  const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("month");
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user, period]);
-
-  const fetchData = async () => {
-    try {
-      const { data: companyData } = await supabase
-        .from("companies")
-        .select("id")
-        .eq("owner_id", user?.id)
-        .single();
-
-      if (!companyData) return;
-
-      const { data: transactionsData } = await supabase
+  const { data: transactions = [], isLoading: loading } = useQuery({
+    queryKey: ["cash-flow-transactions", companyId, period],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
         .from("treasury_transactions")
         .select("id, transaction_number, transaction_date, type, amount, description")
-        .eq("company_id", companyData.id)
+        .eq("company_id", companyId)
         .order("transaction_date", { ascending: false });
-
-      setTransactions(transactionsData || []);
-    } catch (error) {
-      console.error("Error:", error);
-      toast({ title: "خطأ", description: "حدث خطأ في تحميل البيانات", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (error) throw error;
+      return (data || []) as Transaction[];
+    },
+    enabled: !!companyId,
+    staleTime: 0,
+  });
 
   const inflows = transactions.filter((t) => t.type === "deposit" || t.type === "receipt");
   const outflows = transactions.filter((t) => t.type === "withdrawal" || t.type === "payment");
@@ -91,7 +75,7 @@ const CashFlow = () => {
     return labels[type] || type;
   };
 
-  if (loading) {
+  if (loading || isLoadingCompany) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

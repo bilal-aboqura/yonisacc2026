@@ -31,10 +31,7 @@ const IncomeStatement = () => {
   const { isRTL } = useLanguage();
   const { companyId, isLoadingCompany } = useTenantIsolation();
 
-  const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("all");
-  const [accounts, setAccounts] = useState<RawAccount[]>([]);
-  const [balanceMap, setBalanceMap] = useState<Map<string, number>>(new Map());
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   const { data: company } = useQuery({
@@ -49,12 +46,10 @@ const IncomeStatement = () => {
 
   const { settings: printSettings } = usePrintSettings(companyId);
 
-  useEffect(() => { if (companyId) fetchData(); }, [companyId, period]);
-
-  const fetchData = async () => {
-    if (!companyId) return;
-    setLoading(true);
-    try {
+  const { data: reportData, isLoading: loading } = useQuery({
+    queryKey: ["income-statement-data", companyId, period],
+    queryFn: async () => {
+      if (!companyId) return null;
       const [accountsRes, balanceRes] = await Promise.all([
         supabase.from("accounts").select("id, code, name, name_en, type, parent_id, is_parent, is_active, global_account_id")
           .eq("company_id", companyId).eq("is_active", true).in("type", ["revenue", "expense"]).order("code"),
@@ -62,20 +57,27 @@ const IncomeStatement = () => {
       ]);
       if (accountsRes.error) throw accountsRes.error;
       if (balanceRes.error) throw balanceRes.error;
-      setAccounts(accountsRes.data || []);
       const bMap = new Map<string, number>();
       if (balanceRes.data && typeof balanceRes.data === "object") {
         Object.entries(balanceRes.data).forEach(([id, bal]) => bMap.set(id, Number(bal) || 0));
       }
-      setBalanceMap(bMap);
+      return { accounts: accountsRes.data || [], balanceMap: bMap };
+    },
+    enabled: !!companyId,
+    staleTime: 0,
+  });
+
+  const accounts = reportData?.accounts || [];
+  const balanceMap = reportData?.balanceMap || new Map<string, number>();
+
+  // Auto-expand root nodes when data loads
+  useEffect(() => {
+    if (accounts.length > 0) {
       const rootIds = new Set<string>();
-      (accountsRes.data || []).forEach((a: RawAccount) => { if (!a.parent_id && a.is_parent) rootIds.add(a.id); });
+      accounts.forEach((a: RawAccount) => { if (!a.parent_id && a.is_parent) rootIds.add(a.id); });
       setExpandedNodes(rootIds);
-    } catch (error) {
-      console.error("Error:", error);
-      toast({ title: isRTL ? "خطأ" : "Error", description: isRTL ? "حدث خطأ في تحميل البيانات" : "Failed to load data", variant: "destructive" });
-    } finally { setLoading(false); }
-  };
+    }
+  }, [accounts]);
 
   const buildTree = (items: RawAccount[], parentId: string | null, depth: number): TreeNode[] => {
     return items.filter((a) => a.parent_id === parentId).map((a) => {
