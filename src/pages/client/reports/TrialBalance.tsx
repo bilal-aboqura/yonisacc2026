@@ -116,11 +116,8 @@ const TrialBalance = () => {
     const result: { node: AccountNode; level: number }[] = [];
     const walk = (nodes: AccountNode[], level: number) => {
       nodes.forEach(node => {
-        const hasBalance = node.aggOpeningDebit > 0 || node.aggOpeningCredit > 0 || node.aggMovementDebit > 0 || node.aggMovementCredit > 0;
-        if (hasBalance) {
-          result.push({ node, level });
-          if (node.children.length > 0) walk(node.children, level + 1);
-        }
+        result.push({ node, level });
+        if (node.children.length > 0) walk(node.children, level + 1);
       });
     };
     walk(allAccounts, 0);
