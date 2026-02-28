@@ -141,6 +141,8 @@ const App = () => (
               <Route path="sales" element={<ClientSales />} />
               <Route path="sales/new" element={<CreateSalesInvoice />} />
               <Route path="sales/:id" element={<ViewInvoice />} />
+              <Route path="sales/:id/edit" element={<CreateSalesInvoice />} />
+              <Route path="sales/:id" element={<ViewInvoice />} />
               
               {/* Purchases */}
               <Route path="vendors" element={<Vendors />} />
