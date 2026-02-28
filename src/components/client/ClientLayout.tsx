@@ -138,6 +138,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: TrendingUp, label: "قائمة الدخل", labelEn: "Income Statement", path: "/client/reports/income-statement", screenKey: "income_statement" },
       { icon: BarChart3, label: "الميزانية العمومية", labelEn: "Balance Sheet", path: "/client/reports/balance-sheet", screenKey: "balance_sheet" },
       { icon: Wallet, label: "التدفقات النقدية", labelEn: "Cash Flow", path: "/client/reports/cash-flow", screenKey: "cash_flow" },
+      { icon: Receipt, label: "تقرير ضريبة القيمة المضافة", labelEn: "VAT Report", path: "/client/reports/vat", screenKey: "vat_report" },
       { icon: BarChart3, label: "تقارير مراكز التكلفة", labelEn: "Cost Center Reports", path: "/client/cost-centers/reports", screenKey: "cost_center_reports" },
     ]
   },
