@@ -7,7 +7,7 @@ import { useCompanyId } from "@/hooks/useCompanyId";
 import { useAuth } from "@/contexts/AuthContext";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
 import type { DataTableColumn } from "@/components/ui/data-table";
-import { FileText, Eye, Trash2, CreditCard, Undo2 } from "lucide-react";
+import { FileText, Eye, Trash2, CreditCard, Undo2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -112,18 +112,21 @@ const ClientSales = () => {
     {
       key: "status",
       header: isRTL ? "الحالة" : "Status",
-      width: 100,
-      render: (row) => (
-        <StatusBadge config={row.status === "posted"
-          ? { label: isRTL ? "معتمدة" : "Posted", variant: "success" }
-          : { label: isRTL ? "مسودة" : "Draft", variant: "secondary" }
-        } />
-      ),
+      width: 110,
+      render: (row) => {
+        const map: Record<string, { label: string; variant: any }> = {
+          draft: { label: isRTL ? "مسودة" : "Draft", variant: "secondary" },
+          confirmed: { label: isRTL ? "مؤكدة" : "Confirmed", variant: "success" },
+          posted: { label: isRTL ? "مؤكدة" : "Confirmed", variant: "success" },
+        };
+        const s = map[row.status || "draft"] || map.draft;
+        return <StatusBadge config={s} />;
+      },
     },
     {
       key: "actions",
       header: isRTL ? "إجراءات" : "Actions",
-      width: 160,
+      width: 180,
       render: (row) => (
         <div className="flex items-center gap-1">
           <Tooltip>
@@ -134,6 +137,18 @@ const ClientSales = () => {
             </TooltipTrigger>
             <TooltipContent>{isRTL ? "عرض" : "View"}</TooltipContent>
           </Tooltip>
+
+          {/* Edit - only for drafts */}
+          {row.status === "draft" && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/sales/${row.id}/edit`)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
+            </Tooltip>
+          )}
 
           <Tooltip>
             <TooltipTrigger asChild>

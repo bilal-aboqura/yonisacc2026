@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -96,6 +96,8 @@ const CreateSalesInvoice = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditMode = !!editId;
   const fromQuoteId = searchParams.get("from_quote");
   const Arrow = isRTL ? ArrowRight : ArrowLeft;
   const { incrementUsage } = useFeatureAccess();
@@ -185,8 +187,53 @@ const CreateSalesInvoice = () => {
 
           setProducts(productsData || []);
 
+          // Load existing invoice for editing
+          if (isEditMode && editId) {
+            const { data: existingInvoice } = await supabase
+              .from("invoices")
+              .select("*, contacts(id, name, name_en, phone, tax_number, address)")
+              .eq("id", editId)
+              .eq("company_id", resolvedId)
+              .maybeSingle();
+
+            if (existingInvoice) {
+              // Only allow editing drafts
+              if (existingInvoice.status !== "draft") {
+                toast.error(isRTL ? "لا يمكن تعديل فاتورة مؤكدة" : "Cannot edit a confirmed invoice");
+                navigate("/client/sales");
+                return;
+              }
+              setInvoiceNumber(existingInvoice.invoice_number);
+              setInvoiceDate(existingInvoice.invoice_date);
+              setDueDate(existingInvoice.due_date || "");
+              setNotes(existingInvoice.notes || "");
+              if (existingInvoice.contacts) setSelectedContact(existingInvoice.contacts as any);
+
+              const { data: existingItems } = await supabase
+                .from("invoice_items")
+                .select("*")
+                .eq("invoice_id", editId)
+                .order("sort_order");
+
+              if (existingItems && existingItems.length > 0) {
+                setItems(existingItems.map(item => ({
+                  id: crypto.randomUUID(),
+                  product_id: item.product_id,
+                  description: item.description || "",
+                  quantity: item.quantity,
+                  unit_price: item.unit_price,
+                  discount_percent: item.discount_percent || 0,
+                  discount_amount: item.discount_amount || 0,
+                  tax_rate: item.tax_rate || 15,
+                  tax_amount: item.tax_amount || 0,
+                  total: item.total || 0,
+                })));
+              }
+            }
+          }
+
           // Pre-fill from quote if from_quote param exists
-          if (fromQuoteId) {
+          if (!isEditMode && fromQuoteId) {
             const { data: quote } = await supabase
               .from("invoices")
               .select("*, contacts(id, name, name_en, phone, tax_number, address)")
@@ -202,7 +249,6 @@ const CreateSalesInvoice = () => {
                   : `${isRTL ? "محوّل من عرض سعر:" : "Converted from quote:"} ${quote.invoice_number}`
               );
 
-              // Fetch quote items
               const { data: quoteItems } = await supabase
                 .from("invoice_items")
                 .select("*")
@@ -337,34 +383,51 @@ const CreateSalesInvoice = () => {
     setIsSaving(true);
 
     try {
-      // Create invoice
-      const { data: invoice, error: invoiceError } = await supabase
-        .from("invoices")
-        .insert({
-          company_id: company.id,
-          contact_id: selectedContact.id,
-          type: "sale",
-          invoice_number: invoiceNumber,
-          invoice_date: invoiceDate,
-          due_date: dueDate || null,
-          subtotal: totals.subtotal,
-          discount_amount: totals.totalDiscount,
-          tax_amount: totals.totalTax,
-          total: totals.total,
-          status,
-          notes,
-          created_by: user?.id,
-        })
-        .select()
-        .single();
+      const invoicePayload = {
+        company_id: company.id,
+        contact_id: selectedContact.id,
+        type: "sale",
+        invoice_number: invoiceNumber,
+        invoice_date: invoiceDate,
+        due_date: dueDate || null,
+        subtotal: totals.subtotal,
+        discount_amount: totals.totalDiscount,
+        tax_amount: totals.totalTax,
+        total: totals.total,
+        status,
+        notes,
+        created_by: user?.id,
+      };
 
-      if (invoiceError) throw invoiceError;
+      let invoiceId: string;
+
+      if (isEditMode && editId) {
+        // Update existing invoice
+        const { error: updateError } = await supabase
+          .from("invoices")
+          .update(invoicePayload)
+          .eq("id", editId);
+        if (updateError) throw updateError;
+        invoiceId = editId;
+
+        // Delete old items then re-insert
+        await supabase.from("invoice_items").delete().eq("invoice_id", editId);
+      } else {
+        // Create new invoice
+        const { data: invoice, error: invoiceError } = await supabase
+          .from("invoices")
+          .insert(invoicePayload)
+          .select()
+          .single();
+        if (invoiceError) throw invoiceError;
+        invoiceId = invoice.id;
+      }
 
       // Create invoice items
       const invoiceItems = items
         .filter(item => item.description)
         .map((item, index) => ({
-          invoice_id: invoice.id,
+          invoice_id: invoiceId,
           product_id: item.product_id,
           description: item.description,
           quantity: item.quantity,
@@ -380,16 +443,21 @@ const CreateSalesInvoice = () => {
       const { error: itemsError } = await supabase
         .from("invoice_items")
         .insert(invoiceItems);
-
       if (itemsError) throw itemsError;
 
-      // Increment usage counter
-      await incrementUsage("sales_invoices");
+      // Increment usage counter only for new invoices
+      if (!isEditMode) {
+        await incrementUsage("sales_invoices");
+      }
 
       toast.success(
-        status === "draft"
-          ? (isRTL ? "تم حفظ الفاتورة كمسودة" : "Invoice saved as draft")
-          : (isRTL ? "تم إنشاء الفاتورة بنجاح" : "Invoice created successfully")
+        isEditMode
+          ? (status === "confirmed"
+            ? (isRTL ? "تم تأكيد الفاتورة بنجاح" : "Invoice confirmed successfully")
+            : (isRTL ? "تم تحديث الفاتورة" : "Invoice updated"))
+          : (status === "draft"
+            ? (isRTL ? "تم حفظ الفاتورة كمسودة" : "Invoice saved as draft")
+            : (isRTL ? "تم إنشاء الفاتورة بنجاح" : "Invoice created successfully"))
       );
 
       navigate("/client/sales");
@@ -435,7 +503,9 @@ const CreateSalesInvoice = () => {
           </Button>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              {isRTL ? "فاتورة مبيعات جديدة" : "New Sales Invoice"}
+              {isEditMode
+                ? (isRTL ? "تعديل فاتورة مبيعات" : "Edit Sales Invoice")
+                : (isRTL ? "فاتورة مبيعات جديدة" : "New Sales Invoice")}
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
               {isRTL ? "متوافقة مع هيئة الزكاة والدخل" : "ZATCA Compliant"}
@@ -453,7 +523,9 @@ const CreateSalesInvoice = () => {
             ) : (
               <FileText className="h-4 w-4 me-2" />
             )}
-            {isRTL ? "إنشاء الفاتورة" : "Create Invoice"}
+            {isEditMode
+              ? (isRTL ? "تأكيد الفاتورة" : "Confirm Invoice")
+              : (isRTL ? "إنشاء الفاتورة" : "Create Invoice")}
           </Button>
         </div>
       </div>
@@ -843,7 +915,9 @@ const CreateSalesInvoice = () => {
                   ) : (
                     <FileText className="h-4 w-4 me-2" />
                   )}
-                  {isRTL ? "إنشاء الفاتورة" : "Create Invoice"}
+                  {isEditMode
+                    ? (isRTL ? "تأكيد الفاتورة" : "Confirm Invoice")
+                    : (isRTL ? "إنشاء الفاتورة" : "Create Invoice")}
                 </Button>
                 <Button variant="outline" className="w-full" onClick={() => handleSave("draft")} disabled={isSaving}>
                   <Save className="h-4 w-4 me-2" />
