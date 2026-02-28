@@ -239,9 +239,32 @@ const ViewInvoice = () => {
           lineHeight: "1.5",
           padding: "12mm 15mm",
           boxSizing: "border-box",
+          position: "relative",
+          overflow: "hidden",
         }}
         className="shadow-lg border print:shadow-none print:border-none"
       >
+        {/* Draft Watermark */}
+        {invoice.status === "draft" && (
+          <div style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%) rotate(-35deg)",
+            fontSize: "120px",
+            fontWeight: 900,
+            color: "rgba(220, 38, 38, 0.08)",
+            whiteSpace: "nowrap",
+            pointerEvents: "none",
+            zIndex: 0,
+            letterSpacing: "10px",
+            userSelect: "none",
+            WebkitPrintColorAdjust: "exact",
+            printColorAdjust: "exact" as any,
+          }}>
+            مسودة
+          </div>
+        )}
         {/* ─── Header: Company + Document Title ─── */}
         <div style={{
           display: "flex",
