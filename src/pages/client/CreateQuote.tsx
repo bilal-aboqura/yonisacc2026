@@ -157,7 +157,7 @@ const CreateQuote = () => {
     const subtotal = item.quantity * item.unit_price;
     const discountAmount = item.discount_percent > 0
       ? (subtotal * item.discount_percent) / 100
-      : item.discount_amount;
+      : 0;
     const taxableAmount = subtotal - discountAmount;
     const taxAmount = (taxableAmount * item.tax_rate) / 100;
     const total = taxableAmount + taxAmount;
