@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,13 +7,14 @@ import { useCompanyId } from "@/hooks/useCompanyId";
 import { useState } from "react";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
 import type { DataTableColumn, DataTableAction } from "@/components/ui/data-table";
-import { Truck, Eye, Edit, Trash2 } from "lucide-react";
+import { Truck, Eye, Edit, Trash2, FileSpreadsheet } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import ContactViewDialog from "@/components/client/ContactViewDialog";
+import ImportCustomersDialog from "@/components/client/ImportCustomersDialog";
 
 const Vendors = () => {
   const { isRTL } = useLanguage();
@@ -21,6 +23,7 @@ const Vendors = () => {
   const queryClient = useQueryClient();
   const [viewContact, setViewContact] = useState<any>(null);
   const [deleteContact, setDeleteContact] = useState<any>(null);
+  const [showImport, setShowImport] = useState(false);
 
   const { data: vendors = [], isLoading } = useQuery({
     queryKey: ["vendors", companyId],
@@ -163,6 +166,12 @@ const Vendors = () => {
           label: isRTL ? "إضافة مورد" : "Add Vendor",
           onClick: () => navigate("/client/contacts/new?type=vendor"),
         }}
+        headerExtra={
+          <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => setShowImport(true)}>
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            {isRTL ? "استيراد Excel" : "Import Excel"}
+          </Button>
+        }
         emptyState={{
           icon: <Truck className="h-10 w-10 text-muted-foreground/60" />,
           title: isRTL ? "لا يوجد موردين بعد" : "No vendors yet",
@@ -192,6 +201,7 @@ const Vendors = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ImportCustomersDialog open={showImport} onOpenChange={setShowImport} contactType="vendor" />
     </div>
   );
 };
