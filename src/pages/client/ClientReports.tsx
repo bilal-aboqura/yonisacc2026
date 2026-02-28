@@ -48,6 +48,12 @@ const ClientReports = () => {
           icon: FileText,
           path: "/client/reports/trial-balance",
         },
+        {
+          title: isRTL ? "تقرير ضريبة القيمة المضافة" : "VAT Report",
+          description: isRTL ? "إقرار وتفاصيل ضريبة القيمة المضافة" : "VAT declaration and transaction details",
+          icon: FileText,
+          path: "/client/reports/vat",
+        },
       ],
     },
     {
