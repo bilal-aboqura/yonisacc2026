@@ -128,7 +128,7 @@ const ClientSales = () => {
         <div className="flex items-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/invoices/${row.id}`)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/sales/${row.id}`)}>
                 <Eye className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
