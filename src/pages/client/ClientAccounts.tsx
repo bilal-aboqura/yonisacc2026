@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, memo, forwardRef } from "react";
+import { attachOrphansByCodePrefix, sortTreeByCode } from "@/lib/accountTreeUtils";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -293,21 +294,14 @@ const ClientAccounts = forwardRef<HTMLDivElement>((_, ref) => {
           return;
         }
       }
-      // No parent or parent not found - it's a root
-      if (!account.parent_id) {
-        roots.push(node);
-      }
+      roots.push(node);
     });
 
-    const sortChildren = (nodes: Account[]) => {
-      nodes.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
-      nodes.forEach(n => {
-        if (n.children && n.children.length > 0) sortChildren(n.children);
-      });
-    };
-    sortChildren(roots);
+    // Attach orphans by code prefix and sort
+    const finalRoots = attachOrphansByCodePrefix(byId, roots);
+    sortTreeByCode(finalRoots);
 
-    return roots;
+    return finalRoots;
   }, [flatAccounts]);
 
   const toggleExpand = useCallback((id: string) => {
