@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { attachOrphansByCodePrefix, sortTreeByCode } from "@/lib/accountTreeUtils";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,10 @@ const TrialBalance = () => {
       if (n.parent_id && nodeMap.has(n.parent_id)) nodeMap.get(n.parent_id)!.children.push(n);
       else roots.push(n);
     });
+    // Attach orphans by code prefix and sort
+    const finalRoots = attachOrphansByCodePrefix(nodeMap, roots);
+    sortTreeByCode(finalRoots);
+
     const aggregate = (node: AccountNode) => {
       if (node.children.length === 0) {
         node.aggOpeningDebit = node.openingDebit; node.aggOpeningCredit = node.openingCredit;
@@ -108,8 +113,8 @@ const TrialBalance = () => {
       node.aggEndingDebit = endingNet > 0 ? endingNet : 0;
       node.aggEndingCredit = endingNet < 0 ? Math.abs(endingNet) : 0;
     };
-    roots.forEach(r => aggregate(r));
-    return roots;
+    finalRoots.forEach(r => aggregate(r));
+    return finalRoots;
   }, [tbData]);
 
   const flatRows = useMemo(() => {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { attachOrphansByCodePrefix, sortTreeByCode } from "@/lib/accountTreeUtils";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,7 @@ interface RawAccount {
 }
 
 interface TreeNode {
-  account: RawAccount; balance: number; children: TreeNode[]; depth: number;
+  id: string; account: RawAccount; balance: number; children: TreeNode[]; depth: number;
 }
 
 const BalanceSheet = () => {
@@ -76,21 +77,48 @@ const BalanceSheet = () => {
     }
   }, [accounts]);
 
-  const buildTree = (items: RawAccount[], parentId: string | null, depth: number): TreeNode[] => {
-    return items.filter((a) => a.parent_id === parentId).map((a) => {
-      const children = buildTree(items, a.id, depth + 1);
+  const buildTreeWithCodeFallback = (items: RawAccount[], depth: number): TreeNode[] => {
+    const byId = new Map<string, TreeNode>();
+    const roots: TreeNode[] = [];
+
+    // Create all nodes first
+    items.forEach((a) => {
       const rawBalance = balanceMap.get(a.id) || 0;
       const leafBalance = a.type === "asset" ? rawBalance : Math.abs(rawBalance);
-      const childrenSum = children.reduce((s, c) => s + c.balance, 0);
-      const balance = children.length > 0 ? childrenSum : leafBalance;
-      return { account: a, balance, children, depth };
+      byId.set(a.id, { id: a.id, account: a, balance: leafBalance, children: [], depth });
     });
+
+    // Build tree by parent_id
+    items.forEach((a) => {
+      const node = byId.get(a.id)!;
+      if (a.parent_id && byId.has(a.parent_id)) {
+        byId.get(a.parent_id)!.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+
+    // Attach orphans by code prefix
+    const finalRoots = attachOrphansByCodePrefix(byId, roots);
+    sortTreeByCode(finalRoots);
+
+    // Recalculate balances bottom-up
+    const recalc = (node: TreeNode, d: number): void => {
+      node.depth = d;
+      if (node.children.length > 0) {
+        node.children.forEach((c) => recalc(c, d + 1));
+        node.balance = node.children.reduce((s, c) => s + c.balance, 0);
+      }
+    };
+    finalRoots.forEach((r) => recalc(r, 0));
+
+    return finalRoots;
   };
 
   const filterType = (type: string) => accounts.filter((a) => a.type === type);
-  const assetTree = useMemo(() => buildTree(filterType("asset"), null, 0), [accounts, balanceMap]);
-  const liabilityTree = useMemo(() => buildTree(filterType("liability"), null, 0), [accounts, balanceMap]);
-  const equityTree = useMemo(() => buildTree(filterType("equity"), null, 0), [accounts, balanceMap]);
+  const assetTree = useMemo(() => buildTreeWithCodeFallback(filterType("asset"), 0), [accounts, balanceMap]);
+  const liabilityTree = useMemo(() => buildTreeWithCodeFallback(filterType("liability"), 0), [accounts, balanceMap]);
+  const equityTree = useMemo(() => buildTreeWithCodeFallback(filterType("equity"), 0), [accounts, balanceMap]);
 
   const revenueAccounts = useMemo(() => filterType("revenue"), [accounts]);
   const expenseAccounts = useMemo(() => filterType("expense"), [accounts]);

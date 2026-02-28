@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { attachOrphansByCodePrefix, sortTreeByCode } from "@/lib/accountTreeUtils";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,7 @@ interface RawAccount {
 }
 
 interface TreeNode {
-  account: RawAccount; balance: number; children: TreeNode[]; depth: number;
+  id: string; account: RawAccount; balance: number; children: TreeNode[]; depth: number;
 }
 
 const IncomeStatement = () => {
@@ -79,18 +80,41 @@ const IncomeStatement = () => {
     }
   }, [accounts]);
 
-  const buildTree = (items: RawAccount[], parentId: string | null, depth: number): TreeNode[] => {
-    return items.filter((a) => a.parent_id === parentId).map((a) => {
-      const children = buildTree(items, a.id, depth + 1);
+  const buildTreeWithCodeFallback = (items: RawAccount[], depth: number): TreeNode[] => {
+    const byId = new Map<string, TreeNode>();
+    const roots: TreeNode[] = [];
+
+    items.forEach((a) => {
       const leafBalance = Math.abs(balanceMap.get(a.id) || 0);
-      const childrenSum = children.reduce((s, c) => s + c.balance, 0);
-      const balance = children.length > 0 ? childrenSum : leafBalance;
-      return { account: a, balance, children, depth };
-    }).filter((n) => n.balance !== 0 || n.children.length > 0);
+      byId.set(a.id, { id: a.id, account: a, balance: leafBalance, children: [], depth });
+    });
+
+    items.forEach((a) => {
+      const node = byId.get(a.id)!;
+      if (a.parent_id && byId.has(a.parent_id)) {
+        byId.get(a.parent_id)!.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+
+    const finalRoots = attachOrphansByCodePrefix(byId, roots);
+    sortTreeByCode(finalRoots);
+
+    const recalc = (node: TreeNode, d: number): void => {
+      node.depth = d;
+      if (node.children.length > 0) {
+        node.children.forEach((c) => recalc(c, d + 1));
+        node.balance = node.children.reduce((s, c) => s + c.balance, 0);
+      }
+    };
+    finalRoots.forEach((r) => recalc(r, 0));
+
+    return finalRoots.filter((n) => n.balance !== 0 || n.children.length > 0);
   };
 
-  const revenueTree = useMemo(() => buildTree(accounts.filter((a) => a.type === "revenue"), null, 0), [accounts, balanceMap]);
-  const expenseTree = useMemo(() => buildTree(accounts.filter((a) => a.type === "expense"), null, 0), [accounts, balanceMap]);
+  const revenueTree = useMemo(() => buildTreeWithCodeFallback(accounts.filter((a) => a.type === "revenue"), 0), [accounts, balanceMap]);
+  const expenseTree = useMemo(() => buildTreeWithCodeFallback(accounts.filter((a) => a.type === "expense"), 0), [accounts, balanceMap]);
 
   const sumTree = (nodes: TreeNode[]): number => nodes.reduce((s, n) => s + n.balance, 0);
   const totalRevenue = sumTree(revenueTree);
