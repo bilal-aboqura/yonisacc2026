@@ -3064,6 +3064,14 @@ export type Database = {
         }
         Returns: string
       }
+      return_sales_invoice: {
+        Args: {
+          p_company_id: string
+          p_invoice_id: string
+          p_return_items: Json
+        }
+        Returns: Json
+      }
       reverse_treasury_transaction: {
         Args: { p_company_id: string; p_transaction_id: string }
         Returns: Json
