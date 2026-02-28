@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +7,8 @@ import { useCompanyId } from "@/hooks/useCompanyId";
 import { useState } from "react";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
 import type { DataTableColumn, DataTableAction } from "@/components/ui/data-table";
-import { Users, Eye, Edit, Trash2 } from "lucide-react";
+import { Users, Eye, Edit, Trash2, FileSpreadsheet } from "lucide-react";
+import ImportCustomersDialog from "@/components/client/ImportCustomersDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -21,6 +23,7 @@ const Customers = () => {
   const queryClient = useQueryClient();
   const [viewContact, setViewContact] = useState<any>(null);
   const [deleteContact, setDeleteContact] = useState<any>(null);
+  const [showImport, setShowImport] = useState(false);
 
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ["customers", companyId],
@@ -163,6 +166,12 @@ const Customers = () => {
           label: isRTL ? "إضافة عميل" : "Add Customer",
           onClick: () => navigate("/client/contacts/new?type=customer"),
         }}
+        headerExtra={
+          <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => setShowImport(true)}>
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            {isRTL ? "استيراد Excel" : "Import Excel"}
+          </Button>
+        }
         emptyState={{
           icon: <Users className="h-10 w-10 text-muted-foreground/60" />,
           title: isRTL ? "لا يوجد عملاء بعد" : "No customers yet",
@@ -192,6 +201,7 @@ const Customers = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ImportCustomersDialog open={showImport} onOpenChange={setShowImport} contactType="customer" />
     </div>
   );
 };
