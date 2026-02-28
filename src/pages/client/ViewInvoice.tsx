@@ -67,7 +67,7 @@ const ViewInvoice = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { companyId, company: companyData } = useCompanyId();
+  const { companyId, isLoading: companyLoading } = useCompanyId();
   const printRef = useRef<HTMLDivElement>(null);
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -75,10 +75,13 @@ const ViewInvoice = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (companyLoading) return;
     if (companyId && id) {
       fetchInvoiceData();
+    } else {
+      setLoading(false);
     }
-  }, [companyId, id]);
+  }, [companyId, companyLoading, id]);
 
   const fetchInvoiceData = async () => {
     try {
