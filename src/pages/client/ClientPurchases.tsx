@@ -1,16 +1,33 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyId } from "@/hooks/useCompanyId";
+import { useAuth } from "@/contexts/AuthContext";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
-import type { DataTableColumn, DataTableAction } from "@/components/ui/data-table";
-import { ShoppingCart, Eye, Edit, Trash2 } from "lucide-react";
+import type { DataTableColumn } from "@/components/ui/data-table";
+import { ShoppingCart, Eye, Trash2, CreditCard, Undo2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import InvoicePaymentDialog from "@/components/client/InvoicePaymentDialog";
+
+const OWNER_USER_ID = "87740311-8413-47eb-b936-b4c96daecaa5";
 
 const ClientPurchases = () => {
   const { isRTL } = useLanguage();
   const navigate = useNavigate();
   const { companyId } = useCompanyId();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [deleteInvoice, setDeleteInvoice] = useState<any>(null);
+  const [paymentInvoice, setPaymentInvoice] = useState<any>(null);
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["purchase-invoices", companyId],
@@ -26,6 +43,26 @@ const ClientPurchases = () => {
     },
     enabled: !!companyId,
   });
+
+  const handleDelete = async () => {
+    if (!deleteInvoice) return;
+    try {
+      await supabase.from("invoice_items").delete().eq("invoice_id", deleteInvoice.id);
+      await supabase.from("invoice_payments").delete().eq("invoice_id", deleteInvoice.id);
+      const { error } = await supabase.from("invoices").delete().eq("id", deleteInvoice.id);
+      if (error) throw error;
+      toast.success(isRTL ? "تم حذف الفاتورة" : "Invoice deleted");
+      queryClient.invalidateQueries({ queryKey: ["purchase-invoices"] });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDeleteInvoice(null);
+    }
+  };
+
+  const handleReturn = async (invoice: any) => {
+    navigate(`/client/purchases/new?return_from=${invoice.id}`);
+  };
 
   const columns: DataTableColumn<any>[] = [
     {
@@ -83,25 +120,52 @@ const ClientPurchases = () => {
         } />
       ),
     },
-  ];
+    {
+      key: "actions",
+      header: isRTL ? "إجراءات" : "Actions",
+      width: 160,
+      render: (row) => (
+        <div className="flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/invoices/${row.id}`)}>
+                <Eye className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isRTL ? "عرض" : "View"}</TooltipContent>
+          </Tooltip>
 
-  const actions: DataTableAction<any>[] = [
-    {
-      label: isRTL ? "عرض" : "View",
-      icon: <Eye className="h-4 w-4" />,
-      onClick: (row) => navigate(`/client/invoices/${row.id}`),
-    },
-    {
-      label: isRTL ? "تعديل" : "Edit",
-      icon: <Edit className="h-4 w-4" />,
-      onClick: () => {},
-    },
-    {
-      label: isRTL ? "حذف" : "Delete",
-      icon: <Trash2 className="h-4 w-4" />,
-      onClick: () => {},
-      variant: "destructive",
-      separator: true,
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPaymentInvoice(row)}>
+                <CreditCard className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isRTL ? "تحصيل دفعات" : "Payments"}</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleReturn(row)}>
+                <Undo2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isRTL ? "مرتجع" : "Return"}</TooltipContent>
+          </Tooltip>
+
+          {user?.id === OWNER_USER_ID && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
+                  onClick={() => setDeleteInvoice(row)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isRTL ? "حذف" : "Delete"}</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -123,7 +187,6 @@ const ClientPurchases = () => {
         data={invoices}
         isLoading={isLoading}
         rowKey={(row) => row.id}
-        actions={actions}
         searchPlaceholder={isRTL ? "بحث برقم الفاتورة أو اسم المورد..." : "Search by invoice number or vendor..."}
         onSearch={(row, term) =>
           row.invoice_number.toLowerCase().includes(term) ||
@@ -141,6 +204,35 @@ const ClientPurchases = () => {
           onAction: () => navigate("/client/purchases/new"),
         }}
       />
+
+      {/* Payment Dialog */}
+      {paymentInvoice && (
+        <InvoicePaymentDialog
+          invoice={paymentInvoice}
+          open={!!paymentInvoice}
+          onOpenChange={(open) => !open && setPaymentInvoice(null)}
+        />
+      )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteInvoice} onOpenChange={(open) => !open && setDeleteInvoice(null)}>
+        <AlertDialogContent className={isRTL ? "rtl" : "ltr"}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{isRTL ? "تأكيد الحذف" : "Confirm Delete"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isRTL
+                ? `هل أنت متأكد من حذف الفاتورة "${deleteInvoice?.invoice_number}"؟ سيتم حذف جميع البيانات المرتبطة.`
+                : `Are you sure you want to delete invoice "${deleteInvoice?.invoice_number}"? All related data will be removed.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isRTL ? "إلغاء" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isRTL ? "حذف" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
