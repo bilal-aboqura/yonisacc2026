@@ -6,7 +6,7 @@ import { useCompanyId } from "@/hooks/useCompanyId";
 import { useState } from "react";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
 import type { DataTableColumn, DataTableAction } from "@/components/ui/data-table";
-import { FileText, Eye, Edit, Trash2, ArrowRightLeft, Loader2 } from "lucide-react";
+import { FileText, Eye, Edit, Trash2, ArrowRightLeft, Loader2, CheckCircle } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -54,6 +54,20 @@ const Quotes = () => {
       toast.error(error.message || (isRTL ? "خطأ في الحذف" : "Delete failed"));
     } finally {
       setDeleteQuote(null);
+    }
+  };
+
+  const handleMarkDelivered = async (quote: any) => {
+    try {
+      const { error } = await supabase
+        .from("invoices")
+        .update({ status: "delivered" })
+        .eq("id", quote.id);
+      if (error) throw error;
+      toast.success(isRTL ? "تم تحديث الحالة إلى تم التسليم" : "Quote marked as delivered");
+      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+    } catch (error: any) {
+      toast.error(error.message || (isRTL ? "خطأ في التحديث" : "Update failed"));
     }
   };
 
@@ -193,6 +207,7 @@ const Quotes = () => {
           sent: { label: isRTL ? "مرسل" : "Sent", variant: "info" },
           accepted: { label: isRTL ? "مقبول" : "Accepted", variant: "success" },
           rejected: { label: isRTL ? "مرفوض" : "Rejected", variant: "destructive" },
+          delivered: { label: isRTL ? "تم التسليم" : "Delivered", variant: "success" },
           converted: { label: isRTL ? "محوّل لفاتورة" : "Converted", variant: "default" },
         };
         const s = map[row.status || "draft"] || map.draft;
@@ -208,7 +223,34 @@ const Quotes = () => {
       onClick: (row) => navigate(`/client/invoices/${row.id}`),
     },
     {
-      label: isRTL ? "تحويل لفاتورة مبيعات" : "Convert to Sales Invoice",
+      label: isRTL ? "تعديل" : "Edit",
+      icon: <Edit className="h-4 w-4" />,
+      onClick: (row) => {
+        if (row.status === "converted") {
+          toast.info(isRTL ? "لا يمكن تعديل عرض سعر محوّل لفاتورة" : "Cannot edit a converted quote");
+          return;
+        }
+        navigate(`/client/quotes/${row.id}/edit`);
+      },
+    },
+    {
+      label: isRTL ? "تم التسليم" : "Mark Delivered",
+      icon: <CheckCircle className="h-4 w-4" />,
+      onClick: (row) => {
+        if (row.status === "converted") {
+          toast.info(isRTL ? "هذا العرض محوّل لفاتورة بالفعل" : "This quote is already converted");
+          return;
+        }
+        if (row.status === "delivered") {
+          toast.info(isRTL ? "تم تسليم هذا العرض مسبقاً" : "This quote is already delivered");
+          return;
+        }
+        handleMarkDelivered(row);
+      },
+      separator: true,
+    },
+    {
+      label: isRTL ? "تحويل لفاتورة مبيعات" : "Convert to Invoice",
       icon: convertingId ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />,
       onClick: (row) => {
         if (row.status === "converted") {
@@ -223,7 +265,7 @@ const Quotes = () => {
       icon: <Trash2 className="h-4 w-4" />,
       onClick: (row) => {
         if (row.status === "converted") {
-          toast.info(isRTL ? "لا يمكن حذف عرض سعر محوّل" : "Cannot delete a converted quote");
+          toast.error(isRTL ? "لا يمكن حذف عرض سعر تم تحويله لفاتورة" : "Cannot delete a quote that has been converted to an invoice");
           return;
         }
         setDeleteQuote(row);
