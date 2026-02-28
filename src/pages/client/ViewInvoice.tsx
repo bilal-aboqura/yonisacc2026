@@ -251,9 +251,11 @@ const ViewInvoice = () => {
             <p className="text-lg text-muted-foreground">
               {invoice.type === "quote" ? "Quotation" : invoice.type === "purchase" ? "Purchase Invoice" : "Tax Invoice"}
             </p>
-            <div className="mt-4">
-              {getStatusBadge(invoice.status)}
-            </div>
+            {invoice.type !== "quote" && (
+              <div className="mt-4">
+                {getStatusBadge(invoice.status)}
+              </div>
+            )}
           </div>
           <div className="text-left">
             {company.logo_url && (
