@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowRight, Printer, Download, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyId } from "@/hooks/useCompanyId";
 import { toast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -28,6 +29,7 @@ interface InvoiceItem {
 
 interface Invoice {
   id: string;
+  type: string;
   invoice_number: string;
   invoice_date: string;
   due_date: string | null;
@@ -65,6 +67,7 @@ const ViewInvoice = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { companyId, company: companyData } = useCompanyId();
   const printRef = useRef<HTMLDivElement>(null);
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -72,22 +75,22 @@ const ViewInvoice = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user && id) {
+    if (companyId && id) {
       fetchInvoiceData();
     }
-  }, [user, id]);
+  }, [companyId, id]);
 
   const fetchInvoiceData = async () => {
     try {
-      // Fetch company info
-      const { data: companyData, error: companyError } = await supabase
+      // Fetch company info using companyId
+      const { data: compData, error: companyError } = await supabase
         .from("companies")
         .select("*")
-        .eq("owner_id", user?.id)
+        .eq("id", companyId!)
         .single();
 
       if (companyError) throw companyError;
-      setCompany(companyData);
+      setCompany(compData);
 
       // Fetch invoice with contact
       const { data: invoiceData, error: invoiceError } = await supabase
@@ -97,7 +100,7 @@ const ViewInvoice = () => {
           contact:contacts(name, name_en, tax_number, address, city, phone, email)
         `)
         .eq("id", id)
-        .eq("company_id", companyData.id)
+        .eq("company_id", companyId!)
         .single();
 
       if (invoiceError) throw invoiceError;
@@ -202,8 +205,8 @@ const ViewInvoice = () => {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">لم يتم العثور على الفاتورة</p>
-        <Button variant="outline" onClick={() => navigate("/client/sales")} className="mt-4">
-          العودة للفواتير
+        <Button variant="outline" onClick={() => navigate(-1)} className="mt-4">
+          العودة
         </Button>
       </div>
     );
@@ -216,12 +219,14 @@ const ViewInvoice = () => {
       {/* Header Actions - Hidden in Print */}
       <div className="flex items-center justify-between print:hidden">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/client/sales")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowRight className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">فاتورة ضريبية</h1>
-            <p className="text-muted-foreground">رقم الفاتورة: {invoice.invoice_number}</p>
+            <h1 className="text-2xl font-bold">
+              {invoice.type === "quote" ? "عرض سعر" : invoice.type === "purchase" ? "فاتورة مشتريات" : "فاتورة ضريبية"}
+            </h1>
+            <p className="text-muted-foreground">رقم: {invoice.invoice_number}</p>
           </div>
         </div>
         <div className="flex gap-2">
