@@ -245,8 +245,12 @@ const ViewInvoice = () => {
         {/* Invoice Header */}
         <div className="flex justify-between items-start mb-8">
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-primary">فاتورة ضريبية</h2>
-            <p className="text-lg text-muted-foreground">Tax Invoice</p>
+            <h2 className="text-3xl font-bold text-primary">
+              {invoice.type === "quote" ? "عرض سعر" : invoice.type === "purchase" ? "فاتورة مشتريات" : "فاتورة ضريبية"}
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              {invoice.type === "quote" ? "Quotation" : invoice.type === "purchase" ? "Purchase Invoice" : "Tax Invoice"}
+            </p>
             <div className="mt-4">
               {getStatusBadge(invoice.status)}
             </div>
@@ -368,22 +372,24 @@ const ViewInvoice = () => {
         </div>
 
         {/* Totals & QR Code */}
-        <div className="grid grid-cols-2 gap-8">
-          {/* QR Code - ZATCA Compliant */}
-          <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-lg">
-            <QRCodeSVG
-              value={qrCodeData}
-              size={150}
-              level="M"
-              includeMargin={true}
-              className="bg-white p-2 rounded"
-            />
-            <p className="text-xs text-muted-foreground mt-3 text-center">
-              رمز الاستجابة السريعة متوافق مع هيئة الزكاة والدخل
-              <br />
-              ZATCA Compliant QR Code
-            </p>
-          </div>
+        <div className={`grid ${invoice.type !== "quote" ? "grid-cols-2" : "grid-cols-1"} gap-8`}>
+          {/* QR Code - ZATCA Compliant - Only for tax invoices */}
+          {invoice.type !== "quote" && (
+            <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-lg">
+              <QRCodeSVG
+                value={qrCodeData}
+                size={150}
+                level="M"
+                includeMargin={true}
+                className="bg-white p-2 rounded"
+              />
+              <p className="text-xs text-muted-foreground mt-3 text-center">
+                رمز الاستجابة السريعة متوافق مع هيئة الزكاة والدخل
+                <br />
+                ZATCA Compliant QR Code
+              </p>
+            </div>
+          )}
 
           {/* Totals */}
           <div className="space-y-3 p-6 bg-muted/30 rounded-lg">
@@ -419,8 +425,17 @@ const ViewInvoice = () => {
 
         {/* Footer */}
         <div className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground">
-          <p>هذه فاتورة ضريبية صادرة وفقاً لمتطلبات هيئة الزكاة والضريبة والجمارك</p>
-          <p className="mt-1">This is a tax invoice issued in accordance with ZATCA requirements</p>
+          {invoice.type === "quote" ? (
+            <>
+              <p>هذا عرض سعر وليس فاتورة ضريبية</p>
+              <p className="mt-1">This is a quotation, not a tax invoice</p>
+            </>
+          ) : (
+            <>
+              <p>هذه فاتورة ضريبية صادرة وفقاً لمتطلبات هيئة الزكاة والضريبة والجمارك</p>
+              <p className="mt-1">This is a tax invoice issued in accordance with ZATCA requirements</p>
+            </>
+          )}
         </div>
       </Card>
 
