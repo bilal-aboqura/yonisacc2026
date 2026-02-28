@@ -1297,6 +1297,7 @@ export type Database = {
           created_by: string | null
           id: string
           invoice_id: string
+          journal_entry_id: string | null
           notes: string | null
           payment_date: string
           payment_method: string | null
@@ -1311,6 +1312,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           invoice_id: string
+          journal_entry_id?: string | null
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
@@ -1325,6 +1327,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           invoice_id?: string
+          journal_entry_id?: string | null
           notes?: string | null
           payment_date?: string
           payment_method?: string | null
@@ -1354,6 +1357,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoice_payments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "invoice_payments_treasury_transaction_id_fkey"
             columns: ["treasury_transaction_id"]
             isOneToOne: false
@@ -1374,6 +1384,7 @@ export type Database = {
           id: string
           invoice_date: string
           invoice_number: string
+          journal_entry_id: string | null
           notes: string | null
           paid_amount: number | null
           payment_status: string | null
@@ -1397,6 +1408,7 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_number: string
+          journal_entry_id?: string | null
           notes?: string | null
           paid_amount?: number | null
           payment_status?: string | null
@@ -1420,6 +1432,7 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_number?: string
+          journal_entry_id?: string | null
           notes?: string | null
           paid_amount?: number | null
           payment_status?: string | null
@@ -1452,6 +1465,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
           {
@@ -2925,6 +2945,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      post_invoice_payment: {
+        Args: {
+          p_amount: number
+          p_company_id: string
+          p_created_by?: string
+          p_invoice_id: string
+          p_notes?: string
+          p_payment_date?: string
+          p_payment_method?: string
+          p_reference_number?: string
+        }
+        Returns: Json
+      }
       post_journal_entry: {
         Args: {
           p_company_id: string
@@ -2936,6 +2969,10 @@ export type Database = {
           p_status: string
         }
         Returns: string
+      }
+      post_sales_invoice: {
+        Args: { p_company_id: string; p_invoice_id: string }
+        Returns: Json
       }
       post_treasury_transaction: {
         Args: {
