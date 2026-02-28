@@ -291,9 +291,11 @@ const OpeningBalances = () => {
 
       setFlatAccounts(mergedAccounts);
 
-      // Expand root accounts
-      const rootIds = mergedAccounts.filter((a: any) => !a.parent_id).map((a: any) => a.id);
-      setExpandedAccounts(rootIds);
+      // Expand all parent accounts so users can see children
+      const parentIds = mergedAccounts
+        .filter((a: any) => a.is_parent || !a.parent_id)
+        .map((a: any) => a.id);
+      setExpandedAccounts(parentIds);
     } catch (error) {
       console.error("Error:", error);
       toast({ title: "خطأ", description: "حدث خطأ في تحميل البيانات", variant: "destructive" });
@@ -365,6 +367,25 @@ const OpeningBalances = () => {
 
     return finalRoots;
   }, [flatAccounts]);
+
+  // Auto-expand parent accounts when tree changes
+  useEffect(() => {
+    if (accountsTree.length === 0) return;
+    const parentIds: string[] = [];
+    const collectParentIds = (nodes: Account[]) => {
+      nodes.forEach((n) => {
+        if (n.children && n.children.length > 0) {
+          parentIds.push(n.id);
+          collectParentIds(n.children);
+        }
+      });
+    };
+    collectParentIds(accountsTree);
+    setExpandedAccounts((prev) => {
+      const merged = new Set([...prev, ...parentIds]);
+      return Array.from(merged);
+    });
+  }, [accountsTree]);
 
   const toggleExpand = useCallback((accountId: string) => {
     setExpandedAccounts((prev) => prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId]);
