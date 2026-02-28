@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, Printer, Download, Loader2 } from "lucide-react";
+import { ArrowRight, Printer, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyId } from "@/hooks/useCompanyId";
+import { usePrintSettings } from "@/hooks/usePrintSettings";
+import { useLanguage } from "@/hooks/useLanguage";
 import { toast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -40,6 +41,7 @@ interface Invoice {
   tax_amount: number | null;
   total: number | null;
   notes: string | null;
+  reference_number: string | null;
   contact?: {
     name: string;
     name_en: string | null;
@@ -63,11 +65,44 @@ interface CompanyInfo {
   logo_url: string | null;
 }
 
+// Document type configuration
+const getDocConfig = (type: string, isRTL: boolean) => {
+  const configs: Record<string, { titleAr: string; titleEn: string; sellerAr: string; sellerEn: string; buyerAr: string; buyerEn: string; showQR: boolean; isQuote: boolean }> = {
+    quote: {
+      titleAr: "عرض سعر", titleEn: "Quotation",
+      sellerAr: "معلومات المورد", sellerEn: "Supplier Info",
+      buyerAr: "معلومات العميل", buyerEn: "Customer Info",
+      showQR: false, isQuote: true,
+    },
+    sale: {
+      titleAr: "فاتورة ضريبية", titleEn: "Tax Invoice",
+      sellerAr: "معلومات البائع", sellerEn: "Seller Info",
+      buyerAr: "معلومات المشتري", buyerEn: "Buyer Info",
+      showQR: true, isQuote: false,
+    },
+    purchase: {
+      titleAr: "فاتورة مشتريات", titleEn: "Purchase Invoice",
+      sellerAr: "معلومات المورد", sellerEn: "Vendor Info",
+      buyerAr: "معلومات المشتري", buyerEn: "Buyer Info",
+      showQR: true, isQuote: false,
+    },
+    purchase_order: {
+      titleAr: "أمر شراء", titleEn: "Purchase Order",
+      sellerAr: "معلومات المورد", sellerEn: "Vendor Info",
+      buyerAr: "معلومات الشركة", buyerEn: "Company Info",
+      showQR: false, isQuote: true,
+    },
+  };
+  return configs[type] || configs.sale;
+};
+
 const ViewInvoice = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { companyId, isLoading: companyLoading } = useCompanyId();
+  const { settings } = usePrintSettings(companyId);
+  const { isRTL } = useLanguage();
   const printRef = useRef<HTMLDivElement>(null);
 
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -85,116 +120,66 @@ const ViewInvoice = () => {
 
   const fetchInvoiceData = async () => {
     try {
-      // Fetch company info using companyId
       const { data: compData, error: companyError } = await supabase
         .from("companies")
         .select("*")
         .eq("id", companyId!)
         .single();
-
       if (companyError) throw companyError;
       setCompany(compData);
 
-      // Fetch invoice with contact
       const { data: invoiceData, error: invoiceError } = await supabase
         .from("invoices")
-        .select(`
-          *,
-          contact:contacts(name, name_en, tax_number, address, city, phone, email)
-        `)
+        .select(`*, contact:contacts(name, name_en, tax_number, address, city, phone, email)`)
         .eq("id", id)
         .eq("company_id", companyId!)
-        .single();
-
+        .maybeSingle();
       if (invoiceError) throw invoiceError;
+      if (!invoiceData) {
+        setLoading(false);
+        return;
+      }
 
-      // Fetch invoice items with products
       const { data: itemsData, error: itemsError } = await supabase
         .from("invoice_items")
-        .select(`
-          *,
-          product:products(name, name_en, sku)
-        `)
+        .select(`*, product:products(name, name_en, sku)`)
         .eq("invoice_id", id)
         .order("sort_order");
-
       if (itemsError) throw itemsError;
 
-      setInvoice({
-        ...invoiceData,
-        items: itemsData || [],
-      });
+      setInvoice({ ...invoiceData, items: itemsData || [] });
     } catch (error: any) {
       console.error("Error fetching invoice:", error);
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ في تحميل بيانات الفاتورة",
-        variant: "destructive",
-      });
+      toast({ title: "خطأ", description: "حدث خطأ في تحميل البيانات", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  // Generate ZATCA TLV (Tag-Length-Value) format for QR Code
   const generateZatcaQR = () => {
     if (!invoice || !company) return "";
-
-    const sellerName = company.name;
-    const vatNumber = company.tax_number || "";
-    const timestamp = new Date(invoice.invoice_date).toISOString();
-    const totalWithVat = (invoice.total || 0).toFixed(2);
-    const vatAmount = (invoice.tax_amount || 0).toFixed(2);
-
-    // Create TLV format as base64
     const tlvData = [
-      { tag: 1, value: sellerName },
-      { tag: 2, value: vatNumber },
-      { tag: 3, value: timestamp },
-      { tag: 4, value: totalWithVat },
-      { tag: 5, value: vatAmount },
+      { tag: 1, value: company.name },
+      { tag: 2, value: company.tax_number || "" },
+      { tag: 3, value: new Date(invoice.invoice_date).toISOString() },
+      { tag: 4, value: (invoice.total || 0).toFixed(2) },
+      { tag: 5, value: (invoice.tax_amount || 0).toFixed(2) },
     ];
-
     let tlvBytes: number[] = [];
     tlvData.forEach(({ tag, value }) => {
       const valueBytes = new TextEncoder().encode(value);
-      tlvBytes.push(tag);
-      tlvBytes.push(valueBytes.length);
-      tlvBytes.push(...valueBytes);
+      tlvBytes.push(tag, valueBytes.length, ...valueBytes);
     });
-
     return btoa(String.fromCharCode(...tlvBytes));
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("ar-SA", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+  const fmt = (amount: number | null) =>
+    (amount || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const formatCurrency = (amount: number | null) => {
-    return (amount || 0).toLocaleString("ar-SA", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
-  const getStatusBadge = (status: string | null) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
-      draft: { label: "مسودة", className: "bg-muted text-muted-foreground" },
-      confirmed: { label: "مؤكدة", className: "bg-primary/10 text-primary" },
-      paid: { label: "مدفوعة", className: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
-      cancelled: { label: "ملغية", className: "bg-destructive/10 text-destructive" },
-    };
-    const { label, className } = statusMap[status || "draft"] || statusMap.draft;
-    return <span className={`px-3 py-1 rounded-full text-sm font-medium ${className}`}>{label}</span>;
-  };
+  const fmtDate = (d: string) =>
+    new Date(d).toLocaleDateString("ar-SA", { year: "numeric", month: "2-digit", day: "2-digit" });
 
   if (loading) {
     return (
@@ -207,270 +192,469 @@ const ViewInvoice = () => {
   if (!invoice || !company) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">لم يتم العثور على الفاتورة</p>
+        <p className="text-muted-foreground">{isRTL ? "لم يتم العثور على المستند" : "Document not found"}</p>
         <Button variant="outline" onClick={() => navigate(-1)} className="mt-4">
-          العودة
+          {isRTL ? "العودة" : "Go Back"}
         </Button>
       </div>
     );
   }
 
-  const qrCodeData = generateZatcaQR();
+  const config = getDocConfig(invoice.type, isRTL);
+  const pc = settings.primary_color || "#1e40af";
+  const qrData = generateZatcaQR();
 
   return (
-    <div className="space-y-6">
-      {/* Header Actions - Hidden in Print */}
+    <div className="space-y-4">
+      {/* Action Bar - Hidden on Print */}
       <div className="flex items-center justify-between print:hidden">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowRight className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">
-              {invoice.type === "quote" ? "عرض سعر" : invoice.type === "purchase" ? "فاتورة مشتريات" : "فاتورة ضريبية"}
-            </h1>
-            <p className="text-muted-foreground">رقم: {invoice.invoice_number}</p>
+            <h1 className="text-xl font-bold">{isRTL ? config.titleAr : config.titleEn}</h1>
+            <p className="text-sm text-muted-foreground">{isRTL ? "رقم:" : "#"} {invoice.invoice_number}</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handlePrint}>
-            <Printer className="h-4 w-4 ml-2" />
-            طباعة
-          </Button>
-        </div>
+        <Button onClick={handlePrint} variant="outline" className="gap-2">
+          <Printer className="h-4 w-4" />
+          {isRTL ? "طباعة" : "Print"}
+        </Button>
       </div>
 
-      {/* Invoice Document */}
-      <Card ref={printRef} className="p-8 print:shadow-none print:border-none bg-background">
-        {/* Invoice Header */}
-        <div className="flex justify-between items-start mb-8">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-primary">
-              {invoice.type === "quote" ? "عرض سعر" : invoice.type === "purchase" ? "فاتورة مشتريات" : "فاتورة ضريبية"}
+      {/* ═══════ A4 Print Document ═══════ */}
+      <div
+        ref={printRef}
+        id="invoice-print-area"
+        dir="rtl"
+        style={{
+          maxWidth: "210mm",
+          minHeight: "297mm",
+          margin: "0 auto",
+          background: "white",
+          color: "#1a1a1a",
+          fontFamily: "'Segoe UI', Tahoma, sans-serif",
+          fontSize: "12px",
+          lineHeight: "1.5",
+          padding: "12mm 15mm",
+          boxSizing: "border-box",
+        }}
+        className="shadow-lg border print:shadow-none print:border-none"
+      >
+        {/* ─── Header: Company + Document Title ─── */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          paddingBottom: "10px",
+          borderBottom: `3px solid ${pc}`,
+          marginBottom: "14px",
+        }}>
+          {/* Company Info */}
+          <div style={{ flex: 1 }}>
+            <h2 style={{ margin: 0, fontSize: "17px", fontWeight: 700, color: "#1a1a1a" }}>
+              {company.name}
             </h2>
-            <p className="text-lg text-muted-foreground">
-              {invoice.type === "quote" ? "Quotation" : invoice.type === "purchase" ? "Purchase Invoice" : "Tax Invoice"}
-            </p>
-            {invoice.type !== "quote" && (
-              <div className="mt-4">
-                {getStatusBadge(invoice.status)}
-              </div>
+            {company.name_en && (
+              <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#666" }}>{company.name_en}</p>
+            )}
+            {company.tax_number && (
+              <p style={{ margin: "3px 0 0", fontSize: "10px", color: "#888" }}>
+                الرقم الضريبي: {company.tax_number}
+              </p>
+            )}
+            {company.commercial_register && (
+              <p style={{ margin: "1px 0 0", fontSize: "10px", color: "#888" }}>
+                السجل التجاري: {company.commercial_register}
+              </p>
+            )}
+            {company.address && (
+              <p style={{ margin: "1px 0 0", fontSize: "10px", color: "#888" }}>{company.address}</p>
+            )}
+            {company.phone && (
+              <p style={{ margin: "1px 0 0", fontSize: "10px", color: "#888" }}>هاتف: {company.phone}</p>
             )}
           </div>
-          <div className="text-left">
-            {company.logo_url && (
-              <img src={company.logo_url} alt="Logo" className="h-16 mb-2" />
-            )}
-            <h3 className="text-xl font-bold">{company.name}</h3>
-            {company.name_en && <p className="text-muted-foreground">{company.name_en}</p>}
+
+          {/* Logo */}
+          {company.logo_url && (
+            <div style={{ margin: "0 20px" }}>
+              <img src={company.logo_url} alt="Logo" style={{ height: "60px", objectFit: "contain" }} />
+            </div>
+          )}
+
+          {/* Document Title */}
+          <div style={{ textAlign: "left", flex: 1 }}>
+            <h1 style={{
+              margin: 0,
+              fontSize: "20px",
+              fontWeight: 800,
+              color: pc,
+            }}>
+              {config.titleAr}
+            </h1>
+            <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#666" }}>{config.titleEn}</p>
           </div>
         </div>
 
-        <Separator className="my-6" />
+        {/* ─── Document Meta ─── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gap: "0",
+          marginBottom: "14px",
+          border: `1px solid ${pc}40`,
+          borderRadius: "4px",
+          overflow: "hidden",
+        }}>
+          {[
+            { label: isRTL ? "رقم المستند" : "Doc No.", value: invoice.invoice_number },
+            { label: isRTL ? "تاريخ الإصدار" : "Issue Date", value: fmtDate(invoice.invoice_date) },
+            { label: isRTL ? "تاريخ الاستحقاق" : "Due Date", value: invoice.due_date ? fmtDate(invoice.due_date) : "—" },
+          ].map((item, i) => (
+            <div key={i} style={{
+              textAlign: "center",
+              padding: "8px 6px",
+              borderLeft: i > 0 ? `1px solid ${pc}30` : "none",
+            }}>
+              <div style={{ fontSize: "9px", color: "#888", textTransform: "uppercase", fontWeight: 600 }}>
+                {item.label}
+              </div>
+              <div style={{ fontSize: "13px", fontWeight: 700, fontFamily: "monospace", marginTop: "2px" }}>
+                {item.value}
+              </div>
+            </div>
+          ))}
+        </div>
 
-        {/* Seller & Buyer Info */}
-        <div className="grid grid-cols-2 gap-8 mb-8">
-          {/* Seller Info */}
-          <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-            <h4 className="font-bold text-lg border-b pb-2">معلومات البائع | Seller</h4>
-            <div className="space-y-2 text-sm">
-              <p><span className="text-muted-foreground">الاسم:</span> {company.name}</p>
-              {company.tax_number && (
-                <p><span className="text-muted-foreground">الرقم الضريبي:</span> {company.tax_number}</p>
-              )}
-              {company.commercial_register && (
-                <p><span className="text-muted-foreground">السجل التجاري:</span> {company.commercial_register}</p>
-              )}
-              {company.address && (
-                <p><span className="text-muted-foreground">العنوان:</span> {company.address}</p>
-              )}
-              {company.phone && (
-                <p><span className="text-muted-foreground">الهاتف:</span> {company.phone}</p>
-              )}
-              {company.email && (
-                <p><span className="text-muted-foreground">البريد:</span> {company.email}</p>
-              )}
+        {/* ─── Seller & Buyer ─── */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "10px",
+          marginBottom: "14px",
+        }}>
+          {/* Seller / Supplier */}
+          <div style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "4px",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              background: pc,
+              color: "white",
+              padding: "6px 10px",
+              fontSize: "11px",
+              fontWeight: 700,
+            }}>
+              {isRTL ? config.sellerAr : config.sellerEn}
+            </div>
+            <div style={{ padding: "8px 10px", fontSize: "11px", lineHeight: "1.7" }}>
+              <div><strong>{company.name}</strong></div>
+              {company.tax_number && <div style={{ color: "#666" }}>الرقم الضريبي: {company.tax_number}</div>}
+              {company.address && <div style={{ color: "#666" }}>{company.address}</div>}
+              {company.phone && <div style={{ color: "#666" }}>هاتف: {company.phone}</div>}
             </div>
           </div>
 
-          {/* Buyer Info */}
-          <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-            <h4 className="font-bold text-lg border-b pb-2">معلومات المشتري | Buyer</h4>
-            {invoice.contact ? (
-              <div className="space-y-2 text-sm">
-                <p><span className="text-muted-foreground">الاسم:</span> {invoice.contact.name}</p>
-                {invoice.contact.tax_number && (
-                  <p><span className="text-muted-foreground">الرقم الضريبي:</span> {invoice.contact.tax_number}</p>
-                )}
-                {invoice.contact.address && (
-                  <p><span className="text-muted-foreground">العنوان:</span> {invoice.contact.address} {invoice.contact.city && `، ${invoice.contact.city}`}</p>
-                )}
-                {invoice.contact.phone && (
-                  <p><span className="text-muted-foreground">الهاتف:</span> {invoice.contact.phone}</p>
-                )}
-                {invoice.contact.email && (
-                  <p><span className="text-muted-foreground">البريد:</span> {invoice.contact.email}</p>
-                )}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-sm">عميل نقدي</p>
-            )}
-          </div>
-        </div>
-
-        {/* Invoice Details */}
-        <div className="grid grid-cols-3 gap-4 mb-8 p-4 bg-primary/5 rounded-lg">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">رقم الفاتورة</p>
-            <p className="font-bold text-lg">{invoice.invoice_number}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">تاريخ الإصدار</p>
-            <p className="font-bold text-lg">{formatDate(invoice.invoice_date)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">تاريخ الاستحقاق</p>
-            <p className="font-bold text-lg">{invoice.due_date ? formatDate(invoice.due_date) : "-"}</p>
-          </div>
-        </div>
-
-        {/* Items Table */}
-        <div className="mb-8 overflow-hidden rounded-lg border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="p-3 text-right font-bold">#</th>
-                <th className="p-3 text-right font-bold">الصنف | Item</th>
-                <th className="p-3 text-center font-bold">الكمية</th>
-                <th className="p-3 text-center font-bold">السعر</th>
-                <th className="p-3 text-center font-bold">الخصم</th>
-                <th className="p-3 text-center font-bold">الضريبة (15%)</th>
-                <th className="p-3 text-left font-bold">الإجمالي</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.items.map((item, index) => (
-                <tr key={item.id} className="border-t">
-                  <td className="p-3 text-right">{index + 1}</td>
-                  <td className="p-3 text-right">
-                    <div>
-                      <p className="font-medium">{item.product?.name || item.description || "-"}</p>
-                      {item.product?.sku && (
-                        <p className="text-xs text-muted-foreground">SKU: {item.product.sku}</p>
-                      )}
+          {/* Buyer / Customer */}
+          <div style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "4px",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              background: pc,
+              color: "white",
+              padding: "6px 10px",
+              fontSize: "11px",
+              fontWeight: 700,
+            }}>
+              {isRTL ? config.buyerAr : config.buyerEn}
+            </div>
+            <div style={{ padding: "8px 10px", fontSize: "11px", lineHeight: "1.7" }}>
+              {invoice.contact ? (
+                <>
+                  <div><strong>{invoice.contact.name}</strong></div>
+                  {invoice.contact.tax_number && <div style={{ color: "#666" }}>الرقم الضريبي: {invoice.contact.tax_number}</div>}
+                  {invoice.contact.address && (
+                    <div style={{ color: "#666" }}>
+                      {invoice.contact.address}{invoice.contact.city ? `، ${invoice.contact.city}` : ""}
                     </div>
-                  </td>
-                  <td className="p-3 text-center">{item.quantity}</td>
-                  <td className="p-3 text-center">{formatCurrency(item.unit_price)}</td>
-                  <td className="p-3 text-center">
-                    {item.discount_amount ? formatCurrency(item.discount_amount) : "-"}
-                  </td>
-                  <td className="p-3 text-center">{formatCurrency(item.tax_amount)}</td>
-                  <td className="p-3 text-left font-medium">{formatCurrency(item.total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  )}
+                  {invoice.contact.phone && <div style={{ color: "#666" }}>هاتف: {invoice.contact.phone}</div>}
+                  {invoice.contact.email && <div style={{ color: "#666" }}>{invoice.contact.email}</div>}
+                </>
+              ) : (
+                <div style={{ color: "#999" }}>{isRTL ? "عميل نقدي" : "Cash Customer"}</div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Totals & QR Code */}
-        <div className={`grid ${invoice.type !== "quote" ? "grid-cols-2" : "grid-cols-1"} gap-8`}>
-          {/* QR Code - ZATCA Compliant - Only for tax invoices */}
-          {invoice.type !== "quote" && (
-            <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-lg">
-              <QRCodeSVG
-                value={qrCodeData}
-                size={150}
-                level="M"
-                includeMargin={true}
-                className="bg-white p-2 rounded"
-              />
-              <p className="text-xs text-muted-foreground mt-3 text-center">
-                رمز الاستجابة السريعة متوافق مع هيئة الزكاة والدخل
-                <br />
-                ZATCA Compliant QR Code
+        {/* ─── Items Table ─── */}
+        <table style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          marginBottom: "12px",
+          fontSize: "11px",
+        }}>
+          <thead>
+            <tr>
+              {["#", "الصنف | Item", "الكمية", "سعر الوحدة", "الخصم", "الضريبة", "الإجمالي"].map((h, i) => (
+                <th key={i} style={{
+                  padding: "7px 8px",
+                  background: pc,
+                  color: "white",
+                  fontWeight: 700,
+                  textAlign: i === 0 || i === 1 ? "right" : "center",
+                  fontSize: "10px",
+                  whiteSpace: "nowrap",
+                  borderBottom: `2px solid ${pc}`,
+                }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {invoice.items.map((item, index) => (
+              <tr key={item.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                <td style={{ padding: "6px 8px", textAlign: "right", color: "#888", width: "30px" }}>
+                  {index + 1}
+                </td>
+                <td style={{ padding: "6px 8px", textAlign: "right" }}>
+                  <div style={{ fontWeight: 600 }}>{item.product?.name || item.description || "—"}</div>
+                  {item.product?.name_en && (
+                    <div style={{ fontSize: "9px", color: "#999" }}>{item.product.name_en}</div>
+                  )}
+                  {item.product?.sku && (
+                    <div style={{ fontSize: "9px", color: "#aaa", fontFamily: "monospace" }}>SKU: {item.product.sku}</div>
+                  )}
+                </td>
+                <td style={{ padding: "6px 8px", textAlign: "center" }}>{item.quantity}</td>
+                <td style={{ padding: "6px 8px", textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+                  {fmt(item.unit_price)}
+                </td>
+                <td style={{ padding: "6px 8px", textAlign: "center", color: item.discount_amount ? "#dc2626" : "#ccc" }}>
+                  {item.discount_amount ? fmt(item.discount_amount) : "—"}
+                </td>
+                <td style={{ padding: "6px 8px", textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+                  {fmt(item.tax_amount)}
+                </td>
+                <td style={{
+                  padding: "6px 8px",
+                  textAlign: "center",
+                  fontWeight: 700,
+                  fontVariantNumeric: "tabular-nums",
+                }}>
+                  {fmt(item.total)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* ─── Totals + QR ─── */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: "16px",
+          marginBottom: "14px",
+        }}>
+          {/* QR Code (only for tax invoices) */}
+          {config.showQR && (
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "10px",
+              border: "1px solid #e5e7eb",
+              borderRadius: "4px",
+              background: "#fafafa",
+            }}>
+              <QRCodeSVG value={qrData} size={110} level="M" includeMargin />
+              <p style={{ fontSize: "8px", color: "#999", marginTop: "4px", textAlign: "center" }}>
+                رمز QR متوافق مع هيئة الزكاة
+                <br />ZATCA Compliant
               </p>
             </div>
           )}
 
-          {/* Totals */}
-          <div className="space-y-3 p-6 bg-muted/30 rounded-lg">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">المجموع الفرعي | Subtotal</span>
-              <span>{formatCurrency(invoice.subtotal)} ر.س</span>
-            </div>
-            {(invoice.discount_amount || 0) > 0 && (
-              <div className="flex justify-between text-sm text-destructive">
-                <span>الخصم | Discount</span>
-                <span>- {formatCurrency(invoice.discount_amount)} ر.س</span>
-              </div>
-            )}
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">ضريبة القيمة المضافة (15%) | VAT</span>
-              <span>{formatCurrency(invoice.tax_amount)} ر.س</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between text-lg font-bold">
-              <span>الإجمالي شامل الضريبة | Total</span>
-              <span className="text-primary">{formatCurrency(invoice.total)} ر.س</span>
-            </div>
+          {/* Totals Table */}
+          <div style={{
+            flex: 1,
+            maxWidth: config.showQR ? "55%" : "50%",
+            marginRight: config.showQR ? "0" : "auto",
+          }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <tbody>
+                <TotalRow label="المجموع الفرعي | Subtotal" value={fmt(invoice.subtotal)} />
+                {(invoice.discount_amount || 0) > 0 && (
+                  <TotalRow label="الخصم | Discount" value={`- ${fmt(invoice.discount_amount)}`} color="#dc2626" />
+                )}
+                <TotalRow label="ضريبة القيمة المضافة | VAT (15%)" value={fmt(invoice.tax_amount)} />
+                <tr>
+                  <td style={{
+                    padding: "10px 12px",
+                    fontWeight: 800,
+                    fontSize: "14px",
+                    background: pc,
+                    color: "white",
+                    borderRadius: "0 0 4px 0",
+                  }}>
+                    الإجمالي | Total
+                  </td>
+                  <td style={{
+                    padding: "10px 12px",
+                    fontWeight: 800,
+                    fontSize: "14px",
+                    textAlign: "left",
+                    background: pc,
+                    color: "white",
+                    fontVariantNumeric: "tabular-nums",
+                    borderRadius: "0 0 0 4px",
+                  }}>
+                    {fmt(invoice.total)} ر.س
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Notes */}
+        {/* ─── Notes ─── */}
         {invoice.notes && (
-          <div className="mt-8 p-4 bg-muted/30 rounded-lg">
-            <h4 className="font-bold mb-2">ملاحظات | Notes</h4>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{invoice.notes}</p>
+          <div style={{
+            padding: "8px 12px",
+            background: "#f9fafb",
+            border: "1px solid #e5e7eb",
+            borderRadius: "4px",
+            fontSize: "11px",
+            marginBottom: "14px",
+          }}>
+            <strong>ملاحظات | Notes:</strong>
+            <div style={{ marginTop: "4px", color: "#555", whiteSpace: "pre-wrap" }}>{invoice.notes}</div>
           </div>
         )}
 
-        {/* Footer */}
-        <div className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground">
-          {invoice.type === "quote" ? (
+        {/* ─── Signature Area ─── */}
+        {settings.show_signature && (
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginTop: "30px",
+            paddingTop: "10px",
+          }}>
+            {[
+              { label: "المُعد | Prepared By" },
+              { label: "المُستلم | Received By" },
+              { label: "المُعتمد | Approved By" },
+            ].map((sig, i) => (
+              <div key={i} style={{ textAlign: "center", width: "30%" }}>
+                <div style={{ fontSize: "10px", fontWeight: 600, marginBottom: "30px", color: "#555" }}>
+                  {sig.label}
+                </div>
+                {settings.signature_url && i === 2 && (
+                  <img src={settings.signature_url} alt="Signature" style={{ height: "35px", display: "inline-block", marginBottom: "4px" }} />
+                )}
+                <div style={{ borderTop: "1px solid #999", paddingTop: "6px", fontSize: "10px", color: "#888" }}>
+                  &nbsp;
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ─── Footer ─── */}
+        <div style={{
+          marginTop: "auto",
+          paddingTop: "10px",
+          borderTop: `2px solid ${pc}`,
+          textAlign: "center",
+          fontSize: "9px",
+          color: "#888",
+        }}>
+          {config.isQuote ? (
             <>
-              <p>هذا عرض سعر وليس فاتورة ضريبية</p>
-              <p className="mt-1">This is a quotation, not a tax invoice</p>
+              <p style={{ margin: 0 }}>هذا عرض سعر وليس فاتورة ضريبية — صالح لمدة 30 يوم من تاريخ الإصدار</p>
+              <p style={{ margin: "2px 0 0" }}>This is a quotation, not a tax invoice — Valid for 30 days from issue date</p>
             </>
           ) : (
             <>
-              <p>هذه فاتورة ضريبية صادرة وفقاً لمتطلبات هيئة الزكاة والضريبة والجمارك</p>
-              <p className="mt-1">This is a tax invoice issued in accordance with ZATCA requirements</p>
+              <p style={{ margin: 0 }}>فاتورة ضريبية صادرة وفقاً لمتطلبات هيئة الزكاة والضريبة والجمارك</p>
+              <p style={{ margin: "2px 0 0" }}>Tax invoice issued in accordance with ZATCA requirements</p>
             </>
           )}
         </div>
-      </Card>
+      </div>
 
-      {/* Print Styles */}
+      {/* ═══════ Print CSS ═══════ */}
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print\\:hidden {
-            display: none !important;
-          }
-          [data-slot="card"],
-          [data-slot="card"] * {
-            visibility: visible;
-          }
-          [data-slot="card"] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            padding: 20mm;
+          /* Hide everything except the print area */
+          body * { visibility: hidden !important; }
+          #invoice-print-area, #invoice-print-area * { visibility: visible !important; }
+          #invoice-print-area {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 210mm !important;
+            min-height: 297mm !important;
+            padding: 10mm 12mm !important;
+            margin: 0 !important;
             box-shadow: none !important;
             border: none !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           @page {
-            size: A4;
-            margin: 10mm;
+            size: A4 portrait;
+            margin: 0mm;
+          }
+          /* Hide action bar */
+          .print\\:hidden { display: none !important; }
+          /* Ensure sidebar and nav are hidden */
+          nav, aside, header, [data-sidebar], [role="navigation"] {
+            display: none !important;
           }
         }
       `}</style>
     </div>
   );
 };
+
+/* ─── Helper: Total Row ─── */
+function TotalRow({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <tr>
+      <td style={{
+        padding: "6px 12px",
+        fontSize: "11px",
+        color: "#555",
+        borderBottom: "1px solid #f0f0f0",
+        background: "#fafafa",
+      }}>
+        {label}
+      </td>
+      <td style={{
+        padding: "6px 12px",
+        fontSize: "12px",
+        fontWeight: 600,
+        textAlign: "left",
+        borderBottom: "1px solid #f0f0f0",
+        background: "#fafafa",
+        fontVariantNumeric: "tabular-nums",
+        color: color || "#1a1a1a",
+      }}>
+        {value} ر.س
+      </td>
+    </tr>
+  );
+}
 
 export default ViewInvoice;
