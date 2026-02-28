@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyId } from "@/hooks/useCompanyId";
 import { toast } from "sonner";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,32 +67,26 @@ const InvoicePaymentDialog = ({ invoice, open, onOpenChange }: InvoicePaymentDia
 
     setSaving(true);
     try {
-      const { error: payError } = await supabase.from("invoice_payments").insert({
-        invoice_id: invoice.id,
-        company_id: companyId!,
-        amount,
-        payment_method: newPayment.payment_method,
-        payment_date: newPayment.payment_date,
-        reference_number: newPayment.reference_number || null,
-        notes: newPayment.notes || null,
-        created_by: user?.id,
+      // Use RPC to create payment with journal entry
+      const { data: result, error } = await supabase.rpc("post_invoice_payment" as any, {
+        p_company_id: companyId!,
+        p_invoice_id: invoice.id,
+        p_amount: amount,
+        p_payment_method: newPayment.payment_method,
+        p_payment_date: newPayment.payment_date,
+        p_reference_number: newPayment.reference_number || null,
+        p_notes: newPayment.notes || null,
+        p_created_by: user?.id,
       });
-      if (payError) throw payError;
+      if (error) throw error;
 
-      const newPaidTotal = totalPaid + amount;
-      const newPaymentStatus = newPaidTotal >= (invoice.total ?? 0) ? "paid" : "partial";
-
-      const { error: invError } = await supabase
-        .from("invoices")
-        .update({ paid_amount: newPaidTotal, payment_status: newPaymentStatus })
-        .eq("id", invoice.id);
-      if (invError) throw invError;
-
-      toast.success(isRTL ? "تم تسجيل الدفعة بنجاح" : "Payment recorded");
+      toast.success(isRTL ? "تم تسجيل الدفعة وإنشاء القيد المحاسبي" : "Payment recorded with journal entry");
       setNewPayment({ amount: "", payment_method: "cash", payment_date: new Date().toISOString().split("T")[0], reference_number: "", notes: "" });
       queryClient.invalidateQueries({ queryKey: ["invoice-payments", invoice.id] });
       queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
       queryClient.invalidateQueries({ queryKey: ["purchase-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["account-balances"] });
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -102,6 +96,12 @@ const InvoicePaymentDialog = ({ invoice, open, onOpenChange }: InvoicePaymentDia
 
   const handleDeletePayment = async (payment: any) => {
     try {
+      // Delete journal entry if linked
+      if (payment.journal_entry_id) {
+        await supabase.from("journal_entry_lines").delete().eq("entry_id", payment.journal_entry_id);
+        await supabase.from("journal_entries").delete().eq("id", payment.journal_entry_id);
+      }
+
       const { error } = await supabase.from("invoice_payments").delete().eq("id", payment.id);
       if (error) throw error;
 
@@ -110,10 +110,12 @@ const InvoicePaymentDialog = ({ invoice, open, onOpenChange }: InvoicePaymentDia
 
       await supabase.from("invoices").update({ paid_amount: Math.max(0, newPaidTotal), payment_status: newPaymentStatus }).eq("id", invoice.id);
 
-      toast.success(isRTL ? "تم حذف الدفعة" : "Payment deleted");
+      toast.success(isRTL ? "تم حذف الدفعة والقيد المرتبط" : "Payment and journal entry deleted");
       queryClient.invalidateQueries({ queryKey: ["invoice-payments", invoice.id] });
       queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
       queryClient.invalidateQueries({ queryKey: ["purchase-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["account-balances"] });
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -165,6 +167,7 @@ const InvoicePaymentDialog = ({ invoice, open, onOpenChange }: InvoicePaymentDia
                   <span className="text-muted-foreground">{methodLabel(p.payment_method)}</span>
                   <span className="text-muted-foreground">{p.payment_date}</span>
                   {p.reference_number && <span className="text-xs text-muted-foreground">#{p.reference_number}</span>}
+                  {p.journal_entry_id && <span className="text-xs text-green-600">📋</span>}
                 </div>
                 <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeletePayment(p)}>
                   <Trash2 className="h-3 w-3" />

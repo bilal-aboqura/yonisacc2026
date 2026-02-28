@@ -401,11 +401,14 @@ const CreateSalesInvoice = () => {
 
       let invoiceId: string;
 
+      // For confirmed invoices, save as draft first then post via RPC
+      const saveStatus = status === "confirmed" ? "draft" : status;
+
       if (isEditMode && editId) {
         // Update existing invoice
         const { error: updateError } = await supabase
           .from("invoices")
-          .update(invoicePayload)
+          .update({ ...invoicePayload, status: saveStatus })
           .eq("id", editId);
         if (updateError) throw updateError;
         invoiceId = editId;
@@ -416,7 +419,7 @@ const CreateSalesInvoice = () => {
         // Create new invoice
         const { data: invoice, error: invoiceError } = await supabase
           .from("invoices")
-          .insert(invoicePayload)
+          .insert({ ...invoicePayload, status: saveStatus })
           .select()
           .single();
         if (invoiceError) throw invoiceError;
@@ -444,6 +447,16 @@ const CreateSalesInvoice = () => {
         .from("invoice_items")
         .insert(invoiceItems);
       if (itemsError) throw itemsError;
+
+      // If confirmed, post via RPC to create journal entry
+      if (status === "confirmed") {
+        const { data: postResult, error: postError } = await supabase
+          .rpc("post_sales_invoice" as any, {
+            p_company_id: company.id,
+            p_invoice_id: invoiceId,
+          });
+        if (postError) throw postError;
+      }
 
       // Increment usage counter only for new invoices
       if (!isEditMode) {
