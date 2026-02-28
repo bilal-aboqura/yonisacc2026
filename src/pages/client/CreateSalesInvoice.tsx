@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -95,6 +95,8 @@ const CreateSalesInvoice = () => {
   const { isRTL } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromQuoteId = searchParams.get("from_quote");
   const Arrow = isRTL ? ArrowRight : ArrowLeft;
   const { incrementUsage } = useFeatureAccess();
 
@@ -154,14 +156,15 @@ const CreateSalesInvoice = () => {
           setCompany(companyData);
 
           // Generate invoice number
-          const { count } = await supabase
-            .from("invoices")
-            .select("*", { count: "exact", head: true })
+          const { data: settings } = await supabase
+            .from("company_settings")
+            .select("invoice_prefix, next_invoice_number")
             .eq("company_id", companyData.id)
-            .eq("type", "sale");
+            .maybeSingle();
 
-          const nextNumber = (count || 0) + 1;
-          setInvoiceNumber(`INV-${String(nextNumber).padStart(6, "0")}`);
+          const prefix = settings?.invoice_prefix || "INV-";
+          const nextNum = settings?.next_invoice_number || 1;
+          setInvoiceNumber(`${prefix}${String(nextNum).padStart(6, "0")}`);
 
           // Fetch contacts (customers)
           const { data: contactsData } = await supabase
@@ -181,6 +184,48 @@ const CreateSalesInvoice = () => {
             .eq("is_active", true);
 
           setProducts(productsData || []);
+
+          // Pre-fill from quote if from_quote param exists
+          if (fromQuoteId) {
+            const { data: quote } = await supabase
+              .from("invoices")
+              .select("*, contacts(id, name, name_en, phone, tax_number, address)")
+              .eq("id", fromQuoteId)
+              .maybeSingle();
+
+            if (quote) {
+              if (quote.contacts) setSelectedContact(quote.contacts as any);
+              setDueDate(quote.due_date || "");
+              setNotes(
+                quote.notes
+                  ? `${quote.notes}\n${isRTL ? "محوّل من عرض سعر:" : "Converted from quote:"} ${quote.invoice_number}`
+                  : `${isRTL ? "محوّل من عرض سعر:" : "Converted from quote:"} ${quote.invoice_number}`
+              );
+
+              // Fetch quote items
+              const { data: quoteItems } = await supabase
+                .from("invoice_items")
+                .select("*")
+                .eq("invoice_id", fromQuoteId)
+                .order("sort_order");
+
+              if (quoteItems && quoteItems.length > 0) {
+                const mappedItems = quoteItems.map(item => ({
+                  id: crypto.randomUUID(),
+                  product_id: item.product_id,
+                  description: item.description || "",
+                  quantity: item.quantity,
+                  unit_price: item.unit_price,
+                  discount_percent: item.discount_percent || 0,
+                  discount_amount: item.discount_amount || 0,
+                  tax_rate: item.tax_rate || 15,
+                  tax_amount: item.tax_amount || 0,
+                  total: item.total || 0,
+                }));
+                setItems(mappedItems);
+              }
+            }
+          }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -191,7 +236,7 @@ const CreateSalesInvoice = () => {
     };
 
     fetchData();
-  }, [user, isRTL]);
+  }, [user, isRTL, fromQuoteId]);
 
   // Calculate item totals
   const calculateItemTotals = (item: InvoiceItem): InvoiceItem => {

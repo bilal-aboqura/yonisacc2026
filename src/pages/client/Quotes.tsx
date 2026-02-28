@@ -5,15 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanyId } from "@/hooks/useCompanyId";
 import { useState } from "react";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
-import type { DataTableColumn, DataTableAction } from "@/components/ui/data-table";
-import { FileText, Eye, Edit, Trash2, ArrowRightLeft, Loader2, CheckCircle } from "lucide-react";
+import type { DataTableColumn } from "@/components/ui/data-table";
+import { FileText, Eye, Edit, Trash2, ArrowRightLeft, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 
 const Quotes = () => {
   const { isRTL } = useLanguage();
@@ -21,10 +22,8 @@ const Quotes = () => {
   const { companyId } = useCompanyId();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { incrementUsage } = useFeatureAccess();
 
   const [deleteQuote, setDeleteQuote] = useState<any>(null);
-  const [convertingId, setConvertingId] = useState<string | null>(null);
 
   const { data: quotes = [], isLoading } = useQuery({
     queryKey: ["quotes", companyId],
@@ -44,7 +43,6 @@ const Quotes = () => {
   const handleDelete = async () => {
     if (!deleteQuote) return;
     try {
-      // Delete items first
       await supabase.from("invoice_items").delete().eq("invoice_id", deleteQuote.id);
       const { error } = await supabase.from("invoices").delete().eq("id", deleteQuote.id);
       if (error) throw error;
@@ -68,102 +66,6 @@ const Quotes = () => {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
     } catch (error: any) {
       toast.error(error.message || (isRTL ? "خطأ في التحديث" : "Update failed"));
-    }
-  };
-
-  const handleConvertToInvoice = async (quote: any) => {
-    if (!companyId || !user) return;
-    setConvertingId(quote.id);
-
-    try {
-      // 1. Fetch quote items
-      const { data: quoteItems, error: itemsError } = await supabase
-        .from("invoice_items")
-        .select("*")
-        .eq("invoice_id", quote.id)
-        .order("sort_order");
-
-      if (itemsError) throw itemsError;
-
-      // 2. Generate invoice number
-      const { data: settings } = await supabase
-        .from("company_settings")
-        .select("invoice_prefix, next_invoice_number")
-        .eq("company_id", companyId)
-        .maybeSingle();
-
-      const prefix = settings?.invoice_prefix || "INV-";
-      const nextNum = settings?.next_invoice_number || 1;
-      const invoiceNumber = `${prefix}${String(nextNum).padStart(6, "0")}`;
-
-      // 3. Create sales invoice from quote data
-      const { data: invoice, error: invoiceError } = await supabase
-        .from("invoices")
-        .insert({
-          company_id: companyId,
-          contact_id: quote.contact_id,
-          type: "sale",
-          invoice_number: invoiceNumber,
-          invoice_date: new Date().toISOString().split("T")[0],
-          due_date: quote.due_date,
-          subtotal: quote.subtotal,
-          discount_amount: quote.discount_amount,
-          tax_amount: quote.tax_amount,
-          total: quote.total,
-          status: "draft",
-          reference_number: quote.invoice_number, // Link to quote number
-          notes: quote.notes
-            ? `${quote.notes}\n${isRTL ? "محوّل من عرض سعر:" : "Converted from quote:"} ${quote.invoice_number}`
-            : `${isRTL ? "محوّل من عرض سعر:" : "Converted from quote:"} ${quote.invoice_number}`,
-          created_by: user.id,
-        })
-        .select()
-        .single();
-
-      if (invoiceError) throw invoiceError;
-
-      // 4. Copy items to new invoice
-      if (quoteItems && quoteItems.length > 0) {
-        const newItems = quoteItems.map(item => ({
-          invoice_id: invoice.id,
-          product_id: item.product_id,
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          discount_percent: item.discount_percent,
-          discount_amount: item.discount_amount,
-          tax_rate: item.tax_rate,
-          tax_amount: item.tax_amount,
-          total: item.total,
-          sort_order: item.sort_order,
-        }));
-
-        const { error: copyError } = await supabase.from("invoice_items").insert(newItems);
-        if (copyError) throw copyError;
-      }
-
-      // 5. Mark quote as converted
-      await supabase.from("invoices").update({ status: "converted" }).eq("id", quote.id);
-
-      // 6. Increment next_invoice_number
-      await supabase.from("company_settings")
-        .update({ next_invoice_number: nextNum + 1 })
-        .eq("company_id", companyId);
-
-      // 7. Increment usage
-      await incrementUsage("sales_invoices");
-
-      toast.success(isRTL ? "تم تحويل عرض السعر إلى فاتورة مبيعات بنجاح" : "Quote converted to sales invoice");
-
-      queryClient.invalidateQueries({ queryKey: ["quotes"] });
-
-      // Navigate to the new invoice
-      navigate(`/client/invoices/${invoice.id}`);
-    } catch (error: any) {
-      console.error("Convert error:", error);
-      toast.error(error.message || (isRTL ? "خطأ في التحويل" : "Conversion failed"));
-    } finally {
-      setConvertingId(null);
     }
   };
 
@@ -200,7 +102,7 @@ const Quotes = () => {
     {
       key: "status",
       header: isRTL ? "الحالة" : "Status",
-      width: 110,
+      width: 120,
       render: (row) => {
         const map: Record<string, { label: string; variant: any }> = {
           draft: { label: isRTL ? "مسودة" : "Draft", variant: "secondary" },
@@ -214,64 +116,78 @@ const Quotes = () => {
         return <StatusBadge config={s} />;
       },
     },
-  ];
+    {
+      key: "actions",
+      header: isRTL ? "إجراءات" : "Actions",
+      width: 180,
+      render: (row) => (
+        <div className="flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/quotes/${row.id}`)}>
+                <Eye className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isRTL ? "عرض" : "View"}</TooltipContent>
+          </Tooltip>
 
-  const actions: DataTableAction<any>[] = [
-    {
-      label: isRTL ? "عرض" : "View",
-      icon: <Eye className="h-4 w-4" />,
-      onClick: (row) => navigate(`/client/invoices/${row.id}`),
-    },
-    {
-      label: isRTL ? "تعديل" : "Edit",
-      icon: <Edit className="h-4 w-4" />,
-      onClick: (row) => {
-        if (row.status === "converted") {
-          toast.info(isRTL ? "لا يمكن تعديل عرض سعر محوّل لفاتورة" : "Cannot edit a converted quote");
-          return;
-        }
-        navigate(`/client/quotes/${row.id}/edit`);
-      },
-    },
-    {
-      label: isRTL ? "تم التسليم" : "Mark Delivered",
-      icon: <CheckCircle className="h-4 w-4" />,
-      onClick: (row) => {
-        if (row.status === "converted") {
-          toast.info(isRTL ? "هذا العرض محوّل لفاتورة بالفعل" : "This quote is already converted");
-          return;
-        }
-        if (row.status === "delivered") {
-          toast.info(isRTL ? "تم تسليم هذا العرض مسبقاً" : "This quote is already delivered");
-          return;
-        }
-        handleMarkDelivered(row);
-      },
-      separator: true,
-    },
-    {
-      label: isRTL ? "تحويل لفاتورة مبيعات" : "Convert to Invoice",
-      icon: convertingId ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />,
-      onClick: (row) => {
-        if (row.status === "converted") {
-          toast.info(isRTL ? "تم تحويل هذا العرض مسبقاً" : "This quote was already converted");
-          return;
-        }
-        handleConvertToInvoice(row);
-      },
-    },
-    {
-      label: isRTL ? "حذف" : "Delete",
-      icon: <Trash2 className="h-4 w-4" />,
-      onClick: (row) => {
-        if (row.status === "converted") {
-          toast.error(isRTL ? "لا يمكن حذف عرض سعر تم تحويله لفاتورة" : "Cannot delete a quote that has been converted to an invoice");
-          return;
-        }
-        setDeleteQuote(row);
-      },
-      variant: "destructive",
-      separator: true,
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7"
+                disabled={row.status === "converted"}
+                onClick={() => navigate(`/client/quotes/${row.id}/edit`)}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7"
+                disabled={row.status === "converted" || row.status === "delivered"}
+                onClick={() => handleMarkDelivered(row)}>
+                <CheckCircle className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isRTL ? "تم التسليم" : "Delivered"}</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7"
+                disabled={row.status === "converted"}
+                onClick={() => {
+                  if (row.status === "converted") {
+                    toast.info(isRTL ? "تم تحويل هذا العرض مسبقاً" : "Already converted");
+                    return;
+                  }
+                  navigate(`/client/sales/new?from_quote=${row.id}`);
+                }}>
+                <ArrowRightLeft className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isRTL ? "تحويل لفاتورة" : "Convert to Invoice"}</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
+                disabled={row.status === "converted"}
+                onClick={() => {
+                  if (row.status === "converted") {
+                    toast.error(isRTL ? "لا يمكن حذف عرض سعر تم تحويله لفاتورة" : "Cannot delete a converted quote");
+                    return;
+                  }
+                  setDeleteQuote(row);
+                }}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isRTL ? "حذف" : "Delete"}</TooltipContent>
+          </Tooltip>
+        </div>
+      ),
     },
   ];
 
@@ -293,7 +209,6 @@ const Quotes = () => {
         data={quotes}
         isLoading={isLoading}
         rowKey={(row) => row.id}
-        actions={actions}
         searchPlaceholder={isRTL ? "بحث برقم العرض أو اسم العميل..." : "Search by quote number or customer..."}
         onSearch={(row, term) =>
           row.invoice_number.toLowerCase().includes(term) ||

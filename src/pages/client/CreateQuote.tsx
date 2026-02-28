@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,6 +71,8 @@ const CreateQuote = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { id: editId } = useParams();
+  const isEditMode = !!editId;
   const Arrow = isRTL ? ArrowRight : ArrowLeft;
 
   const [isLoading, setIsLoading] = useState(false);
@@ -111,22 +113,6 @@ const CreateQuote = () => {
         if (companyData) {
           setCompany(companyData);
 
-          // Generate quote number
-          const { data: settings } = await supabase
-            .from("company_settings")
-            .select("quote_prefix, next_quote_number")
-            .eq("company_id", companyData.id)
-            .maybeSingle();
-
-          const prefix = settings?.quote_prefix || "QT-";
-          const nextNum = settings?.next_quote_number || 1;
-          setQuoteNumber(`${prefix}${String(nextNum).padStart(6, "0")}`);
-
-          // Set default validity (30 days)
-          const validDate = new Date();
-          validDate.setDate(validDate.getDate() + 30);
-          setValidUntil(validDate.toISOString().split("T")[0]);
-
           // Fetch contacts & products
           const [contactsRes, productsRes] = await Promise.all([
             supabase.from("contacts")
@@ -142,6 +128,60 @@ const CreateQuote = () => {
 
           setContacts(contactsRes.data || []);
           setProducts(productsRes.data || []);
+
+          if (isEditMode) {
+            // Load existing quote
+            const { data: quote } = await supabase
+              .from("invoices")
+              .select("*, contacts(id, name, name_en, phone, tax_number, address)")
+              .eq("id", editId)
+              .maybeSingle();
+
+            if (quote) {
+              setQuoteNumber(quote.invoice_number);
+              setQuoteDate(quote.invoice_date);
+              setValidUntil(quote.due_date || "");
+              setNotes(quote.notes || "");
+              if (quote.contacts) setSelectedContact(quote.contacts as any);
+
+              const { data: quoteItems } = await supabase
+                .from("invoice_items")
+                .select("*")
+                .eq("invoice_id", editId)
+                .order("sort_order");
+
+              if (quoteItems && quoteItems.length > 0) {
+                setItems(quoteItems.map(item => calculateItemTotals({
+                  id: item.id,
+                  product_id: item.product_id,
+                  description: item.description || "",
+                  quantity: item.quantity,
+                  unit_price: item.unit_price,
+                  discount_percent: item.discount_percent || 0,
+                  discount_amount: item.discount_amount || 0,
+                  tax_rate: item.tax_rate || 15,
+                  tax_amount: item.tax_amount || 0,
+                  total: item.total || 0,
+                })));
+              }
+            }
+          } else {
+            // Generate quote number for new quotes
+            const { data: settings } = await supabase
+              .from("company_settings")
+              .select("quote_prefix, next_quote_number")
+              .eq("company_id", companyData.id)
+              .maybeSingle();
+
+            const prefix = settings?.quote_prefix || "QT-";
+            const nextNum = settings?.next_quote_number || 1;
+            setQuoteNumber(`${prefix}${String(nextNum).padStart(6, "0")}`);
+
+            // Set default validity (30 days)
+            const validDate = new Date();
+            validDate.setDate(validDate.getDate() + 30);
+            setValidUntil(validDate.toISOString().split("T")[0]);
+          }
         }
       } catch (error) {
         console.error("Error:", error);
@@ -223,59 +263,103 @@ const CreateQuote = () => {
 
     setIsSaving(true);
     try {
-      const { data: quote, error: quoteError } = await supabase
-        .from("invoices")
-        .insert({
-          company_id: company.id,
-          contact_id: selectedContact.id,
-          type: "quote",
-          invoice_number: quoteNumber,
-          invoice_date: quoteDate,
-          due_date: validUntil || null,
-          subtotal: totals.subtotal,
-          discount_amount: totals.totalDiscount,
-          tax_amount: totals.totalTax,
-          total: totals.total,
-          status,
-          notes,
-          created_by: user?.id,
-        })
-        .select()
-        .single();
+      if (isEditMode) {
+        // Update existing quote
+        const { error: updateError } = await supabase
+          .from("invoices")
+          .update({
+            contact_id: selectedContact.id,
+            invoice_date: quoteDate,
+            due_date: validUntil || null,
+            subtotal: totals.subtotal,
+            discount_amount: totals.totalDiscount,
+            tax_amount: totals.totalTax,
+            total: totals.total,
+            status,
+            notes,
+          })
+          .eq("id", editId);
 
-      if (quoteError) throw quoteError;
+        if (updateError) throw updateError;
 
-      const quoteItems = items
-        .filter(item => item.description)
-        .map((item, index) => ({
-          invoice_id: quote.id,
-          product_id: item.product_id,
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          discount_percent: item.discount_percent,
-          discount_amount: item.discount_amount,
-          tax_rate: item.tax_rate,
-          tax_amount: item.tax_amount,
-          total: item.total,
-          sort_order: index,
-        }));
+        // Delete old items and insert new
+        await supabase.from("invoice_items").delete().eq("invoice_id", editId);
 
-      const { error: itemsError } = await supabase
-        .from("invoice_items").insert(quoteItems);
-      if (itemsError) throw itemsError;
+        const quoteItems = items
+          .filter(item => item.description)
+          .map((item, index) => ({
+            invoice_id: editId,
+            product_id: item.product_id,
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount_percent: item.discount_percent,
+            discount_amount: item.discount_amount,
+            tax_rate: item.tax_rate,
+            tax_amount: item.tax_amount,
+            total: item.total,
+            sort_order: index,
+          }));
 
-      // Increment next_quote_number
-      await supabase
-        .from("company_settings")
-        .update({ next_quote_number: (parseInt(quoteNumber.replace(/\D/g, "")) || 0) + 1 })
-        .eq("company_id", company.id);
+        const { error: itemsError } = await supabase.from("invoice_items").insert(quoteItems);
+        if (itemsError) throw itemsError;
 
-      toast.success(
-        status === "draft"
-          ? (isRTL ? "تم حفظ عرض السعر كمسودة" : "Quote saved as draft")
-          : (isRTL ? "تم إنشاء عرض السعر بنجاح" : "Quote created successfully")
-      );
+        toast.success(isRTL ? "تم تحديث عرض السعر بنجاح" : "Quote updated successfully");
+      } else {
+        // Create new quote
+        const { data: quote, error: quoteError } = await supabase
+          .from("invoices")
+          .insert({
+            company_id: company.id,
+            contact_id: selectedContact.id,
+            type: "quote",
+            invoice_number: quoteNumber,
+            invoice_date: quoteDate,
+            due_date: validUntil || null,
+            subtotal: totals.subtotal,
+            discount_amount: totals.totalDiscount,
+            tax_amount: totals.totalTax,
+            total: totals.total,
+            status,
+            notes,
+            created_by: user?.id,
+          })
+          .select()
+          .single();
+
+        if (quoteError) throw quoteError;
+
+        const quoteItems = items
+          .filter(item => item.description)
+          .map((item, index) => ({
+            invoice_id: quote.id,
+            product_id: item.product_id,
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount_percent: item.discount_percent,
+            discount_amount: item.discount_amount,
+            tax_rate: item.tax_rate,
+            tax_amount: item.tax_amount,
+            total: item.total,
+            sort_order: index,
+          }));
+
+        const { error: itemsError } = await supabase.from("invoice_items").insert(quoteItems);
+        if (itemsError) throw itemsError;
+
+        // Increment next_quote_number
+        await supabase
+          .from("company_settings")
+          .update({ next_quote_number: (parseInt(quoteNumber.replace(/\D/g, "")) || 0) + 1 })
+          .eq("company_id", company.id);
+
+        toast.success(
+          status === "draft"
+            ? (isRTL ? "تم حفظ عرض السعر كمسودة" : "Quote saved as draft")
+            : (isRTL ? "تم إنشاء عرض السعر بنجاح" : "Quote created successfully")
+        );
+      }
       navigate("/client/quotes");
     } catch (error: any) {
       console.error("Error:", error);
@@ -314,10 +398,14 @@ const CreateQuote = () => {
           </Button>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              {isRTL ? "عرض سعر جديد" : "New Quotation"}
+              {isEditMode
+                ? (isRTL ? "تعديل عرض السعر" : "Edit Quotation")
+                : (isRTL ? "عرض سعر جديد" : "New Quotation")}
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
-              {isRTL ? "إنشاء عرض سعر للعميل" : "Create a customer quotation"}
+              {isEditMode
+                ? (isRTL ? "تعديل بيانات عرض السعر" : "Edit quotation details")
+                : (isRTL ? "إنشاء عرض سعر للعميل" : "Create a customer quotation")}
             </p>
           </div>
         </div>
