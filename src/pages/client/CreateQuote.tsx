@@ -247,7 +247,7 @@ const CreateQuote = () => {
     return { subtotal, totalDiscount, totalTax, total };
   }, [items]);
 
-  const handleSave = async (status: "draft" | "sent" = "draft") => {
+  const handleSave = async (status: "draft" | "sent" | "delivered" = "draft") => {
     if (!company) {
       toast.error(isRTL ? "لم يتم العثور على بيانات الشركة" : "Company data not found");
       return;
@@ -414,9 +414,13 @@ const CreateQuote = () => {
             <Save className="h-4 w-4 me-2" />
             {isRTL ? "حفظ كمسودة" : "Save Draft"}
           </Button>
-          <Button onClick={() => handleSave("sent")} disabled={isSaving}>
-            {isSaving ? <Loader2 className="h-4 w-4 me-2 animate-spin" /> : <FileText className="h-4 w-4 me-2" />}
+          <Button variant="secondary" onClick={() => handleSave("sent")} disabled={isSaving}>
+            <FileText className="h-4 w-4 me-2" />
             {isRTL ? "إنشاء العرض" : "Create Quote"}
+          </Button>
+          <Button onClick={() => handleSave("delivered")} disabled={isSaving}>
+            {isSaving ? <Loader2 className="h-4 w-4 me-2 animate-spin" /> : <FileText className="h-4 w-4 me-2" />}
+            {isRTL ? "تم التسليم" : "Delivered"}
           </Button>
         </div>
       </div>
