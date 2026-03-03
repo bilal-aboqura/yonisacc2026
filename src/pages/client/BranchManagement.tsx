@@ -3,7 +3,6 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTable, StatusBadge } from "@/components/ui/data-table";
+import type { DataTableColumn, DataTableAction } from "@/components/ui/data-table";
 import { Plus, Pencil, Trash2, Building2, Loader2, MapPin, Phone } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
 interface BranchForm {
@@ -167,117 +168,132 @@ const BranchManagement = () => {
 
   return (
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-            {isRTL ? "إدارة الفروع" : "Branch Management"}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {isRTL ? "إضافة وتعديل وحذف فروع الشركة" : "Add, edit, and delete company branches"}
-          </p>
-        </div>
-        <Button className="gap-2" onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          {isRTL ? "إضافة فرع" : "Add Branch"}
-        </Button>
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : !branches || branches.length === 0 ? (
-            <div className="text-center py-12">
-              <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                {isRTL ? "لا توجد فروع بعد" : "No branches yet"}
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {isRTL ? "ابدأ بإضافة أول فرع لشركتك" : "Start by adding your first branch"}
-              </p>
-              <Button className="gap-2" onClick={openCreate}>
-                <Plus className="h-4 w-4" />
-                {isRTL ? "إضافة فرع" : "Add Branch"}
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{isRTL ? "اسم الفرع" : "Branch Name"}</TableHead>
-                  <TableHead>{isRTL ? "الاسم بالإنجليزية" : "Name (EN)"}</TableHead>
-                  <TableHead>{isRTL ? "الهاتف" : "Phone"}</TableHead>
-                  <TableHead>{isRTL ? "العنوان" : "Address"}</TableHead>
-                  <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-                  <TableHead className="text-end">{isRTL ? "الإجراءات" : "Actions"}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {branches.map((branch) => (
-                  <TableRow key={branch.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {branch.name}
-                        {branch.is_main && (
-                          <Badge variant="secondary" className="text-xs">
-                            {isRTL ? "رئيسي" : "Main"}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{branch.name_en || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{branch.phone || "—"}</TableCell>
-                    <TableCell className="text-muted-foreground max-w-[200px] truncate">{branch.address || "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={branch.is_active ? "default" : "outline"}>
-                        {branch.is_active ? (isRTL ? "نشط" : "Active") : (isRTL ? "غير نشط" : "Inactive")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(branch)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        {!branch.is_main && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>{isRTL ? "تأكيد الحذف" : "Confirm Delete"}</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  {isRTL
-                                    ? `هل أنت متأكد من حذف الفرع "${branch.name}"؟ لا يمكن التراجع عن هذا الإجراء.`
-                                    : `Are you sure you want to delete "${branch.name}"? This action cannot be undone.`}
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>{isRTL ? "إلغاء" : "Cancel"}</AlertDialogCancel>
-                                <AlertDialogAction
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  onClick={() => deleteMutation.mutate(branch.id)}
-                                >
-                                  {isRTL ? "حذف" : "Delete"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
+      <DataTable<any>
+        title={isRTL ? "إدارة الفروع" : "Branch Management"}
+        icon={<Building2 className="h-5 w-5 text-primary" />}
+        columns={[
+          {
+            key: "name",
+            header: isRTL ? "اسم الفرع" : "Branch Name",
+            render: (row) => (
+              <div className="flex items-center gap-2 font-semibold">
+                {row.name}
+                {row.is_main && (
+                  <Badge variant="secondary" className="text-xs">
+                    {isRTL ? "رئيسي" : "Main"}
+                  </Badge>
+                )}
+              </div>
+            ),
+          },
+          {
+            key: "name_en",
+            header: isRTL ? "الاسم بالإنجليزية" : "Name (EN)",
+            render: (row) => <span className="text-muted-foreground">{row.name_en || "—"}</span>,
+          },
+          {
+            key: "phone",
+            header: isRTL ? "الهاتف" : "Phone",
+            render: (row) => <span className="text-muted-foreground dir-ltr inline-block">{row.phone || "—"}</span>,
+          },
+          {
+            key: "address",
+            header: isRTL ? "العنوان" : "Address",
+            render: (row) => (
+              <span className="text-muted-foreground max-w-[200px] truncate block">{row.address || "—"}</span>
+            ),
+          },
+          {
+            key: "is_active",
+            header: isRTL ? "الحالة" : "Status",
+            render: (row) => (
+              <StatusBadge
+                config={{
+                  label: row.is_active ? (isRTL ? "نشط" : "Active") : (isRTL ? "غير نشط" : "Inactive"),
+                  variant: row.is_active ? "success" : "secondary",
+                }}
+              />
+            ),
+          },
+          {
+            key: "actions",
+            header: isRTL ? "الإجراءات" : "Actions",
+            align: "center",
+            width: 100,
+            render: (row) => (
+              <div className="flex items-center justify-center gap-1">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(row)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                {!row.is_main && (
+                  <AlertDialog>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>{isRTL ? "حذف" : "Delete"}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{isRTL ? "تأكيد الحذف" : "Confirm Delete"}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {isRTL
+                            ? `هل أنت متأكد من حذف الفرع "${row.name}"؟ لا يمكن التراجع عن هذا الإجراء.`
+                            : `Are you sure you want to delete "${row.name}"? This action cannot be undone.`}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{isRTL ? "إلغاء" : "Cancel"}</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => deleteMutation.mutate(row.id)}
+                        >
+                          {isRTL ? "حذف" : "Delete"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            ),
+          },
+        ]}
+        data={branches || []}
+        isLoading={isLoading}
+        rowKey={(row) => row.id}
+        createButton={{
+          label: isRTL ? "إضافة فرع" : "Add Branch",
+          onClick: openCreate,
+        }}
+        onSearch={(row, term) =>
+          (row.name || "").toLowerCase().includes(term) ||
+          (row.name_en || "").toLowerCase().includes(term) ||
+          (row.phone || "").toLowerCase().includes(term) ||
+          (row.address || "").toLowerCase().includes(term)
+        }
+        searchPlaceholder={isRTL ? "بحث في الفروع..." : "Search branches..."}
+        emptyState={{
+          icon: <Building2 className="h-10 w-10 text-muted-foreground/60" />,
+          title: isRTL ? "لا توجد فروع بعد" : "No branches yet",
+          description: isRTL ? "ابدأ بإضافة أول فرع لشركتك" : "Start by adding your first branch",
+          actionLabel: isRTL ? "إضافة فرع" : "Add Branch",
+          onAction: openCreate,
+        }}
+        pageSizes={[10, 25, 50]}
+      />
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
