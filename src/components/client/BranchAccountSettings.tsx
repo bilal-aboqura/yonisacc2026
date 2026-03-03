@@ -22,6 +22,7 @@ interface Branch {
   id: string;
   name: string;
   name_en: string | null;
+  is_active: boolean | null;
 }
 
 interface BranchAccountSettingsProps {
@@ -61,7 +62,7 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
   const fetchData = async () => {
     try {
       const [branchesRes, accountsRes] = await Promise.all([
-        supabase.from("branches").select("id, name, name_en").eq("company_id", companyId).eq("is_active", true).order("name"),
+        supabase.from("branches").select("id, name, name_en, is_active").eq("company_id", companyId).order("is_main", { ascending: false }).order("name"),
         supabase.from("accounts").select("id, code, name, name_en, type, is_parent").eq("company_id", companyId).eq("is_active", true).order("code"),
       ]);
 
@@ -225,6 +226,7 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
                 {branches.map(branch => (
                   <SelectItem key={branch.id} value={branch.id}>
                     {isRTL ? branch.name : (branch.name_en || branch.name)}
+                    {!branch.is_active ? (isRTL ? " (غير نشط)" : " (Inactive)") : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
