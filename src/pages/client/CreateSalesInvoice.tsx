@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import UsageLimitGuard from "@/components/client/UsageLimitGuard";
+import BranchSelector from "@/components/client/BranchSelector";
 
 interface Contact {
   id: string;
@@ -117,6 +118,7 @@ const CreateSalesInvoice = () => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
+  const [selectedBranchId, setSelectedBranchId] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([
@@ -375,6 +377,11 @@ const CreateSalesInvoice = () => {
       return;
     }
 
+    if (!selectedBranchId) {
+      toast.error(isRTL ? "يرجى اختيار الفرع" : "Please select a branch");
+      return;
+    }
+
     if (items.every(item => !item.description)) {
       toast.error(isRTL ? "يرجى إضافة منتج واحد على الأقل" : "Please add at least one product");
       return;
@@ -386,6 +393,7 @@ const CreateSalesInvoice = () => {
       const invoicePayload = {
         company_id: company.id,
         contact_id: selectedContact.id,
+        branch_id: selectedBranchId || null,
         type: "sale",
         invoice_number: invoiceNumber,
         invoice_date: invoiceDate,
@@ -667,7 +675,8 @@ const CreateSalesInvoice = () => {
               <CardTitle className="text-base">{isRTL ? "بيانات الفاتورة" : "Invoice Details"}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <BranchSelector companyId={company?.id || ""} value={selectedBranchId} onChange={setSelectedBranchId} />
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1">
                     <Hash className="h-3 w-3" />

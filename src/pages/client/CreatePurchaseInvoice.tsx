@@ -40,6 +40,7 @@ import {
 import { toast } from "sonner";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import UsageLimitGuard from "@/components/client/UsageLimitGuard";
+import BranchSelector from "@/components/client/BranchSelector";
 
 interface Contact {
   id: string;
@@ -90,6 +91,7 @@ const CreatePurchaseInvoice = () => {
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
+  const [selectedBranchId, setSelectedBranchId] = useState("");
   const [notes, setNotes] = useState("");
 
   const [selectedVendor, setSelectedVendor] = useState<Contact | null>(null);
@@ -304,6 +306,11 @@ const CreatePurchaseInvoice = () => {
       return;
     }
 
+    if (!selectedBranchId) {
+      toast.error(isRTL ? "يرجى اختيار الفرع" : "Please select a branch");
+      return;
+    }
+
     setSaving(true);
     try {
       const invoicePayload = {
@@ -312,6 +319,7 @@ const CreatePurchaseInvoice = () => {
         invoice_date: invoiceDate,
         due_date: dueDate || null,
         reference_number: referenceNumber || null,
+        branch_id: selectedBranchId || null,
         type: "purchase" as const,
         status: status === "confirmed" ? "draft" : status,
         contact_id: selectedVendor?.id || null,
@@ -471,6 +479,7 @@ const CreatePurchaseInvoice = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-4">
+              <BranchSelector companyId={companyId || ""} value={selectedBranchId} onChange={setSelectedBranchId} />
               <div className="space-y-2">
                 <Label>{isRTL ? "رقم الفاتورة" : "Invoice Number"}</Label>
                 <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />

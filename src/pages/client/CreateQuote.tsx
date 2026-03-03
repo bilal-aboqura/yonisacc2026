@@ -22,6 +22,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import BranchSelector from "@/components/client/BranchSelector";
 
 interface Contact {
   id: string;
@@ -89,6 +90,7 @@ const CreateQuote = () => {
   const [quoteNumber, setQuoteNumber] = useState("");
   const [quoteDate, setQuoteDate] = useState(new Date().toISOString().split("T")[0]);
   const [validUntil, setValidUntil] = useState("");
+  const [selectedBranchId, setSelectedBranchId] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<QuoteItem[]>([
@@ -256,6 +258,10 @@ const CreateQuote = () => {
       toast.error(isRTL ? "يرجى اختيار العميل" : "Please select a customer");
       return;
     }
+    if (!selectedBranchId) {
+      toast.error(isRTL ? "يرجى اختيار الفرع" : "Please select a branch");
+      return;
+    }
     if (items.every(item => !item.description)) {
       toast.error(isRTL ? "يرجى إضافة منتج واحد على الأقل" : "Please add at least one item");
       return;
@@ -312,6 +318,7 @@ const CreateQuote = () => {
           .insert({
             company_id: company.id,
             contact_id: selectedContact.id,
+            branch_id: selectedBranchId || null,
             type: "quote",
             invoice_number: quoteNumber,
             invoice_date: quoteDate,
@@ -509,7 +516,8 @@ const CreateQuote = () => {
               <CardTitle className="text-base">{isRTL ? "بيانات عرض السعر" : "Quote Details"}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <BranchSelector companyId={company?.id || ""} value={selectedBranchId} onChange={setSelectedBranchId} />
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1"><Hash className="h-3 w-3" />{isRTL ? "رقم العرض" : "Quote No."}</Label>
                   <Input value={quoteNumber} readOnly className="bg-muted" />
