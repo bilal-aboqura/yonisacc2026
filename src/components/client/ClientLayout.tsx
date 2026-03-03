@@ -53,6 +53,7 @@ import {
   Printer,
   CreditCard,
   Palette,
+  AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -218,6 +219,21 @@ const ClientLayout = () => {
         } else {
           items.push(...autoPartsFiltered);
         }
+      }
+    }
+
+    // Add danger zone for test owner
+    const isTestOwner = user?.id === "87740311-8413-47eb-b936-b4c96daecaa5";
+    if (isTestOwner) {
+      const settingsGroup = items.find(i => i.labelEn === "Settings");
+      if (settingsGroup?.children) {
+        settingsGroup.children.push({
+          icon: AlertTriangle,
+          label: "منطقة الخطر",
+          labelEn: "Danger Zone",
+          path: "/client/settings/danger",
+          permission: "VIEW_SETTINGS",
+        });
       }
     }
 

@@ -234,6 +234,7 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
+          inventory_account_id: string | null
           module_type: string
           purchase_discount_account_id: string | null
           purchase_expense_account_id: string | null
@@ -250,6 +251,7 @@ export type Database = {
           company_id: string
           created_at?: string
           id?: string
+          inventory_account_id?: string | null
           module_type: string
           purchase_discount_account_id?: string | null
           purchase_expense_account_id?: string | null
@@ -266,6 +268,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           id?: string
+          inventory_account_id?: string | null
           module_type?: string
           purchase_discount_account_id?: string | null
           purchase_expense_account_id?: string | null
@@ -290,6 +293,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_inventory_account_id_fkey"
+            columns: ["inventory_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
           {
