@@ -16,6 +16,7 @@ export interface OnboardingData {
   language: string;
   base_currency: string;
   selected_modules: string[];
+  plan_id: string;
 }
 
 const buildDefaultData = (initial?: Partial<OnboardingData>): OnboardingData => ({
@@ -34,6 +35,7 @@ const buildDefaultData = (initial?: Partial<OnboardingData>): OnboardingData => 
   language: "ar",
   base_currency: "SAR",
   selected_modules: [],
+  plan_id: initial?.plan_id || "",
 });
 
 interface OnboardingContextType {
