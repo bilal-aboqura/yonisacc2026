@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,8 +8,10 @@ import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue
 } from "@/components/ui/select";
-import { Settings, Globe, Clock, DollarSign, Languages, ArrowLeft, ArrowRight } from "lucide-react";
+import { Settings, Globe, Clock, DollarSign, Languages, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const CURRENCIES = [
   { code: "SAR", label: "🇸🇦 ريال سعودي", symbol: "ر.س" },
@@ -48,6 +51,7 @@ const COUNTRIES = [
 
 interface Props {
   isRTL: boolean;
+  isFinalStep?: boolean;
 }
 
 const PrefRow = ({ icon: Icon, label, children }: {
@@ -68,8 +72,10 @@ const PrefRow = ({ icon: Icon, label, children }: {
   </div>
 );
 
-export const Step3Preferences = ({ isRTL }: Props) => {
+export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
   const { data, update, goNext, goBack } = useOnboarding();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: verticals } = useQuery({
     queryKey: ["registration-verticals"],
@@ -84,6 +90,84 @@ export const Step3Preferences = ({ isRTL }: Props) => {
       return (rows || []) as Array<{ id: string; name_ar: string; name_en: string }>;
     },
   });
+
+  const handleFinish = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: { full_name: data.full_name },
+        },
+      });
+
+      if (signUpError) {
+        const errMsg = signUpError.message?.toLowerCase() || "";
+        let msg = isRTL ? "حدث خطأ أثناء إنشاء الحساب" : "Failed to create account";
+        if (errMsg.includes("already registered") || errMsg.includes("already been registered") || signUpError.status === 422) {
+          msg = isRTL ? "هذا البريد الإلكتروني مسجل مسبقاً" : "This email is already registered";
+        } else if (errMsg.includes("password")) {
+          msg = isRTL ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل" : "Password must be at least 6 characters";
+        }
+        throw new Error(msg);
+      }
+
+      if (!signUpData.session) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password,
+        });
+        if (signInError || !signInData.session) {
+          throw new Error(isRTL ? "فشل تسجيل الدخول بعد إنشاء الحساب. حاول تسجيل الدخول يدوياً." : "Failed to sign in after signup. Try logging in manually.");
+        }
+      }
+
+      const payload = {
+        full_name: data.full_name.trim(),
+        name: data.company_name.trim(),
+        name_en: data.company_name_en.trim() || null,
+        email: data.email.trim(),
+        phone: data.phone.trim(),
+        commercial_register: data.commercial_register.trim() || null,
+        tax_number: data.tax_number.trim() || null,
+        address: data.address.trim() || null,
+        industry: data.industry || null,
+        country: data.country,
+        timezone: data.timezone,
+        language: data.language,
+        base_currency: data.base_currency,
+        modules: [], // No module selection — all access controlled via RBAC
+      };
+
+      const response = await supabase.functions.invoke("provision-tenant", { body: payload });
+      const result = response.data;
+      const fnError = response.error;
+
+      if (fnError || result?.error) {
+        const errorBody = result || {};
+        let msg = errorBody.error || fnError?.message || (isRTL ? "حدث خطأ في إنشاء الشركة" : "Failed to create company");
+        if (errorBody.code === 'PHONE_ALREADY_EXISTS') {
+          msg = isRTL ? "رقم الجوال مستخدم بالفعل" : "This phone number is already registered";
+        }
+        throw new Error(msg);
+      }
+
+      if (!result?.company_id) throw new Error(isRTL ? "لم يتم إرجاع معرف الشركة" : "Company ID not returned");
+
+      localStorage.setItem("activeCompany", result.company_id);
+      toast.success(isRTL ? "تم إنشاء حسابك وشركتك بنجاح! أهلاً بك 🎉" : "Account & company created! Welcome 🎉");
+      navigate("/client/dashboard");
+    } catch (err: any) {
+      console.error("Onboarding error:", err);
+      toast.error(err.message || (isRTL ? "حدث خطأ غير متوقع" : "Unexpected error"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -130,9 +214,7 @@ export const Step3Preferences = ({ isRTL }: Props) => {
 
         <PrefRow icon={Globe} label={isRTL ? "الدولة" : "Country"}>
           <Select value={data.country} onValueChange={(v) => update({ country: v })}>
-            <SelectTrigger className="h-9 text-sm">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {COUNTRIES.map((c) => (
                 <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
@@ -143,9 +225,7 @@ export const Step3Preferences = ({ isRTL }: Props) => {
 
         <PrefRow icon={Clock} label={isRTL ? "المنطقة الزمنية" : "Timezone"}>
           <Select value={data.timezone} onValueChange={(v) => update({ timezone: v })}>
-            <SelectTrigger className="h-9 text-sm">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {TIMEZONES.map((tz) => (
                 <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
@@ -156,9 +236,7 @@ export const Step3Preferences = ({ isRTL }: Props) => {
 
         <PrefRow icon={DollarSign} label={isRTL ? "العملة الأساسية" : "Base Currency"}>
           <Select value={data.base_currency} onValueChange={(v) => update({ base_currency: v })}>
-            <SelectTrigger className="h-9 text-sm">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {CURRENCIES.map((c) => (
                 <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
@@ -169,9 +247,7 @@ export const Step3Preferences = ({ isRTL }: Props) => {
 
         <PrefRow icon={Languages} label={isRTL ? "لغة النظام" : "System Language"}>
           <Select value={data.language} onValueChange={(v) => update({ language: v })}>
-            <SelectTrigger className="h-9 text-sm">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ar">🇸🇦 العربية</SelectItem>
               <SelectItem value="en">🇺🇸 English</SelectItem>
@@ -180,16 +256,56 @@ export const Step3Preferences = ({ isRTL }: Props) => {
         </PrefRow>
       </div>
 
+      {/* Summary strip (shown when final step) */}
+      {isFinalStep && (
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+            {isRTL ? "ملخص التسجيل" : "Registration Summary"}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
+            <span className="text-muted-foreground flex gap-2">
+              <span>🏢</span>
+              <span className="text-foreground font-medium truncate">{data.company_name || "—"}</span>
+            </span>
+            <span className="text-muted-foreground flex gap-2">
+              <span>📧</span>
+              <span className="text-foreground font-medium truncate">{data.email || "—"}</span>
+            </span>
+            <span className="text-muted-foreground flex gap-2">
+              <span>💰</span>
+              <span className="text-foreground font-medium">{data.base_currency}</span>
+            </span>
+            <span className="text-muted-foreground flex gap-2">
+              <span>🌍</span>
+              <span className="text-foreground font-medium">{data.country} • {data.timezone.split("/")[1]}</span>
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <div className="flex justify-between pt-2">
-        <Button variant="outline" onClick={goBack} className="gap-2">
+        <Button variant="outline" onClick={goBack} disabled={isSubmitting} className="gap-2">
           <ArrowRight className={cn("h-4 w-4", !isRTL && "rotate-180")} />
           {isRTL ? "السابق" : "Back"}
         </Button>
-        <Button onClick={goNext} size="lg" className="gap-2 min-w-[160px]">
-          {isRTL ? "التالي" : "Continue"}
-          <ArrowLeft className={cn("h-4 w-4", !isRTL && "rotate-180")} />
-        </Button>
+        {isFinalStep ? (
+          <Button onClick={handleFinish} disabled={isSubmitting} size="lg" className="gap-2 min-w-[180px]">
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {isRTL ? "جاري الإنشاء..." : "Creating..."}
+              </>
+            ) : (
+              <>{isRTL ? "إنشاء الحساب والشركة 🚀" : "Create Account & Company 🚀"}</>
+            )}
+          </Button>
+        ) : (
+          <Button onClick={goNext} size="lg" className="gap-2 min-w-[160px]">
+            {isRTL ? "التالي" : "Continue"}
+            <ArrowLeft className={cn("h-4 w-4", !isRTL && "rotate-180")} />
+          </Button>
+        )}
       </div>
     </div>
   );

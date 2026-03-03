@@ -1,10 +1,9 @@
-import { Check, Building2, Settings, Layers } from "lucide-react";
+import { Check, Building2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
   { label: "الشركة", labelEn: "Company", icon: Building2 },
   { label: "التفضيلات", labelEn: "Preferences", icon: Settings },
-  { label: "الوحدات", labelEn: "Modules", icon: Layers },
 ];
 
 interface StepIndicatorProps {
