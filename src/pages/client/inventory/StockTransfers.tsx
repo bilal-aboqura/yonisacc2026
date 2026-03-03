@@ -31,7 +31,7 @@ const StockTransfers = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stock_transfers" as any)
-        .select("*, from_branch:branches!stock_transfers_from_branch_id_fkey(name, name_en), to_branch:branches!stock_transfers_to_branch_id_fkey(name, name_en)") as any
+        .select("*, from_branch:branches!stock_transfers_from_branch_id_fkey(name, name_en), to_branch:branches!stock_transfers_to_branch_id_fkey(name, name_en)")
         .eq("company_id", companyId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
