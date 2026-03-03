@@ -64,6 +64,17 @@ import CarBrands from "./pages/client/autoparts/CarBrands";
 import CarModels from "./pages/client/autoparts/CarModels";
 import PartsCatalog from "./pages/client/autoparts/PartsCatalog";
 
+// Inventory
+import UnitsManagement from "./pages/client/inventory/UnitsManagement";
+import CategoriesManagement from "./pages/client/inventory/CategoriesManagement";
+import StockOverview from "./pages/client/inventory/StockOverview";
+import StockAdjustments from "./pages/client/inventory/StockAdjustments";
+import StockTransfers from "./pages/client/inventory/StockTransfers";
+import InternalConsumptions from "./pages/client/inventory/InternalConsumptions";
+import Manufacturing from "./pages/client/inventory/Manufacturing";
+import InventoryReports from "./pages/client/inventory/InventoryReports";
+import ProductCard from "./pages/client/inventory/ProductCard";
+
 // HR Pages
 import HRDashboard from "./pages/client/hr/HRDashboard";
 import Employees from "./pages/client/hr/Employees";
@@ -177,7 +188,15 @@ const App = () => (
               {/* Inventory */}
               <Route path="inventory" element={<ClientInventory />} />
               <Route path="inventory/new" element={<CreateProduct />} />
-              
+              <Route path="inventory/product/:id" element={<ProductCard />} />
+              <Route path="inventory/units" element={<UnitsManagement />} />
+              <Route path="inventory/categories" element={<CategoriesManagement />} />
+              <Route path="inventory/stock" element={<StockOverview />} />
+              <Route path="inventory/adjustments" element={<StockAdjustments />} />
+              <Route path="inventory/transfers" element={<StockTransfers />} />
+              <Route path="inventory/consumptions" element={<InternalConsumptions />} />
+              <Route path="inventory/manufacturing" element={<Manufacturing />} />
+              <Route path="inventory/reports" element={<InventoryReports />} />
               <Route path="inventory/movements" element={<ClientInventory tab="movements" />} />
               
               {/* Other */}

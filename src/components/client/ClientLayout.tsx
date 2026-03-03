@@ -54,6 +54,12 @@ import {
   CreditCard,
   Palette,
   AlertTriangle,
+  Ruler,
+  FolderTree,
+  Warehouse,
+  ArrowRightLeft,
+  Wrench,
+  Factory,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -132,7 +138,14 @@ const baseMenuItems: MenuItem[] = [
     labelEn: "Inventory",
     children: [
       { icon: Package, label: "المنتجات", labelEn: "Products", path: "/client/inventory", permission: "VIEW_INVENTORY" },
-      { icon: TrendingUp, label: "حركة المخزون", labelEn: "Stock Movement", path: "/client/inventory/movements", permission: "VIEW_INVENTORY" },
+      { icon: Ruler, label: "الوحدات", labelEn: "Units", path: "/client/inventory/units", permission: "VIEW_UNITS" },
+      { icon: FolderTree, label: "التصنيفات", labelEn: "Categories", path: "/client/inventory/categories", permission: "VIEW_CATEGORIES" },
+      { icon: Warehouse, label: "نظرة على المخزون", labelEn: "Stock Overview", path: "/client/inventory/stock", permission: "VIEW_INVENTORY" },
+      { icon: ClipboardList, label: "تسوية المخزون", labelEn: "Stock Adjustments", path: "/client/inventory/adjustments", permission: "VIEW_ADJUSTMENTS" },
+      { icon: ArrowRightLeft, label: "تحويل بين الفروع", labelEn: "Stock Transfers", path: "/client/inventory/transfers", permission: "VIEW_TRANSFERS" },
+      { icon: Wrench, label: "الاستهلاك الداخلي", labelEn: "Internal Consumption", path: "/client/inventory/consumptions", permission: "VIEW_CONSUMPTIONS" },
+      { icon: Factory, label: "التصنيع", labelEn: "Manufacturing", path: "/client/inventory/manufacturing", permission: "VIEW_MANUFACTURING" },
+      { icon: BarChart3, label: "تقارير المخزون", labelEn: "Inventory Reports", path: "/client/inventory/reports", permission: "VIEW_INVENTORY_REPORTS" },
     ]
   },
   {
