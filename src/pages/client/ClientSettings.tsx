@@ -14,6 +14,7 @@ import CompanyLogoUpload from "@/components/client/CompanyLogoUpload";
 import PrintSettingsTab from "@/components/print/PrintSettingsTab";
 import PaymentMethodsSettings from "@/components/client/PaymentMethodsSettings";
 import RolesPermissionsManager from "@/components/client/RolesPermissionsManager";
+import BranchAccountSettings from "@/components/client/BranchAccountSettings";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -162,7 +163,7 @@ const ClientSettings = () => {
       </div>
 
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList className={`grid w-full grid-cols-2 ${isTestOwner ? "md:grid-cols-9" : "md:grid-cols-8"} lg:w-auto lg:inline-grid`}>
+        <TabsList className={`grid w-full grid-cols-2 ${isTestOwner ? "md:grid-cols-10" : "md:grid-cols-9"} lg:w-auto lg:inline-grid`}>
           <TabsTrigger value="company" className="gap-2">
             <Building2 className="h-4 w-4" />
             {isRTL ? "الشركة" : "Company"}
@@ -178,6 +179,10 @@ const ClientSettings = () => {
           <TabsTrigger value="profile" className="gap-2">
             <User className="h-4 w-4" />
             {isRTL ? "الملف الشخصي" : "Profile"}
+          </TabsTrigger>
+          <TabsTrigger value="branches" className="gap-2">
+            <Building2 className="h-4 w-4" />
+            {isRTL ? "حسابات الفروع" : "Branch Accounts"}
           </TabsTrigger>
           <TabsTrigger value="print" className="gap-2">
             <Printer className="h-4 w-4" />
@@ -349,6 +354,19 @@ const ClientSettings = () => {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Branch Account Settings Tab */}
+        <TabsContent value="branches">
+          {company?.id ? (
+            <BranchAccountSettings companyId={company.id} />
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                {isRTL ? "لا توجد شركة مرتبطة" : "No company linked"}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Print Tab */}
