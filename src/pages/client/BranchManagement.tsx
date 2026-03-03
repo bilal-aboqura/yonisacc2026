@@ -118,7 +118,7 @@ const BranchManagement = () => {
         if (error) throw error;
       } else {
         // New branches are always inactive
-        const { error } = await supabase
+        const { data: newBranch, error } = await supabase
           .from("branches")
           .insert({
             company_id: company.id,
@@ -128,8 +128,22 @@ const BranchManagement = () => {
             address: form.address || null,
             is_main: form.is_main,
             is_active: false,
-          });
+          })
+          .select("id")
+          .single();
         if (error) throw error;
+
+        // Auto-create a warehouse linked to this branch
+        if (newBranch) {
+          await supabase.from("warehouses").insert({
+            company_id: company.id,
+            branch_id: newBranch.id,
+            name: form.name,
+            name_en: form.name_en || null,
+            is_main: form.is_main,
+            is_active: true,
+          });
+        }
       }
     },
     onSuccess: () => {

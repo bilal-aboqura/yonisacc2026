@@ -34,13 +34,6 @@ const ClientInventory = ({ tab }: ClientInventoryProps) => {
       bgColor: "bg-green-500/10",
     },
     {
-      title: isRTL ? "المستودعات" : "Warehouses",
-      value: "1",
-      icon: Warehouse,
-      color: "text-purple-500",
-      bgColor: "bg-purple-500/10",
-    },
-    {
       title: isRTL ? "تنبيهات المخزون" : "Low Stock Alerts",
       value: "0",
       icon: AlertTriangle,
@@ -93,10 +86,6 @@ const ClientInventory = ({ tab }: ClientInventoryProps) => {
             <Package className="h-4 w-4" />
             {isRTL ? "المنتجات" : "Products"}
           </TabsTrigger>
-          <TabsTrigger value="warehouses" className="gap-2">
-            <Warehouse className="h-4 w-4" />
-            {isRTL ? "المستودعات" : "Warehouses"}
-          </TabsTrigger>
           <TabsTrigger value="movements" className="gap-2">
             <BarChart3 className="h-4 w-4" />
             {isRTL ? "حركة المخزون" : "Stock Movement"}
@@ -131,50 +120,6 @@ const ClientInventory = ({ tab }: ClientInventoryProps) => {
                   <Plus className="h-4 w-4" />
                   {isRTL ? "إضافة منتج" : "Add Product"}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="warehouses">
-          <Card>
-            <CardHeader>
-              <CardTitle>{isRTL ? "المستودعات" : "Warehouses"}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card className="border-primary/50">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Warehouse className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{isRTL ? "المستودع الرئيسي" : "Main Warehouse"}</h4>
-                        <Badge variant="secondary">{isRTL ? "الفرع الرئيسي" : "Main Branch"}</Badge>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">{isRTL ? "المنتجات" : "Products"}</p>
-                        <p className="font-medium">0</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">{isRTL ? "القيمة" : "Value"}</p>
-                        <p className="font-medium">0 ر.س</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-dashed flex items-center justify-center min-h-[140px] cursor-pointer hover:border-primary/50 transition-colors">
-                  <div className="text-center">
-                    <Plus className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      {isRTL ? "إضافة مستودع" : "Add Warehouse"}
-                    </p>
-                  </div>
-                </Card>
               </div>
             </CardContent>
           </Card>

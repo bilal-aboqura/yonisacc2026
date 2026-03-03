@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Save, Building2, ShoppingCart, Store } from "lucide-react";
+import { Loader2, Save, Building2, ShoppingCart, Store, Package } from "lucide-react";
 
 interface Account {
   id: string;
@@ -49,6 +49,9 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
   const [purchaseTaxAccount, setPurchaseTaxAccount] = useState<string>("");
   const [purchasePayableAccount, setPurchasePayableAccount] = useState<string>("");
 
+  // Inventory settings
+  const [inventoryAccount, setInventoryAccount] = useState<string>("");
+
   useEffect(() => {
     fetchData();
   }, [companyId]);
@@ -89,6 +92,7 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
     setPurchaseDiscountAccount("");
     setPurchaseTaxAccount("");
     setPurchasePayableAccount("");
+    setInventoryAccount("");
 
     const { data } = await supabase
       .from("branch_account_settings" as any)
@@ -103,6 +107,7 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
           setSalesDiscountAccount(row.sales_discount_account_id || "");
           setSalesTaxAccount(row.sales_tax_account_id || "");
           setSalesReceivableAccount(row.sales_receivable_account_id || "");
+          setInventoryAccount(row.inventory_account_id || "");
         } else if (row.module_type === "purchases") {
           setPurchaseExpenseAccount(row.purchase_expense_account_id || "");
           setPurchaseDiscountAccount(row.purchase_discount_account_id || "");
@@ -130,6 +135,7 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
         payload.sales_discount_account_id = salesDiscountAccount || null;
         payload.sales_tax_account_id = salesTaxAccount || null;
         payload.sales_receivable_account_id = salesReceivableAccount || null;
+        payload.inventory_account_id = inventoryAccount || null;
       } else {
         payload.purchase_expense_account_id = purchaseExpenseAccount || null;
         payload.purchase_discount_account_id = purchaseDiscountAccount || null;
@@ -237,7 +243,7 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
 
       {selectedBranch && (
         <Tabs defaultValue="sales" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="sales" className="gap-2">
               <Store className="h-4 w-4" />
               {isRTL ? "حسابات المبيعات" : "Sales Accounts"}
@@ -245,6 +251,10 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
             <TabsTrigger value="purchases" className="gap-2">
               <ShoppingCart className="h-4 w-4" />
               {isRTL ? "حسابات المشتريات" : "Purchase Accounts"}
+            </TabsTrigger>
+            <TabsTrigger value="inventory" className="gap-2">
+              <Package className="h-4 w-4" />
+              {isRTL ? "حساب المخزون" : "Inventory Account"}
             </TabsTrigger>
           </TabsList>
 
@@ -266,6 +276,7 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
                   {renderAccountSelect("حساب خصم المبيعات", "Sales Discount Account", salesDiscountAccount, v => setSalesDiscountAccount(v === "none" ? "" : v), ["expense"])}
                   {renderAccountSelect("حساب ضريبة المبيعات", "Sales Tax Account", salesTaxAccount, v => setSalesTaxAccount(v === "none" ? "" : v), ["liability"])}
                   {renderAccountSelect("حساب الذمم المدينة", "Receivable Account", salesReceivableAccount, v => setSalesReceivableAccount(v === "none" ? "" : v), ["asset"])}
+                  {renderAccountSelect("حساب المخزون", "Inventory Account", inventoryAccount, v => setInventoryAccount(v === "none" ? "" : v), ["asset"])}
                 </div>
                 <Button onClick={() => handleSave("sales")} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
@@ -299,6 +310,31 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
                   {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
                   <Save className="h-4 w-4 me-2" />
                   {isRTL ? "حفظ إعدادات المشتريات" : "Save Purchase Settings"}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="inventory">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {isRTL ? "حساب المخزون للفرع" : "Branch Inventory Account"}
+                </CardTitle>
+                <CardDescription>
+                  {isRTL
+                    ? "حساب المخزون المستخدم لتتبع قيمة المخزون في هذا الفرع"
+                    : "Inventory account used to track inventory value for this branch"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  {renderAccountSelect("حساب المخزون", "Inventory Account", inventoryAccount, v => setInventoryAccount(v === "none" ? "" : v), ["asset"])}
+                </div>
+                <Button onClick={() => handleSave("sales")} disabled={saving}>
+                  {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+                  <Save className="h-4 w-4 me-2" />
+                  {isRTL ? "حفظ إعدادات المخزون" : "Save Inventory Settings"}
                 </Button>
               </CardContent>
             </Card>

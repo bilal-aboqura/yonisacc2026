@@ -177,7 +177,7 @@ const App = () => (
               {/* Inventory */}
               <Route path="inventory" element={<ClientInventory />} />
               <Route path="inventory/new" element={<CreateProduct />} />
-              <Route path="inventory/warehouses" element={<ClientInventory tab="warehouses" />} />
+              
               <Route path="inventory/movements" element={<ClientInventory tab="movements" />} />
               
               {/* Other */}
