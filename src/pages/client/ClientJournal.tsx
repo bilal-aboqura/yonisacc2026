@@ -283,7 +283,7 @@ const ClientJournal = () => {
             {t("client.journal.subtitle")}
           </p>
         </div>
-        <PermissionGuard featureKey="accounting.create_journal">
+        <PermissionGuard permission="CREATE_JOURNAL">
           <Button className="gap-2" onClick={() => navigate("/client/journal/new")}>
             <Plus className="h-4 w-4" />
             {t("client.journal.newEntry")}
@@ -370,7 +370,7 @@ const ClientJournal = () => {
                           </Tooltip>
 
                           {!entry.is_auto && (
-                            <PermissionGuard featureKey="accounting.edit_journal">
+                            <PermissionGuard permission="EDIT_JOURNAL">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => navigate(`/client/journal/${entry.id}/edit`)}>
@@ -383,7 +383,7 @@ const ClientJournal = () => {
                           )}
 
                           {!entry.is_auto && entry.status === 'draft' && (
-                            <PermissionGuard featureKey="accounting.create_journal">
+                            <PermissionGuard permission="CREATE_JOURNAL">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button 
@@ -411,7 +411,7 @@ const ClientJournal = () => {
                           </Tooltip>
 
                           {!entry.is_auto && (
-                            <PermissionGuard featureKey="accounting.delete_journal">
+                            <PermissionGuard permission="DELETE_JOURNAL">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteEntry({ id: entry.id, number: entry.entry_number })}>
