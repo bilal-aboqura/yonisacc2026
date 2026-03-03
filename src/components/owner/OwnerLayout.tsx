@@ -14,7 +14,6 @@ import {
   LayoutDashboard,
   Users,
   CreditCard,
-  Monitor,
   MessageSquare,
   Settings,
   LogOut,
@@ -92,11 +91,6 @@ const OwnerLayout = () => {
       path: "/owner/plans", 
       icon: Building2, 
       label: isRTL ? "الباقات" : "Plans" 
-    },
-    { 
-      path: "/owner/screens", 
-      icon: Monitor, 
-      label: isRTL ? "الشاشات" : "Screens" 
     },
     { 
       path: "/owner/landing-content", 

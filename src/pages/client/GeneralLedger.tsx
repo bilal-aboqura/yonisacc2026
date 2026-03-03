@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import ReportActions from "@/components/print/ReportActions";
 import { usePrintSettings } from "@/hooks/usePrintSettings";
-import { usePermissions } from "@/hooks/usePermissions";
+import { useRBAC } from "@/hooks/useRBAC";
 import { exportToExcel } from "@/lib/exportUtils";
 import { PrintableDocument, CompanyInfo } from "@/components/print/types";
 
@@ -83,8 +83,8 @@ const GeneralLedger = () => {
   });
 
   const { settings: printSettings } = usePrintSettings(company?.id);
-  const { hasPermission } = usePermissions();
-  const canExport = hasPermission("reports.export_reports");
+  const { can } = useRBAC();
+  const canExport = can("EXPORT_REPORTS");
 
   // Load accounts (cached 5 min)
   const { data: accounts = [], isLoading: isAccountsLoading } = useQuery({
