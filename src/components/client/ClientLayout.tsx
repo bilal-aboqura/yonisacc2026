@@ -48,6 +48,11 @@ import {
   Car,
   Search,
   Tag,
+  Shield,
+  User,
+  Printer,
+  CreditCard,
+  Palette,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -120,12 +125,15 @@ const baseMenuItems: MenuItem[] = [
       { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/hr/reports", permission: "VIEW_HR" },
     ]
   },
-  { 
-    icon: Package, 
-    label: "المخزون", 
-    labelEn: "Inventory", 
-    path: "/client/inventory",
-    permission: "VIEW_INVENTORY",
+  {
+    icon: Package,
+    label: "المخزون",
+    labelEn: "Inventory",
+    children: [
+      { icon: Package, label: "المنتجات", labelEn: "Products", path: "/client/inventory", permission: "VIEW_INVENTORY" },
+      { icon: Building, label: "المستودعات", labelEn: "Warehouses", path: "/client/inventory/warehouses", permission: "VIEW_INVENTORY" },
+      { icon: TrendingUp, label: "حركة المخزون", labelEn: "Stock Movement", path: "/client/inventory/movements", permission: "VIEW_INVENTORY" },
+    ]
   },
   {
     icon: BarChart3,
@@ -141,12 +149,20 @@ const baseMenuItems: MenuItem[] = [
       { icon: BarChart3, label: "تقارير مراكز التكلفة", labelEn: "Cost Center Reports", path: "/client/cost-centers/reports", permission: "VIEW_COST_CENTER_REPORTS" },
     ]
   },
-  { 
-    icon: Settings, 
-    label: "الإعدادات", 
-    labelEn: "Settings", 
-    path: "/client/settings",
-    permission: "VIEW_SETTINGS",
+  {
+    icon: Settings,
+    label: "الإعدادات",
+    labelEn: "Settings",
+    children: [
+      { icon: Building2, label: "الشركة", labelEn: "Company", path: "/client/settings", permission: "VIEW_SETTINGS" },
+      { icon: Users, label: "الفريق", labelEn: "Team", path: "/client/settings/team", permission: "VIEW_SETTINGS" },
+      { icon: Shield, label: "الأدوار والصلاحيات", labelEn: "Roles & Permissions", path: "/client/settings/roles", permission: "VIEW_SETTINGS" },
+      { icon: User, label: "الملف الشخصي", labelEn: "Profile", path: "/client/settings/profile", permission: "VIEW_SETTINGS" },
+      { icon: Building2, label: "حسابات الفروع", labelEn: "Branch Accounts", path: "/client/settings/branches", permission: "VIEW_SETTINGS" },
+      { icon: Printer, label: "الطباعة", labelEn: "Print", path: "/client/settings/print", permission: "VIEW_SETTINGS" },
+      { icon: CreditCard, label: "طرق الدفع", labelEn: "Payment Methods", path: "/client/settings/payment-methods", permission: "VIEW_SETTINGS" },
+      { icon: Palette, label: "المظهر", labelEn: "Appearance", path: "/client/settings/appearance", permission: "VIEW_SETTINGS" },
+    ]
   },
 ];
 
@@ -255,7 +271,7 @@ const ClientLayout = () => {
 
   const isActive = (path?: string) => path && location.pathname === path;
   const isGroupActive = (children?: MenuItem[]) => 
-    children?.some(child => location.pathname === child.path);
+    children?.some(child => child.path && location.pathname.startsWith(child.path));
 
   const renderMenuItem = (item: MenuItem, isChild = false) => {
     if (item.children) {

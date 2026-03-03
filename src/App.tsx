@@ -173,9 +173,13 @@ const App = () => (
               <Route path="auto-parts/brands" element={<CarBrands />} />
               <Route path="auto-parts/models" element={<CarModels />} />
 
-              {/* Other */}
+              {/* Inventory */}
               <Route path="inventory" element={<ClientInventory />} />
               <Route path="inventory/new" element={<CreateProduct />} />
+              <Route path="inventory/warehouses" element={<ClientInventory tab="warehouses" />} />
+              <Route path="inventory/movements" element={<ClientInventory tab="movements" />} />
+              
+              {/* Other */}
               <Route path="contacts" element={<ClientContacts />} />
               <Route path="contacts/new" element={<CreateContact />} />
               <Route path="contacts/:id/edit" element={<EditContact />} />
@@ -185,7 +189,16 @@ const App = () => (
               <Route path="reports/cash-flow" element={<CashFlow />} />
               <Route path="reports/trial-balance" element={<TrialBalance />} />
               <Route path="reports/vat" element={<VATReport />} />
+              
+              {/* Settings */}
               <Route path="settings" element={<ClientSettings />} />
+              <Route path="settings/team" element={<ClientSettings tab="team" />} />
+              <Route path="settings/roles" element={<ClientSettings tab="roles" />} />
+              <Route path="settings/profile" element={<ClientSettings tab="profile" />} />
+              <Route path="settings/branches" element={<ClientSettings tab="branches" />} />
+              <Route path="settings/print" element={<ClientSettings tab="print" />} />
+              <Route path="settings/payment-methods" element={<ClientSettings tab="payment-methods" />} />
+              <Route path="settings/appearance" element={<ClientSettings tab="appearance" />} />
             </Route>
             
             
