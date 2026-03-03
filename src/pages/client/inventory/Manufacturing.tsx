@@ -8,16 +8,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Plus, Factory, Play, CheckCircle, Trash2 } from "lucide-react";
+import { Plus, Factory, CheckCircle, Trash2, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type FormView = "list" | "new-order" | "new-bom";
 
 const Manufacturing = () => {
   const { isRTL } = useLanguage();
@@ -25,10 +25,8 @@ const Manufacturing = () => {
   const { can } = useRBAC();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [bomDialogOpen, setBomDialogOpen] = useState(false);
-  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [view, setView] = useState<FormView>("list");
 
-  // BOM data
   const { data: boms = [] } = useQuery({
     queryKey: ["bill_of_materials", companyId],
     queryFn: async () => {
@@ -39,7 +37,7 @@ const Manufacturing = () => {
     enabled: !!companyId,
   });
 
-  const { data: orders = [], isLoading: ordersLoading } = useQuery({
+  const { data: orders = [] } = useQuery({
     queryKey: ["manufacturing_orders", companyId],
     queryFn: async () => {
       const { data, error } = await (supabase.from("manufacturing_orders" as any) as any).select("*, products(name, name_en), bill_of_materials(products(name, name_en)), branches(name, name_en)").eq("company_id", companyId!).order("created_at", { ascending: false });
@@ -67,45 +65,27 @@ const Manufacturing = () => {
     enabled: !!companyId,
   });
 
-  // BOM form
-  const [bomForm, setBomForm] = useState({
-    product_id: "",
-    notes: "",
-    items: [{ product_id: "", quantity: 1 }],
-  });
+  const [bomForm, setBomForm] = useState({ product_id: "", notes: "", items: [{ product_id: "", quantity: 1 }] });
+  const [orderForm, setOrderForm] = useState({ bom_id: "", branch_id: "", order_date: new Date().toISOString().split("T")[0], quantity: 1, notes: "" });
 
-  // Order form
-  const [orderForm, setOrderForm] = useState({
-    bom_id: "",
-    branch_id: "",
-    order_date: new Date().toISOString().split("T")[0],
-    quantity: 1,
-    notes: "",
-  });
+  const resetBomForm = () => setBomForm({ product_id: "", notes: "", items: [{ product_id: "", quantity: 1 }] });
+  const resetOrderForm = () => setOrderForm({ bom_id: "", branch_id: "", order_date: new Date().toISOString().split("T")[0], quantity: 1, notes: "" });
 
   const createBomMutation = useMutation({
     mutationFn: async () => {
       const { data: bom, error } = await (supabase.from("bill_of_materials" as any) as any).insert({
-        company_id: companyId,
-        product_id: bomForm.product_id,
-        notes: bomForm.notes || null,
+        company_id: companyId, product_id: bomForm.product_id, notes: bomForm.notes || null,
       } as any).select().single();
       if (error) throw error;
 
-      const items = bomForm.items.filter(i => i.product_id && i.quantity > 0).map(i => ({
-        bom_id: bom.id,
-        product_id: i.product_id,
-        quantity: i.quantity,
-      }));
-      if (items.length > 0) {
-        await (supabase.from("bom_items" as any) as any).insert(items);
-      }
+      const items = bomForm.items.filter(i => i.product_id && i.quantity > 0).map(i => ({ bom_id: bom.id, product_id: i.product_id, quantity: i.quantity }));
+      if (items.length > 0) await (supabase.from("bom_items" as any) as any).insert(items);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bill_of_materials"] });
       toast.success(isRTL ? "تم إنشاء قائمة المواد" : "BOM created");
-      setBomDialogOpen(false);
-      setBomForm({ product_id: "", notes: "", items: [{ product_id: "", quantity: 1 }] });
+      setView("list");
+      resetBomForm();
     },
     onError: () => toast.error(isRTL ? "حدث خطأ" : "Error"),
   });
@@ -117,22 +97,16 @@ const Manufacturing = () => {
       const num = `MFG-${String(count).padStart(4, "0")}`;
 
       await (supabase.from("manufacturing_orders" as any) as any).insert({
-        company_id: companyId,
-        branch_id: orderForm.branch_id,
-        order_number: num,
-        bom_id: orderForm.bom_id,
-        product_id: (bom as any)?.product_id,
-        quantity: orderForm.quantity,
-        status: "draft",
-        notes: orderForm.notes || null,
-        created_by: user?.id,
+        company_id: companyId, branch_id: orderForm.branch_id, order_number: num,
+        bom_id: orderForm.bom_id, product_id: (bom as any)?.product_id,
+        quantity: orderForm.quantity, status: "draft", notes: orderForm.notes || null, created_by: user?.id,
       } as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manufacturing_orders"] });
       toast.success(isRTL ? "تم إنشاء أمر التصنيع" : "Manufacturing order created");
-      setOrderDialogOpen(false);
-      setOrderForm({ bom_id: "", branch_id: "", order_date: new Date().toISOString().split("T")[0], quantity: 1, notes: "" });
+      setView("list");
+      resetOrderForm();
     },
     onError: () => toast.error(isRTL ? "حدث خطأ" : "Error"),
   });
@@ -142,22 +116,16 @@ const Manufacturing = () => {
       const { data: order } = await (supabase.from("manufacturing_orders" as any) as any).select("*").eq("id", orderId).single();
       if (!order) throw new Error("Not found");
 
-      // Get BOM items
       const { data: bomItems } = await (supabase.from("bom_items" as any) as any).select("*, products(purchase_price)").eq("bom_id", (order as any).bom_id);
-
       const { data: warehouse } = await supabase.from("warehouses").select("id").eq("branch_id", (order as any).branch_id).eq("company_id", companyId!).single();
 
       let totalCost = 0;
-
-      // Deduct raw materials
       for (const bi of bomItems || []) {
         const qtyNeeded = bi.quantity * (order as any).quantity;
         totalCost += qtyNeeded * ((bi.products as any)?.purchase_price || 0);
 
         const { data: stock } = await supabase.from("product_stock").select("*").eq("product_id", bi.product_id).eq("warehouse_id", warehouse?.id).single();
-        if (stock) {
-          await supabase.from("product_stock").update({ quantity: (stock.quantity || 0) - qtyNeeded } as any).eq("id", stock.id);
-        }
+        if (stock) await supabase.from("product_stock").update({ quantity: (stock.quantity || 0) - qtyNeeded } as any).eq("id", stock.id);
 
         await supabase.from("stock_movements").insert({
           company_id: companyId, warehouse_id: warehouse?.id, product_id: bi.product_id,
@@ -166,7 +134,6 @@ const Manufacturing = () => {
         } as any);
       }
 
-      // Add finished product
       const { data: finishedStock } = await supabase.from("product_stock").select("*").eq("product_id", (order as any).product_id).eq("warehouse_id", warehouse?.id).single();
       if (finishedStock) {
         await supabase.from("product_stock").update({ quantity: (finishedStock.quantity || 0) + (order as any).quantity } as any).eq("id", finishedStock.id);
@@ -203,6 +170,148 @@ const Manufacturing = () => {
     return <Badge variant={v[status] as any}>{isRTL ? l[status]?.ar : l[status]?.en || status}</Badge>;
   };
 
+  // New BOM form view
+  if (view === "new-bom") {
+    return (
+      <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
+        <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+          <Button variant="ghost" size="icon" onClick={() => { setView("list"); resetBomForm(); }}>
+            <ArrowLeft className={cn("h-5 w-5", isRTL && "rotate-180")} />
+          </Button>
+          <Factory className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold">{isRTL ? "قائمة مواد جديدة" : "New Bill of Materials"}</h1>
+        </div>
+
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div>
+              <Label>{isRTL ? "المنتج النهائي" : "Final Product"} *</Label>
+              <Select value={bomForm.product_id} onValueChange={v => setBomForm(f => ({ ...f, product_id: v }))}>
+                <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                <SelectContent>
+                  {products.filter((p: any) => p.product_type === "manufacturing").map((p: any) => (
+                    <SelectItem key={p.id} value={p.id}>{isRTL ? p.name : p.name_en || p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <div className={cn("flex items-center justify-between mb-3", isRTL && "flex-row-reverse")}>
+                <Label className="text-base font-semibold">{isRTL ? "المواد الخام" : "Raw Materials"}</Label>
+                <Button size="sm" variant="outline" onClick={() => setBomForm(f => ({ ...f, items: [...f.items, { product_id: "", quantity: 1 }] }))}>
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{isRTL ? "المادة" : "Material"}</TableHead>
+                      <TableHead>{isRTL ? "الكمية" : "Qty"}</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bomForm.items.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>
+                          <Select value={item.product_id} onValueChange={v => setBomForm(f => ({ ...f, items: f.items.map((i, j) => j === idx ? { ...i, product_id: v } : i) }))}>
+                            <SelectTrigger><SelectValue placeholder={isRTL ? "مادة" : "Material"} /></SelectTrigger>
+                            <SelectContent>
+                              {products.filter((p: any) => p.product_type === "stock").map((p: any) => (
+                                <SelectItem key={p.id} value={p.id}>{isRTL ? p.name : p.name_en || p.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Input type="number" min={0} value={item.quantity} onChange={e => setBomForm(f => ({ ...f, items: f.items.map((i, j) => j === idx ? { ...i, quantity: parseFloat(e.target.value) || 0 } : i) }))} className="w-28" />
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setBomForm(f => ({ ...f, items: f.items.filter((_, j) => j !== idx) }))} disabled={bomForm.items.length <= 1}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div className={cn("flex gap-3 pt-4", isRTL ? "flex-row-reverse" : "")}>
+              <Button variant="outline" onClick={() => { setView("list"); resetBomForm(); }}>{isRTL ? "إلغاء" : "Cancel"}</Button>
+              <Button onClick={() => createBomMutation.mutate()} disabled={createBomMutation.isPending || !bomForm.product_id}>
+                {isRTL ? "حفظ" : "Save"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // New Order form view
+  if (view === "new-order") {
+    return (
+      <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
+        <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+          <Button variant="ghost" size="icon" onClick={() => { setView("list"); resetOrderForm(); }}>
+            <ArrowLeft className={cn("h-5 w-5", isRTL && "rotate-180")} />
+          </Button>
+          <Factory className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-bold">{isRTL ? "أمر تصنيع جديد" : "New Manufacturing Order"}</h1>
+        </div>
+
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>{isRTL ? "قائمة المواد (BOM)" : "BOM"} *</Label>
+                <Select value={orderForm.bom_id} onValueChange={v => setOrderForm(f => ({ ...f, bom_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>
+                    {boms.filter((b: any) => b.is_active).map((b: any) => (
+                      <SelectItem key={b.id} value={b.id}>{b.products ? (isRTL ? b.products.name : b.products.name_en || b.products.name) : b.id}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>{isRTL ? "الفرع" : "Branch"} *</Label>
+                <Select value={orderForm.branch_id} onValueChange={v => setOrderForm(f => ({ ...f, branch_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>
+                    {branches.map((b: any) => <SelectItem key={b.id} value={b.id}>{isRTL ? b.name : b.name_en || b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>{isRTL ? "تاريخ الأمر" : "Order Date"} *</Label>
+                <Input type="date" value={orderForm.order_date} onChange={e => setOrderForm(f => ({ ...f, order_date: e.target.value }))} />
+              </div>
+              <div>
+                <Label>{isRTL ? "الكمية" : "Quantity"} *</Label>
+                <Input type="number" min={1} value={orderForm.quantity} onChange={e => setOrderForm(f => ({ ...f, quantity: parseInt(e.target.value) || 1 }))} />
+              </div>
+            </div>
+
+            <div className={cn("flex gap-3 pt-4", isRTL ? "flex-row-reverse" : "")}>
+              <Button variant="outline" onClick={() => { setView("list"); resetOrderForm(); }}>{isRTL ? "إلغاء" : "Cancel"}</Button>
+              <Button onClick={() => createOrderMutation.mutate()} disabled={createOrderMutation.isPending || !orderForm.bom_id || !orderForm.branch_id}>
+                {isRTL ? "حفظ" : "Save"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // List view
   return (
     <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
       <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
@@ -219,7 +328,7 @@ const Manufacturing = () => {
         <TabsContent value="orders" className="space-y-4">
           {canManage && (
             <div className={cn("flex justify-end", isRTL && "flex-row-reverse")}>
-              <Button onClick={() => setOrderDialogOpen(true)} className={cn("gap-2", isRTL && "flex-row-reverse")}>
+              <Button onClick={() => setView("new-order")} className={cn("gap-2", isRTL && "flex-row-reverse")}>
                 <Plus className="h-4 w-4" />
                 {isRTL ? "أمر تصنيع جديد" : "New Order"}
               </Button>
@@ -271,7 +380,7 @@ const Manufacturing = () => {
         <TabsContent value="bom" className="space-y-4">
           {canManage && (
             <div className={cn("flex justify-end", isRTL && "flex-row-reverse")}>
-              <Button onClick={() => setBomDialogOpen(true)} className={cn("gap-2", isRTL && "flex-row-reverse")}>
+              <Button onClick={() => setView("new-bom")} className={cn("gap-2", isRTL && "flex-row-reverse")}>
                 <Plus className="h-4 w-4" />
                 {isRTL ? "قائمة مواد جديدة" : "New BOM"}
               </Button>
@@ -303,99 +412,6 @@ const Manufacturing = () => {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* BOM Dialog */}
-      <Dialog open={bomDialogOpen} onOpenChange={setBomDialogOpen}>
-        <DialogContent className="sm:max-w-lg" dir={isRTL ? "rtl" : "ltr"}>
-          <DialogHeader><DialogTitle>{isRTL ? "قائمة مواد جديدة" : "New Bill of Materials"}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>{isRTL ? "المنتج النهائي" : "Final Product"} *</Label>
-              <Select value={bomForm.product_id} onValueChange={v => setBomForm(f => ({ ...f, product_id: v }))}>
-                <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
-                <SelectContent>
-                  {products.filter((p: any) => p.product_type === "manufacturing").map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>{isRTL ? p.name : p.name_en || p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <div className={cn("flex items-center justify-between mb-2", isRTL && "flex-row-reverse")}>
-                <Label>{isRTL ? "المواد الخام" : "Raw Materials"}</Label>
-                <Button size="sm" variant="outline" onClick={() => setBomForm(f => ({ ...f, items: [...f.items, { product_id: "", quantity: 1 }] }))}><Plus className="h-3 w-3" /></Button>
-              </div>
-              {bomForm.items.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 mb-2 items-end">
-                  <div className="col-span-7">
-                    <Select value={item.product_id} onValueChange={v => setBomForm(f => ({ ...f, items: f.items.map((i, j) => j === idx ? { ...i, product_id: v } : i) }))}>
-                      <SelectTrigger><SelectValue placeholder={isRTL ? "مادة" : "Material"} /></SelectTrigger>
-                      <SelectContent>
-                        {products.filter((p: any) => p.product_type === "stock").map((p: any) => (
-                          <SelectItem key={p.id} value={p.id}>{isRTL ? p.name : p.name_en || p.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-4">
-                    <Input type="number" min={0} value={item.quantity} onChange={e => setBomForm(f => ({ ...f, items: f.items.map((i, j) => j === idx ? { ...i, quantity: parseFloat(e.target.value) || 0 } : i) }))} />
-                  </div>
-                  <div className="col-span-1">
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setBomForm(f => ({ ...f, items: f.items.filter((_, j) => j !== idx) }))} disabled={bomForm.items.length <= 1}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <DialogFooter className={cn(isRTL && "flex-row-reverse")}>
-            <Button variant="outline" onClick={() => setBomDialogOpen(false)}>{isRTL ? "إلغاء" : "Cancel"}</Button>
-            <Button onClick={() => createBomMutation.mutate()} disabled={createBomMutation.isPending || !bomForm.product_id}>{isRTL ? "حفظ" : "Save"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Order Dialog */}
-      <Dialog open={orderDialogOpen} onOpenChange={setOrderDialogOpen}>
-        <DialogContent className="sm:max-w-md" dir={isRTL ? "rtl" : "ltr"}>
-          <DialogHeader><DialogTitle>{isRTL ? "أمر تصنيع جديد" : "New Manufacturing Order"}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>{isRTL ? "قائمة المواد (BOM)" : "BOM"} *</Label>
-              <Select value={orderForm.bom_id} onValueChange={v => setOrderForm(f => ({ ...f, bom_id: v }))}>
-                <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
-                <SelectContent>
-                  {boms.filter((b: any) => b.is_active).map((b: any) => (
-                    <SelectItem key={b.id} value={b.id}>{b.products ? (isRTL ? b.products.name : b.products.name_en || b.products.name) : b.id}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>{isRTL ? "الفرع" : "Branch"} *</Label>
-              <Select value={orderForm.branch_id} onValueChange={v => setOrderForm(f => ({ ...f, branch_id: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {branches.map((b: any) => <SelectItem key={b.id} value={b.id}>{isRTL ? b.name : b.name_en || b.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>{isRTL ? "تاريخ الأمر" : "Order Date"} *</Label>
-              <Input type="date" value={orderForm.order_date} onChange={e => setOrderForm(f => ({ ...f, order_date: e.target.value }))} />
-            </div>
-            <div>
-              <Label>{isRTL ? "الكمية" : "Quantity"} *</Label>
-              <Input type="number" min={1} value={orderForm.quantity} onChange={e => setOrderForm(f => ({ ...f, quantity: parseInt(e.target.value) || 1 }))} />
-            </div>
-          </div>
-          <DialogFooter className={cn(isRTL && "flex-row-reverse")}>
-            <Button variant="outline" onClick={() => setOrderDialogOpen(false)}>{isRTL ? "إلغاء" : "Cancel"}</Button>
-            <Button onClick={() => createOrderMutation.mutate()} disabled={createOrderMutation.isPending || !orderForm.bom_id || !orderForm.branch_id}>{isRTL ? "حفظ" : "Save"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
