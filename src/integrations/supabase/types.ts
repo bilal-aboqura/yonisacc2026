@@ -228,6 +228,128 @@ export type Database = {
           },
         ]
       }
+      branch_account_settings: {
+        Row: {
+          branch_id: string
+          company_id: string
+          created_at: string
+          id: string
+          module_type: string
+          purchase_discount_account_id: string | null
+          purchase_expense_account_id: string | null
+          purchase_payable_account_id: string | null
+          purchase_tax_account_id: string | null
+          sales_discount_account_id: string | null
+          sales_receivable_account_id: string | null
+          sales_revenue_account_id: string | null
+          sales_tax_account_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          branch_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          module_type: string
+          purchase_discount_account_id?: string | null
+          purchase_expense_account_id?: string | null
+          purchase_payable_account_id?: string | null
+          purchase_tax_account_id?: string | null
+          sales_discount_account_id?: string | null
+          sales_receivable_account_id?: string | null
+          sales_revenue_account_id?: string | null
+          sales_tax_account_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          module_type?: string
+          purchase_discount_account_id?: string | null
+          purchase_expense_account_id?: string | null
+          purchase_payable_account_id?: string | null
+          purchase_tax_account_id?: string | null
+          sales_discount_account_id?: string | null
+          sales_receivable_account_id?: string | null
+          sales_revenue_account_id?: string | null
+          sales_tax_account_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branch_account_settings_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_purchase_discount_account_id_fkey"
+            columns: ["purchase_discount_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_purchase_expense_account_id_fkey"
+            columns: ["purchase_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_purchase_payable_account_id_fkey"
+            columns: ["purchase_payable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_purchase_tax_account_id_fkey"
+            columns: ["purchase_tax_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_sales_discount_account_id_fkey"
+            columns: ["sales_discount_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_sales_receivable_account_id_fkey"
+            columns: ["sales_receivable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_sales_revenue_account_id_fkey"
+            columns: ["sales_revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_sales_tax_account_id_fkey"
+            columns: ["sales_tax_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           address: string | null

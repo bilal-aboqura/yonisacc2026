@@ -8,10 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Package, Warehouse, AlertTriangle, BarChart3 } from "lucide-react";
 
-const ClientInventory = () => {
+interface ClientInventoryProps {
+  tab?: string;
+}
+
+const ClientInventory = ({ tab }: ClientInventoryProps) => {
   const { isRTL } = useLanguage();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const activeTab = tab || "products";
 
   const stats = [
     {
@@ -82,7 +87,7 @@ const ClientInventory = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="products" className="space-y-4">
+      <Tabs value={activeTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="products" className="gap-2">
             <Package className="h-4 w-4" />
