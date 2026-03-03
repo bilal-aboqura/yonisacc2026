@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, User, Bell, Palette, Users, Loader2, Printer, CreditCard } from "lucide-react";
+import { Building2, User, Bell, Palette, Users, Loader2, Printer, CreditCard, Shield } from "lucide-react";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import TeamManagement from "@/components/client/TeamManagement";
 import CompanyLogoUpload from "@/components/client/CompanyLogoUpload";
 import PrintSettingsTab from "@/components/print/PrintSettingsTab";
 import PaymentMethodsSettings from "@/components/client/PaymentMethodsSettings";
+import RolesPermissionsManager from "@/components/client/RolesPermissionsManager";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -159,7 +160,7 @@ const ClientSettings = () => {
       </div>
 
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-8 lg:w-auto lg:inline-grid">
           <TabsTrigger value="company" className="gap-2">
             <Building2 className="h-4 w-4" />
             {isRTL ? "الشركة" : "Company"}
@@ -167,6 +168,10 @@ const ClientSettings = () => {
           <TabsTrigger value="team" className="gap-2">
             <Users className="h-4 w-4" />
             {isRTL ? "الفريق" : "Team"}
+          </TabsTrigger>
+          <TabsTrigger value="roles" className="gap-2">
+            <Shield className="h-4 w-4" />
+            {isRTL ? "الأدوار" : "Roles"}
           </TabsTrigger>
           <TabsTrigger value="profile" className="gap-2">
             <User className="h-4 w-4" />
@@ -290,6 +295,11 @@ const ClientSettings = () => {
         {/* Team Tab */}
         <TabsContent value="team">
           <TeamManagement />
+        </TabsContent>
+
+        {/* Roles & Permissions Tab */}
+        <TabsContent value="roles">
+          <RolesPermissionsManager />
         </TabsContent>
 
         {/* Profile Tab */}

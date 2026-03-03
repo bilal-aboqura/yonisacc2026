@@ -20,35 +20,41 @@ interface ManagePermissionsDialogProps {
   onSaved: () => void;
 }
 
-interface FeatureFlag {
+interface Permission {
   id: string;
-  feature_key: string;
+  code: string;
   module: string;
   description: string;
   description_ar: string | null;
 }
 
-interface PermissionState {
-  [featureKey: string]: boolean | null; // null = use plan default
-}
-
 const moduleLabels: Record<string, { ar: string; en: string }> = {
+  dashboard: { ar: "لوحة التحكم", en: "Dashboard" },
+  accounting: { ar: "المحاسبة", en: "Accounting" },
   sales: { ar: "المبيعات", en: "Sales" },
   purchases: { ar: "المشتريات", en: "Purchases" },
-  accounting: { ar: "المحاسبة", en: "Accounting" },
   inventory: { ar: "المخزون", en: "Inventory" },
   reports: { ar: "التقارير", en: "Reports" },
   hr: { ar: "الموارد البشرية", en: "Human Resources" },
+  treasury: { ar: "الخزينة", en: "Treasury" },
+  contacts: { ar: "جهات الاتصال", en: "Contacts" },
   settings: { ar: "الإعدادات", en: "Settings" },
+  print: { ar: "الطباعة", en: "Print" },
+  auto_parts: { ar: "قطع الغيار", en: "Auto Parts" },
 };
 
+/**
+ * Owner-level dialog to manage plan_permission_bounds for a company's plan.
+ * This sets the ceiling of what permissions are available to the company,
+ * regardless of their internal RBAC role assignments.
+ */
 const ManagePermissionsDialog = ({ open, onOpenChange, company, onSaved }: ManagePermissionsDialogProps) => {
   const { isRTL } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [flags, setFlags] = useState<FeatureFlag[]>([]);
-  const [planPermissions, setPlanPermissions] = useState<Record<string, boolean>>({});
-  const [overrides, setOverrides] = useState<PermissionState>({});
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [planId, setPlanId] = useState<string | null>(null);
   const [openModules, setOpenModules] = useState<string[]>([]);
 
   useEffect(() => {
@@ -56,30 +62,40 @@ const ManagePermissionsDialog = ({ open, onOpenChange, company, onSaved }: Manag
     const load = async () => {
       setLoading(true);
       try {
-        // Load all feature flags
-        const { data: flagsData } = await supabase
-          .from("feature_flags" as any)
+        // Load all RBAC permissions
+        const { data: permsData } = await supabase
+          .from("rbac_permissions" as any)
           .select("*")
-          .order("module, feature_key");
-        setFlags((flagsData as any) || []);
+          .order("module, code");
+        setPermissions((permsData as any) || []);
 
-        // Load plan permissions for this company's plan
-        const { data: planPerms } = await supabase.rpc("get_plan_permissions_for_company" as any, {
-          p_company_id: company.id,
-        });
-        setPlanPermissions((planPerms as any) || {});
+        // Get company's active plan
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("plan_id")
+          .eq("company_id", company.id)
+          .in("status", ["active", "trialing"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        const pId = sub?.plan_id || null;
+        setPlanId(pId);
 
-        // Load existing company overrides
-        const { data: compOverrides } = await supabase
-          .from("company_permission_overrides" as any)
-          .select("feature_key, allowed")
-          .eq("company_id", company.id);
-
-        const overrideMap: PermissionState = {};
-        ((compOverrides as any) || []).forEach((o: any) => {
-          overrideMap[o.feature_key] = o.allowed;
-        });
-        setOverrides(overrideMap);
+        // Load existing plan_permission_bounds (blocked permissions)
+        if (pId) {
+          const { data: bounds } = await supabase
+            .from("plan_permission_bounds" as any)
+            .select("permission_id, allowed")
+            .eq("plan_id", pId)
+            .eq("allowed", false);
+          
+          const blocked = new Set<string>();
+          ((bounds as any) || []).forEach((b: any) => blocked.add(b.permission_id));
+          setBlockedIds(blocked);
+        } else {
+          setBlockedIds(new Set());
+        }
       } catch (e) {
         console.error("Failed to load permissions:", e);
       } finally {
@@ -89,119 +105,64 @@ const ManagePermissionsDialog = ({ open, onOpenChange, company, onSaved }: Manag
     load();
   }, [open, company]);
 
-  const groupedFlags = useMemo(() => {
-    const groups: Record<string, FeatureFlag[]> = {};
-    flags.forEach((f) => {
-      if (!groups[f.module]) groups[f.module] = [];
-      groups[f.module].push(f);
+  const groupedPerms = useMemo(() => {
+    const groups: Record<string, Permission[]> = {};
+    permissions.forEach(p => {
+      if (!groups[p.module]) groups[p.module] = [];
+      groups[p.module].push(p);
     });
     return groups;
-  }, [flags]);
+  }, [permissions]);
 
-  const getEffectiveValue = (featureKey: string): boolean => {
-    if (overrides[featureKey] !== undefined && overrides[featureKey] !== null) {
-      return overrides[featureKey] as boolean;
-    }
-    return planPermissions[featureKey] !== false;
-  };
-
-  const isOverridden = (featureKey: string): boolean => {
-    return overrides[featureKey] !== undefined && overrides[featureKey] !== null;
-  };
-
-  const togglePermission = (featureKey: string) => {
-    const currentEffective = getEffectiveValue(featureKey);
-    setOverrides((prev) => ({
-      ...prev,
-      [featureKey]: !currentEffective,
-    }));
-  };
-
-  const resetToDefault = (featureKey: string) => {
-    setOverrides((prev) => {
-      const next = { ...prev };
-      delete next[featureKey];
+  const togglePermission = (permId: string) => {
+    setBlockedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(permId)) {
+        next.delete(permId);
+      } else {
+        next.add(permId);
+      }
       return next;
     });
   };
 
   const handleSave = async () => {
+    if (!planId) {
+      toast({ title: isRTL ? "خطأ" : "Error", description: isRTL ? "لا توجد باقة نشطة" : "No active plan found", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
-      // Delete all existing overrides for this company
+      // Delete existing bounds for this plan
       await supabase
-        .from("company_permission_overrides" as any)
+        .from("plan_permission_bounds" as any)
         .delete()
-        .eq("company_id", company.id);
+        .eq("plan_id", planId);
 
-      // Insert only overrides that differ from plan defaults
-      const inserts = Object.entries(overrides)
-        .filter(([, val]) => val !== null && val !== undefined)
-        .map(([key, val]) => ({
-          company_id: company.id,
-          feature_key: key,
-          allowed: val as boolean,
+      // Insert blocked permissions
+      if (blockedIds.size > 0) {
+        const inserts = Array.from(blockedIds).map(pid => ({
+          plan_id: planId,
+          permission_id: pid,
+          allowed: false,
         }));
-
-      if (inserts.length > 0) {
         const { error } = await supabase
-          .from("company_permission_overrides" as any)
+          .from("plan_permission_bounds" as any)
           .insert(inserts);
         if (error) throw error;
       }
 
       toast({
         title: isRTL ? "تم الحفظ" : "Saved",
-        description: isRTL ? "تم تحديث الصلاحيات بنجاح" : "Permissions updated successfully",
+        description: isRTL ? "تم تحديث حدود الصلاحيات" : "Permission bounds updated",
       });
       onSaved();
       onOpenChange(false);
     } catch (e: any) {
-      toast({
-        title: isRTL ? "خطأ" : "Error",
-        description: e.message,
-        variant: "destructive",
-      });
+      toast({ title: isRTL ? "خطأ" : "Error", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
-  };
-
-  const toggleModule = (mod: string) => {
-    setOpenModules((prev) =>
-      prev.includes(mod) ? prev.filter((m) => m !== mod) : [...prev, mod]
-    );
-  };
-
-  const getActionLabel = (featureKey: string): { ar: string; en: string } => {
-    const parts = featureKey.split(".");
-    const action = parts.slice(1).join(".");
-    const actionLabels: Record<string, { ar: string; en: string }> = {
-      create_invoice: { ar: "إنشاء فاتورة", en: "Create Invoice" },
-      edit_invoice: { ar: "تعديل فاتورة", en: "Edit Invoice" },
-      delete_invoice: { ar: "حذف فاتورة", en: "Delete Invoice" },
-      apply_discount: { ar: "تطبيق خصم", en: "Apply Discount" },
-      print_invoice: { ar: "طباعة فاتورة", en: "Print Invoice" },
-      export_excel: { ar: "تصدير Excel", en: "Export Excel" },
-      export_pdf: { ar: "تصدير PDF", en: "Export PDF" },
-      create_journal: { ar: "إنشاء قيد", en: "Create Journal" },
-      edit_journal: { ar: "تعديل قيد", en: "Edit Journal" },
-      delete_journal: { ar: "حذف قيد", en: "Delete Journal" },
-      post_journal: { ar: "ترحيل قيد", en: "Post Journal" },
-      view_reports: { ar: "عرض التقارير", en: "View Reports" },
-      export_reports: { ar: "تصدير التقارير", en: "Export Reports" },
-      financial_statements: { ar: "القوائم المالية", en: "Financial Statements" },
-      adjust_stock: { ar: "تعديل المخزون", en: "Adjust Stock" },
-      change_cost: { ar: "تغيير التكلفة", en: "Change Cost" },
-      view_valuation: { ar: "تقييم المخزون", en: "View Valuation" },
-      create_order: { ar: "إنشاء أمر", en: "Create Order" },
-      edit_order: { ar: "تعديل أمر", en: "Edit Order" },
-      delete_order: { ar: "حذف أمر", en: "Delete Order" },
-      create_quote: { ar: "إنشاء عرض سعر", en: "Create Quote" },
-      edit_quote: { ar: "تعديل عرض سعر", en: "Edit Quote" },
-      delete_quote: { ar: "حذف عرض سعر", en: "Delete Quote" },
-    };
-    return actionLabels[action] || { ar: action, en: action };
   };
 
   return (
@@ -210,10 +171,10 @@ const ManagePermissionsDialog = ({ open, onOpenChange, company, onSaved }: Manag
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
-            {isRTL ? "إدارة الصلاحيات التفصيلية" : "Manage Feature Permissions"}
+            {isRTL ? "حدود صلاحيات الباقة" : "Plan Permission Bounds"}
           </DialogTitle>
           <DialogDescription>
-            {company?.name} — {isRTL ? "تحكم في الإجراءات المسموحة داخل كل وحدة" : "Control allowed actions within each module"}
+            {company?.name} — {isRTL ? "حدد الصلاحيات المتاحة لهذه الباقة (السقف الأعلى)" : "Set the maximum permissions available for this plan"}
           </DialogDescription>
         </DialogHeader>
 
@@ -224,82 +185,47 @@ const ManagePermissionsDialog = ({ open, onOpenChange, company, onSaved }: Manag
         ) : (
           <ScrollArea className="flex-1 -mx-6 px-6">
             <div className="space-y-2 pb-4">
-              {Object.entries(groupedFlags).map(([module, moduleFlags]) => {
+              {Object.entries(groupedPerms).map(([module, perms]) => {
                 const label = moduleLabels[module] || { ar: module, en: module };
                 const isOpen = openModules.includes(module);
-                const overriddenCount = moduleFlags.filter((f) => isOverridden(f.feature_key)).length;
+                const blockedCount = perms.filter(p => blockedIds.has(p.id)).length;
 
                 return (
-                  <Collapsible key={module} open={isOpen} onOpenChange={() => toggleModule(module)}>
+                  <Collapsible key={module} open={isOpen} onOpenChange={() => {
+                    setOpenModules(prev => prev.includes(module) ? prev.filter(m => m !== module) : [...prev, module]);
+                  }}>
                     <CollapsibleTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-between h-11 px-3 hover:bg-muted/50"
-                      >
+                      <Button variant="ghost" className="w-full justify-between h-11 px-3 hover:bg-muted/50">
                         <div className="flex items-center gap-2">
-                          {isOpen ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                          <span className="font-medium">
-                            {isRTL ? label.ar : label.en}
-                          </span>
-                          <Badge variant="secondary" className="text-xs">
-                            {moduleFlags.length}
-                          </Badge>
+                          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          <span className="font-medium">{isRTL ? label.ar : label.en}</span>
+                          <Badge variant="secondary" className="text-xs">{perms.length}</Badge>
                         </div>
-                        {overriddenCount > 0 && (
-                          <Badge variant="outline" className="text-xs text-primary border-primary">
-                            {overriddenCount} {isRTL ? "مخصص" : "custom"}
+                        {blockedCount > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            {blockedCount} {isRTL ? "محظور" : "blocked"}
                           </Badge>
                         )}
                       </Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <div className="space-y-1 ps-6 pe-2 pb-2">
-                        {moduleFlags.map((flag) => {
-                          const actionLabel = getActionLabel(flag.feature_key);
-                          const effective = getEffectiveValue(flag.feature_key);
-                          const overridden = isOverridden(flag.feature_key);
-                          const planDefault = planPermissions[flag.feature_key] !== false;
-
+                        {perms.map(perm => {
+                          const isAllowed = !blockedIds.has(perm.id);
                           return (
                             <div
-                              key={flag.feature_key}
+                              key={perm.id}
                               className={`flex items-center justify-between py-2 px-3 rounded-md transition-colors ${
-                                overridden ? "bg-primary/5 border border-primary/20" : "hover:bg-muted/30"
+                                !isAllowed ? "bg-destructive/5 border border-destructive/20" : "hover:bg-muted/30"
                               }`}
                             >
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium">
-                                  {isRTL ? actionLabel.ar : actionLabel.en}
+                                  {isRTL ? (perm.description_ar || perm.description) : perm.description}
                                 </p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-xs text-muted-foreground font-mono">
-                                    {flag.feature_key}
-                                  </span>
-                                  {overridden && (
-                                    <Button
-                                      variant="link"
-                                      size="sm"
-                                      className="h-auto p-0 text-xs text-primary"
-                                      onClick={() => resetToDefault(flag.feature_key)}
-                                    >
-                                      {isRTL ? "إعادة للافتراضي" : "Reset"}
-                                    </Button>
-                                  )}
-                                </div>
+                                <span className="text-xs text-muted-foreground font-mono">{perm.code}</span>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <span className={`text-xs ${planDefault ? "text-green-600" : "text-red-500"}`}>
-                                  ({isRTL ? "الخطة:" : "Plan:"} {planDefault ? "✓" : "✗"})
-                                </span>
-                                <Switch
-                                  checked={effective}
-                                  onCheckedChange={() => togglePermission(flag.feature_key)}
-                                />
-                              </div>
+                              <Switch checked={isAllowed} onCheckedChange={() => togglePermission(perm.id)} />
                             </div>
                           );
                         })}
@@ -308,12 +234,6 @@ const ManagePermissionsDialog = ({ open, onOpenChange, company, onSaved }: Manag
                   </Collapsible>
                 );
               })}
-
-              {Object.keys(groupedFlags).length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  {isRTL ? "لا توجد صلاحيات مسجلة بعد" : "No feature flags configured yet"}
-                </div>
-              )}
             </div>
           </ScrollArea>
         )}
@@ -326,7 +246,7 @@ const ManagePermissionsDialog = ({ open, onOpenChange, company, onSaved }: Manag
           </Button>
           <Button onClick={handleSave} disabled={saving || loading}>
             {saving && <Loader2 className="h-4 w-4 animate-spin me-2" />}
-            {isRTL ? "حفظ الصلاحيات" : "Save Permissions"}
+            {isRTL ? "حفظ" : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>

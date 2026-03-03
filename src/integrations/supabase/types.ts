@@ -1928,6 +1928,45 @@ export type Database = {
           },
         ]
       }
+      plan_permission_bounds: {
+        Row: {
+          allowed: boolean
+          created_at: string
+          id: string
+          permission_id: string
+          plan_id: string
+        }
+        Insert: {
+          allowed?: boolean
+          created_at?: string
+          id?: string
+          permission_id: string
+          plan_id: string
+        }
+        Update: {
+          allowed?: boolean
+          created_at?: string
+          id?: string
+          permission_id?: string
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_permission_bounds_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "rbac_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_permission_bounds_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_screens: {
         Row: {
           created_at: string
@@ -2319,6 +2358,146 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      rbac_permissions: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          description_ar: string | null
+          id: string
+          module: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string
+          description_ar?: string | null
+          id?: string
+          module: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          description_ar?: string | null
+          id?: string
+          module?: string
+        }
+        Relationships: []
+      }
+      rbac_role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rbac_role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "rbac_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rbac_role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "rbac_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rbac_roles: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          is_system: boolean
+          name: string
+          name_en: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name: string
+          name_en?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+          name_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rbac_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rbac_user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          company_id: string
+          id: string
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          company_id: string
+          id?: string
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          company_id?: string
+          id?: string
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rbac_user_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rbac_user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "rbac_roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock_movements: {
         Row: {
@@ -2968,6 +3147,10 @@ export type Database = {
         Returns: Json
       }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
+      get_user_permissions: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3079,6 +3262,14 @@ export type Database = {
       sync_plan_screens_to_subscribers: {
         Args: { p_plan_id: string }
         Returns: undefined
+      }
+      user_has_permission: {
+        Args: {
+          _company_id: string
+          _permission_code: string
+          _user_id: string
+        }
+        Returns: boolean
       }
       verify_tenant_access: {
         Args: { _company_id: string; _user_id: string }
