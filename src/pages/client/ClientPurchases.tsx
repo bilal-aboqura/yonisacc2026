@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,17 +7,39 @@ import { useCompanyId } from "@/hooks/useCompanyId";
 import { useAuth } from "@/contexts/AuthContext";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
 import type { DataTableColumn } from "@/components/ui/data-table";
-import { ShoppingCart, Eye, Trash2, CreditCard, Undo2 } from "lucide-react";
+import { ShoppingCart, Eye, Trash2, CreditCard, Undo2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import InvoicePaymentDialog from "@/components/client/InvoicePaymentDialog";
+import PurchaseReturnDialog from "@/components/client/PurchaseReturnDialog";
 
 const OWNER_USER_ID = "87740311-8413-47eb-b936-b4c96daecaa5";
+
+const statusMap = (isRTL: boolean): Record<string, { label: string; variant: any }> => ({
+  draft: { label: isRTL ? "مسودة" : "Draft", variant: "secondary" },
+  confirmed: { label: isRTL ? "مؤكدة" : "Confirmed", variant: "success" },
+  posted: { label: isRTL ? "مؤكدة" : "Confirmed", variant: "success" },
+  returned: { label: isRTL ? "مرتجعة" : "Returned", variant: "destructive" },
+  partial_return: { label: isRTL ? "مرتجع جزئي" : "Partial Return", variant: "warning" },
+});
+
+const paymentMap = (isRTL: boolean): Record<string, { label: string; variant: any }> => ({
+  paid: { label: isRTL ? "مدفوعة" : "Paid", variant: "success" },
+  unpaid: { label: isRTL ? "غير مدفوعة" : "Unpaid", variant: "destructive" },
+  partial: { label: isRTL ? "جزئية" : "Partial", variant: "warning" },
+});
 
 const ClientPurchases = () => {
   const { isRTL } = useLanguage();
@@ -28,6 +50,13 @@ const ClientPurchases = () => {
 
   const [deleteInvoice, setDeleteInvoice] = useState<any>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<any>(null);
+  const [returnInvoice, setReturnInvoice] = useState<any>(null);
+
+  // Filters
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPayment, setFilterPayment] = useState("all");
+  const [filterMonth, setFilterMonth] = useState("all");
+  const [filterYear, setFilterYear] = useState("all");
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["purchase-invoices", companyId],
@@ -43,6 +72,27 @@ const ClientPurchases = () => {
     },
     enabled: !!companyId,
   });
+
+  const availableYears = useMemo(() => {
+    const years = new Set<string>();
+    invoices.forEach((inv: any) => {
+      if (inv.invoice_date) years.add(inv.invoice_date.substring(0, 4));
+    });
+    return Array.from(years).sort().reverse();
+  }, [invoices]);
+
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((inv: any) => {
+      if (filterStatus !== "all" && inv.status !== filterStatus) return false;
+      if (filterPayment !== "all" && (inv.payment_status || "unpaid") !== filterPayment) return false;
+      if (filterYear !== "all" && !inv.invoice_date?.startsWith(filterYear)) return false;
+      if (filterMonth !== "all") {
+        const month = inv.invoice_date?.substring(5, 7);
+        if (month !== filterMonth) return false;
+      }
+      return true;
+    });
+  }, [invoices, filterStatus, filterPayment, filterMonth, filterYear]);
 
   const handleDelete = async () => {
     if (!deleteInvoice) return;
@@ -60,9 +110,8 @@ const ClientPurchases = () => {
     }
   };
 
-  const handleReturn = async (invoice: any) => {
-    navigate(`/client/purchases/new?return_from=${invoice.id}`);
-  };
+  const sMap = statusMap(isRTL);
+  const pMap = paymentMap(isRTL);
 
   const columns: DataTableColumn<any>[] = [
     {
@@ -100,58 +149,66 @@ const ClientPurchases = () => {
       header: isRTL ? "حالة الدفع" : "Payment",
       width: 110,
       render: (row) => {
-        const map: Record<string, { label: string; variant: any }> = {
-          paid: { label: isRTL ? "مدفوعة" : "Paid", variant: "success" },
-          unpaid: { label: isRTL ? "غير مدفوعة" : "Unpaid", variant: "destructive" },
-          partial: { label: isRTL ? "جزئية" : "Partial", variant: "warning" },
-        };
-        const s = map[row.payment_status || "unpaid"] || map.unpaid;
+        const s = pMap[row.payment_status || "unpaid"] || pMap.unpaid;
         return <StatusBadge config={s} />;
       },
     },
     {
       key: "status",
       header: isRTL ? "الحالة" : "Status",
-      width: 100,
-      render: (row) => (
-        <StatusBadge config={row.status === "posted"
-          ? { label: isRTL ? "معتمدة" : "Posted", variant: "success" }
-          : { label: isRTL ? "مسودة" : "Draft", variant: "secondary" }
-        } />
-      ),
+      width: 120,
+      render: (row) => {
+        const s = sMap[row.status || "draft"] || sMap.draft;
+        return <StatusBadge config={s} />;
+      },
     },
     {
       key: "actions",
       header: isRTL ? "إجراءات" : "Actions",
-      width: 160,
+      width: 180,
       render: (row) => (
         <div className="flex items-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/invoices/${row.id}`)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/purchases/${row.id}`)}>
                 <Eye className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{isRTL ? "عرض" : "View"}</TooltipContent>
           </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPaymentInvoice(row)}>
-                <CreditCard className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{isRTL ? "تحصيل دفعات" : "Payments"}</TooltipContent>
-          </Tooltip>
+          {row.status === "draft" && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(`/client/purchases/${row.id}/edit`)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
+            </Tooltip>
+          )}
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleReturn(row)}>
-                <Undo2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{isRTL ? "مرتجع" : "Return"}</TooltipContent>
-          </Tooltip>
+          {(row.status === "confirmed" || row.status === "posted") && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPaymentInvoice(row)}>
+                  <CreditCard className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isRTL ? "دفعات" : "Payments"}</TooltipContent>
+            </Tooltip>
+          )}
+
+          {(row.status === "confirmed" || row.status === "posted") && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setReturnInvoice(row)}>
+                  <Undo2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isRTL ? "مرتجع" : "Return"}</TooltipContent>
+            </Tooltip>
+          )}
 
           {user?.id === OWNER_USER_ID && (
             <Tooltip>
@@ -169,6 +226,13 @@ const ClientPurchases = () => {
     },
   ];
 
+  const months = Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1).padStart(2, "0"),
+    label: isRTL
+      ? new Date(2000, i).toLocaleDateString("ar-SA", { month: "long" })
+      : new Date(2000, i).toLocaleDateString("en-US", { month: "long" }),
+  }));
+
   return (
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
       <div>
@@ -180,11 +244,74 @@ const ClientPurchases = () => {
         </p>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[150px] h-9">
+            <SelectValue placeholder={isRTL ? "الحالة" : "Status"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{isRTL ? "كل الحالات" : "All Statuses"}</SelectItem>
+            <SelectItem value="draft">{isRTL ? "مسودة" : "Draft"}</SelectItem>
+            <SelectItem value="confirmed">{isRTL ? "مؤكدة" : "Confirmed"}</SelectItem>
+            <SelectItem value="returned">{isRTL ? "مرتجعة" : "Returned"}</SelectItem>
+            <SelectItem value="partial_return">{isRTL ? "مرتجع جزئي" : "Partial Return"}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterPayment} onValueChange={setFilterPayment}>
+          <SelectTrigger className="w-[150px] h-9">
+            <SelectValue placeholder={isRTL ? "حالة الدفع" : "Payment"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{isRTL ? "كل حالات الدفع" : "All Payments"}</SelectItem>
+            <SelectItem value="paid">{isRTL ? "مدفوعة" : "Paid"}</SelectItem>
+            <SelectItem value="unpaid">{isRTL ? "غير مدفوعة" : "Unpaid"}</SelectItem>
+            <SelectItem value="partial">{isRTL ? "جزئية" : "Partial"}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterMonth} onValueChange={setFilterMonth}>
+          <SelectTrigger className="w-[140px] h-9">
+            <SelectValue placeholder={isRTL ? "الشهر" : "Month"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{isRTL ? "كل الأشهر" : "All Months"}</SelectItem>
+            {months.map((m) => (
+              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterYear} onValueChange={setFilterYear}>
+          <SelectTrigger className="w-[120px] h-9">
+            <SelectValue placeholder={isRTL ? "السنة" : "Year"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{isRTL ? "كل السنوات" : "All Years"}</SelectItem>
+            {availableYears.map((y) => (
+              <SelectItem key={y} value={y}>{y}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {(filterStatus !== "all" || filterPayment !== "all" || filterMonth !== "all" || filterYear !== "all") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9"
+            onClick={() => { setFilterStatus("all"); setFilterPayment("all"); setFilterMonth("all"); setFilterYear("all"); }}
+          >
+            {isRTL ? "مسح الفلاتر" : "Clear Filters"}
+          </Button>
+        )}
+      </div>
+
       <DataTable
         title={isRTL ? "قائمة الفواتير" : "Invoices List"}
         icon={<ShoppingCart className="h-5 w-5 text-primary" />}
         columns={columns}
-        data={invoices}
+        data={filteredInvoices}
         isLoading={isLoading}
         rowKey={(row) => row.id}
         searchPlaceholder={isRTL ? "بحث برقم الفاتورة أو اسم المورد..." : "Search by invoice number or vendor..."}
@@ -211,6 +338,15 @@ const ClientPurchases = () => {
           invoice={paymentInvoice}
           open={!!paymentInvoice}
           onOpenChange={(open) => !open && setPaymentInvoice(null)}
+        />
+      )}
+
+      {/* Return Dialog */}
+      {returnInvoice && (
+        <PurchaseReturnDialog
+          invoice={returnInvoice}
+          open={!!returnInvoice}
+          onOpenChange={(open) => !open && setReturnInvoice(null)}
         />
       )}
 

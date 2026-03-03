@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useLanguage } from "@/hooks/useLanguage";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowRight,
+  ArrowLeft,
   Plus,
   Trash2,
   Search,
@@ -31,10 +35,9 @@ import {
   Package,
   User,
   Loader2,
+  CheckCircle,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import UsageLimitGuard from "@/components/client/UsageLimitGuard";
 
@@ -71,7 +74,11 @@ interface InvoiceItem {
 const CreatePurchaseInvoice = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isRTL } = useLanguage();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditMode = !!editId;
   const { incrementUsage } = useFeatureAccess();
+  const Arrow = isRTL ? ArrowRight : ArrowLeft;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -105,12 +112,12 @@ const CreatePurchaseInvoice = () => {
       if (!resolvedId) throw new Error("No company found");
       setCompanyId(resolvedId);
 
-      // Fetch vendors (suppliers)
+      // Fetch vendors (suppliers + both)
       const { data: vendorsData } = await supabase
         .from("contacts")
         .select("id, name, name_en, tax_number, address, phone")
         .eq("company_id", resolvedId)
-        .eq("type", "vendor")
+        .in("type", ["vendor", "both"])
         .eq("is_active", true);
 
       setVendors(vendorsData || []);
@@ -124,21 +131,65 @@ const CreatePurchaseInvoice = () => {
 
       setProducts(productsData || []);
 
-      // Generate invoice number
-      const { count } = await supabase
-        .from("invoices")
-        .select("*", { count: "exact", head: true })
-        .eq("company_id", resolvedId)
-        .eq("type", "purchase");
+      // Load existing invoice for editing
+      if (isEditMode && editId) {
+        const { data: existingInvoice } = await supabase
+          .from("invoices")
+          .select("*, contacts(id, name, name_en, tax_number, address, phone)")
+          .eq("id", editId)
+          .eq("company_id", resolvedId)
+          .maybeSingle();
 
-      setInvoiceNumber(`PUR-${String((count || 0) + 1).padStart(6, "0")}`);
+        if (existingInvoice) {
+          if (existingInvoice.status !== "draft") {
+            toast.error(isRTL ? "لا يمكن تعديل فاتورة مؤكدة" : "Cannot edit a confirmed invoice");
+            navigate("/client/purchases");
+            return;
+          }
+          setInvoiceNumber(existingInvoice.invoice_number);
+          setInvoiceDate(existingInvoice.invoice_date);
+          setDueDate(existingInvoice.due_date || "");
+          setReferenceNumber(existingInvoice.reference_number || "");
+          setNotes(existingInvoice.notes || "");
+          if (existingInvoice.contacts) setSelectedVendor(existingInvoice.contacts as any);
+
+          const { data: existingItems } = await supabase
+            .from("invoice_items")
+            .select("*, product:products(name, name_en)")
+            .eq("invoice_id", editId)
+            .order("sort_order");
+
+          if (existingItems && existingItems.length > 0) {
+            setItems(existingItems.map(item => {
+              const pName = isRTL ? item.product?.name : (item.product?.name_en || item.product?.name);
+              return {
+                id: crypto.randomUUID(),
+                product_id: item.product_id,
+                product_name: pName || item.description || "",
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                discount_percent: item.discount_percent || 0,
+                tax_rate: item.tax_rate || 15,
+                total: item.total || 0,
+              };
+            }));
+          }
+        }
+      } else {
+        // Generate invoice number from settings
+        const { data: settings } = await supabase
+          .from("company_settings")
+          .select("purchase_prefix, next_purchase_number")
+          .eq("company_id", resolvedId)
+          .maybeSingle();
+
+        const prefix = settings?.purchase_prefix || "PUR-";
+        const nextNum = settings?.next_purchase_number || 1;
+        setInvoiceNumber(`${prefix}${String(nextNum).padStart(6, "0")}`);
+      }
     } catch (error: any) {
       console.error("Error fetching data:", error);
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ في تحميل البيانات",
-        variant: "destructive",
-      });
+      toast.error(isRTL ? "حدث خطأ في تحميل البيانات" : "Error loading data");
     } finally {
       setLoading(false);
     }
@@ -169,7 +220,7 @@ const CreatePurchaseInvoice = () => {
     const newItem: InvoiceItem = {
       id: crypto.randomUUID(),
       product_id: product.id,
-      product_name: product.name,
+      product_name: isRTL ? product.name : (product.name_en || product.name),
       quantity: 1,
       unit_price: product.purchase_price || 0,
       discount_percent: 0,
@@ -204,41 +255,52 @@ const CreatePurchaseInvoice = () => {
     if (!companyId) return;
 
     if (items.length === 0) {
-      toast({
-        title: "خطأ",
-        description: "يرجى إضافة صنف واحد على الأقل",
-        variant: "destructive",
-      });
+      toast.error(isRTL ? "يرجى إضافة صنف واحد على الأقل" : "Please add at least one item");
       return;
     }
 
     setSaving(true);
     try {
-      const { data: invoiceData, error: invoiceError } = await supabase
-        .from("invoices")
-        .insert({
-          company_id: companyId,
-          invoice_number: invoiceNumber,
-          invoice_date: invoiceDate,
-          due_date: dueDate || null,
-          reference_number: referenceNumber || null,
-          type: "purchase",
-          status,
-          contact_id: selectedVendor?.id || null,
-          subtotal: subtotal,
-          discount_amount: totalDiscount,
-          tax_amount: totalTax,
-          total: grandTotal,
-          notes: notes || null,
-          created_by: user?.id,
-        })
-        .select()
-        .single();
+      const invoicePayload = {
+        company_id: companyId,
+        invoice_number: invoiceNumber,
+        invoice_date: invoiceDate,
+        due_date: dueDate || null,
+        reference_number: referenceNumber || null,
+        type: "purchase" as const,
+        status: status === "confirmed" ? "draft" : status,
+        contact_id: selectedVendor?.id || null,
+        subtotal: subtotal,
+        discount_amount: totalDiscount,
+        tax_amount: totalTax,
+        total: grandTotal,
+        notes: notes || null,
+        created_by: user?.id,
+      };
 
-      if (invoiceError) throw invoiceError;
+      let invoiceId: string;
+
+      if (isEditMode && editId) {
+        const { error: updateError } = await supabase
+          .from("invoices")
+          .update(invoicePayload)
+          .eq("id", editId);
+        if (updateError) throw updateError;
+        invoiceId = editId;
+
+        await supabase.from("invoice_items").delete().eq("invoice_id", editId);
+      } else {
+        const { data: invoiceData, error: invoiceError } = await supabase
+          .from("invoices")
+          .insert(invoicePayload)
+          .select()
+          .single();
+        if (invoiceError) throw invoiceError;
+        invoiceId = invoiceData.id;
+      }
 
       const invoiceItems = items.map((item, index) => ({
-        invoice_id: invoiceData.id,
+        invoice_id: invoiceId,
         product_id: item.product_id,
         description: item.product_name,
         quantity: item.quantity,
@@ -252,25 +314,37 @@ const CreatePurchaseInvoice = () => {
       }));
 
       const { error: itemsError } = await supabase.from("invoice_items").insert(invoiceItems);
-
       if (itemsError) throw itemsError;
 
-      // Increment usage counter
-      await incrementUsage("purchase_invoices");
+      // If confirmed, post via RPC
+      if (status === "confirmed") {
+        const { data: postResult, error: postError } = await supabase
+          .rpc("post_purchase_invoice" as any, {
+            p_company_id: companyId,
+            p_invoice_id: invoiceId,
+          });
+        if (postError) throw postError;
+      }
 
-      toast({
-        title: "تم الحفظ",
-        description: status === "draft" ? "تم حفظ الفاتورة كمسودة" : "تم حفظ الفاتورة بنجاح",
-      });
+      // Increment usage only for new invoices
+      if (!isEditMode) {
+        await incrementUsage("purchase_invoices");
+      }
+
+      toast.success(
+        isEditMode
+          ? (status === "confirmed"
+            ? (isRTL ? "تم تأكيد الفاتورة بنجاح" : "Invoice confirmed successfully")
+            : (isRTL ? "تم تحديث الفاتورة" : "Invoice updated"))
+          : (status === "draft"
+            ? (isRTL ? "تم حفظ الفاتورة كمسودة" : "Invoice saved as draft")
+            : (isRTL ? "تم إنشاء وتأكيد الفاتورة بنجاح" : "Invoice created and confirmed"))
+      );
 
       navigate("/client/purchases");
     } catch (error: any) {
       console.error("Error saving invoice:", error);
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ في حفظ الفاتورة",
-        variant: "destructive",
-      });
+      toast.error(error.message || (isRTL ? "حدث خطأ في حفظ الفاتورة" : "Error saving invoice"));
     } finally {
       setSaving(false);
     }
@@ -299,26 +373,35 @@ const CreatePurchaseInvoice = () => {
 
   return (
     <UsageLimitGuard usageType="purchase_invoices">
-    <div className="space-y-6 rtl">
+    <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/client/purchases")}>
-            <ArrowRight className="h-5 w-5" />
+            <Arrow className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">فاتورة مشتريات جديدة</h1>
-            <p className="text-muted-foreground">إنشاء فاتورة شراء من المورد</p>
+            <h1 className="text-2xl font-bold">
+              {isEditMode
+                ? (isRTL ? "تعديل فاتورة مشتريات" : "Edit Purchase Invoice")
+                : (isRTL ? "فاتورة مشتريات جديدة" : "New Purchase Invoice")}
+            </h1>
+            <p className="text-muted-foreground">
+              {isEditMode
+                ? (isRTL ? "تعديل بيانات الفاتورة" : "Edit invoice details")
+                : (isRTL ? "إنشاء فاتورة شراء من المورد" : "Create a purchase invoice")}
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => handleSave("draft")} disabled={saving}>
-            حفظ كمسودة
+            <Save className="h-4 w-4 me-2" />
+            {isRTL ? "حفظ كمسودة" : "Save Draft"}
           </Button>
           <Button onClick={() => handleSave("confirmed")} disabled={saving}>
-            {saving && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
-            <Save className="h-4 w-4 ml-2" />
-            حفظ الفاتورة
+            {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+            <CheckCircle className="h-4 w-4 me-2" />
+            {isRTL ? "حفظ وتأكيد" : "Save & Confirm"}
           </Button>
         </div>
       </div>
@@ -331,28 +414,28 @@ const CreatePurchaseInvoice = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
-                بيانات الفاتورة
+                {isRTL ? "بيانات الفاتورة" : "Invoice Details"}
               </CardTitle>
             </CardHeader>
             <CardContent className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>رقم الفاتورة</Label>
+                <Label>{isRTL ? "رقم الفاتورة" : "Invoice Number"}</Label>
                 <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>رقم المرجع (اختياري)</Label>
+                <Label>{isRTL ? "رقم المرجع (اختياري)" : "Reference # (optional)"}</Label>
                 <Input
                   value={referenceNumber}
                   onChange={(e) => setReferenceNumber(e.target.value)}
-                  placeholder="رقم فاتورة المورد"
+                  placeholder={isRTL ? "رقم فاتورة المورد" : "Vendor invoice number"}
                 />
               </div>
               <div className="space-y-2">
-                <Label>تاريخ الفاتورة</Label>
+                <Label>{isRTL ? "تاريخ الفاتورة" : "Invoice Date"}</Label>
                 <Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>تاريخ الاستحقاق</Label>
+                <Label>{isRTL ? "تاريخ الاستحقاق" : "Due Date"}</Label>
                 <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
               </div>
             </CardContent>
@@ -363,23 +446,23 @@ const CreatePurchaseInvoice = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                بيانات المورد
+                {isRTL ? "بيانات المورد" : "Vendor Details"}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {selectedVendor ? (
                 <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
                   <div>
-                    <p className="font-medium">{selectedVendor.name}</p>
+                    <p className="font-medium">{isRTL ? selectedVendor.name : (selectedVendor.name_en || selectedVendor.name)}</p>
                     {selectedVendor.tax_number && (
-                      <p className="text-sm text-muted-foreground">الرقم الضريبي: {selectedVendor.tax_number}</p>
+                      <p className="text-sm text-muted-foreground">{isRTL ? "الرقم الضريبي:" : "Tax #:"} {selectedVendor.tax_number}</p>
                     )}
                     {selectedVendor.phone && (
-                      <p className="text-sm text-muted-foreground">الهاتف: {selectedVendor.phone}</p>
+                      <p className="text-sm text-muted-foreground">{isRTL ? "الهاتف:" : "Phone:"} {selectedVendor.phone}</p>
                     )}
                   </div>
                   <Button variant="outline" size="sm" onClick={() => setSelectedVendor(null)}>
-                    تغيير
+                    {isRTL ? "تغيير" : "Change"}
                   </Button>
                 </div>
               ) : (
@@ -387,16 +470,16 @@ const CreatePurchaseInvoice = () => {
                   <DialogTrigger asChild>
                     <Button variant="outline" className="w-full gap-2">
                       <Search className="h-4 w-4" />
-                      اختيار المورد
+                      {isRTL ? "اختيار المورد" : "Select Vendor"}
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-md">
                     <DialogHeader>
-                      <DialogTitle>اختيار المورد</DialogTitle>
+                      <DialogTitle>{isRTL ? "اختيار المورد" : "Select Vendor"}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
                       <Input
-                        placeholder="بحث..."
+                        placeholder={isRTL ? "بحث..." : "Search..."}
                         value={vendorSearch}
                         onChange={(e) => setVendorSearch(e.target.value)}
                       />
@@ -410,14 +493,16 @@ const CreatePurchaseInvoice = () => {
                               setVendorDialogOpen(false);
                             }}
                           >
-                            <p className="font-medium">{vendor.name}</p>
+                            <p className="font-medium">{isRTL ? vendor.name : (vendor.name_en || vendor.name)}</p>
                             {vendor.tax_number && (
                               <p className="text-sm text-muted-foreground">{vendor.tax_number}</p>
                             )}
                           </div>
                         ))}
                         {filteredVendors.length === 0 && (
-                          <p className="text-center text-muted-foreground py-4">لا يوجد موردين</p>
+                          <p className="text-center text-muted-foreground py-4">
+                            {isRTL ? "لا يوجد موردين" : "No vendors found"}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -432,22 +517,22 @@ const CreatePurchaseInvoice = () => {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                الأصناف
+                {isRTL ? "الأصناف" : "Items"}
               </CardTitle>
               <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" className="gap-2">
                     <Plus className="h-4 w-4" />
-                    إضافة صنف
+                    {isRTL ? "إضافة صنف" : "Add Item"}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
-                    <DialogTitle>اختيار صنف</DialogTitle>
+                    <DialogTitle>{isRTL ? "اختيار صنف" : "Select Product"}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <Input
-                      placeholder="بحث..."
+                      placeholder={isRTL ? "بحث..." : "Search..."}
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
                     />
@@ -459,16 +544,18 @@ const CreatePurchaseInvoice = () => {
                           onClick={() => addProduct(product)}
                         >
                           <div className="flex justify-between">
-                            <p className="font-medium">{product.name}</p>
+                            <p className="font-medium">{isRTL ? product.name : (product.name_en || product.name)}</p>
                             <p className="text-primary font-medium">
-                              {(product.purchase_price || 0).toFixed(2)} ر.س
+                              {(product.purchase_price || 0).toFixed(2)} {isRTL ? "ر.س" : "SAR"}
                             </p>
                           </div>
                           {product.sku && <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>}
                         </div>
                       ))}
                       {filteredProducts.length === 0 && (
-                        <p className="text-center text-muted-foreground py-4">لا توجد أصناف</p>
+                        <p className="text-center text-muted-foreground py-4">
+                          {isRTL ? "لا توجد أصناف" : "No products found"}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -479,18 +566,18 @@ const CreatePurchaseInvoice = () => {
               {items.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>لم تتم إضافة أصناف بعد</p>
+                  <p>{isRTL ? "لم تتم إضافة أصناف بعد" : "No items added yet"}</p>
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>الصنف</TableHead>
-                      <TableHead className="w-20">الكمية</TableHead>
-                      <TableHead className="w-28">السعر</TableHead>
-                      <TableHead className="w-20">خصم %</TableHead>
-                      <TableHead className="w-20">ضريبة %</TableHead>
-                      <TableHead className="w-28">الإجمالي</TableHead>
+                      <TableHead>{isRTL ? "الصنف" : "Item"}</TableHead>
+                      <TableHead className="w-20">{isRTL ? "الكمية" : "Qty"}</TableHead>
+                      <TableHead className="w-28">{isRTL ? "السعر" : "Price"}</TableHead>
+                      <TableHead className="w-20">{isRTL ? "خصم %" : "Disc %"}</TableHead>
+                      <TableHead className="w-20">{isRTL ? "ضريبة %" : "Tax %"}</TableHead>
+                      <TableHead className="w-28">{isRTL ? "الإجمالي" : "Total"}</TableHead>
                       <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -536,7 +623,7 @@ const CreatePurchaseInvoice = () => {
                             className="w-20"
                           />
                         </TableCell>
-                        <TableCell className="font-medium">{item.total.toFixed(2)} ر.س</TableCell>
+                        <TableCell className="font-medium">{item.total.toFixed(2)} {isRTL ? "ر.س" : "SAR"}</TableCell>
                         <TableCell>
                           <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -553,13 +640,13 @@ const CreatePurchaseInvoice = () => {
           {/* Notes */}
           <Card>
             <CardHeader>
-              <CardTitle>ملاحظات</CardTitle>
+              <CardTitle>{isRTL ? "ملاحظات" : "Notes"}</CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="ملاحظات إضافية على الفاتورة..."
+                placeholder={isRTL ? "ملاحظات إضافية على الفاتورة..." : "Additional notes..."}
                 rows={3}
               />
             </CardContent>
@@ -570,25 +657,25 @@ const CreatePurchaseInvoice = () => {
         <div className="space-y-6">
           <Card className="sticky top-6">
             <CardHeader>
-              <CardTitle>ملخص الفاتورة</CardTitle>
+              <CardTitle>{isRTL ? "ملخص الفاتورة" : "Invoice Summary"}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">المجموع الفرعي</span>
-                <span>{subtotal.toFixed(2)} ر.س</span>
+                <span className="text-muted-foreground">{isRTL ? "المجموع الفرعي" : "Subtotal"}</span>
+                <span>{subtotal.toFixed(2)} {isRTL ? "ر.س" : "SAR"}</span>
               </div>
               <div className="flex justify-between text-sm text-destructive">
-                <span>الخصم</span>
-                <span>- {totalDiscount.toFixed(2)} ر.س</span>
+                <span>{isRTL ? "الخصم" : "Discount"}</span>
+                <span>- {totalDiscount.toFixed(2)} {isRTL ? "ر.س" : "SAR"}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">ضريبة القيمة المضافة</span>
-                <span>{totalTax.toFixed(2)} ر.س</span>
+                <span className="text-muted-foreground">{isRTL ? "ضريبة القيمة المضافة" : "VAT"}</span>
+                <span>{totalTax.toFixed(2)} {isRTL ? "ر.س" : "SAR"}</span>
               </div>
               <Separator />
               <div className="flex justify-between text-lg font-bold">
-                <span>الإجمالي</span>
-                <span className="text-primary">{grandTotal.toFixed(2)} ر.س</span>
+                <span>{isRTL ? "الإجمالي" : "Total"}</span>
+                <span className="text-primary">{grandTotal.toFixed(2)} {isRTL ? "ر.س" : "SAR"}</span>
               </div>
             </CardContent>
           </Card>
