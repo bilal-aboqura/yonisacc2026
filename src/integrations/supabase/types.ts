@@ -3251,6 +3251,7 @@ export type Database = {
         }
         Returns: string
       }
+      reset_company_data: { Args: { p_company_id: string }; Returns: undefined }
       return_purchase_invoice: {
         Args: {
           p_company_id: string

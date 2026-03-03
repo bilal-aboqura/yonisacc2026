@@ -139,6 +139,7 @@ const ClientSettings = () => {
     },
   });
 
+  const isTestOwner = user?.id === "87740311-8413-47eb-b936-b4c96daecaa5";
   const isLoading = loadingCompany || loadingProfile;
 
   if (isLoading) {
@@ -161,7 +162,7 @@ const ClientSettings = () => {
       </div>
 
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-9 lg:w-auto lg:inline-grid">
+        <TabsList className={`grid w-full grid-cols-2 ${isTestOwner ? "md:grid-cols-9" : "md:grid-cols-8"} lg:w-auto lg:inline-grid`}>
           <TabsTrigger value="company" className="gap-2">
             <Building2 className="h-4 w-4" />
             {isRTL ? "الشركة" : "Company"}
@@ -194,10 +195,12 @@ const ClientSettings = () => {
             <Bell className="h-4 w-4" />
             {isRTL ? "الإشعارات" : "Notifications"}
           </TabsTrigger>
-          <TabsTrigger value="danger" className="gap-2 text-destructive">
-            <Trash2 className="h-4 w-4" />
-            {isRTL ? "منطقة الخطر" : "Danger"}
-          </TabsTrigger>
+          {isTestOwner && (
+            <TabsTrigger value="danger" className="gap-2 text-destructive">
+              <Trash2 className="h-4 w-4" />
+              {isRTL ? "منطقة الخطر" : "Danger"}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Company Tab */}
@@ -424,83 +427,85 @@ const ClientSettings = () => {
         </TabsContent>
 
         {/* Danger Zone Tab */}
-        <TabsContent value="danger">
-          <Card className="border-destructive/50">
-            <CardHeader>
-              <CardTitle className="text-destructive flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                {isRTL ? "منطقة الخطر" : "Danger Zone"}
-              </CardTitle>
-              <CardDescription>
-                {isRTL ? "عمليات لا يمكن التراجع عنها" : "Irreversible operations"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-destructive/30 rounded-lg">
-                <div>
-                  <p className="font-medium">{isRTL ? "مسح جميع بيانات الشركة" : "Reset all company data"}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {isRTL
-                      ? "حذف جميع الفواتير، القيود، جهات الاتصال، المنتجات، والحركات. سيتم الاحتفاظ بدليل الحسابات وإعدادات الشركة."
-                      : "Delete all invoices, journal entries, contacts, products, and transactions. Chart of accounts and company settings will be kept."}
-                  </p>
+        {isTestOwner && (
+          <TabsContent value="danger">
+            <Card className="border-destructive/50">
+              <CardHeader>
+                <CardTitle className="text-destructive flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  {isRTL ? "منطقة الخطر" : "Danger Zone"}
+                </CardTitle>
+                <CardDescription>
+                  {isRTL ? "عمليات لا يمكن التراجع عنها" : "Irreversible operations"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 border border-destructive/30 rounded-lg">
+                  <div>
+                    <p className="font-medium">{isRTL ? "مسح جميع بيانات الشركة" : "Reset all company data"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isRTL
+                        ? "حذف جميع الفواتير، القيود، جهات الاتصال، المنتجات، والحركات. سيتم الاحتفاظ بدليل الحسابات وإعدادات الشركة."
+                        : "Delete all invoices, journal entries, contacts, products, and transactions. Chart of accounts and company settings will be kept."}
+                    </p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" className="gap-2 shrink-0">
+                        <Trash2 className="h-4 w-4" />
+                        {isRTL ? "مسح البيانات" : "Reset Data"}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-destructive">
+                          {isRTL ? "⚠️ تأكيد مسح جميع البيانات" : "⚠️ Confirm Data Reset"}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                          <span className="block">
+                            {isRTL
+                              ? "سيتم حذف جميع البيانات التالية نهائياً:"
+                              : "The following data will be permanently deleted:"}
+                          </span>
+                          <span className="block text-sm">
+                            {isRTL
+                              ? "• الفواتير (مبيعات ومشتريات) • القيود المحاسبية • جهات الاتصال (عملاء وموردين) • المنتجات والمخزون • حركات الخزينة • الأرصدة الافتتاحية • الفترات المالية • الحسابات البنكية • مراكز التكلفة"
+                              : "• Invoices (sales & purchases) • Journal entries • Contacts (customers & vendors) • Products & inventory • Treasury transactions • Opening balances • Fiscal periods • Bank accounts • Cost centers"}
+                          </span>
+                          <span className="block font-semibold text-destructive">
+                            {isRTL ? "هذا الإجراء لا يمكن التراجع عنه!" : "This action cannot be undone!"}
+                          </span>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{isRTL ? "إلغاء" : "Cancel"}</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={async () => {
+                            if (!company?.id) return;
+                            try {
+                              const { error } = await (supabase.rpc as any)("reset_company_data", {
+                                p_company_id: company.id,
+                              });
+                              if (error) throw error;
+                              queryClient.invalidateQueries();
+                              toast.success(isRTL ? "تم مسح جميع البيانات بنجاح" : "All data has been reset successfully");
+                            } catch (err: any) {
+                              console.error("Reset failed:", err);
+                              toast.error(isRTL ? "فشل في مسح البيانات" : "Failed to reset data");
+                            }
+                          }}
+                        >
+                          {isRTL ? "نعم، مسح الكل" : "Yes, Reset All"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="gap-2 shrink-0">
-                      <Trash2 className="h-4 w-4" />
-                      {isRTL ? "مسح البيانات" : "Reset Data"}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className="text-destructive">
-                        {isRTL ? "⚠️ تأكيد مسح جميع البيانات" : "⚠️ Confirm Data Reset"}
-                      </AlertDialogTitle>
-                      <AlertDialogDescription className="space-y-2">
-                        <span className="block">
-                          {isRTL
-                            ? "سيتم حذف جميع البيانات التالية نهائياً:"
-                            : "The following data will be permanently deleted:"}
-                        </span>
-                        <span className="block text-sm">
-                          {isRTL
-                            ? "• الفواتير (مبيعات ومشتريات) • القيود المحاسبية • جهات الاتصال (عملاء وموردين) • المنتجات والمخزون • حركات الخزينة • الأرصدة الافتتاحية • الفترات المالية • الحسابات البنكية • مراكز التكلفة"
-                            : "• Invoices (sales & purchases) • Journal entries • Contacts (customers & vendors) • Products & inventory • Treasury transactions • Opening balances • Fiscal periods • Bank accounts • Cost centers"}
-                        </span>
-                        <span className="block font-semibold text-destructive">
-                          {isRTL ? "هذا الإجراء لا يمكن التراجع عنه!" : "This action cannot be undone!"}
-                        </span>
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{isRTL ? "إلغاء" : "Cancel"}</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={async () => {
-                          if (!company?.id) return;
-                          try {
-                            const { error } = await (supabase.rpc as any)("reset_company_data", {
-                              p_company_id: company.id,
-                            });
-                            if (error) throw error;
-                            queryClient.invalidateQueries();
-                            toast.success(isRTL ? "تم مسح جميع البيانات بنجاح" : "All data has been reset successfully");
-                          } catch (err: any) {
-                            console.error("Reset failed:", err);
-                            toast.error(isRTL ? "فشل في مسح البيانات" : "Failed to reset data");
-                          }
-                        }}
-                      >
-                        {isRTL ? "نعم، مسح الكل" : "Yes, Reset All"}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
