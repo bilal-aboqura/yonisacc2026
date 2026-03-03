@@ -201,6 +201,7 @@ const App = () => (
               <Route path="settings/print" element={<ClientSettings tab="print" />} />
               <Route path="settings/payment-methods" element={<ClientSettings tab="payment-methods" />} />
               <Route path="settings/appearance" element={<ClientSettings tab="appearance" />} />
+              <Route path="settings/danger" element={<ClientSettings tab="danger" />} />
             </Route>
             
             
