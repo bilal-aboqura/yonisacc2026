@@ -1,80 +1,75 @@
 
-# Unified Table Styling Across the Platform
 
-## Overview
-Apply the professional DataTable design system (already used in Customers, Vendors, Sales, Purchases, Quotes, Purchase Orders) to all remaining 14 pages that still use raw HTML tables.
+## خطة تنفيذ آلية المبيعات على المشتريات
 
-## Strategy
-Pages fall into two categories:
+### الفجوات الحالية
 
-### Category A: Simple list tables -- migrate to DataTable component
-These pages have standard list data with actions and can directly use the reusable `DataTable` component:
+المشتريات تفتقر لعدة ميزات موجودة في المبيعات:
 
-1. **ClientJournal.tsx** - Journal entries (View/Edit/Print/Delete actions, status badges)
-2. **OperationsLog.tsx** - Operations log (tabs filtering kept outside DataTable, table content migrated)
-3. **CostCenters.tsx** - Cost centers (View/Edit/Delete actions)
-4. **OwnerMessages.tsx** - Contact messages (View action, read/unread badge)
-5. **OwnerActivities.tsx** - Verticals management (Edit/Toggle actions)
-6. **OwnerPlans.tsx** - Plans management
-7. **OwnerAuditLogs.tsx** - Audit logs (read-only, status badges)
-8. **OwnerSubscribers.tsx** - Subscribers (complex actions kept via DataTable actions prop)
-9. **OwnerSubscriptions.tsx** - Subscriptions management
-10. **autoparts/CarBrands.tsx** - Car brands list
-11. **autoparts/CarModels.tsx** - Car models list
-12. **autoparts/PartsCatalog.tsx** - Parts catalog
+| الميزة | المبيعات | المشتريات |
+|--------|---------|-----------|
+| تأكيد + قيد محاسبي تلقائي | `post_sales_invoice` RPC | لا يوجد |
+| مرتجع (كلي/جزئي) | `return_sales_invoice` RPC + Dialog | لا يوجد |
+| تعديل المسودات | صفحة تعديل + route | لا يوجد |
+| فلاتر متقدمة (حالة/دفع/شهر/سنة) | موجود | لا يوجد |
+| عرض حالات المرتجع | `returned` / `partial_return` | لا يوجد |
+| حالات الأزرار حسب الحالة | أزرار ديناميكية | كل الأزرار ظاهرة دائماً |
+| رقم الفاتورة من الإعدادات | لا | يعتمد على count |
 
-### Category B: Specialized financial tables -- apply visual styling only
-These pages have unique structures (hierarchical rows, totals rows, multi-level headers, opening balance rows) that don't fit the generic DataTable. They will receive the same visual styling (zebra striping, hover effects, rounded card, header background) applied directly:
+---
 
-1. **reports/TrialBalance.tsx** - Has multi-row headers (rowSpan/colSpan), tree-indented rows, totals row
-2. **reports/CashFlow.tsx** - Has two separate tables (inflows/outflows) with totals rows
-3. **GeneralLedger.tsx** - Has opening balance row, running totals, special row styling
+### المهام المطلوبة
 
-## Technical Details
+#### 1. إنشاء RPC: `post_purchase_invoice`
+- نسخة معدلة من `post_sales_invoice`
+- القيد: **مدين** حساب المشتريات + ضريبة المدخلات، **دائن** حساب المورد
+- يستخدم `purchases_account_id` من إعدادات الشركة (أو كود `51` كافتراضي)
+- حساب المورد من `contacts.account_id` أو كود `2111` كافتراضي
 
-### Category A changes (per page):
-- Replace `Table, TableBody, TableCell, TableHead, TableHeader, TableRow` imports with `DataTable, StatusBadge` from `data-table`
-- Define `columns` array with proper `numeric`, `align`, `width` settings
-- Define `actions` array with View/Edit/Delete handlers
-- Configure `onSearch`, `emptyState`, `createButton` props
-- Remove manual search Input, Card wrapper, loading spinner (all handled by DataTable)
+#### 2. إنشاء RPC: `return_purchase_invoice`
+- نسخة معدلة من `return_sales_invoice`
+- القيد العكسي: **مدين** حساب المورد، **دائن** حساب المشتريات + ضريبة المدخلات
+- تحديث حالة الفاتورة إلى `returned` أو `partial_return`
 
-### Category B changes (TrialBalance, CashFlow, GeneralLedger):
-- Wrap tables in `rounded-2xl shadow-sm border-border/60` Card
-- Add `bg-muted/60 dark:bg-muted/30` to table headers
-- Add zebra striping: `rowIdx % 2 === 1 && "bg-muted/20"`
-- Add hover: `hover:bg-primary/[0.03]`
-- Standardize cell padding to `px-4 py-3.5`
-- Add `border-b border-border/30` to cells
-- Wrap table in `overflow-auto rounded-lg border border-border/50`
+#### 3. تحديث `CreatePurchaseInvoice.tsx`
+- استخدام `purchase_prefix` + `next_purchase_number` من `company_settings` بدل count
+- إضافة دعم وضع التعديل (Edit mode) مثل المبيعات
+- استدعاء `post_purchase_invoice` عند التأكيد
+- دعم ثنائية اللغة (عربي/إنجليزي)
+- إضافة route للتعديل: `/client/purchases/:id/edit`
 
-### Special handling:
-- **OperationsLog.tsx**: Keep the Tabs component for filtering, but render DataTable inside each tab content
-- **ClientJournal.tsx**: Keep the Print action as a custom action in the dropdown; keep PermissionGuard wrapping for edit/delete
-- **OwnerSubscribers.tsx/OwnerSubscriptions.tsx**: These are complex pages (680/532 lines) with dialogs, sheets, and custom actions -- migrate the table portion to DataTable while keeping all modal/dialog logic intact
+#### 4. إنشاء `PurchaseReturnDialog.tsx`
+- نسخة معدلة من `SalesReturnDialog` تستدعي `return_purchase_invoice`
+- تغيير النصوص لتناسب المشتريات (مرتجع مشتريات)
 
-## Files to Edit (15 total)
+#### 5. تحديث `ClientPurchases.tsx`
+- إضافة فلاتر (حالة / حالة الدفع / شهر / سنة) مثل المبيعات
+- إضافة حالات `returned` و `partial_return` في عمود الحالة
+- أزرار ديناميكية:
+  - تعديل: فقط للمسودات
+  - دفعات + مرتجع: فقط للمؤكدة
+- ربط dialog المرتجع
 
-1. `src/pages/client/ClientJournal.tsx`
-2. `src/pages/client/OperationsLog.tsx`
-3. `src/pages/client/CostCenters.tsx`
-4. `src/pages/client/GeneralLedger.tsx`
-5. `src/pages/client/reports/TrialBalance.tsx`
-6. `src/pages/client/reports/CashFlow.tsx`
-7. `src/pages/client/autoparts/CarBrands.tsx`
-8. `src/pages/client/autoparts/CarModels.tsx`
-9. `src/pages/client/autoparts/PartsCatalog.tsx`
-10. `src/pages/owner/OwnerSubscribers.tsx`
-11. `src/pages/owner/OwnerSubscriptions.tsx`
-12. `src/pages/owner/OwnerAuditLogs.tsx`
-13. `src/pages/owner/OwnerMessages.tsx`
-14. `src/pages/owner/OwnerActivities.tsx`
-15. `src/pages/owner/OwnerPlans.tsx`
+#### 6. تحديث `App.tsx`
+- إضافة routes:
+  - `purchases/:id` → `ViewInvoice`
+  - `purchases/:id/edit` → `CreatePurchaseInvoice`
 
-## Result
-- All tables across the platform will have consistent SaaS-level styling
-- Zebra striping, hover effects, rounded cards, proper alignment
-- RTL-optimized with numeric columns aligned correctly
-- Mobile-responsive card layout on small screens (via DataTable)
-- Unified action dropdown pattern
-- Search, pagination, and empty states standardized
+---
+
+### القيد المحاسبي للمشتريات
+
+**عند التأكيد:**
+```text
+مدين: حساب المشتريات (51)     ← المبلغ قبل الضريبة
+مدين: ضريبة المدخلات (212)    ← مبلغ الضريبة
+دائن: حساب المورد (2111)      ← الإجمالي
+```
+
+**عند المرتجع (عكسي):**
+```text
+مدين: حساب المورد (2111)      ← إجمالي المرتجع
+دائن: حساب المشتريات (51)     ← المبلغ قبل الضريبة
+دائن: ضريبة المدخلات (212)    ← مبلغ الضريبة
+```
+
