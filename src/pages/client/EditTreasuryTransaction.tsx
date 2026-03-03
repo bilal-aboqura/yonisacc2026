@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { useActivePaymentMethods } from "@/hooks/useActivePaymentMethods";
 
 interface Contact {
   id: string;
@@ -42,12 +43,7 @@ const typeLabels: Record<string, string> = {
   transfer: "تحويل",
 };
 
-const paymentMethods = [
-  { value: "cash", label: "نقدي" },
-  { value: "bank_transfer", label: "تحويل بنكي" },
-  { value: "check", label: "شيك" },
-  { value: "credit_card", label: "بطاقة ائتمان" },
-];
+// paymentMethods now comes from useActivePaymentMethods hook
 
 const EditTreasuryTransaction = forwardRef<HTMLDivElement>((_, ref) => {
   const { id } = useParams<{ id: string }>();
@@ -69,6 +65,7 @@ const EditTreasuryTransaction = forwardRef<HTMLDivElement>((_, ref) => {
   const [selectedTransferAccount, setSelectedTransferAccount] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [treasuryAccounts, setTreasuryAccounts] = useState<TreasuryAccount[]>([]);
+  const { data: dbPaymentMethods = [] } = useActivePaymentMethods(companyId);
   const [contactSearch, setContactSearch] = useState("");
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [oldJournalEntryId, setOldJournalEntryId] = useState<string | null>(null);
@@ -299,9 +296,14 @@ const EditTreasuryTransaction = forwardRef<HTMLDivElement>((_, ref) => {
             <Select value={paymentMethod} onValueChange={setPaymentMethod}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {paymentMethods.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                ))}
+                {dbPaymentMethods.length > 0 ? dbPaymentMethods.map((m) => (
+                  <SelectItem key={m.id} value={m.code}>{m.name}</SelectItem>
+                )) : (
+                  <>
+                    <SelectItem value="cash">نقدي</SelectItem>
+                    <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>

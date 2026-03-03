@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyId } from "@/hooks/useCompanyId";
+import { useActivePaymentMethods } from "@/hooks/useActivePaymentMethods";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -28,6 +29,7 @@ const InvoicePaymentDialog = ({ invoice, open, onOpenChange }: InvoicePaymentDia
   const { companyId } = useCompanyId();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const { data: activePaymentMethods = [] } = useActivePaymentMethods(companyId);
 
   const [newPayment, setNewPayment] = useState({
     amount: "",
@@ -122,6 +124,8 @@ const InvoicePaymentDialog = ({ invoice, open, onOpenChange }: InvoicePaymentDia
   };
 
   const methodLabel = (m: string) => {
+    const found = activePaymentMethods.find(pm => pm.code === m);
+    if (found) return isRTL ? found.name : (found.name_en || found.name);
     const map: Record<string, string> = {
       cash: isRTL ? "نقدي" : "Cash",
       bank_transfer: isRTL ? "تحويل بنكي" : "Bank Transfer",
@@ -195,10 +199,16 @@ const InvoicePaymentDialog = ({ invoice, open, onOpenChange }: InvoicePaymentDia
                 <Select value={newPayment.payment_method} onValueChange={(v) => setNewPayment({ ...newPayment, payment_method: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">{isRTL ? "نقدي" : "Cash"}</SelectItem>
-                    <SelectItem value="bank_transfer">{isRTL ? "تحويل بنكي" : "Bank Transfer"}</SelectItem>
-                    <SelectItem value="check">{isRTL ? "شيك" : "Check"}</SelectItem>
-                    <SelectItem value="card">{isRTL ? "بطاقة" : "Card"}</SelectItem>
+                    {activePaymentMethods.length > 0 ? activePaymentMethods.map(pm => (
+                      <SelectItem key={pm.id} value={pm.code}>
+                        {isRTL ? pm.name : (pm.name_en || pm.name)}
+                      </SelectItem>
+                    )) : (
+                      <>
+                        <SelectItem value="cash">{isRTL ? "نقدي" : "Cash"}</SelectItem>
+                        <SelectItem value="bank_transfer">{isRTL ? "تحويل بنكي" : "Bank Transfer"}</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

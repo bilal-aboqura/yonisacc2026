@@ -31,7 +31,7 @@ const emptyForm: BranchForm = {
   phone: "",
   address: "",
   is_main: false,
-  is_active: true,
+  is_active: false,
 };
 
 const BranchManagement = () => {
@@ -81,6 +81,20 @@ const BranchManagement = () => {
       if (!company?.id) throw new Error("No company");
       if (!form.name.trim()) throw new Error(isRTL ? "اسم الفرع مطلوب" : "Branch name is required");
 
+      // If trying to activate, check if branch has account settings linked
+      if (form.is_active && editingId) {
+        const { data: settings } = await supabase
+          .from("branch_account_settings")
+          .select("module_type")
+          .eq("branch_id", editingId)
+          .eq("company_id", company.id);
+        
+        const modules = new Set((settings || []).map((s: any) => s.module_type));
+        if (!modules.has("sales") || !modules.has("purchases")) {
+          throw new Error(isRTL ? "الفرع غير جاهز: الرجاء ربط الحسابات أولاً من إعدادات حسابات الفروع" : "Branch not ready: Please link accounts first in Branch Account Settings");
+        }
+      }
+
       // If setting as main, unset other main branches
       if (form.is_main) {
         await supabase
@@ -103,6 +117,7 @@ const BranchManagement = () => {
           .eq("id", editingId);
         if (error) throw error;
       } else {
+        // New branches are always inactive
         const { error } = await supabase
           .from("branches")
           .insert({
@@ -112,7 +127,7 @@ const BranchManagement = () => {
             phone: form.phone || null,
             address: form.address || null,
             is_main: form.is_main,
-            is_active: form.is_active,
+            is_active: false,
           });
         if (error) throw error;
       }
