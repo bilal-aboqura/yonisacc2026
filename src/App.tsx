@@ -81,7 +81,7 @@ import OwnerDashboard from "./pages/owner/OwnerDashboard";
 import OwnerSubscribers from "./pages/owner/OwnerSubscribers";
 import OwnerSubscriptions from "./pages/owner/OwnerSubscriptions";
 import OwnerPlans from "./pages/owner/OwnerPlans";
-import OwnerScreens from "./pages/owner/OwnerScreens";
+// OwnerScreens removed - screen access now controlled by RBAC
 import OwnerMessages from "./pages/owner/OwnerMessages";
 import OwnerReports from "./pages/owner/OwnerReports";
 import OwnerSettings from "./pages/owner/OwnerSettings";
@@ -192,7 +192,7 @@ const App = () => (
               <Route path="subscribers/:id/access" element={<ManageCompanyAccess />} />
               <Route path="subscriptions" element={<OwnerSubscriptions />} />
               <Route path="plans" element={<OwnerPlans />} />
-              <Route path="screens" element={<OwnerScreens />} />
+              
               <Route path="landing-content" element={<OwnerLandingContent />} />
               <Route path="messages" element={<OwnerMessages />} />
               <Route path="reports" element={<OwnerReports />} />

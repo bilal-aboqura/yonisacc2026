@@ -26,7 +26,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Building2, Eye, Pencil, Pause, Ban, Trash2, Mail, Phone, Calendar, MapPin, Archive, Users, RotateCcw, KeyRound, Loader2, ShieldCheck, Shield, Monitor, Plus, UserPlus, EyeOff } from "lucide-react";
 import ManagePermissionsDialog from "@/components/owner/ManagePermissionsDialog";
-import CompanyScreensDialog from "@/components/owner/CompanyScreensDialog";
+// CompanyScreensDialog removed - screen access now controlled by RBAC
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
@@ -64,7 +64,7 @@ const OwnerSubscribers = () => {
   const [restorePassword, setRestorePassword] = useState("");
   
   const [managePermissionsCompany, setManagePermissionsCompany] = useState<any>(null);
-  const [manageScreensCompany, setManageScreensCompany] = useState<any>(null);
+  
 
   // Add subscriber state
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -418,19 +418,6 @@ const OwnerSubscribers = () => {
                               <TooltipContent>{isRTL ? "الصلاحيات التفصيلية" : "Feature Permissions"}</TooltipContent>
                             </Tooltip>
 
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost" size="icon"
-                                  className="h-8 w-8 hover:text-primary"
-                                  disabled={isArchived}
-                                  onClick={() => setManageScreensCompany(company)}
-                                >
-                                  <Monitor className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "إدارة الشاشات" : "Manage Screens"}</TooltipContent>
-                            </Tooltip>
 
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -737,13 +724,6 @@ const OwnerSubscribers = () => {
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["owner-subscribers"] })}
       />
 
-      {/* Manage Screens Dialog */}
-      <CompanyScreensDialog
-        open={!!manageScreensCompany}
-        onOpenChange={() => setManageScreensCompany(null)}
-        company={manageScreensCompany}
-        onSaved={() => queryClient.invalidateQueries({ queryKey: ["owner-subscribers"] })}
-      />
 
       {/* Add Subscriber Dialog */}
       <Dialog open={showAddDialog} onOpenChange={(open) => { if (!open) { setShowAddDialog(false); resetNewSub(); } }}>

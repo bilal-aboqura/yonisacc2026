@@ -7,8 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTenantIsolation } from "@/hooks/useTenantIsolation";
-import { useFeatureAccess } from "@/hooks/useFeatureAccess";
-import { useScreenAccess } from "@/hooks/useScreenAccess";
+import { useRBAC } from "@/hooks/useRBAC";
 import {
   FileText,
   ShoppingCart,
@@ -83,8 +82,7 @@ const ClientDashboard = () => {
   const { isRTL } = useLanguage();
   const { user } = useAuth();
   const { companyId, company, isLoadingCompany } = useTenantIsolation();
-  const { isModuleEnabled } = useFeatureAccess();
-  const { isScreenEnabled } = useScreenAccess();
+  const { can } = useRBAC();
   const navigate = useNavigate();
   const [period, setPeriod] = useState("month");
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
@@ -323,10 +321,10 @@ const ClientDashboard = () => {
   ];
 
   const quickActions = [
-    isModuleEnabled("sales") && isScreenEnabled("sales_invoices") && { title: isRTL ? "فاتورة مبيعات" : "Sales Invoice", icon: FileText, path: "/client/sales/new", color: "bg-green-500" },
-    isModuleEnabled("purchases") && isScreenEnabled("purchase_invoices") && { title: isRTL ? "فاتورة مشتريات" : "Purchase Invoice", icon: ShoppingCart, path: "/client/purchases/new", color: "bg-blue-500" },
-    isScreenEnabled("journal_entries") && { title: isRTL ? "قيد يومية" : "Journal Entry", icon: Plus, path: "/client/journal/new", color: "bg-purple-500" },
-    isModuleEnabled("sales") && isScreenEnabled("customers") && { title: isRTL ? "عميل جديد" : "New Customer", icon: Users, path: "/client/contacts/new", color: "bg-orange-500" },
+    can("CREATE_SALES_INVOICE") && { title: isRTL ? "فاتورة مبيعات" : "Sales Invoice", icon: FileText, path: "/client/sales/new", color: "bg-green-500" },
+    can("CREATE_PURCHASE_INVOICE") && { title: isRTL ? "فاتورة مشتريات" : "Purchase Invoice", icon: ShoppingCart, path: "/client/purchases/new", color: "bg-blue-500" },
+    can("CREATE_JOURNAL") && { title: isRTL ? "قيد يومية" : "Journal Entry", icon: Plus, path: "/client/journal/new", color: "bg-purple-500" },
+    can("VIEW_CONTACTS") && { title: isRTL ? "عميل جديد" : "New Customer", icon: Users, path: "/client/contacts/new", color: "bg-orange-500" },
   ].filter(Boolean) as Array<{ title: string; icon: any; path: string; color: string }>;
 
   const getRefTypeLabel = (refType: string | null) => {
