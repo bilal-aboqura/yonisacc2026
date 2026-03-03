@@ -131,7 +131,6 @@ const baseMenuItems: MenuItem[] = [
     labelEn: "Inventory",
     children: [
       { icon: Package, label: "المنتجات", labelEn: "Products", path: "/client/inventory", permission: "VIEW_INVENTORY" },
-      { icon: Building, label: "المستودعات", labelEn: "Warehouses", path: "/client/inventory/warehouses", permission: "VIEW_INVENTORY" },
       { icon: TrendingUp, label: "حركة المخزون", labelEn: "Stock Movement", path: "/client/inventory/movements", permission: "VIEW_INVENTORY" },
     ]
   },
