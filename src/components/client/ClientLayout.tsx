@@ -158,6 +158,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: Users, label: "الفريق", labelEn: "Team", path: "/client/settings/team", permission: "VIEW_SETTINGS" },
       { icon: Shield, label: "الأدوار والصلاحيات", labelEn: "Roles & Permissions", path: "/client/settings/roles", permission: "VIEW_SETTINGS" },
       { icon: User, label: "الملف الشخصي", labelEn: "Profile", path: "/client/settings/profile", permission: "VIEW_SETTINGS" },
+      { icon: Building, label: "الفروع", labelEn: "Branches", path: "/client/settings/branch-management", permission: "VIEW_SETTINGS" },
       { icon: Building2, label: "حسابات الفروع", labelEn: "Branch Accounts", path: "/client/settings/branches", permission: "VIEW_SETTINGS" },
       { icon: Printer, label: "الطباعة", labelEn: "Print", path: "/client/settings/print", permission: "VIEW_SETTINGS" },
       { icon: CreditCard, label: "طرق الدفع", labelEn: "Payment Methods", path: "/client/settings/payment-methods", permission: "VIEW_SETTINGS" },

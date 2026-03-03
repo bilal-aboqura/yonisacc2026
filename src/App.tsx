@@ -24,6 +24,7 @@ import ClientContacts from "./pages/client/ClientContacts";
 import ClientReports from "./pages/client/ClientReports";
 
 import ClientSettings from "./pages/client/ClientSettings";
+import BranchManagement from "./pages/client/BranchManagement";
 import CreateSalesInvoice from "./pages/client/CreateSalesInvoice";
 import CreateContact from "./pages/client/CreateContact";
 import EditContact from "./pages/client/EditContact";
@@ -195,6 +196,7 @@ const App = () => (
               <Route path="settings/team" element={<ClientSettings tab="team" />} />
               <Route path="settings/roles" element={<ClientSettings tab="roles" />} />
               <Route path="settings/profile" element={<ClientSettings tab="profile" />} />
+              <Route path="settings/branch-management" element={<BranchManagement />} />
               <Route path="settings/branches" element={<ClientSettings tab="branches" />} />
               <Route path="settings/print" element={<ClientSettings tab="print" />} />
               <Route path="settings/payment-methods" element={<ClientSettings tab="payment-methods" />} />
