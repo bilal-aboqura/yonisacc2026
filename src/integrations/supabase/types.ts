@@ -3210,6 +3210,10 @@ export type Database = {
         }
         Returns: string
       }
+      post_purchase_invoice: {
+        Args: { p_company_id: string; p_invoice_id: string }
+        Returns: Json
+      }
       post_sales_invoice: {
         Args: { p_company_id: string; p_invoice_id: string }
         Returns: Json
@@ -3246,6 +3250,14 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      return_purchase_invoice: {
+        Args: {
+          p_company_id: string
+          p_invoice_id: string
+          p_return_items: Json
+        }
+        Returns: Json
       }
       return_sales_invoice: {
         Args: {
