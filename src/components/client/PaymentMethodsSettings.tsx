@@ -132,7 +132,7 @@ const PaymentMethodsSettings = ({ companyId }: Props) => {
 
   const openAdd = () => {
     setEditingMethod(null);
-    setForm({ name: "", name_en: "", code: "", account_id: "", is_active: true });
+    setForm({ name: "", name_en: "", code: "", account_id: "", is_active: false });
     setDialogOpen(true);
   };
 
@@ -315,9 +315,20 @@ const PaymentMethodsSettings = ({ companyId }: Props) => {
               <Label>{isRTL ? "فعال" : "Active"}</Label>
               <Switch
                 checked={form.is_active}
-                onCheckedChange={(v) => setForm({ ...form, is_active: v })}
+                onCheckedChange={(v) => {
+                  if (v && (!form.account_id || form.account_id === "none")) {
+                    toast.error(isRTL ? "طريقة الدفع غير جاهزة: الرجاء الربط بالحسابات" : "Payment method not ready: Please link to an account first");
+                    return;
+                  }
+                  setForm({ ...form, is_active: v });
+                }}
               />
             </div>
+            {!form.account_id || form.account_id === "none" ? (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                {isRTL ? "⚠️ لن تظهر طريقة الدفع في شاشات الإدخال حتى يتم ربطها بحساب وتفعيلها" : "⚠️ Payment method won't appear in input screens until linked to an account and activated"}
+              </p>
+            ) : null}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>
