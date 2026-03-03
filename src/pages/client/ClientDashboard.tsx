@@ -22,6 +22,8 @@ import {
   Loader2,
   DollarSign,
   BarChart3,
+  Undo2,
+  Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -179,31 +181,46 @@ const ClientDashboard = () => {
     staleTime: 60_000,
   });
 
-  // 4. Invoice counts + sales total
+  // 4. Invoice counts + sales total + returns + VAT
   const { data: invoiceStats } = useQuery({
     queryKey: ["dashboard-invoices", companyId, start, end],
     queryFn: async () => {
-      if (!companyId) return { salesTotal: 0, purchasesTotal: 0, totalCount: 0, salesCount: 0, purchasesCount: 0 };
+      if (!companyId) return { salesTotal: 0, purchasesTotal: 0, totalCount: 0, salesCount: 0, purchasesCount: 0, salesReturns: 0, salesReturnsCount: 0, netSales: 0, salesTax: 0, purchasesTax: 0, taxBalance: 0 };
       
       const { data, error } = await supabase
         .from("invoices")
-        .select("type, total, status")
+        .select("type, total, tax_amount, status")
         .eq("company_id", companyId)
         .gte("invoice_date", start)
         .lte("invoice_date", end)
         .neq("status", "cancelled");
 
-      if (error) { console.error("Invoice query error:", error); return { salesTotal: 0, purchasesTotal: 0, totalCount: 0, salesCount: 0, purchasesCount: 0 }; }
+      if (error) { console.error("Invoice query error:", error); return { salesTotal: 0, purchasesTotal: 0, totalCount: 0, salesCount: 0, purchasesCount: 0, salesReturns: 0, salesReturnsCount: 0, netSales: 0, salesTax: 0, purchasesTax: 0, taxBalance: 0 }; }
       
-      const sales = (data || []).filter(i => i.type === "sale");
+      const sales = (data || []).filter(i => i.type === "sale" && i.status !== "returned" && i.status !== "partial_return");
+      const salesReturned = (data || []).filter(i => i.type === "sale" && (i.status === "returned" || i.status === "partial_return"));
       const purchases = (data || []).filter(i => i.type === "purchase");
       
+      const salesTotal = sales.reduce((s, i) => s + (i.total || 0), 0);
+      const salesReturnsTotal = salesReturned.reduce((s, i) => s + (i.total || 0), 0);
+      const purchasesTotal = purchases.reduce((s, i) => s + (i.total || 0), 0);
+
+      // VAT calculations
+      const salesTax = sales.reduce((s, i) => s + (i.tax_amount || 0), 0);
+      const purchasesTax = purchases.reduce((s, i) => s + (i.tax_amount || 0), 0);
+      
       return {
-        salesTotal: sales.reduce((s, i) => s + (i.total || 0), 0),
-        purchasesTotal: purchases.reduce((s, i) => s + (i.total || 0), 0),
+        salesTotal,
+        purchasesTotal,
         totalCount: (data || []).length,
         salesCount: sales.length,
         purchasesCount: purchases.length,
+        salesReturns: salesReturnsTotal,
+        salesReturnsCount: salesReturned.length,
+        netSales: salesTotal - salesReturnsTotal,
+        salesTax,
+        purchasesTax,
+        taxBalance: salesTax - purchasesTax,
       };
     },
     enabled: !!companyId,
@@ -270,12 +287,21 @@ const ClientDashboard = () => {
 
   const kpis = [
     {
-      title: isRTL ? "إجمالي المبيعات" : "Total Sales",
-      value: formatNumber(salesTotal || totalRevenue),
+      title: isRTL ? "صافي المبيعات" : "Net Sales",
+      value: formatNumber(invoiceStats?.netSales || 0),
       icon: TrendingUp,
       color: "text-green-500",
       bgColor: "bg-green-500/10",
       suffix: currency,
+    },
+    {
+      title: isRTL ? "المرتجعات" : "Returns",
+      value: formatNumber(invoiceStats?.salesReturns || 0),
+      icon: Undo2,
+      color: "text-red-500",
+      bgColor: "bg-red-500/10",
+      suffix: currency,
+      subtitle: `${invoiceStats?.salesReturnsCount || 0} ${isRTL ? "فاتورة" : "inv."}`,
     },
     {
       title: isRTL ? "إجمالي المشتريات" : "Total Purchases",
@@ -301,14 +327,6 @@ const ClientDashboard = () => {
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
       suffix: currency,
-    },
-    {
-      title: isRTL ? "عدد الفواتير" : "Total Invoices",
-      value: formatNumber(totalInvoiceCount),
-      icon: FileText,
-      color: "text-orange-500",
-      bgColor: "bg-orange-500/10",
-      suffix: "",
     },
     {
       title: isRTL ? "قيمة المخزون" : "Inventory Value",
@@ -419,15 +437,16 @@ const ClientDashboard = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
+        {/* Sales & Returns Summary */}
         <Card>
           <CardHeader className="pb-2 sm:pb-4">
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary" />
-              {isRTL ? "ملخص المبيعات و المشتريات" : "Sales & Purchases Summary"}
+              {isRTL ? "ملخص المبيعات" : "Sales Summary"}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
             <div className="flex items-center justify-between py-2 border-b">
               <span className="text-sm text-muted-foreground">{isRTL ? "فواتير المبيعات" : "Sales Invoices"}</span>
               <div className="text-end">
@@ -436,23 +455,61 @@ const ClientDashboard = () => {
               </div>
             </div>
             <div className="flex items-center justify-between py-2 border-b">
+              <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                <Undo2 className="h-3.5 w-3.5 text-red-500" />
+                {isRTL ? "المرتجعات" : "Returns"}
+              </span>
+              <div className="text-end">
+                <span className="font-semibold text-red-500">{invoiceStats?.salesReturnsCount || 0}</span>
+                <span className="text-xs text-red-500 ms-2">(-{formatNumber(invoiceStats?.salesReturns || 0)} {currency})</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between py-2 border-b">
+              <span className="text-sm font-medium">{isRTL ? "صافي المبيعات" : "Net Sales"}</span>
+              <span className="font-bold text-green-600">{formatNumber(invoiceStats?.netSales || 0)} {currency}</span>
+            </div>
+            <div className="flex items-center justify-between py-2">
               <span className="text-sm text-muted-foreground">{isRTL ? "فواتير المشتريات" : "Purchase Invoices"}</span>
               <div className="text-end">
                 <span className="font-semibold">{invoiceStats?.purchasesCount || 0}</span>
                 <span className="text-xs text-muted-foreground ms-2">({formatNumber(purchasesTotal)} {currency})</span>
               </div>
             </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm font-medium">{isRTL ? "إجمالي الإيرادات (من القيود)" : "Total Revenue (from entries)"}</span>
-              <span className="font-bold text-green-600">{formatNumber(totalRevenue)} {currency}</span>
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm font-medium">{isRTL ? "إجمالي المصروفات (من القيود)" : "Total Expenses (from entries)"}</span>
-              <span className="font-bold text-red-600">{formatNumber(totalExpenses)} {currency}</span>
-            </div>
           </CardContent>
         </Card>
 
+        {/* VAT Summary */}
+        <Card>
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-primary" />
+              {isRTL ? "ملخص ضريبة القيمة المضافة" : "VAT Summary"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between py-2 border-b">
+              <span className="text-sm text-muted-foreground">{isRTL ? "ضريبة المبيعات (مستحقة)" : "Sales VAT (Output)"}</span>
+              <span className="font-semibold text-red-500">{formatNumber(invoiceStats?.salesTax || 0)} {currency}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-b">
+              <span className="text-sm text-muted-foreground">{isRTL ? "ضريبة المشتريات (مدفوعة)" : "Purchase VAT (Input)"}</span>
+              <span className="font-semibold text-green-600">{formatNumber(invoiceStats?.purchasesTax || 0)} {currency}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 bg-muted/50 rounded-lg px-3 -mx-1">
+              <span className="text-sm font-semibold">{isRTL ? "الرصيد الضريبي" : "Tax Balance"}</span>
+              <span className={`font-bold text-lg ${(invoiceStats?.taxBalance || 0) >= 0 ? "text-red-600" : "text-green-600"}`}>
+                {formatNumber(invoiceStats?.taxBalance || 0)} {currency}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground pt-1">
+              {(invoiceStats?.taxBalance || 0) >= 0
+                ? (isRTL ? "مبلغ مستحق للهيئة" : "Amount due to authority")
+                : (isRTL ? "رصيد لصالح المنشأة" : "Refundable balance")}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Balance Summary */}
         <Card>
           <CardHeader className="pb-2 sm:pb-4">
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">
@@ -460,7 +517,7 @@ const ClientDashboard = () => {
               {isRTL ? "ملخص الأرصدة" : "Balance Summary"}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
             <div className="flex items-center justify-between py-2 border-b">
               <span className="text-sm text-muted-foreground">{isRTL ? "رصيد الخزينة (نقدي + بنوك)" : "Treasury (Cash + Banks)"}</span>
               <span className="font-semibold">{formatNumber(treasuryBalance)} {currency}</span>
@@ -468,6 +525,14 @@ const ClientDashboard = () => {
             <div className="flex items-center justify-between py-2 border-b">
               <span className="text-sm text-muted-foreground">{isRTL ? "قيمة المخزون" : "Inventory Value"}</span>
               <span className="font-semibold">{formatNumber(inventoryValue)} {currency}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-b">
+              <span className="text-sm text-muted-foreground">{isRTL ? "إجمالي الإيرادات" : "Total Revenue"}</span>
+              <span className="font-semibold text-green-600">{formatNumber(totalRevenue)} {currency}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-b">
+              <span className="text-sm text-muted-foreground">{isRTL ? "إجمالي المصروفات" : "Total Expenses"}</span>
+              <span className="font-semibold text-red-600">{formatNumber(totalExpenses)} {currency}</span>
             </div>
             <div className="flex items-center justify-between py-2">
               <span className="text-sm font-medium">{isRTL ? "صافي الربح للفترة" : "Net Profit for Period"}</span>
