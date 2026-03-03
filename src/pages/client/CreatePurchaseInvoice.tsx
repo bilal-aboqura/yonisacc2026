@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,8 +75,10 @@ const CreatePurchaseInvoice = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isRTL } = useLanguage();
+  const [searchParams] = useSearchParams();
   const { id: editId } = useParams<{ id: string }>();
   const isEditMode = !!editId;
+  const fromPOId = searchParams.get("from_po");
   const { incrementUsage } = useFeatureAccess();
   const Arrow = isRTL ? ArrowRight : ArrowLeft;
 
@@ -186,6 +188,49 @@ const CreatePurchaseInvoice = () => {
         const prefix = settings?.purchase_prefix || "PUR-";
         const nextNum = settings?.next_purchase_number || 1;
         setInvoiceNumber(`${prefix}${String(nextNum).padStart(6, "0")}`);
+      }
+
+      // Pre-fill from purchase order if from_po param exists
+      if (!isEditMode && fromPOId) {
+        const { data: po } = await supabase
+          .from("invoices")
+          .select("*, contacts(id, name, name_en, tax_number, address, phone)")
+          .eq("id", fromPOId)
+          .maybeSingle();
+
+        if (po) {
+          if (po.contacts) setSelectedVendor(po.contacts as any);
+          setDueDate(po.due_date || "");
+          setNotes(
+            po.notes
+              ? `${po.notes}\n${isRTL ? "محوّل من أمر شراء:" : "Converted from PO:"} ${po.invoice_number}`
+              : `${isRTL ? "محوّل من أمر شراء:" : "Converted from PO:"} ${po.invoice_number}`
+          );
+          setReferenceNumber(po.invoice_number);
+
+          const { data: poItems } = await supabase
+            .from("invoice_items")
+            .select("*, product:products(name, name_en)")
+            .eq("invoice_id", fromPOId)
+            .order("sort_order");
+
+          if (poItems && poItems.length > 0) {
+            setItems(poItems.map(item => {
+              const pName = isRTL ? item.product?.name : (item.product?.name_en || item.product?.name);
+              const newItem = {
+                id: crypto.randomUUID(),
+                product_id: item.product_id,
+                product_name: pName || item.description || "",
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                discount_percent: item.discount_percent || 0,
+                tax_rate: item.tax_rate || 15,
+                total: item.total || 0,
+              };
+              return newItem;
+            }));
+          }
+        }
       }
     } catch (error: any) {
       console.error("Error fetching data:", error);
@@ -329,6 +374,14 @@ const CreatePurchaseInvoice = () => {
       // Increment usage only for new invoices
       if (!isEditMode) {
         await incrementUsage("purchase_invoices");
+      }
+
+      // Mark the source PO as converted
+      if (!isEditMode && fromPOId) {
+        await supabase
+          .from("invoices")
+          .update({ status: "converted" })
+          .eq("id", fromPOId);
       }
 
       toast.success(
