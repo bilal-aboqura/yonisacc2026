@@ -60,6 +60,7 @@ const InternalConsumptions = () => {
 
   const [form, setForm] = useState({
     branch_id: "",
+    consumption_date: new Date().toISOString().split("T")[0],
     department: "",
     reason: "",
     notes: "",
@@ -77,6 +78,7 @@ const InternalConsumptions = () => {
           company_id: companyId,
           branch_id: form.branch_id,
           consumption_number: num,
+          consumption_date: form.consumption_date,
           department: form.department || null,
           reason: form.reason || null,
           notes: form.notes || null,
@@ -128,7 +130,7 @@ const InternalConsumptions = () => {
       queryClient.invalidateQueries({ queryKey: ["stock-overview"] });
       toast.success(isRTL ? "تم تسجيل الاستهلاك بنجاح" : "Consumption recorded");
       setCreateOpen(false);
-      setForm({ branch_id: "", department: "", reason: "", notes: "", items: [{ product_id: "", quantity: 0, unit_cost: 0, notes: "" }] });
+      setForm({ branch_id: "", consumption_date: new Date().toISOString().split("T")[0], department: "", reason: "", notes: "", items: [{ product_id: "", quantity: 0, unit_cost: 0, notes: "" }] });
     },
     onError: () => toast.error(isRTL ? "حدث خطأ" : "Error"),
   });
@@ -208,6 +210,12 @@ const InternalConsumptions = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>{isRTL ? "تاريخ الاستهلاك" : "Date"} *</Label>
+                <Input type="date" value={form.consumption_date} onChange={e => setForm(f => ({ ...f, consumption_date: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>{isRTL ? "القسم" : "Department"}</Label>
                 <Input value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} />

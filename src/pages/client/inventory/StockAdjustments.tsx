@@ -64,6 +64,7 @@ const StockAdjustments = () => {
   const [form, setForm] = useState({
     branch_id: "",
     adjustment_type: "increase",
+    adjustment_date: new Date().toISOString().split("T")[0],
     reason: "",
     notes: "",
     items: [{ product_id: "", quantity: 0, unit_cost: 0, notes: "" }],
@@ -82,6 +83,7 @@ const StockAdjustments = () => {
           branch_id: form.branch_id,
           adjustment_number: adjNumber,
           adjustment_type: form.adjustment_type,
+          adjustment_date: form.adjustment_date,
           reason: form.reason || null,
           notes: form.notes || null,
           created_by: user?.id,
@@ -108,7 +110,7 @@ const StockAdjustments = () => {
       queryClient.invalidateQueries({ queryKey: ["stock_adjustments"] });
       toast.success(isRTL ? "تم إنشاء التسوية بنجاح" : "Adjustment created successfully");
       setCreateOpen(false);
-      setForm({ branch_id: "", adjustment_type: "increase", reason: "", notes: "", items: [{ product_id: "", quantity: 0, unit_cost: 0, notes: "" }] });
+      setForm({ branch_id: "", adjustment_type: "increase", adjustment_date: new Date().toISOString().split("T")[0], reason: "", notes: "", items: [{ product_id: "", quantity: 0, unit_cost: 0, notes: "" }] });
     },
     onError: () => toast.error(isRTL ? "حدث خطأ" : "Error creating adjustment"),
   });
@@ -282,6 +284,10 @@ const StockAdjustments = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div>
+              <Label>{isRTL ? "تاريخ التسوية" : "Adjustment Date"} *</Label>
+              <Input type="date" value={form.adjustment_date} onChange={e => setForm(f => ({ ...f, adjustment_date: e.target.value }))} />
             </div>
             <div>
               <Label>{isRTL ? "السبب" : "Reason"}</Label>

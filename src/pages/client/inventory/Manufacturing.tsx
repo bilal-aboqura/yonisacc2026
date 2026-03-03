@@ -78,6 +78,7 @@ const Manufacturing = () => {
   const [orderForm, setOrderForm] = useState({
     bom_id: "",
     branch_id: "",
+    order_date: new Date().toISOString().split("T")[0],
     quantity: 1,
     notes: "",
   });
@@ -131,7 +132,7 @@ const Manufacturing = () => {
       queryClient.invalidateQueries({ queryKey: ["manufacturing_orders"] });
       toast.success(isRTL ? "تم إنشاء أمر التصنيع" : "Manufacturing order created");
       setOrderDialogOpen(false);
-      setOrderForm({ bom_id: "", branch_id: "", quantity: 1, notes: "" });
+      setOrderForm({ bom_id: "", branch_id: "", order_date: new Date().toISOString().split("T")[0], quantity: 1, notes: "" });
     },
     onError: () => toast.error(isRTL ? "حدث خطأ" : "Error"),
   });
@@ -379,6 +380,10 @@ const Manufacturing = () => {
                   {branches.map((b: any) => <SelectItem key={b.id} value={b.id}>{isRTL ? b.name : b.name_en || b.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>{isRTL ? "تاريخ الأمر" : "Order Date"} *</Label>
+              <Input type="date" value={orderForm.order_date} onChange={e => setOrderForm(f => ({ ...f, order_date: e.target.value }))} />
             </div>
             <div>
               <Label>{isRTL ? "الكمية" : "Quantity"} *</Label>

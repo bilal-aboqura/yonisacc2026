@@ -61,6 +61,7 @@ const StockTransfers = () => {
   const [form, setForm] = useState({
     from_branch_id: "",
     to_branch_id: "",
+    transfer_date: new Date().toISOString().split("T")[0],
     notes: "",
     items: [{ product_id: "", quantity_sent: 0, notes: "" }],
   });
@@ -77,6 +78,7 @@ const StockTransfers = () => {
           transfer_number: num,
           from_branch_id: form.from_branch_id,
           to_branch_id: form.to_branch_id,
+          transfer_date: form.transfer_date,
           notes: form.notes || null,
           created_by: user?.id,
           status: "draft",
@@ -102,7 +104,7 @@ const StockTransfers = () => {
       queryClient.invalidateQueries({ queryKey: ["stock_transfers"] });
       toast.success(isRTL ? "تم إنشاء التحويل بنجاح" : "Transfer created");
       setCreateOpen(false);
-      setForm({ from_branch_id: "", to_branch_id: "", notes: "", items: [{ product_id: "", quantity_sent: 0, notes: "" }] });
+      setForm({ from_branch_id: "", to_branch_id: "", transfer_date: new Date().toISOString().split("T")[0], notes: "", items: [{ product_id: "", quantity_sent: 0, notes: "" }] });
     },
     onError: () => toast.error(isRTL ? "حدث خطأ" : "Error"),
   });
@@ -269,6 +271,10 @@ const StockTransfers = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div>
+              <Label>{isRTL ? "تاريخ التحويل" : "Transfer Date"} *</Label>
+              <Input type="date" value={form.transfer_date} onChange={e => setForm(f => ({ ...f, transfer_date: e.target.value }))} />
             </div>
             <div>
               <Label>{isRTL ? "ملاحظات" : "Notes"}</Label>
