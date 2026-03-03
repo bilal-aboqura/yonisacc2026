@@ -24,3 +24,6 @@ verify_jwt = false
 [functions.reset-usage]
 verify_jwt = false
 
+[functions.create-subscriber]
+verify_jwt = false
+

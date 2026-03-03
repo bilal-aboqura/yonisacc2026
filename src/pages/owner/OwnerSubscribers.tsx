@@ -19,9 +19,12 @@ import {
   Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Building2, Eye, Pencil, Pause, Ban, Trash2, Mail, Phone, Calendar, MapPin, Archive, Users, RotateCcw, KeyRound, Loader2, ShieldCheck, Shield, Monitor } from "lucide-react";
+import { Search, Building2, Eye, Pencil, Pause, Ban, Trash2, Mail, Phone, Calendar, MapPin, Archive, Users, RotateCcw, KeyRound, Loader2, ShieldCheck, Shield, Monitor, Plus, UserPlus, EyeOff } from "lucide-react";
 import ManagePermissionsDialog from "@/components/owner/ManagePermissionsDialog";
 import CompanyScreensDialog from "@/components/owner/CompanyScreensDialog";
 import { Label } from "@/components/ui/label";
@@ -62,6 +65,66 @@ const OwnerSubscribers = () => {
   
   const [managePermissionsCompany, setManagePermissionsCompany] = useState<any>(null);
   const [manageScreensCompany, setManageScreensCompany] = useState<any>(null);
+
+  // Add subscriber state
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newSub, setNewSub] = useState({
+    email: "", password: "", company_name: "", company_name_en: "",
+    full_name: "", phone: "", plan_id: "", activity_type: "",
+    tax_number: "", commercial_register: "", address: "",
+  });
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
+  // Fetch plans for the create dialog
+  const { data: plans } = useQuery({
+    queryKey: ["subscription-plans-list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("subscription_plans")
+        .select("id, name_ar, name_en, price, duration_months")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      return data || [];
+    },
+  });
+
+  const resetNewSub = () => {
+    setNewSub({
+      email: "", password: "", company_name: "", company_name_en: "",
+      full_name: "", phone: "", plan_id: "", activity_type: "",
+      tax_number: "", commercial_register: "", address: "",
+    });
+    setShowNewPassword(false);
+  };
+
+  const createSubscriberMutation = useMutation({
+    mutationFn: async () => {
+      const response = await supabase.functions.invoke("create-subscriber", {
+        body: newSub,
+      });
+      if (response.error) throw new Error(response.error.message || "Failed");
+      if (response.data?.error) throw new Error(response.data.error);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["owner-subscribers"] });
+      toast({
+        title: isRTL ? "تم إنشاء المشترك" : "Subscriber Created",
+        description: isRTL
+          ? `تم إنشاء حساب ${data.email} بنجاح`
+          : `Account ${data.email} created successfully`,
+      });
+      setShowAddDialog(false);
+      resetNewSub();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: isRTL ? "خطأ" : "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["owner-subscribers", search, page, showArchived],
@@ -228,6 +291,14 @@ const OwnerSubscribers = () => {
             >
               <Archive className="h-4 w-4" />
               {isRTL ? "المؤرشفين" : "Archived"}
+            </Button>
+            <Button
+              size="sm"
+              className="gap-2"
+              onClick={() => { resetNewSub(); setShowAddDialog(true); }}
+            >
+              <UserPlus className="h-4 w-4" />
+              {isRTL ? "إضافة مشترك" : "Add Subscriber"}
             </Button>
           </div>
         </CardContent>
@@ -673,6 +744,169 @@ const OwnerSubscribers = () => {
         company={manageScreensCompany}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ["owner-subscribers"] })}
       />
+
+      {/* Add Subscriber Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={(open) => { if (!open) { setShowAddDialog(false); resetNewSub(); } }}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              {isRTL ? "إضافة مشترك جديد" : "Add New Subscriber"}
+            </DialogTitle>
+            <DialogDescription>
+              {isRTL ? "أدخل بيانات المشترك الجديد لإنشاء حسابه" : "Enter new subscriber details to create their account"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Email & Password */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? "البريد الإلكتروني *" : "Email *"}</Label>
+                <Input
+                  type="email" dir="ltr"
+                  value={newSub.email}
+                  onChange={(e) => setNewSub({ ...newSub, email: e.target.value })}
+                  placeholder="user@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "كلمة المرور *" : "Password *"}</Label>
+                <div className="relative">
+                  <Input
+                    type={showNewPassword ? "text" : "password"} dir="ltr"
+                    value={newSub.password}
+                    onChange={(e) => setNewSub({ ...newSub, password: e.target.value })}
+                    placeholder="Pass@123"
+                  />
+                  <Button
+                    type="button" variant="ghost" size="icon"
+                    className="absolute end-0 top-0 h-10 w-10"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {isRTL ? "حرف كبير + صغير + رقم + رمز (8 أحرف)" : "Upper + lower + number + symbol (8 chars)"}
+                </p>
+              </div>
+            </div>
+
+            {/* Company Name */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? "اسم الشركة (عربي) *" : "Company Name (Arabic) *"}</Label>
+                <Input
+                  value={newSub.company_name}
+                  onChange={(e) => setNewSub({ ...newSub, company_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "اسم الشركة (إنجليزي)" : "Company Name (English)"}</Label>
+                <Input
+                  dir="ltr"
+                  value={newSub.company_name_en}
+                  onChange={(e) => setNewSub({ ...newSub, company_name_en: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Full Name & Phone */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? "اسم المسؤول" : "Contact Name"}</Label>
+                <Input
+                  value={newSub.full_name}
+                  onChange={(e) => setNewSub({ ...newSub, full_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "رقم الجوال" : "Phone"}</Label>
+                <Input
+                  dir="ltr"
+                  value={newSub.phone}
+                  onChange={(e) => setNewSub({ ...newSub, phone: e.target.value })}
+                  placeholder="05XXXXXXXX"
+                />
+              </div>
+            </div>
+
+            {/* Plan Selection */}
+            <div className="space-y-2">
+              <Label>{isRTL ? "الباقة *" : "Plan *"}</Label>
+              <Select value={newSub.plan_id} onValueChange={(v) => setNewSub({ ...newSub, plan_id: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder={isRTL ? "اختر الباقة" : "Select plan"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(plans || []).map((plan: any) => (
+                    <SelectItem key={plan.id} value={plan.id}>
+                      {isRTL ? plan.name_ar : plan.name_en} — {plan.price} {isRTL ? "ر.س" : "SAR"} / {plan.duration_months} {isRTL ? "شهر" : "mo"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Optional fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? "نوع النشاط" : "Activity Type"}</Label>
+                <Input
+                  value={newSub.activity_type}
+                  onChange={(e) => setNewSub({ ...newSub, activity_type: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "الرقم الضريبي" : "Tax Number"}</Label>
+                <Input
+                  dir="ltr"
+                  value={newSub.tax_number}
+                  onChange={(e) => setNewSub({ ...newSub, tax_number: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? "السجل التجاري" : "Commercial Register"}</Label>
+                <Input
+                  dir="ltr"
+                  value={newSub.commercial_register}
+                  onChange={(e) => setNewSub({ ...newSub, commercial_register: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "العنوان" : "Address"}</Label>
+                <Input
+                  value={newSub.address}
+                  onChange={(e) => setNewSub({ ...newSub, address: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetNewSub(); }}>
+              {isRTL ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              onClick={() => createSubscriberMutation.mutate()}
+              disabled={
+                createSubscriberMutation.isPending ||
+                !newSub.email || !newSub.company_name || !newSub.plan_id ||
+                !isStrongPassword(newSub.password)
+              }
+            >
+              {createSubscriberMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+              {createSubscriberMutation.isPending
+                ? (isRTL ? "جاري الإنشاء..." : "Creating...")
+                : (isRTL ? "إنشاء المشترك" : "Create Subscriber")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
