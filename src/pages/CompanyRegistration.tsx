@@ -5,7 +5,6 @@ import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext"
 import { StepIndicator } from "@/components/onboarding/StepIndicator";
 import { Step2Company } from "@/components/onboarding/Step2Company";
 import { Step3Preferences } from "@/components/onboarding/Step3Preferences";
-import { Step4Modules } from "@/components/onboarding/Step4Modules";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +12,8 @@ import { ArrowLeft, Sparkles, User, Mail, Lock, Eye, EyeOff, ArrowRight } from "
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 
-const STEP_LABELS_AR = ["بيانات الشركة", "تفضيلات النظام", "اختيار الوحدات"];
-const STEP_LABELS_EN = ["Company Details", "Preferences", "Select Modules"];
+const STEP_LABELS_AR = ["بيانات الشركة", "تفضيلات النظام"];
+const STEP_LABELS_EN = ["Company Details", "Preferences"];
 
 const signupSchema = z.object({
   fullName: z.string().trim().min(2, "الاسم يجب أن يكون حرفين على الأقل"),
@@ -197,8 +196,7 @@ const WizardContent = ({ initialData }: { initialData: { full_name: string; emai
 
       <div className="bg-card border border-border rounded-2xl shadow-sm p-6 sm:p-8">
         {currentStep === 1 && <Step2Company isRTL={isRTL} />}
-        {currentStep === 2 && <Step3Preferences isRTL={isRTL} />}
-        {currentStep === 3 && <Step4Modules isRTL={isRTL} />}
+        {currentStep === 2 && <Step3Preferences isRTL={isRTL} isFinalStep />}
       </div>
     </div>
   );

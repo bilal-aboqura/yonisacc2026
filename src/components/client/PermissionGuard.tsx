@@ -1,42 +1,46 @@
-import { usePermissions } from "@/hooks/usePermissions";
+import { useRBAC } from "@/hooks/useRBAC";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Lock } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface PermissionGuardProps {
-  /** The feature key to check, e.g. "sales.create_invoice" */
-  featureKey: string;
+  /** The RBAC permission code, e.g. "CREATE_JOURNAL" */
+  permission?: string;
   /** Render children normally if allowed */
   children: React.ReactNode;
   /** How to handle unauthorized: "hide" removes element, "disable" shows but disabled */
   fallback?: "hide" | "disable";
   /** Custom tooltip text when disabled */
   tooltipText?: string;
+  /** @deprecated Use `permission` instead */
+  featureKey?: string;
 }
 
 const PermissionGuard = ({
-  featureKey,
+  permission,
   children,
   fallback = "disable",
   tooltipText,
+  featureKey,
 }: PermissionGuardProps) => {
-  const { hasPermission, isLoading } = usePermissions();
+  const { can, isLoading } = useRBAC();
   const { isRTL } = useLanguage();
+
+  // Backward compat: accept featureKey if permission not provided
+  const code = permission || featureKey || "";
 
   // While loading, show children normally
   if (isLoading) return <>{children}</>;
 
-  const allowed = hasPermission(featureKey);
+  const allowed = can(code);
 
   if (allowed) return <>{children}</>;
 
   if (fallback === "hide") return null;
 
-  // Disable mode: wrap in tooltip with lock overlay
   const defaultTooltip = isRTL
-    ? "غير متاح في خطتك الحالية"
-    : "Not available in your current plan";
+    ? "ليس لديك صلاحية لهذا الإجراء"
+    : "You don't have permission for this action";
 
   return (
     <Tooltip>
