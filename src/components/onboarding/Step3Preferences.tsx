@@ -126,7 +126,7 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
         }
       }
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         full_name: data.full_name.trim(),
         name: data.company_name.trim(),
         name_en: data.company_name_en.trim() || null,
@@ -142,6 +142,9 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
         base_currency: data.base_currency,
         modules: [], // No module selection — all access controlled via RBAC
       };
+      if (data.plan_id) {
+        payload.plan_id = data.plan_id;
+      }
 
       const response = await supabase.functions.invoke("provision-tenant", { body: payload });
       const result = response.data;

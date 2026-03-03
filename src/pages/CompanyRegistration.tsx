@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
 import { StepIndicator } from "@/components/onboarding/StepIndicator";
@@ -206,6 +206,8 @@ const CompanyRegistration = () => {
   const { isRTL } = useLanguage();
   const navigate = useNavigate();
 
+  const [searchParams] = useSearchParams();
+  const planId = searchParams.get("plan") || "";
   const [accountData, setAccountData] = useState<{ full_name: string; email: string; password: string } | null>(null);
 
   return (
@@ -268,7 +270,7 @@ const CompanyRegistration = () => {
                   : "Complete the steps below to set up your company"}
               </p>
             </div>
-            <OnboardingProvider initialData={accountData}>
+            <OnboardingProvider initialData={{ ...accountData, plan_id: planId }}>
               <WizardContent initialData={accountData} />
             </OnboardingProvider>
           </>

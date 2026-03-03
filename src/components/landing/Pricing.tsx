@@ -201,7 +201,7 @@ export const Pricing = () => {
                   </ul>
 
                   {/* CTA */}
-                  <Link to="/register-company" className="block">
+                  <Link to={`/register-company?plan=${plan.id}`} className="block">
                     <Button
                       className="w-full rounded-xl h-12 gradient-primary text-white btn-primary-shadow"
                     >
