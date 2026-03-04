@@ -12,10 +12,10 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Ruler } from "lucide-react";
+import { Plus, Pencil, Trash2, Ruler, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UnitForm {
@@ -149,13 +149,16 @@ const UnitsManagement = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
-      <div className={cn("flex items-center justify-between flex-wrap gap-4", isRTL && "flex-row-reverse")}>
-        <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
-          <Ruler className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">{isRTL ? "إدارة الوحدات" : "Units Management"}</h1>
+      <div className={cn("flex flex-col md:flex-row md:items-center md:justify-between gap-4")}>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+            <Ruler className="h-7 w-7 text-primary" />
+            {isRTL ? "إدارة الوحدات" : "Units Management"}
+          </h1>
+          <p className="text-muted-foreground mt-1">{isRTL ? "إدارة وحدات القياس ومعدلات التحويل" : "Manage measurement units and conversion rates"}</p>
         </div>
         {canManage && (
-          <Button onClick={openCreate} className={cn("gap-2", isRTL && "flex-row-reverse")}>
+          <Button onClick={openCreate} className="gap-2">
             <Plus className="h-4 w-4" />
             {isRTL ? "إضافة وحدة" : "Add Unit"}
           </Button>
@@ -170,47 +173,62 @@ const UnitsManagement = () => {
                 <TableHead>{isRTL ? "الاسم" : "Name"}</TableHead>
                 <TableHead>{isRTL ? "الاسم بالإنجليزية" : "English Name"}</TableHead>
                 <TableHead>{isRTL ? "الاختصار" : "Symbol"}</TableHead>
-                <TableHead>{isRTL ? "كسور" : "Fractions"}</TableHead>
+                <TableHead className="text-center">{isRTL ? "كسور" : "Fractions"}</TableHead>
                 <TableHead>{isRTL ? "الوحدة الأساسية" : "Base Unit"}</TableHead>
-                <TableHead>{isRTL ? "معدل التحويل" : "Conversion Rate"}</TableHead>
-                {canManage && <TableHead>{isRTL ? "الإجراءات" : "Actions"}</TableHead>}
+                <TableHead className="text-end">{isRTL ? "معدل التحويل" : "Conversion Rate"}</TableHead>
+                {canManage && <TableHead className="text-center">{isRTL ? "الإجراءات" : "Actions"}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    {isRTL ? "جاري التحميل..." : "Loading..."}
+                  <TableCell colSpan={7} className="text-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : units.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    {isRTL ? "لا توجد وحدات بعد" : "No units yet"}
+                  <TableCell colSpan={7} className="text-center py-12">
+                    <Ruler className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground font-medium">
+                      {isRTL ? "لا توجد وحدات بعد" : "No units yet"}
+                    </p>
+                    {canManage && (
+                      <Button className="mt-3 gap-2" size="sm" onClick={openCreate}>
+                        <Plus className="h-4 w-4" />
+                        {isRTL ? "إضافة وحدة" : "Add Unit"}
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
                 units.map((unit: any) => (
                   <TableRow key={unit.id}>
                     <TableCell className="font-medium">{unit.name}</TableCell>
-                    <TableCell>{unit.name_en || "-"}</TableCell>
-                    <TableCell><Badge variant="secondary">{unit.symbol || "-"}</Badge></TableCell>
+                    <TableCell className="text-muted-foreground">{unit.name_en || "-"}</TableCell>
                     <TableCell>
+                      {unit.symbol ? (
+                        <Badge variant="secondary" className="font-mono">{unit.symbol}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
                       {unit.allows_fractions ? (
                         <Badge variant="default">{isRTL ? "نعم" : "Yes"}</Badge>
                       ) : (
                         <Badge variant="outline">{isRTL ? "لا" : "No"}</Badge>
                       )}
                     </TableCell>
-                    <TableCell>{getBaseUnitName(unit.base_unit_id)}</TableCell>
-                    <TableCell>{unit.conversion_rate || 1}</TableCell>
+                    <TableCell className="text-muted-foreground">{getBaseUnitName(unit.base_unit_id)}</TableCell>
+                    <TableCell className="text-end tabular-nums font-medium">{unit.conversion_rate || 1}</TableCell>
                     {canManage && (
                       <TableCell>
-                        <div className={cn("flex gap-1", isRTL && "flex-row-reverse")}>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(unit)}>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(unit)} title={isRTL ? "تعديل" : "Edit"}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteId(unit.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(unit.id)} title={isRTL ? "حذف" : "Delete"}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -221,6 +239,11 @@ const UnitsManagement = () => {
               )}
             </TableBody>
           </Table>
+          {!isLoading && units.length > 0 && (
+            <div className="px-4 py-3 border-t text-sm text-muted-foreground">
+              {isRTL ? `إجمالي الوحدات: ${units.length}` : `Total units: ${units.length}`}
+            </div>
+          )}
         </CardContent>
       </Card>
 
