@@ -11,10 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, ClipboardCheck, Check, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, ClipboardCheck, Check, Trash2, ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const StockAdjustments = () => {
@@ -170,6 +170,11 @@ const StockAdjustments = () => {
   const canManage = can("MANAGE_ADJUSTMENTS");
   const canApprove = can("APPROVE_ADJUSTMENTS");
 
+  const formatDate = (d: string) => {
+    if (!d) return "-";
+    return new Date(d).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" });
+  };
+
   if (showForm) {
     return (
       <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
@@ -222,7 +227,7 @@ const StockAdjustments = () => {
             <div>
               <div className={cn("flex items-center justify-between mb-3", isRTL && "flex-row-reverse")}>
                 <Label className="text-base font-semibold">{isRTL ? "الأصناف" : "Items"}</Label>
-                <Button type="button" size="sm" variant="outline" onClick={addItem} className={cn("gap-1", isRTL && "flex-row-reverse")}>
+                <Button type="button" size="sm" variant="outline" onClick={addItem} className="gap-1">
                   <Plus className="h-3 w-3" />
                   {isRTL ? "إضافة صنف" : "Add Item"}
                 </Button>
@@ -232,8 +237,8 @@ const StockAdjustments = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{isRTL ? "المنتج" : "Product"}</TableHead>
-                      <TableHead>{isRTL ? "الكمية" : "Quantity"}</TableHead>
-                      <TableHead>{isRTL ? "التكلفة" : "Unit Cost"}</TableHead>
+                      <TableHead className="text-end">{isRTL ? "الكمية" : "Quantity"}</TableHead>
+                      <TableHead className="text-end">{isRTL ? "التكلفة" : "Unit Cost"}</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -249,13 +254,13 @@ const StockAdjustments = () => {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          <Input type="number" min={0} value={item.quantity} onChange={e => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)} className="w-28" />
+                          <Input type="number" min={0} value={item.quantity} onChange={e => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)} className="w-28 text-end tabular-nums" />
                         </TableCell>
                         <TableCell>
-                          <Input type="number" min={0} value={item.unit_cost} onChange={e => updateItem(idx, "unit_cost", parseFloat(e.target.value) || 0)} className="w-28" />
+                          <Input type="number" min={0} value={item.unit_cost} onChange={e => updateItem(idx, "unit_cost", parseFloat(e.target.value) || 0)} className="w-28 text-end tabular-nums" />
                         </TableCell>
                         <TableCell>
-                          <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeItem(idx)} disabled={form.items.length <= 1}>
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeItem(idx)} disabled={form.items.length <= 1}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -280,13 +285,16 @@ const StockAdjustments = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
-      <div className={cn("flex items-center justify-between flex-wrap gap-4", isRTL && "flex-row-reverse")}>
-        <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
-          <ClipboardCheck className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">{isRTL ? "تسوية المخزون" : "Stock Adjustments"}</h1>
+      <div className={cn("flex flex-col md:flex-row md:items-center md:justify-between gap-4")}>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+            <ClipboardCheck className="h-7 w-7 text-primary" />
+            {isRTL ? "تسوية المخزون" : "Stock Adjustments"}
+          </h1>
+          <p className="text-muted-foreground mt-1">{isRTL ? "إدارة تسويات الزيادة والنقص في المخزون" : "Manage stock increase and decrease adjustments"}</p>
         </div>
         {canManage && (
-          <Button onClick={() => setShowForm(true)} className={cn("gap-2", isRTL && "flex-row-reverse")}>
+          <Button onClick={() => setShowForm(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             {isRTL ? "تسوية جديدة" : "New Adjustment"}
           </Button>
@@ -303,32 +311,49 @@ const StockAdjustments = () => {
                 <TableHead>{isRTL ? "النوع" : "Type"}</TableHead>
                 <TableHead>{isRTL ? "الفرع" : "Branch"}</TableHead>
                 <TableHead>{isRTL ? "السبب" : "Reason"}</TableHead>
-                <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-                {canApprove && <TableHead>{isRTL ? "الإجراءات" : "Actions"}</TableHead>}
+                <TableHead className="text-center">{isRTL ? "الحالة" : "Status"}</TableHead>
+                {canApprove && <TableHead className="text-center">{isRTL ? "الإجراءات" : "Actions"}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8">{isRTL ? "جاري التحميل..." : "Loading..."}</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                  </TableCell>
+                </TableRow>
               ) : adjustments.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{isRTL ? "لا توجد تسويات" : "No adjustments"}</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12">
+                    <ClipboardCheck className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground font-medium">
+                      {isRTL ? "لا توجد تسويات" : "No adjustments yet"}
+                    </p>
+                    {canManage && (
+                      <Button className="mt-3 gap-2" size="sm" onClick={() => setShowForm(true)}>
+                        <Plus className="h-4 w-4" />
+                        {isRTL ? "تسوية جديدة" : "New Adjustment"}
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
               ) : (
                 adjustments.map((adj: any) => (
                   <TableRow key={adj.id}>
-                    <TableCell className="font-medium">{adj.adjustment_number}</TableCell>
-                    <TableCell>{adj.adjustment_date}</TableCell>
+                    <TableCell className="font-medium font-mono text-sm">{adj.adjustment_number}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(adj.adjustment_date)}</TableCell>
                     <TableCell>
                       <Badge variant={adj.adjustment_type === "increase" ? "default" : "destructive"}>
                         {adj.adjustment_type === "increase" ? (isRTL ? "زيادة" : "Increase") : (isRTL ? "نقص" : "Decrease")}
                       </Badge>
                     </TableCell>
                     <TableCell>{adj.branches ? (isRTL ? adj.branches.name : adj.branches.name_en || adj.branches.name) : "-"}</TableCell>
-                    <TableCell>{adj.reason || "-"}</TableCell>
-                    <TableCell>{statusBadge(adj.status)}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-muted-foreground">{adj.reason || "-"}</TableCell>
+                    <TableCell className="text-center">{statusBadge(adj.status)}</TableCell>
                     {canApprove && (
-                      <TableCell>
+                      <TableCell className="text-center">
                         {adj.status === "draft" && (
-                          <Button size="sm" variant="outline" onClick={() => approveMutation.mutate(adj.id)} disabled={approveMutation.isPending} className={cn("gap-1", isRTL && "flex-row-reverse")}>
+                          <Button size="sm" variant="outline" onClick={() => approveMutation.mutate(adj.id)} disabled={approveMutation.isPending} className="gap-1">
                             <Check className="h-4 w-4" />
                             {isRTL ? "اعتماد" : "Approve"}
                           </Button>
@@ -340,6 +365,11 @@ const StockAdjustments = () => {
               )}
             </TableBody>
           </Table>
+          {!isLoading && adjustments.length > 0 && (
+            <div className="px-4 py-3 border-t text-sm text-muted-foreground">
+              {isRTL ? `إجمالي التسويات: ${adjustments.length}` : `Total adjustments: ${adjustments.length}`}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

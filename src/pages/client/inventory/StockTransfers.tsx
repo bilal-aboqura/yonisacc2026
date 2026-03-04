@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, ArrowRightLeft, Send, PackageCheck, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, ArrowRightLeft, Send, PackageCheck, Trash2, ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const StockTransfers = () => {
@@ -157,6 +157,11 @@ const StockTransfers = () => {
     return <Badge variant={variants[status] as any}>{isRTL ? labels[status]?.ar : labels[status]?.en || status}</Badge>;
   };
 
+  const formatDate = (d: string) => {
+    if (!d) return "-";
+    return new Date(d).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" });
+  };
+
   const canManage = can("MANAGE_TRANSFERS");
 
   if (showForm) {
@@ -204,7 +209,7 @@ const StockTransfers = () => {
             <div>
               <div className={cn("flex items-center justify-between mb-3", isRTL && "flex-row-reverse")}>
                 <Label className="text-base font-semibold">{isRTL ? "الأصناف" : "Items"}</Label>
-                <Button type="button" size="sm" variant="outline" onClick={addItem} className={cn("gap-1", isRTL && "flex-row-reverse")}>
+                <Button type="button" size="sm" variant="outline" onClick={addItem} className="gap-1">
                   <Plus className="h-3 w-3" />
                   {isRTL ? "إضافة" : "Add"}
                 </Button>
@@ -214,7 +219,7 @@ const StockTransfers = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{isRTL ? "المنتج" : "Product"}</TableHead>
-                      <TableHead>{isRTL ? "الكمية" : "Quantity"}</TableHead>
+                      <TableHead className="text-end">{isRTL ? "الكمية" : "Quantity"}</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -230,10 +235,10 @@ const StockTransfers = () => {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          <Input type="number" min={0} value={item.quantity_sent} onChange={e => updateItem(idx, "quantity_sent", parseFloat(e.target.value) || 0)} className="w-28" />
+                          <Input type="number" min={0} value={item.quantity_sent} onChange={e => updateItem(idx, "quantity_sent", parseFloat(e.target.value) || 0)} className="w-28 text-end tabular-nums" />
                         </TableCell>
                         <TableCell>
-                          <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeItem(idx)} disabled={form.items.length <= 1}>
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeItem(idx)} disabled={form.items.length <= 1}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -258,13 +263,16 @@ const StockTransfers = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
-      <div className={cn("flex items-center justify-between flex-wrap gap-4", isRTL && "flex-row-reverse")}>
-        <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
-          <ArrowRightLeft className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">{isRTL ? "تحويل بين الفروع" : "Stock Transfers"}</h1>
+      <div className={cn("flex flex-col md:flex-row md:items-center md:justify-between gap-4")}>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+            <ArrowRightLeft className="h-7 w-7 text-primary" />
+            {isRTL ? "تحويل بين الفروع" : "Stock Transfers"}
+          </h1>
+          <p className="text-muted-foreground mt-1">{isRTL ? "إدارة تحويلات المخزون بين الفروع" : "Manage stock transfers between branches"}</p>
         </div>
         {canManage && (
-          <Button onClick={() => setShowForm(true)} className={cn("gap-2", isRTL && "flex-row-reverse")}>
+          <Button onClick={() => setShowForm(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             {isRTL ? "تحويل جديد" : "New Transfer"}
           </Button>
@@ -280,34 +288,51 @@ const StockTransfers = () => {
                 <TableHead>{isRTL ? "التاريخ" : "Date"}</TableHead>
                 <TableHead>{isRTL ? "من فرع" : "From"}</TableHead>
                 <TableHead>{isRTL ? "إلى فرع" : "To"}</TableHead>
-                <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-                {canManage && <TableHead>{isRTL ? "الإجراءات" : "Actions"}</TableHead>}
+                <TableHead className="text-center">{isRTL ? "الحالة" : "Status"}</TableHead>
+                {canManage && <TableHead className="text-center">{isRTL ? "الإجراءات" : "Actions"}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8">{isRTL ? "جاري التحميل..." : "Loading..."}</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                  </TableCell>
+                </TableRow>
               ) : transfers.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{isRTL ? "لا توجد تحويلات" : "No transfers"}</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12">
+                    <ArrowRightLeft className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground font-medium">
+                      {isRTL ? "لا توجد تحويلات" : "No transfers yet"}
+                    </p>
+                    {canManage && (
+                      <Button className="mt-3 gap-2" size="sm" onClick={() => setShowForm(true)}>
+                        <Plus className="h-4 w-4" />
+                        {isRTL ? "تحويل جديد" : "New Transfer"}
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
               ) : (
                 transfers.map((t: any) => (
                   <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.transfer_number}</TableCell>
-                    <TableCell>{t.transfer_date}</TableCell>
+                    <TableCell className="font-medium font-mono text-sm">{t.transfer_number}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(t.transfer_date)}</TableCell>
                     <TableCell>{t.from_branch ? (isRTL ? t.from_branch.name : t.from_branch.name_en || t.from_branch.name) : "-"}</TableCell>
                     <TableCell>{t.to_branch ? (isRTL ? t.to_branch.name : t.to_branch.name_en || t.to_branch.name) : "-"}</TableCell>
-                    <TableCell>{statusBadge(t.status)}</TableCell>
+                    <TableCell className="text-center">{statusBadge(t.status)}</TableCell>
                     {canManage && (
-                      <TableCell>
-                        <div className={cn("flex gap-1", isRTL && "flex-row-reverse")}>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
                           {t.status === "draft" && (
-                            <Button size="sm" variant="outline" onClick={() => updateStatus.mutate({ id: t.id, newStatus: "sent" })} className={cn("gap-1", isRTL && "flex-row-reverse")}>
+                            <Button size="sm" variant="outline" onClick={() => updateStatus.mutate({ id: t.id, newStatus: "sent" })} className="gap-1">
                               <Send className="h-3 w-3" />
                               {isRTL ? "إرسال" : "Send"}
                             </Button>
                           )}
                           {t.status === "sent" && (
-                            <Button size="sm" variant="outline" onClick={() => updateStatus.mutate({ id: t.id, newStatus: "received" })} className={cn("gap-1", isRTL && "flex-row-reverse")}>
+                            <Button size="sm" variant="outline" onClick={() => updateStatus.mutate({ id: t.id, newStatus: "received" })} className="gap-1">
                               <PackageCheck className="h-3 w-3" />
                               {isRTL ? "استلام" : "Receive"}
                             </Button>
@@ -320,6 +345,11 @@ const StockTransfers = () => {
               )}
             </TableBody>
           </Table>
+          {!isLoading && transfers.length > 0 && (
+            <div className="px-4 py-3 border-t text-sm text-muted-foreground">
+              {isRTL ? `إجمالي التحويلات: ${transfers.length}` : `Total transfers: ${transfers.length}`}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

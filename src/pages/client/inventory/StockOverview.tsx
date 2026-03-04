@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Boxes, Search, AlertTriangle } from "lucide-react";
+import { Boxes, Search, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const StockOverview = () => {
@@ -87,11 +87,18 @@ const StockOverview = () => {
     return { qty, reserved, actual: qty - reserved, value };
   };
 
+  const totalValue = useMemo(() => {
+    return filteredProducts.reduce((sum: number, p: any) => sum + getStockInfo(p).value, 0);
+  }, [filteredProducts, branchFilter]);
+
   return (
     <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
-      <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
-        <Boxes className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">{isRTL ? "عرض المخزون" : "Stock Overview"}</h1>
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+          <Boxes className="h-7 w-7 text-primary" />
+          {isRTL ? "عرض المخزون" : "Stock Overview"}
+        </h1>
+        <p className="text-muted-foreground mt-1">{isRTL ? "عرض أرصدة المخزون والقيم لجميع المنتجات" : "View stock balances and values for all products"}</p>
       </div>
 
       {/* Filters */}
@@ -132,7 +139,7 @@ const StockOverview = () => {
             <Button
               variant={belowReorderOnly ? "default" : "outline"}
               onClick={() => setBelowReorderOnly(!belowReorderOnly)}
-              className={cn("gap-2", isRTL && "flex-row-reverse")}
+              className="gap-2"
             >
               <AlertTriangle className="h-4 w-4" />
               {isRTL ? "تحت الحد الأدنى" : "Below Reorder"}
@@ -150,24 +157,27 @@ const StockOverview = () => {
                 <TableHead>{isRTL ? "المنتج" : "Product"}</TableHead>
                 <TableHead>{isRTL ? "SKU" : "SKU"}</TableHead>
                 <TableHead>{isRTL ? "التصنيف" : "Category"}</TableHead>
-                <TableHead className="text-center">{isRTL ? "الكمية المتاحة" : "Available"}</TableHead>
-                <TableHead className="text-center">{isRTL ? "محجوز" : "Reserved"}</TableHead>
-                <TableHead className="text-center">{isRTL ? "الفعلي" : "Actual"}</TableHead>
-                <TableHead className="text-center">{isRTL ? "حد إعادة الطلب" : "Reorder Level"}</TableHead>
-                <TableHead className={cn(isRTL ? "text-left" : "text-right")}>{isRTL ? "القيمة" : "Value"}</TableHead>
+                <TableHead className="text-end">{isRTL ? "المتاحة" : "Available"}</TableHead>
+                <TableHead className="text-end">{isRTL ? "محجوز" : "Reserved"}</TableHead>
+                <TableHead className="text-end">{isRTL ? "الفعلي" : "Actual"}</TableHead>
+                <TableHead className="text-end">{isRTL ? "حد الطلب" : "Reorder"}</TableHead>
+                <TableHead className="text-end">{isRTL ? "القيمة" : "Value"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    {isRTL ? "جاري التحميل..." : "Loading..."}
+                  <TableCell colSpan={8} className="text-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    {isRTL ? "لا توجد منتجات" : "No products found"}
+                  <TableCell colSpan={8} className="text-center py-12">
+                    <Boxes className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground font-medium">
+                      {isRTL ? "لا توجد منتجات" : "No products found"}
+                    </p>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -177,20 +187,20 @@ const StockOverview = () => {
                   return (
                     <TableRow key={p.id} className={belowReorder ? "bg-destructive/5" : ""}>
                       <TableCell className="font-medium">
-                        <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+                        <div className="flex items-center gap-2">
                           {isRTL ? p.name : p.name_en || p.name}
-                          {belowReorder && <AlertTriangle className="h-4 w-4 text-destructive" />}
+                          {belowReorder && <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />}
                         </div>
                       </TableCell>
-                      <TableCell>{p.sku || "-"}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-mono text-sm text-muted-foreground">{p.sku || "-"}</TableCell>
+                      <TableCell className="text-muted-foreground">
                         {p.product_categories ? (isRTL ? p.product_categories.name : p.product_categories.name_en || p.product_categories.name) : "-"}
                       </TableCell>
-                      <TableCell className="text-center">{qty}</TableCell>
-                      <TableCell className="text-center">{reserved}</TableCell>
-                      <TableCell className="text-center font-medium">{actual}</TableCell>
-                      <TableCell className="text-center">{p.reorder_level || "-"}</TableCell>
-                      <TableCell className={cn("font-medium", isRTL ? "text-left" : "text-right")}>
+                      <TableCell className="text-end tabular-nums">{qty}</TableCell>
+                      <TableCell className="text-end tabular-nums text-muted-foreground">{reserved}</TableCell>
+                      <TableCell className="text-end tabular-nums font-semibold">{actual}</TableCell>
+                      <TableCell className="text-end tabular-nums text-muted-foreground">{p.reorder_level || "-"}</TableCell>
+                      <TableCell className="text-end tabular-nums font-medium">
                         {value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </TableCell>
                     </TableRow>
@@ -199,6 +209,14 @@ const StockOverview = () => {
               )}
             </TableBody>
           </Table>
+          {!isLoading && filteredProducts.length > 0 && (
+            <div className="px-4 py-3 border-t text-sm text-muted-foreground flex items-center justify-between">
+              <span>{isRTL ? `${filteredProducts.length} منتج` : `${filteredProducts.length} products`}</span>
+              <span className="font-medium text-foreground tabular-nums">
+                {isRTL ? "إجمالي القيمة:" : "Total Value:"} {totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

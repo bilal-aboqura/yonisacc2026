@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, PackageMinus, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, PackageMinus, Trash2, ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const InternalConsumptions = () => {
@@ -124,6 +124,11 @@ const InternalConsumptions = () => {
     setForm(f => ({ ...f, items: f.items.map((item, i) => i === idx ? { ...item, [field]: value } : item) }));
   };
 
+  const formatDate = (d: string) => {
+    if (!d) return "-";
+    return new Date(d).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" });
+  };
+
   const canManage = can("MANAGE_CONSUMPTIONS");
 
   if (showForm) {
@@ -166,7 +171,7 @@ const InternalConsumptions = () => {
             <div>
               <div className={cn("flex items-center justify-between mb-3", isRTL && "flex-row-reverse")}>
                 <Label className="text-base font-semibold">{isRTL ? "الأصناف" : "Items"}</Label>
-                <Button type="button" size="sm" variant="outline" onClick={addItem} className={cn("gap-1", isRTL && "flex-row-reverse")}>
+                <Button type="button" size="sm" variant="outline" onClick={addItem} className="gap-1">
                   <Plus className="h-3 w-3" />
                   {isRTL ? "إضافة" : "Add"}
                 </Button>
@@ -176,8 +181,8 @@ const InternalConsumptions = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{isRTL ? "المنتج" : "Product"}</TableHead>
-                      <TableHead>{isRTL ? "الكمية" : "Qty"}</TableHead>
-                      <TableHead>{isRTL ? "التكلفة" : "Cost"}</TableHead>
+                      <TableHead className="text-end">{isRTL ? "الكمية" : "Qty"}</TableHead>
+                      <TableHead className="text-end">{isRTL ? "التكلفة" : "Cost"}</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -193,13 +198,13 @@ const InternalConsumptions = () => {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          <Input type="number" min={0} value={item.quantity} onChange={e => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)} className="w-28" />
+                          <Input type="number" min={0} value={item.quantity} onChange={e => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)} className="w-28 text-end tabular-nums" />
                         </TableCell>
                         <TableCell>
-                          <Input type="number" min={0} value={item.unit_cost} onChange={e => updateItem(idx, "unit_cost", parseFloat(e.target.value) || 0)} className="w-28" />
+                          <Input type="number" min={0} value={item.unit_cost} onChange={e => updateItem(idx, "unit_cost", parseFloat(e.target.value) || 0)} className="w-28 text-end tabular-nums" />
                         </TableCell>
                         <TableCell>
-                          <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeItem(idx)} disabled={form.items.length <= 1}>
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeItem(idx)} disabled={form.items.length <= 1}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
@@ -224,13 +229,16 @@ const InternalConsumptions = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
-      <div className={cn("flex items-center justify-between flex-wrap gap-4", isRTL && "flex-row-reverse")}>
-        <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
-          <PackageMinus className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">{isRTL ? "الاستهلاك الداخلي" : "Internal Consumptions"}</h1>
+      <div className={cn("flex flex-col md:flex-row md:items-center md:justify-between gap-4")}>
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+            <PackageMinus className="h-7 w-7 text-primary" />
+            {isRTL ? "الاستهلاك الداخلي" : "Internal Consumptions"}
+          </h1>
+          <p className="text-muted-foreground mt-1">{isRTL ? "تتبع استهلاك المواد داخل الأقسام" : "Track internal material consumption across departments"}</p>
         </div>
         {canManage && (
-          <Button onClick={() => setShowForm(true)} className={cn("gap-2", isRTL && "flex-row-reverse")}>
+          <Button onClick={() => setShowForm(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             {isRTL ? "استهلاك جديد" : "New Consumption"}
           </Button>
@@ -247,28 +255,50 @@ const InternalConsumptions = () => {
                 <TableHead>{isRTL ? "الفرع" : "Branch"}</TableHead>
                 <TableHead>{isRTL ? "القسم" : "Department"}</TableHead>
                 <TableHead>{isRTL ? "السبب" : "Reason"}</TableHead>
-                <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
+                <TableHead className="text-center">{isRTL ? "الحالة" : "Status"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8">{isRTL ? "جاري التحميل..." : "Loading..."}</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                  </TableCell>
+                </TableRow>
               ) : consumptions.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{isRTL ? "لا يوجد استهلاك" : "No consumptions"}</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12">
+                    <PackageMinus className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground font-medium">
+                      {isRTL ? "لا يوجد استهلاك" : "No consumptions yet"}
+                    </p>
+                    {canManage && (
+                      <Button className="mt-3 gap-2" size="sm" onClick={() => setShowForm(true)}>
+                        <Plus className="h-4 w-4" />
+                        {isRTL ? "استهلاك جديد" : "New Consumption"}
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
               ) : (
                 consumptions.map((c: any) => (
                   <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.consumption_number}</TableCell>
-                    <TableCell>{c.consumption_date}</TableCell>
+                    <TableCell className="font-medium font-mono text-sm">{c.consumption_number}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(c.consumption_date)}</TableCell>
                     <TableCell>{c.branches ? (isRTL ? c.branches.name : c.branches.name_en || c.branches.name) : "-"}</TableCell>
                     <TableCell>{c.department || "-"}</TableCell>
-                    <TableCell>{c.reason || "-"}</TableCell>
-                    <TableCell><Badge>{isRTL ? "معتمد" : "Approved"}</Badge></TableCell>
+                    <TableCell className="max-w-[200px] truncate text-muted-foreground">{c.reason || "-"}</TableCell>
+                    <TableCell className="text-center"><Badge>{isRTL ? "معتمد" : "Approved"}</Badge></TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
+          {!isLoading && consumptions.length > 0 && (
+            <div className="px-4 py-3 border-t text-sm text-muted-foreground">
+              {isRTL ? `إجمالي عمليات الاستهلاك: ${consumptions.length}` : `Total consumptions: ${consumptions.length}`}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
