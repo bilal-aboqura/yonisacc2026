@@ -251,7 +251,7 @@ const ProductCard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {stockByBranch.map((s: any) => (
+              {filteredStock.map((s: any) => (
                 <TableRow key={s.id}>
                   <TableCell>{s.warehouses?.branches ? (isRTL ? s.warehouses.branches.name : s.warehouses.branches.name_en || s.warehouses.branches.name) : (isRTL ? s.warehouses?.name : s.warehouses?.name_en || s.warehouses?.name)}</TableCell>
                   <TableCell className="text-center">{s.quantity || 0}</TableCell>
