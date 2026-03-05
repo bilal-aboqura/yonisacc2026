@@ -113,50 +113,20 @@ const Manufacturing = () => {
 
   const completeOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      const { data: order } = await (supabase.from("manufacturing_orders" as any) as any).select("*").eq("id", orderId).single();
-      if (!order) throw new Error("Not found");
-
-      const { data: bomItems } = await (supabase.from("bom_items" as any) as any).select("*, products(purchase_price)").eq("bom_id", (order as any).bom_id);
-      const { data: warehouse } = await supabase.from("warehouses").select("id").eq("branch_id", (order as any).branch_id).eq("company_id", companyId!).single();
-
-      let totalCost = 0;
-      for (const bi of bomItems || []) {
-        const qtyNeeded = bi.quantity * (order as any).quantity;
-        totalCost += qtyNeeded * ((bi.products as any)?.purchase_price || 0);
-
-        const { data: stock } = await supabase.from("product_stock").select("*").eq("product_id", bi.product_id).eq("warehouse_id", warehouse?.id).single();
-        if (stock) await supabase.from("product_stock").update({ quantity: (stock.quantity || 0) - qtyNeeded } as any).eq("id", stock.id);
-
-        await supabase.from("stock_movements").insert({
-          company_id: companyId, warehouse_id: warehouse?.id, product_id: bi.product_id,
-          movement_type: "manufacturing_out", quantity: -qtyNeeded,
-          reference_type: "manufacturing", reference_id: orderId, created_by: user?.id,
-        } as any);
-      }
-
-      const { data: finishedStock } = await supabase.from("product_stock").select("*").eq("product_id", (order as any).product_id).eq("warehouse_id", warehouse?.id).single();
-      if (finishedStock) {
-        await supabase.from("product_stock").update({ quantity: (finishedStock.quantity || 0) + (order as any).quantity } as any).eq("id", finishedStock.id);
-      } else {
-        await supabase.from("product_stock").insert({ product_id: (order as any).product_id, warehouse_id: warehouse?.id, quantity: (order as any).quantity } as any);
-      }
-
-      await supabase.from("stock_movements").insert({
-        company_id: companyId, warehouse_id: warehouse?.id, product_id: (order as any).product_id,
-        movement_type: "manufacturing_in", quantity: (order as any).quantity,
-        reference_type: "manufacturing", reference_id: orderId, created_by: user?.id,
+      const { data, error } = await (supabase.rpc as any)("rpc_inventory_manufacturing", {
+        p_company_id: companyId!,
+        p_order_id: orderId,
+        p_completed_by: user?.id,
       } as any);
-
-      await (supabase.from("manufacturing_orders" as any) as any).update({
-        status: "completed", production_cost: totalCost, completed_at: new Date().toISOString(),
-      } as any).eq("id", orderId);
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manufacturing_orders"] });
       queryClient.invalidateQueries({ queryKey: ["stock-overview"] });
       toast.success(isRTL ? "تم إكمال أمر التصنيع" : "Manufacturing order completed");
     },
-    onError: () => toast.error(isRTL ? "حدث خطأ" : "Error"),
+    onError: (err: any) => toast.error(err?.message?.includes("Insufficient") ? (isRTL ? "المواد الخام غير كافية" : "Insufficient raw materials") : (isRTL ? "حدث خطأ" : "Error")),
   });
 
   const canManage = can("MANAGE_MANUFACTURING");
