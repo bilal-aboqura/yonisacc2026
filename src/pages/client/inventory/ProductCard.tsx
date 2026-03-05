@@ -1,18 +1,28 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useTenantIsolation } from "@/hooks/useTenantIsolation";
+import { useRBAC } from "@/hooks/useRBAC";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Package, Warehouse, TrendingUp, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Package, Warehouse, TrendingUp, Pencil, Trash2, Printer, FileSpreadsheet, ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { exportToExcel } from "@/lib/exportUtils";
+import { toast } from "sonner";
+import { useState } from "react";
 
 const ProductCard = () => {
   const { id } = useParams<{ id: string }>();
   const { isRTL } = useLanguage();
   const { companyId } = useTenantIsolation();
+  const { can } = useRBAC();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data: product } = useQuery({
     queryKey: ["product-detail", id],
@@ -56,13 +66,61 @@ const ProductCard = () => {
     enabled: !!id,
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("products").delete().eq("id", id!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success(isRTL ? "تم حذف المنتج" : "Product deleted");
+      navigate("/client/inventory");
+    },
+    onError: () => toast.error(isRTL ? "فشل حذف المنتج" : "Failed to delete product"),
+  });
+
+  const handlePrint = () => window.print();
+
+  const handleExportExcel = () => {
+    if (!product) return;
+    const columns = [
+      { header: isRTL ? "التاريخ" : "Date", key: "date", format: "text" as const },
+      { header: isRTL ? "النوع" : "Type", key: "type", format: "text" as const },
+      { header: isRTL ? "وارد" : "In", key: "in", format: "number" as const },
+      { header: isRTL ? "صادر" : "Out", key: "out", format: "number" as const },
+      { header: isRTL ? "الرصيد" : "Balance", key: "balance", format: "number" as const },
+      { header: isRTL ? "المرجع" : "Reference", key: "ref", format: "text" as const },
+    ];
+    const rows = ledger.map((m: any) => {
+      const qty = m.quantity || 0;
+      return {
+        date: m.movement_date,
+        type: movementTypeLabel(m.movement_type),
+        in: qty > 0 ? qty : 0,
+        out: qty < 0 ? Math.abs(qty) : 0,
+        balance: m.balance,
+        ref: m.reference_type || "-",
+      };
+    });
+    exportToExcel({
+      filename: `product-ledger-${product.sku || id}`,
+      columns,
+      rows,
+      title: isRTL ? product.name : (product as any).name_en || product.name,
+      subtitle: isRTL ? "سجل حركات المنتج" : "Product Stock Ledger",
+    });
+    toast.success(isRTL ? "تم التصدير" : "Exported");
+  };
+
   if (!product) return <div className="p-6 text-center text-muted-foreground">{isRTL ? "جاري التحميل..." : "Loading..."}</div>;
+
+  const canEdit = can("EDIT_PRODUCT");
+  const canDelete = can("DELETE_PRODUCT");
 
   const totalQty = stockByBranch.reduce((s: number, ps: any) => s + (ps.quantity || 0), 0);
   const totalValue = stockByBranch.reduce((s: number, ps: any) => s + (ps.quantity || 0) * (ps.avg_cost || 0), 0);
   const avgCost = totalQty > 0 ? totalValue / totalQty : 0;
 
-  // Calculate running balance for ledger
   let runningBalance = 0;
   const ledger = [...movements].reverse().map(m => {
     runningBalance += (m as any).quantity || 0;
@@ -83,11 +141,38 @@ const ProductCard = () => {
   return (
     <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
-      <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
-        <Package className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold">{isRTL ? product.name : (product as any).name_en || product.name}</h1>
-          <p className="text-muted-foreground text-sm">{product.sku || ""} {product.barcode ? `• ${product.barcode}` : ""}</p>
+      <div className={cn("flex items-center justify-between", isRTL && "flex-row-reverse")}>
+        <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/client/inventory")}>
+            <ArrowRight className="h-5 w-5" />
+          </Button>
+          <Package className="h-6 w-6 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold">{isRTL ? product.name : (product as any).name_en || product.name}</h1>
+            <p className="text-muted-foreground text-sm">{product.sku || ""} {product.barcode ? `• ${product.barcode}` : ""}</p>
+          </div>
+        </div>
+        <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+          <Button variant="outline" size="sm" className="gap-2" onClick={handlePrint}>
+            <Printer className="h-4 w-4" />
+            {isRTL ? "طباعة" : "Print"}
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={handleExportExcel}>
+            <FileSpreadsheet className="h-4 w-4" />
+            {isRTL ? "تصدير Excel" : "Export Excel"}
+          </Button>
+          {canEdit && (
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate(`/client/inventory/edit/${id}`)}>
+              <Pencil className="h-4 w-4" />
+              {isRTL ? "تعديل" : "Edit"}
+            </Button>
+          )}
+          {canDelete && (
+            <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="h-4 w-4" />
+              {isRTL ? "حذف" : "Delete"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -177,6 +262,25 @@ const ProductCard = () => {
           </Table>
         </CardContent>
       </Card>
+      {/* Delete Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle>{isRTL ? "تأكيد الحذف" : "Confirm Delete"}</DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground">
+            {isRTL
+              ? `هل أنت متأكد من حذف "${product.name}"؟ هذا الإجراء لا يمكن التراجع عنه.`
+              : `Are you sure you want to delete "${(product as any).name_en || product.name}"? This cannot be undone.`}
+          </p>
+          <DialogFooter className={cn(isRTL && "flex-row-reverse")}>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>{isRTL ? "إلغاء" : "Cancel"}</Button>
+            <Button variant="destructive" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (isRTL ? "حذف" : "Delete")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -39,6 +39,7 @@ import CreateTreasuryTransaction from "./pages/client/CreateTreasuryTransaction"
 import ViewTreasuryTransaction from "./pages/client/ViewTreasuryTransaction";
 import EditTreasuryTransaction from "./pages/client/EditTreasuryTransaction";
 import CreateProduct from "./pages/client/CreateProduct";
+import EditProduct from "./pages/client/EditProduct";
 import OpeningBalances from "./pages/client/OpeningBalances";
 import IncomeStatement from "./pages/client/reports/IncomeStatement";
 import BalanceSheet from "./pages/client/reports/BalanceSheet";
@@ -189,6 +190,7 @@ const App = () => (
               <Route path="inventory" element={<ClientInventory />} />
               <Route path="inventory/new" element={<CreateProduct />} />
               <Route path="inventory/product/:id" element={<ProductCard />} />
+              <Route path="inventory/edit/:id" element={<EditProduct />} />
               <Route path="inventory/units" element={<UnitsManagement />} />
               <Route path="inventory/categories" element={<CategoriesManagement />} />
               <Route path="inventory/stock" element={<StockOverview />} />
