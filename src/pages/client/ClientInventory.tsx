@@ -267,6 +267,9 @@ const ClientInventory = ({ tab }: ClientInventoryProps) => {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Products Table */}
       <Card>
