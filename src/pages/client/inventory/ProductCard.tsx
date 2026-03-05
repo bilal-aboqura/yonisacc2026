@@ -230,8 +230,8 @@ const ProductCard = () => {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{isRTL ? "حد إعادة الطلب" : "Reorder Level"}</CardTitle></CardHeader>
           <CardContent>
-            <div className={cn("text-2xl font-bold", totalQty < ((product as any).reorder_level || 0) && "text-destructive")}>
-              {(product as any).reorder_level || 0}
+            <div className={cn("text-2xl font-bold", totalQty < ((product as any).reorder_level || (product as any).min_stock || 0) && "text-destructive")}>
+              {(product as any).reorder_level || (product as any).min_stock || 0}
             </div>
           </CardContent>
         </Card>
