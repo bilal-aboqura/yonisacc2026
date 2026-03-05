@@ -49,8 +49,13 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
   const [purchaseTaxAccount, setPurchaseTaxAccount] = useState<string>("");
   const [purchasePayableAccount, setPurchasePayableAccount] = useState<string>("");
 
-  // Inventory settings
+  // Inventory settings (module_type = 'inventory')
   const [inventoryAccount, setInventoryAccount] = useState<string>("");
+  const [cogsAccount, setCogsAccount] = useState<string>("");
+  const [inventoryGainAccount, setInventoryGainAccount] = useState<string>("");
+  const [inventoryLossAccount, setInventoryLossAccount] = useState<string>("");
+  const [consumptionExpenseAccount, setConsumptionExpenseAccount] = useState<string>("");
+  const [wipAccount, setWipAccount] = useState<string>("");
 
   useEffect(() => {
     fetchData();
@@ -83,16 +88,11 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
   };
 
   const fetchBranchSettings = async (branchId: string) => {
-    // Reset
-    setSalesRevenueAccount("");
-    setSalesDiscountAccount("");
-    setSalesTaxAccount("");
-    setSalesReceivableAccount("");
-    setPurchaseExpenseAccount("");
-    setPurchaseDiscountAccount("");
-    setPurchaseTaxAccount("");
-    setPurchasePayableAccount("");
-    setInventoryAccount("");
+    // Reset all
+    setSalesRevenueAccount(""); setSalesDiscountAccount(""); setSalesTaxAccount(""); setSalesReceivableAccount("");
+    setPurchaseExpenseAccount(""); setPurchaseDiscountAccount(""); setPurchaseTaxAccount(""); setPurchasePayableAccount("");
+    setInventoryAccount(""); setCogsAccount(""); setInventoryGainAccount(""); setInventoryLossAccount("");
+    setConsumptionExpenseAccount(""); setWipAccount("");
 
     const { data } = await supabase
       .from("branch_account_settings" as any)
@@ -107,18 +107,24 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
           setSalesDiscountAccount(row.sales_discount_account_id || "");
           setSalesTaxAccount(row.sales_tax_account_id || "");
           setSalesReceivableAccount(row.sales_receivable_account_id || "");
-          setInventoryAccount(row.inventory_account_id || "");
         } else if (row.module_type === "purchases") {
           setPurchaseExpenseAccount(row.purchase_expense_account_id || "");
           setPurchaseDiscountAccount(row.purchase_discount_account_id || "");
           setPurchaseTaxAccount(row.purchase_tax_account_id || "");
           setPurchasePayableAccount(row.purchase_payable_account_id || "");
+        } else if (row.module_type === "inventory") {
+          setInventoryAccount(row.inventory_account_id || "");
+          setCogsAccount(row.cogs_account_id || "");
+          setInventoryGainAccount(row.inventory_gain_account_id || "");
+          setInventoryLossAccount(row.inventory_loss_account_id || "");
+          setConsumptionExpenseAccount(row.consumption_expense_account_id || "");
+          setWipAccount(row.wip_account_id || "");
         }
       }
     }
   };
 
-  const handleSave = async (moduleType: "sales" | "purchases") => {
+  const handleSave = async (moduleType: "sales" | "purchases" | "inventory") => {
     if (!selectedBranch) return;
     setSaving(true);
 
@@ -135,15 +141,20 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
         payload.sales_discount_account_id = salesDiscountAccount || null;
         payload.sales_tax_account_id = salesTaxAccount || null;
         payload.sales_receivable_account_id = salesReceivableAccount || null;
-        payload.inventory_account_id = inventoryAccount || null;
-      } else {
+      } else if (moduleType === "purchases") {
         payload.purchase_expense_account_id = purchaseExpenseAccount || null;
         payload.purchase_discount_account_id = purchaseDiscountAccount || null;
         payload.purchase_tax_account_id = purchaseTaxAccount || null;
         payload.purchase_payable_account_id = purchasePayableAccount || null;
+      } else if (moduleType === "inventory") {
+        payload.inventory_account_id = inventoryAccount || null;
+        payload.cogs_account_id = cogsAccount || null;
+        payload.inventory_gain_account_id = inventoryGainAccount || null;
+        payload.inventory_loss_account_id = inventoryLossAccount || null;
+        payload.consumption_expense_account_id = consumptionExpenseAccount || null;
+        payload.wip_account_id = wipAccount || null;
       }
 
-      // Upsert based on unique constraint (branch_id, module_type)
       const { error } = await (supabase.from("branch_account_settings" as any) as any)
         .upsert(payload, { onConflict: "branch_id,module_type" });
 
@@ -246,15 +257,15 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
           <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="sales" className="gap-2">
               <Store className="h-4 w-4" />
-              {isRTL ? "حسابات المبيعات" : "Sales Accounts"}
+              {isRTL ? "المبيعات" : "Sales"}
             </TabsTrigger>
             <TabsTrigger value="purchases" className="gap-2">
               <ShoppingCart className="h-4 w-4" />
-              {isRTL ? "حسابات المشتريات" : "Purchase Accounts"}
+              {isRTL ? "المشتريات" : "Purchases"}
             </TabsTrigger>
             <TabsTrigger value="inventory" className="gap-2">
               <Package className="h-4 w-4" />
-              {isRTL ? "حساب المخزون" : "Inventory Account"}
+              {isRTL ? "المخزون" : "Inventory"}
             </TabsTrigger>
           </TabsList>
 
@@ -276,7 +287,6 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
                   {renderAccountSelect("حساب خصم المبيعات", "Sales Discount Account", salesDiscountAccount, v => setSalesDiscountAccount(v === "none" ? "" : v), ["expense"])}
                   {renderAccountSelect("حساب ضريبة المبيعات", "Sales Tax Account", salesTaxAccount, v => setSalesTaxAccount(v === "none" ? "" : v), ["liability"])}
                   {renderAccountSelect("حساب الذمم المدينة", "Receivable Account", salesReceivableAccount, v => setSalesReceivableAccount(v === "none" ? "" : v), ["asset"])}
-                  {renderAccountSelect("حساب المخزون", "Inventory Account", inventoryAccount, v => setInventoryAccount(v === "none" ? "" : v), ["asset"])}
                 </div>
                 <Button onClick={() => handleSave("sales")} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
@@ -319,19 +329,24 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  {isRTL ? "حساب المخزون للفرع" : "Branch Inventory Account"}
+                  {isRTL ? "حسابات المخزون للفرع" : "Branch Inventory Accounts"}
                 </CardTitle>
                 <CardDescription>
                   {isRTL
-                    ? "حساب المخزون المستخدم لتتبع قيمة المخزون في هذا الفرع"
-                    : "Inventory account used to track inventory value for this branch"}
+                    ? "حسابات المخزون المستخدمة في التسويات والتحويلات والاستهلاك والتصنيع"
+                    : "Inventory accounts used for adjustments, transfers, consumption, and manufacturing"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   {renderAccountSelect("حساب المخزون", "Inventory Account", inventoryAccount, v => setInventoryAccount(v === "none" ? "" : v), ["asset"])}
+                  {renderAccountSelect("حساب تكلفة البضاعة المباعة", "COGS Account", cogsAccount, v => setCogsAccount(v === "none" ? "" : v), ["expense"])}
+                  {renderAccountSelect("حساب أرباح المخزون (تسوية زيادة)", "Inventory Gain Account", inventoryGainAccount, v => setInventoryGainAccount(v === "none" ? "" : v), ["revenue"])}
+                  {renderAccountSelect("حساب خسائر المخزون (تسوية نقص)", "Inventory Loss Account", inventoryLossAccount, v => setInventoryLossAccount(v === "none" ? "" : v), ["expense"])}
+                  {renderAccountSelect("حساب مصروف الاستهلاك الداخلي", "Consumption Expense Account", consumptionExpenseAccount, v => setConsumptionExpenseAccount(v === "none" ? "" : v), ["expense"])}
+                  {renderAccountSelect("حساب تحت التشغيل (WIP)", "Work in Progress Account", wipAccount, v => setWipAccount(v === "none" ? "" : v), ["asset"])}
                 </div>
-                <Button onClick={() => handleSave("sales")} disabled={saving}>
+                <Button onClick={() => handleSave("inventory")} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
                   <Save className="h-4 w-4 me-2" />
                   {isRTL ? "حفظ إعدادات المخزون" : "Save Inventory Settings"}

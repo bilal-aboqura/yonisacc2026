@@ -1,74 +1,100 @@
 
 
-# تحليل ربط حسابات الفروع وتوصيات التطوير
+# خطة تطوير مديول المخزون المتكامل
 
 ## الوضع الحالي
+- جداول موجودة: `products`, `product_categories` (شجرية), `product_stock`, `stock_movements`, `warehouses`, `units` (بدون تحويلات)
+- الجداول الناقصة: `stock_adjustments`, `stock_transfers`, `internal_consumptions`, `bill_of_materials`, `manufacturing_orders`, تحويل الوحدات، أنواع المنتجات، طرق التتبع
+- الواجهة الحالية: صفحة منتجات بسيطة + صفحة إنشاء منتج + حركة مخزون فارغة
+- القائمة الجانبية: رابطان فقط (المنتجات، حركة المخزون)
 
-جدول `branch_account_settings` يحتوي على الحقول التالية:
-- **المبيعات**: `sales_revenue_account_id`, `sales_discount_account_id`, `sales_tax_account_id`, `sales_receivable_account_id`
-- **المشتريات**: `purchase_expense_account_id`, `purchase_discount_account_id`, `purchase_tax_account_id`, `purchase_payable_account_id`
-- **المخزون**: `inventory_account_id`
+## خطة التنفيذ (مقسمة على مراحل)
 
-`module_type` يقبل فقط `sales` و `purchases` — لا يوجد نوع `inventory` مستقل.
+### المرحلة 1: تحديث قاعدة البيانات
 
-## الفجوات المكتشفة
+**تعديل جدول `units`** — إضافة:
+- `symbol` (موجود)، `allows_fractions` (boolean)، `base_unit_id` (uuid FK → units)، `conversion_rate` (numeric)
 
-### 1. حسابات ناقصة في الجدول
-الـ RPCs الجديدة (تسوية، تحويل، استهلاك، تصنيع) تحتاج حسابات غير موجودة في `branch_account_settings`:
+**تعديل جدول `products`** — إضافة:
+- `product_type` (text: stock/service/manufacturing/bundle)
+- `tracking_method` (text: none/batch/serial)
+- `unit_id` (uuid FK → units)
+- `is_taxable` (boolean, default true)
+- `reorder_level` (integer)
 
-| العملية | الحساب المطلوب | موجود؟ |
-|---------|---------------|--------|
-| بيع (COGS) | حساب تكلفة البضاعة المباعة | لا |
-| تسوية زيادة | حساب أرباح المخزون (44) | لا |
-| تسوية نقص | حساب خسائر المخزون (525) | لا |
-| استهلاك داخلي | حساب مصروف الاستهلاك (526) | لا |
-| تصنيع | حساب تحت التشغيل WIP (1132) | لا |
+**تعديل جدول `product_categories`** — إضافة:
+- `image_url` (text)
 
-الـ RPCs حالياً تبحث عن هذه الحسابات بالكود (مثل `1131`, `511`, `44`) بدل قراءتها من إعدادات الفرع -- مما يعني أن التخصيص حسب الفرع غير مفعّل.
+**جدول جديد: `stock_adjustments`**
+- id, company_id, branch_id, adjustment_date, adjustment_type (increase/decrease), reason, status (draft/approved), notes, created_by, approved_by, created_at
 
-### 2. تاب المخزون يحفظ في `module_type = 'sales'`
-في سطر 334 من `BranchAccountSettings.tsx`، زر "حفظ إعدادات المخزون" يستدعي `handleSave("sales")` بدلاً من حفظ سجل منفصل — مما يعني أن حساب المخزون مرتبط بسجل المبيعات فقط.
+**جدول جديد: `stock_adjustment_items`**
+- id, adjustment_id, product_id, quantity, unit_cost, notes
 
-### 3. `BranchSelector` يشترط وجود `sales` + `purchases` فقط
-لا يتحقق من وجود حسابات المخزون/التسويات، مما يسمح بتفعيل فرع بدون ربط كامل.
+**جدول جديد: `stock_transfers`**
+- id, company_id, from_branch_id, to_branch_id, transfer_date, status (draft/sent/received), notes, created_by, received_by, created_at
 
-## خطة التطوير المقترحة
+**جدول جديد: `stock_transfer_items`**
+- id, transfer_id, product_id, quantity_sent, quantity_received, notes
 
-### المرحلة 1: توسيع جدول `branch_account_settings`
-إضافة 3 أعمدة جديدة:
+**جدول جديد: `internal_consumptions`**
+- id, company_id, branch_id, consumption_date, department, reason, status, notes, created_by, created_at
 
-```text
-cogs_account_id          -> حساب تكلفة البضاعة المباعة
-inventory_gain_account_id -> حساب أرباح المخزون (تسوية زيادة)
-inventory_loss_account_id -> حساب خسائر المخزون (تسوية نقص)
-consumption_expense_account_id -> حساب مصروف الاستهلاك الداخلي
-wip_account_id           -> حساب تحت التشغيل (تصنيع)
-```
+**جدول جديد: `internal_consumption_items`**
+- id, consumption_id, product_id, quantity, unit_cost, notes
 
-### المرحلة 2: تحديث واجهة `BranchAccountSettings.tsx`
-- إضافة الحقول الجديدة في تاب المخزون (بدلاً من حقل واحد فقط)
-- إنشاء `module_type = 'inventory'` منفصل للحفظ
-- إصلاح زر "حفظ إعدادات المخزون" ليحفظ في `module_type = 'inventory'`
-- إضافة حقل COGS في تاب المبيعات
+**جدول جديد: `bill_of_materials`**
+- id, company_id, product_id (المنتج النهائي), is_active, notes, created_at
 
-### المرحلة 3: تحديث RPCs لقراءة الحسابات من إعدادات الفرع
-تعديل الوظائف الأربع (`rpc_inventory_adjustment`, `rpc_inventory_transfer`, `rpc_inventory_consumption`, `rpc_inventory_manufacturing`) + `post_sales_invoice` لقراءة الحسابات من `branch_account_settings` بدلاً من البحث بالكود الثابت. مع fallback للأكواد الافتراضية.
+**جدول جديد: `bom_items`**
+- id, bom_id, product_id (مادة خام), quantity, unit_id
 
-### المرحلة 4: تحديث `BranchSelector`
-التحقق من وجود الإعدادات الثلاث (`sales` + `purchases` + `inventory`) قبل اعتبار الفرع "جاهز".
+**جدول جديد: `manufacturing_orders`**
+- id, company_id, branch_id, bom_id, product_id, quantity, status (draft/in_progress/completed/cancelled), production_cost, notes, created_by, completed_at, created_at
 
-### ملخص التغييرات
+**RLS**: جميع الجداول ستستخدم `is_company_owner(company_id)` مع Realtime على `product_stock` و `stock_movements`.
 
-```text
-قاعدة البيانات:
-  - ALTER TABLE branch_account_settings ADD COLUMN cogs_account_id, 
-    inventory_gain_account_id, inventory_loss_account_id,
-    consumption_expense_account_id, wip_account_id
+### المرحلة 2: الواجهات الأمامية
 
-  - تحديث RPCs لقراءة الحسابات من الإعدادات
+**1. إدارة الوحدات** — `/client/inventory/units`
+- CRUD وحدات مع دعم التحويل والكسور
 
-واجهة:
-  - BranchAccountSettings.tsx: إضافة الحقول الجديدة + إصلاح الحفظ
-  - BranchSelector.tsx: التحقق من 3 module_types
-```
+**2. إدارة التصنيفات** — `/client/inventory/categories`
+- شجرة تصنيفات مع إضافة/تعديل/حذف + صورة + تفعيل/تعطيل
+
+**3. تطوير المنتجات** — تحديث `CreateProduct` و إنشاء `EditProduct`
+- إضافة نوع المنتج، طريقة التتبع، ربط الوحدة من جدول الوحدات، خاضع للضريبة
+
+**4. كرت المنتج** — `/client/inventory/product/:id`
+- الرصيد بكل فرع، متوسط التكلفة، قيمة المخزون، سجل الحركات (Stock Ledger)
+
+**5. عرض المخزون (Stock Overview)** — `/client/inventory/stock`
+- جدول بجميع المنتجات مع الكميات وفلترة بالفرع/التصنيف/تحت الحد الأدنى
+
+**6. تسوية المخزون** — `/client/inventory/adjustments`
+- إنشاء تسوية (زيادة/نقص) مع السبب والفرع، تحديث `product_stock` و `stock_movements`
+
+**7. تحويل بين الفروع** — `/client/inventory/transfers`
+- إنشاء طلب تحويل (Draft → Sent → Received)، تحديث المخزون عند الاستلام
+
+**8. الاستهلاك الداخلي** — `/client/inventory/consumptions`
+- صرف منتجات لاستخدام داخلي مع القسم والسبب
+
+**9. التصنيع** — `/client/inventory/manufacturing`
+- إدارة BOM + أوامر التصنيع مع خصم المواد وإضافة المنتج النهائي
+
+**10. تقارير المخزون** — `/client/inventory/reports`
+- 7 تقارير مع فلترة بالفرع والفترة + تصدير PDF/Excel
+
+### المرحلة 3: التكامل
+
+- **القائمة الجانبية**: توسيع قسم المخزون ليشمل جميع الروابط الجديدة
+- **RBAC**: إضافة أكواد صلاحيات جديدة (VIEW_UNITS, MANAGE_UNITS, VIEW_CATEGORIES, MANAGE_ADJUSTMENTS, إلخ)
+- **Audit Log**: تسجيل جميع العمليات عبر triggers
+- **Realtime**: تفعيل `supabase_realtime` على `product_stock`
+- **i18n**: إضافة جميع النصوص في `ar.json` و `en.json`
+- **منع تعديل المعتمد**: العمليات المعتمدة (approved/completed/received) لا تقبل التعديل
+
+## ملاحظة مهمة
+هذا المديول ضخم جداً (10+ شاشة، 10+ جدول جديد، RPCs). سأبدأ بالتنفيذ على مراحل — الجداول أولاً، ثم الشاشات الأساسية (الوحدات، التصنيفات، المنتجات المطورة)، ثم العمليات (تسوية، تحويل، استهلاك، تصنيع)، وأخيراً التقارير.
 

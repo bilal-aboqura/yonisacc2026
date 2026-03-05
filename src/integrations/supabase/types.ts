@@ -3920,6 +3920,48 @@ export type Database = {
         Args: { p_company_id: string; p_transaction_id: string }
         Returns: Json
       }
+      rpc_inventory_adjustment: {
+        Args: {
+          p_adjustment_date: string
+          p_adjustment_type: string
+          p_branch_id: string
+          p_company_id: string
+          p_created_by?: string
+          p_items?: Json
+          p_notes?: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
+      rpc_inventory_consumption: {
+        Args: {
+          p_branch_id: string
+          p_company_id: string
+          p_consumption_date: string
+          p_created_by?: string
+          p_department?: string
+          p_items?: Json
+          p_notes?: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
+      rpc_inventory_manufacturing: {
+        Args: {
+          p_company_id: string
+          p_completed_by?: string
+          p_order_id: string
+        }
+        Returns: Json
+      }
+      rpc_inventory_transfer: {
+        Args: {
+          p_company_id: string
+          p_received_by?: string
+          p_transfer_id: string
+        }
+        Returns: Json
+      }
       sync_plan_screens_to_subscribers: {
         Args: { p_plan_id: string }
         Returns: undefined

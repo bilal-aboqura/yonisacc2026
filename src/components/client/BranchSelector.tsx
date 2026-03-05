@@ -47,7 +47,7 @@ const BranchSelector = ({ companyId, value, onChange, disabled }: BranchSelector
         .select("branch_id, module_type")
         .eq("company_id", companyId);
 
-      // A branch is "ready" if it has both sales and purchases settings
+      // A branch is "ready" if it has sales, purchases, AND inventory settings
       const branchModules = new Map<string, Set<string>>();
       (settings || []).forEach((s: any) => {
         if (!branchModules.has(s.branch_id)) branchModules.set(s.branch_id, new Set());
@@ -56,7 +56,7 @@ const BranchSelector = ({ companyId, value, onChange, disabled }: BranchSelector
 
       const readyBranches = activeBranches.filter(b => {
         const modules = branchModules.get(b.id);
-        return modules && modules.has("sales") && modules.has("purchases");
+        return modules && modules.has("sales") && modules.has("purchases") && modules.has("inventory");
       });
 
       setBranches(readyBranches);
