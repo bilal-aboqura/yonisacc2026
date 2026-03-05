@@ -67,20 +67,22 @@ const InventoryReports = () => {
 
   const belowReorderProducts = useMemo(() => {
     return products.filter((p: any) => {
-      if (!p.reorder_level || p.reorder_level <= 0) return false;
-      const totalQty = (p.product_stock || []).reduce((s: number, ps: any) => s + (ps.quantity || 0), 0);
-      return totalQty < p.reorder_level;
+      const reorderLevel = p.reorder_level || p.min_stock || 0;
+      if (reorderLevel <= 0) return false;
+      const stocks = (p.product_stock || []).filter((ps: any) => branchFilter === "all" || ps.warehouses?.branch_id === branchFilter);
+      const totalQty = stocks.reduce((s: number, ps: any) => s + (ps.quantity || 0), 0);
+      return totalQty < reorderLevel;
     });
-  }, [products]);
+  }, [products, branchFilter]);
 
   const stockValuation = useMemo(() => {
     return products.map((p: any) => {
-      const stocks = p.product_stock || [];
+      const stocks = (p.product_stock || []).filter((ps: any) => branchFilter === "all" || ps.warehouses?.branch_id === branchFilter);
       const totalQty = stocks.reduce((s: number, ps: any) => s + (ps.quantity || 0), 0);
       const totalValue = stocks.reduce((s: number, ps: any) => s + (ps.quantity || 0) * (ps.avg_cost || 0), 0);
       return { ...p, totalQty, totalValue };
     }).filter((p: any) => p.totalQty > 0);
-  }, [products]);
+  }, [products, branchFilter]);
 
   const exportToExcel = (data: any[], filename: string) => {
     const ws = XLSX.utils.json_to_sheet(data);
