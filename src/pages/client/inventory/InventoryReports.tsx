@@ -286,13 +286,15 @@ const InventoryReports = () => {
                       </TableCell>
                     </TableRow>
                   ) : belowReorderProducts.map((p: any) => {
-                    const totalQty = (p.product_stock || []).reduce((s: number, ps: any) => s + (ps.quantity || 0), 0);
+                    const reorderLevel = p.reorder_level || p.min_stock || 0;
+                    const stocks = (p.product_stock || []).filter((ps: any) => branchFilter === "all" || ps.warehouses?.branch_id === branchFilter);
+                    const totalQty = stocks.reduce((s: number, ps: any) => s + (ps.quantity || 0), 0);
                     return (
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">{isRTL ? p.name : p.name_en || p.name}</TableCell>
                         <TableCell className="text-end tabular-nums">{totalQty}</TableCell>
-                        <TableCell className="text-end tabular-nums">{p.reorder_level}</TableCell>
-                        <TableCell className="text-end tabular-nums text-destructive font-semibold">{p.reorder_level - totalQty}</TableCell>
+                        <TableCell className="text-end tabular-nums">{reorderLevel}</TableCell>
+                        <TableCell className="text-end tabular-nums text-destructive font-semibold">{reorderLevel - totalQty}</TableCell>
                       </TableRow>
                     );
                   })}
