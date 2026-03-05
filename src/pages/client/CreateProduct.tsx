@@ -72,16 +72,7 @@ const CreateProduct = () => {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
 
   const [categories, setCategories] = useState<Category[]>([]);
-
-  const units = [
-    { value: "piece", label: "قطعة" },
-    { value: "kg", label: "كيلوغرام" },
-    { value: "g", label: "غرام" },
-    { value: "liter", label: "لتر" },
-    { value: "meter", label: "متر" },
-    { value: "box", label: "كرتون" },
-    { value: "pack", label: "عبوة" },
-  ];
+  const [companyUnits, setCompanyUnits] = useState<{ id: string; name: string; name_en: string | null; symbol: string | null }[]>([]);
 
   // Fetch car brands for auto parts
   const { data: carBrands } = useQuery({
