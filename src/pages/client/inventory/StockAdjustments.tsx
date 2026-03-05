@@ -114,7 +114,7 @@ const StockAdjustments = () => {
   };
 
   const canManage = can("MANAGE_ADJUSTMENTS");
-  const canApprove = can("APPROVE_ADJUSTMENTS");
+  const canApprove = false; // Adjustments are now auto-approved via RPC
 
   const formatDate = (d: string) => {
     if (!d) return "-";
@@ -297,14 +297,7 @@ const StockAdjustments = () => {
                     <TableCell className="max-w-[200px] truncate text-muted-foreground">{adj.reason || "-"}</TableCell>
                     <TableCell className="text-center">{statusBadge(adj.status)}</TableCell>
                     {canApprove && (
-                      <TableCell className="text-center">
-                        {adj.status === "draft" && (
-                          <Button size="sm" variant="outline" onClick={() => approveMutation.mutate(adj.id)} disabled={approveMutation.isPending} className="gap-1">
-                            <Check className="h-4 w-4" />
-                            {isRTL ? "اعتماد" : "Approve"}
-                          </Button>
-                        )}
-                      </TableCell>
+                      <TableCell className="text-center" />
                     )}
                   </TableRow>
                 ))
