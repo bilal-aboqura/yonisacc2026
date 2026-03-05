@@ -71,42 +71,21 @@ const InternalConsumptions = () => {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const count = consumptions.length + 1;
-      const num = `CON-${String(count).padStart(4, "0")}`;
-
-      const { data: consumption, error } = await (supabase
-        .from("internal_consumptions" as any) as any)
-        .insert({
-          company_id: companyId, branch_id: form.branch_id, consumption_number: num,
-          consumption_date: form.consumption_date,
-          department: form.department || null, reason: form.reason || null,
-          notes: form.notes || null, created_by: user?.id, status: "approved",
-        } as any).select().single();
-      if (error) throw error;
-
-      const { data: warehouse } = await supabase.from("warehouses").select("id").eq("branch_id", form.branch_id).eq("company_id", companyId!).single();
-
       const validItems = form.items.filter(i => i.product_id && i.quantity > 0);
+      if (validItems.length === 0) throw new Error("No valid items");
 
-      if (validItems.length > 0) {
-        const items = validItems.map(i => ({
-          consumption_id: consumption.id, product_id: i.product_id,
-          quantity: i.quantity, unit_cost: i.unit_cost || 0, notes: i.notes || null,
-        }));
-        await (supabase.from("internal_consumption_items" as any) as any).insert(items);
-
-        for (const item of validItems) {
-          const { data: stock } = await supabase.from("product_stock").select("*").eq("product_id", item.product_id).eq("warehouse_id", warehouse?.id).single();
-          if (stock) {
-            await supabase.from("product_stock").update({ quantity: (stock.quantity || 0) - item.quantity } as any).eq("id", stock.id);
-          }
-          await supabase.from("stock_movements").insert({
-            company_id: companyId, warehouse_id: warehouse?.id, product_id: item.product_id,
-            movement_type: "consumption", quantity: -item.quantity, unit_cost: item.unit_cost || 0,
-            reference_type: "consumption", reference_id: consumption.id, created_by: user?.id, notes: form.reason,
-          } as any);
-        }
-      }
+      const { data, error } = await supabase.rpc("rpc_inventory_consumption", {
+        p_company_id: companyId!,
+        p_branch_id: form.branch_id,
+        p_consumption_date: form.consumption_date,
+        p_department: form.department || null,
+        p_reason: form.reason || null,
+        p_notes: form.notes || null,
+        p_items: validItems.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_cost: i.unit_cost || 0, notes: i.notes || null })),
+        p_created_by: user?.id,
+      } as any);
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["internal_consumptions"] });
@@ -115,7 +94,7 @@ const InternalConsumptions = () => {
       setShowForm(false);
       resetForm();
     },
-    onError: () => toast.error(isRTL ? "حدث خطأ" : "Error"),
+    onError: (err: any) => toast.error(err?.message?.includes("Insufficient") ? (isRTL ? "الرصيد غير كافي" : "Insufficient stock") : (isRTL ? "حدث خطأ" : "Error")),
   });
 
   const addItem = () => setForm(f => ({ ...f, items: [...f.items, { product_id: "", quantity: 0, unit_cost: 0, notes: "" }] }));

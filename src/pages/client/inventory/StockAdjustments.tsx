@@ -72,84 +72,30 @@ const StockAdjustments = () => {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const count = adjustments.length + 1;
-      const adjNumber = `ADJ-${String(count).padStart(4, "0")}`;
+      const validItems = form.items.filter(i => i.product_id && i.quantity > 0);
+      if (validItems.length === 0) throw new Error("No valid items");
 
-      const { data: adj, error } = await (supabase
-        .from("stock_adjustments" as any) as any)
-        .insert({
-          company_id: companyId,
-          branch_id: form.branch_id,
-          adjustment_number: adjNumber,
-          adjustment_type: form.adjustment_type,
-          adjustment_date: form.adjustment_date,
-          reason: form.reason || null,
-          notes: form.notes || null,
-          created_by: user?.id,
-          status: "draft",
-        } as any)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc("rpc_inventory_adjustment", {
+        p_company_id: companyId!,
+        p_branch_id: form.branch_id,
+        p_adjustment_type: form.adjustment_type,
+        p_adjustment_date: form.adjustment_date,
+        p_reason: form.reason || null,
+        p_notes: form.notes || null,
+        p_items: validItems.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_cost: i.unit_cost || 0, notes: i.notes || null })),
+        p_created_by: user?.id,
+      } as any);
       if (error) throw error;
-
-      const items = form.items.filter(i => i.product_id && i.quantity > 0).map(i => ({
-        adjustment_id: adj.id,
-        product_id: i.product_id,
-        quantity: i.quantity,
-        unit_cost: i.unit_cost || 0,
-        notes: i.notes || null,
-      }));
-
-      if (items.length > 0) {
-        const { error: itemsError } = await (supabase.from("stock_adjustment_items" as any) as any).insert(items);
-        if (itemsError) throw itemsError;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["stock_adjustments"] });
-      toast.success(isRTL ? "تم إنشاء التسوية بنجاح" : "Adjustment created successfully");
-      setShowForm(false);
-      resetForm();
-    },
-    onError: () => toast.error(isRTL ? "حدث خطأ" : "Error creating adjustment"),
-  });
-
-  const approveMutation = useMutation({
-    mutationFn: async (adjId: string) => {
-      const { data: adj } = await (supabase.from("stock_adjustments" as any) as any).select("*, stock_adjustment_items(*)").eq("id", adjId).single();
-      if (!adj) throw new Error("Not found");
-
-      const { data: warehouse } = await supabase.from("warehouses").select("id").eq("branch_id", adj.branch_id).eq("company_id", companyId!).single();
-      if (!warehouse) throw new Error("No warehouse for branch");
-
-      for (const item of (adj as any).stock_adjustment_items || []) {
-        const multiplier = adj.adjustment_type === "increase" ? 1 : -1;
-        const qty = item.quantity * multiplier;
-
-        const { data: existing } = await supabase.from("product_stock").select("*").eq("product_id", item.product_id).eq("warehouse_id", warehouse.id).single();
-
-        if (existing) {
-          await supabase.from("product_stock").update({ quantity: (existing.quantity || 0) + qty } as any).eq("id", existing.id);
-        } else {
-          await supabase.from("product_stock").insert({ product_id: item.product_id, warehouse_id: warehouse.id, quantity: Math.max(0, qty) } as any);
-        }
-
-        await supabase.from("stock_movements").insert({
-          company_id: companyId, warehouse_id: warehouse.id, product_id: item.product_id,
-          movement_type: adj.adjustment_type === "increase" ? "adjustment_in" : "adjustment_out",
-          quantity: qty, unit_cost: item.unit_cost || 0,
-          reference_type: "adjustment", reference_id: adjId, created_by: user?.id, notes: adj.reason,
-        } as any);
-      }
-
-      await (supabase.from("stock_adjustments" as any) as any).update({ status: "approved", approved_by: user?.id } as any).eq("id", adjId);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock_adjustments"] });
       queryClient.invalidateQueries({ queryKey: ["stock-overview"] });
-      toast.success(isRTL ? "تم اعتماد التسوية وتحديث المخزون" : "Adjustment approved and stock updated");
+      toast.success(isRTL ? "تم إنشاء واعتماد التسوية بنجاح" : "Adjustment created and approved");
+      setShowForm(false);
+      resetForm();
     },
-    onError: () => toast.error(isRTL ? "حدث خطأ أثناء الاعتماد" : "Error approving"),
+    onError: (err: any) => toast.error(err?.message?.includes("Insufficient") ? (isRTL ? "الرصيد غير كافي" : "Insufficient stock") : (isRTL ? "حدث خطأ" : "Error creating adjustment")),
   });
 
   const addItem = () => setForm(f => ({ ...f, items: [...f.items, { product_id: "", quantity: 0, unit_cost: 0, notes: "" }] }));

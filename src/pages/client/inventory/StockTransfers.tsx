@@ -106,41 +106,25 @@ const StockTransfers = () => {
   const updateStatus = useMutation({
     mutationFn: async ({ id, newStatus }: { id: string; newStatus: string }) => {
       if (newStatus === "received") {
-        const { data: transfer } = await (supabase.from("stock_transfers" as any) as any).select("*, stock_transfer_items(*)").eq("id", id).single();
-        if (!transfer) throw new Error("Not found");
-
-        const { data: fromWh } = await supabase.from("warehouses").select("id").eq("branch_id", (transfer as any).from_branch_id).eq("company_id", companyId!).single();
-        const { data: toWh } = await supabase.from("warehouses").select("id").eq("branch_id", (transfer as any).to_branch_id).eq("company_id", companyId!).single();
-
-        for (const item of (transfer as any).stock_transfer_items || []) {
-          const qty = item.quantity_sent;
-          const { data: fromStock } = await supabase.from("product_stock").select("*").eq("product_id", item.product_id).eq("warehouse_id", fromWh?.id).single();
-          if (fromStock) {
-            await supabase.from("product_stock").update({ quantity: (fromStock.quantity || 0) - qty } as any).eq("id", fromStock.id);
-          }
-          const { data: toStock } = await supabase.from("product_stock").select("*").eq("product_id", item.product_id).eq("warehouse_id", toWh?.id).single();
-          if (toStock) {
-            await supabase.from("product_stock").update({ quantity: (toStock.quantity || 0) + qty } as any).eq("id", toStock.id);
-          } else {
-            await supabase.from("product_stock").insert({ product_id: item.product_id, warehouse_id: toWh?.id, quantity: qty } as any);
-          }
-          await supabase.from("stock_movements").insert([
-            { company_id: companyId, warehouse_id: fromWh?.id, product_id: item.product_id, movement_type: "transfer_out", quantity: -qty, reference_type: "transfer", reference_id: id, created_by: user?.id },
-            { company_id: companyId, warehouse_id: toWh?.id, product_id: item.product_id, movement_type: "transfer_in", quantity: qty, reference_type: "transfer", reference_id: id, created_by: user?.id },
-          ] as any);
-          await (supabase.from("stock_transfer_items" as any) as any).update({ quantity_received: qty }).eq("id", item.id);
-        }
+        // Use atomic RPC for receiving
+        const { data, error } = await supabase.rpc("rpc_inventory_transfer", {
+          p_company_id: companyId!,
+          p_transfer_id: id,
+          p_received_by: user?.id,
+        } as any);
+        if (error) throw error;
+        return data;
+      } else {
+        // Just update status for "sent"
+        await (supabase.from("stock_transfers" as any) as any).update({ status: newStatus } as any).eq("id", id);
       }
-      await (supabase.from("stock_transfers" as any) as any).update({
-        status: newStatus, ...(newStatus === "received" ? { received_by: user?.id } : {}),
-      } as any).eq("id", id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock_transfers"] });
       queryClient.invalidateQueries({ queryKey: ["stock-overview"] });
       toast.success(isRTL ? "تم تحديث الحالة بنجاح" : "Status updated");
     },
-    onError: () => toast.error(isRTL ? "حدث خطأ" : "Error"),
+    onError: (err: any) => toast.error(err?.message?.includes("Insufficient") ? (isRTL ? "الرصيد غير كافي في المصدر" : "Insufficient stock at source") : (isRTL ? "حدث خطأ" : "Error")),
   });
 
   const addItem = () => setForm(f => ({ ...f, items: [...f.items, { product_id: "", quantity_sent: 0, notes: "" }] }));
