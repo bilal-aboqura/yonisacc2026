@@ -40,12 +40,22 @@ const ProductCard = () => {
     enabled: !!id,
   });
 
+  // Fetch branches
+  const { data: branches = [] } = useQuery({
+    queryKey: ["branches-product", companyId],
+    queryFn: async () => {
+      const { data } = await supabase.from("branches").select("id, name, name_en, is_main").eq("company_id", companyId!).eq("is_active", true).order("is_main", { ascending: false });
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+
   const { data: stockByBranch = [] } = useQuery({
     queryKey: ["product-stock-branches", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("product_stock")
-        .select("*, warehouses(name, name_en, branches(name, name_en))")
+        .select("*, warehouses(name, name_en, branch_id, branches(name, name_en))")
         .eq("product_id", id!);
       if (error) throw error;
       return data || [];
@@ -58,7 +68,7 @@ const ProductCard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stock_movements")
-        .select("*, warehouses(name, name_en)")
+        .select("*, warehouses(name, name_en, branch_id)")
         .eq("product_id", id!)
         .order("movement_date", { ascending: false })
         .limit(50);
@@ -67,6 +77,10 @@ const ProductCard = () => {
     },
     enabled: !!id,
   });
+
+  // Filter by branch
+  const filteredStock = branchFilter === "all" ? stockByBranch : stockByBranch.filter((s: any) => s.warehouses?.branch_id === branchFilter);
+  const filteredMovements = branchFilter === "all" ? movements : movements.filter((m: any) => m.warehouses?.branch_id === branchFilter);
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
