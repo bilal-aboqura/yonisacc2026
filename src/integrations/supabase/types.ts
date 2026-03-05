@@ -319,10 +319,14 @@ export type Database = {
       branch_account_settings: {
         Row: {
           branch_id: string
+          cogs_account_id: string | null
           company_id: string
+          consumption_expense_account_id: string | null
           created_at: string
           id: string
           inventory_account_id: string | null
+          inventory_gain_account_id: string | null
+          inventory_loss_account_id: string | null
           module_type: string
           purchase_discount_account_id: string | null
           purchase_expense_account_id: string | null
@@ -333,13 +337,18 @@ export type Database = {
           sales_revenue_account_id: string | null
           sales_tax_account_id: string | null
           updated_at: string
+          wip_account_id: string | null
         }
         Insert: {
           branch_id: string
+          cogs_account_id?: string | null
           company_id: string
+          consumption_expense_account_id?: string | null
           created_at?: string
           id?: string
           inventory_account_id?: string | null
+          inventory_gain_account_id?: string | null
+          inventory_loss_account_id?: string | null
           module_type: string
           purchase_discount_account_id?: string | null
           purchase_expense_account_id?: string | null
@@ -350,13 +359,18 @@ export type Database = {
           sales_revenue_account_id?: string | null
           sales_tax_account_id?: string | null
           updated_at?: string
+          wip_account_id?: string | null
         }
         Update: {
           branch_id?: string
+          cogs_account_id?: string | null
           company_id?: string
+          consumption_expense_account_id?: string | null
           created_at?: string
           id?: string
           inventory_account_id?: string | null
+          inventory_gain_account_id?: string | null
+          inventory_loss_account_id?: string | null
           module_type?: string
           purchase_discount_account_id?: string | null
           purchase_expense_account_id?: string | null
@@ -367,6 +381,7 @@ export type Database = {
           sales_revenue_account_id?: string | null
           sales_tax_account_id?: string | null
           updated_at?: string
+          wip_account_id?: string | null
         }
         Relationships: [
           {
@@ -377,6 +392,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "branch_account_settings_cogs_account_id_fkey"
+            columns: ["cogs_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "branch_account_settings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -384,8 +406,29 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "branch_account_settings_consumption_expense_account_id_fkey"
+            columns: ["consumption_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "branch_account_settings_inventory_account_id_fkey"
             columns: ["inventory_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_inventory_gain_account_id_fkey"
+            columns: ["inventory_gain_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_inventory_loss_account_id_fkey"
+            columns: ["inventory_loss_account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
@@ -442,6 +485,13 @@ export type Database = {
           {
             foreignKeyName: "branch_account_settings_sales_tax_account_id_fkey"
             columns: ["sales_tax_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_account_settings_wip_account_id_fkey"
+            columns: ["wip_account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
@@ -3920,32 +3970,60 @@ export type Database = {
         Args: { p_company_id: string; p_transaction_id: string }
         Returns: Json
       }
-      rpc_inventory_adjustment: {
-        Args: {
-          p_adjustment_date: string
-          p_adjustment_type: string
-          p_branch_id: string
-          p_company_id: string
-          p_created_by?: string
-          p_items?: Json
-          p_notes?: string
-          p_reason?: string
-        }
-        Returns: Json
-      }
-      rpc_inventory_consumption: {
-        Args: {
-          p_branch_id: string
-          p_company_id: string
-          p_consumption_date: string
-          p_created_by?: string
-          p_department?: string
-          p_items?: Json
-          p_notes?: string
-          p_reason?: string
-        }
-        Returns: Json
-      }
+      rpc_inventory_adjustment:
+        | {
+            Args: {
+              p_adjustment_date: string
+              p_adjustment_type: string
+              p_branch_id: string
+              p_company_id: string
+              p_created_by?: string
+              p_items?: Json
+              p_notes?: string
+              p_reason?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_adjustment_date: string
+              p_adjustment_type: string
+              p_branch_id: string
+              p_company_id: string
+              p_created_by?: string
+              p_items?: Json
+              p_notes?: string
+              p_reason?: string
+            }
+            Returns: Json
+          }
+      rpc_inventory_consumption:
+        | {
+            Args: {
+              p_branch_id: string
+              p_company_id: string
+              p_consumption_date: string
+              p_created_by?: string
+              p_department?: string
+              p_items?: Json
+              p_notes?: string
+              p_reason?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_branch_id: string
+              p_company_id: string
+              p_consumption_date: string
+              p_created_by?: string
+              p_department?: string
+              p_items?: Json
+              p_notes?: string
+              p_reason?: string
+            }
+            Returns: Json
+          }
       rpc_inventory_manufacturing: {
         Args: {
           p_company_id: string
