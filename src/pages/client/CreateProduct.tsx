@@ -198,6 +198,7 @@ const CreateProduct = () => {
         sale_price: salePrice,
         tax_rate: taxRate,
         min_stock: minStock,
+        reorder_level: minStock,
         max_stock: maxStock || null,
         description: description.trim() || null,
         is_service: isService,

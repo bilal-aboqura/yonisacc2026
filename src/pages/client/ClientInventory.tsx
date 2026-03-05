@@ -35,7 +35,18 @@ const ClientInventory = ({ tab }: ClientInventoryProps) => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState("all");
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string; name: string }>({ open: false, id: "", name: "" });
+
+  // Fetch branches
+  const { data: branches = [] } = useQuery({
+    queryKey: ["branches-filter", companyId],
+    queryFn: async () => {
+      const { data } = await supabase.from("branches").select("id, name, name_en, is_main").eq("company_id", companyId!).eq("is_active", true).order("is_main", { ascending: false });
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
 
   // Fetch products
   const { data: products = [], isLoading } = useQuery({
@@ -69,14 +80,16 @@ const ClientInventory = ({ tab }: ClientInventoryProps) => {
 
   // Fetch stock summary
   const { data: stockMap = {} } = useQuery({
-    queryKey: ["product-stock-summary", companyId],
+    queryKey: ["product-stock-summary", companyId, branchFilter],
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("product_stock")
-        .select("product_id, quantity")
+        .select("product_id, quantity, warehouses(branch_id)")
         .in("product_id", products.map(p => p.id));
+      const { data } = await q;
       const map: Record<string, number> = {};
       (data || []).forEach((s: any) => {
+        if (branchFilter !== "all" && s.warehouses?.branch_id !== branchFilter) return;
         map[s.product_id] = (map[s.product_id] || 0) + (s.quantity || 0);
       });
       return map;
@@ -238,6 +251,20 @@ const ClientInventory = ({ tab }: ClientInventoryProps) => {
                 <SelectItem value="all">{isRTL ? "الكل" : "All"}</SelectItem>
                 <SelectItem value="active">{isRTL ? "نشط" : "Active"}</SelectItem>
                 <SelectItem value="inactive">{isRTL ? "معطل" : "Inactive"}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={branchFilter} onValueChange={setBranchFilter}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder={isRTL ? "الفرع" : "Branch"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isRTL ? "جميع الفروع" : "All Branches"}</SelectItem>
+                {branches.map((b: any) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {isRTL ? b.name : b.name_en || b.name}
+                    {b.is_main ? (isRTL ? " (رئيسي)" : " (Main)") : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

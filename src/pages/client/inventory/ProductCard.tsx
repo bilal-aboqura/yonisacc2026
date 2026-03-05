@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Package, Warehouse, TrendingUp, Pencil, Trash2, Printer, FileSpreadsheet, ArrowRight, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Package, Warehouse, TrendingUp, Pencil, Trash2, Printer, FileSpreadsheet, ArrowRight, Loader2, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { exportToExcel } from "@/lib/exportUtils";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ const ProductCard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [branchFilter, setBranchFilter] = useState("all");
 
   const { data: product } = useQuery({
     queryKey: ["product-detail", id],
@@ -38,12 +40,22 @@ const ProductCard = () => {
     enabled: !!id,
   });
 
+  // Fetch branches
+  const { data: branches = [] } = useQuery({
+    queryKey: ["branches-product", companyId],
+    queryFn: async () => {
+      const { data } = await supabase.from("branches").select("id, name, name_en, is_main").eq("company_id", companyId!).eq("is_active", true).order("is_main", { ascending: false });
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+
   const { data: stockByBranch = [] } = useQuery({
     queryKey: ["product-stock-branches", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("product_stock")
-        .select("*, warehouses(name, name_en, branches(name, name_en))")
+        .select("*, warehouses(name, name_en, branch_id, branches(name, name_en))")
         .eq("product_id", id!);
       if (error) throw error;
       return data || [];
@@ -56,7 +68,7 @@ const ProductCard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stock_movements")
-        .select("*, warehouses(name, name_en)")
+        .select("*, warehouses(name, name_en, branch_id)")
         .eq("product_id", id!)
         .order("movement_date", { ascending: false })
         .limit(50);
@@ -65,6 +77,10 @@ const ProductCard = () => {
     },
     enabled: !!id,
   });
+
+  // Filter by branch
+  const filteredStock = branchFilter === "all" ? stockByBranch : stockByBranch.filter((s: any) => s.warehouses?.branch_id === branchFilter);
+  const filteredMovements = branchFilter === "all" ? movements : movements.filter((m: any) => m.warehouses?.branch_id === branchFilter);
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -117,12 +133,12 @@ const ProductCard = () => {
   const canEdit = can("EDIT_PRODUCT");
   const canDelete = can("DELETE_PRODUCT");
 
-  const totalQty = stockByBranch.reduce((s: number, ps: any) => s + (ps.quantity || 0), 0);
-  const totalValue = stockByBranch.reduce((s: number, ps: any) => s + (ps.quantity || 0) * (ps.avg_cost || 0), 0);
+  const totalQty = filteredStock.reduce((s: number, ps: any) => s + (ps.quantity || 0), 0);
+  const totalValue = filteredStock.reduce((s: number, ps: any) => s + (ps.quantity || 0) * (ps.avg_cost || 0), 0);
   const avgCost = totalQty > 0 ? totalValue / totalQty : 0;
 
   let runningBalance = 0;
-  const ledger = [...movements].reverse().map(m => {
+  const ledger = [...filteredMovements].reverse().map(m => {
     runningBalance += (m as any).quantity || 0;
     return { ...m, balance: runningBalance };
   }).reverse();
@@ -176,7 +192,28 @@ const ProductCard = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Branch Filter */}
+      <Card>
+        <CardContent className="p-4">
+          <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={branchFilter} onValueChange={setBranchFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder={isRTL ? "الفرع" : "Branch"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isRTL ? "جميع الفروع" : "All Branches"}</SelectItem>
+                {branches.map((b: any) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {isRTL ? b.name : b.name_en || b.name}
+                    {b.is_main ? (isRTL ? " (رئيسي)" : " (Main)") : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{isRTL ? "الرصيد الإجمالي" : "Total Stock"}</CardTitle></CardHeader>
@@ -193,8 +230,8 @@ const ProductCard = () => {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{isRTL ? "حد إعادة الطلب" : "Reorder Level"}</CardTitle></CardHeader>
           <CardContent>
-            <div className={cn("text-2xl font-bold", totalQty < ((product as any).reorder_level || 0) && "text-destructive")}>
-              {(product as any).reorder_level || 0}
+            <div className={cn("text-2xl font-bold", totalQty < ((product as any).reorder_level || (product as any).min_stock || 0) && "text-destructive")}>
+              {(product as any).reorder_level || (product as any).min_stock || 0}
             </div>
           </CardContent>
         </Card>
@@ -214,7 +251,7 @@ const ProductCard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {stockByBranch.map((s: any) => (
+              {filteredStock.map((s: any) => (
                 <TableRow key={s.id}>
                   <TableCell>{s.warehouses?.branches ? (isRTL ? s.warehouses.branches.name : s.warehouses.branches.name_en || s.warehouses.branches.name) : (isRTL ? s.warehouses?.name : s.warehouses?.name_en || s.warehouses?.name)}</TableCell>
                   <TableCell className="text-center">{s.quantity || 0}</TableCell>
