@@ -54,7 +54,7 @@ const CreateProduct = () => {
   const [sku, setSku] = useState("");
   const [barcode, setBarcode] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [unit, setUnit] = useState("piece");
+  const [unit, setUnit] = useState("");
   const [purchasePrice, setPurchasePrice] = useState(0);
   const [salePrice, setSalePrice] = useState(0);
   const [taxRate, setTaxRate] = useState(15);
@@ -72,16 +72,7 @@ const CreateProduct = () => {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
 
   const [categories, setCategories] = useState<Category[]>([]);
-
-  const units = [
-    { value: "piece", label: "قطعة" },
-    { value: "kg", label: "كيلوغرام" },
-    { value: "g", label: "غرام" },
-    { value: "liter", label: "لتر" },
-    { value: "meter", label: "متر" },
-    { value: "box", label: "كرتون" },
-    { value: "pack", label: "عبوة" },
-  ];
+  const [companyUnits, setCompanyUnits] = useState<{ id: string; name: string; name_en: string | null; symbol: string | null }[]>([]);
 
   // Fetch car brands for auto parts
   const { data: carBrands } = useQuery({
@@ -139,6 +130,15 @@ const CreateProduct = () => {
         .order("name");
 
       setCategories(categoriesData || []);
+
+      const { data: unitsData } = await supabase
+        .from("units")
+        .select("id, name, name_en, symbol")
+        .eq("company_id", companyData.id)
+        .eq("is_active", true)
+        .order("name");
+
+      setCompanyUnits(unitsData || []);
     } catch (error: any) {
       console.error("Error fetching data:", error);
       toast({
@@ -182,7 +182,7 @@ const CreateProduct = () => {
         sku: sku.trim() || null,
         barcode: barcode.trim() || null,
         category_id: categoryId || null,
-        unit,
+        unit_id: unit || null,
         purchase_price: purchasePrice,
         sale_price: salePrice,
         tax_rate: taxRate,
@@ -311,12 +311,12 @@ const CreateProduct = () => {
               <Label>الوحدة</Label>
               <Select value={unit} onValueChange={setUnit}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="اختر الوحدة" />
                 </SelectTrigger>
                 <SelectContent>
-                  {units.map((u) => (
-                    <SelectItem key={u.value} value={u.value}>
-                      {u.label}
+                  {companyUnits.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name} {u.symbol ? `(${u.symbol})` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
