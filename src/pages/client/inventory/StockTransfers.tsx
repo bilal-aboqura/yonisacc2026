@@ -107,7 +107,7 @@ const StockTransfers = () => {
     mutationFn: async ({ id, newStatus }: { id: string; newStatus: string }) => {
       if (newStatus === "received") {
         // Use atomic RPC for receiving
-        const { data, error } = await supabase.rpc("rpc_inventory_transfer", {
+        const { data, error } = await (supabase.rpc as any)("rpc_inventory_transfer", {
           p_company_id: companyId!,
           p_transfer_id: id,
           p_received_by: user?.id,

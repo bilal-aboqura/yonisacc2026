@@ -75,7 +75,7 @@ const StockAdjustments = () => {
       const validItems = form.items.filter(i => i.product_id && i.quantity > 0);
       if (validItems.length === 0) throw new Error("No valid items");
 
-      const { data, error } = await supabase.rpc("rpc_inventory_adjustment", {
+      const { data, error } = await (supabase.rpc as any)("rpc_inventory_adjustment", {
         p_company_id: companyId!,
         p_branch_id: form.branch_id,
         p_adjustment_type: form.adjustment_type,

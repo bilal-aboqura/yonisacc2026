@@ -113,7 +113,7 @@ const Manufacturing = () => {
 
   const completeOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      const { data, error } = await supabase.rpc("rpc_inventory_manufacturing", {
+      const { data, error } = await (supabase.rpc as any)("rpc_inventory_manufacturing", {
         p_company_id: companyId!,
         p_order_id: orderId,
         p_completed_by: user?.id,
