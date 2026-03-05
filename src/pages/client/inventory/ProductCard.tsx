@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Package, Warehouse, TrendingUp, Pencil, Trash2, Printer, FileSpreadsheet, ArrowRight, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Package, Warehouse, TrendingUp, Pencil, Trash2, Printer, FileSpreadsheet, ArrowRight, Loader2, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { exportToExcel } from "@/lib/exportUtils";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ const ProductCard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [branchFilter, setBranchFilter] = useState("all");
 
   const { data: product } = useQuery({
     queryKey: ["product-detail", id],
