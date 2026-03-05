@@ -39,6 +39,7 @@ import CreateTreasuryTransaction from "./pages/client/CreateTreasuryTransaction"
 import ViewTreasuryTransaction from "./pages/client/ViewTreasuryTransaction";
 import EditTreasuryTransaction from "./pages/client/EditTreasuryTransaction";
 import CreateProduct from "./pages/client/CreateProduct";
+import EditProduct from "./pages/client/EditProduct";
 import OpeningBalances from "./pages/client/OpeningBalances";
 import IncomeStatement from "./pages/client/reports/IncomeStatement";
 import BalanceSheet from "./pages/client/reports/BalanceSheet";
