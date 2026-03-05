@@ -182,7 +182,7 @@ const CreateProduct = () => {
         sku: sku.trim() || null,
         barcode: barcode.trim() || null,
         category_id: categoryId || null,
-        unit,
+        unit_id: unit || null,
         purchase_price: purchasePrice,
         sale_price: salePrice,
         tax_rate: taxRate,
