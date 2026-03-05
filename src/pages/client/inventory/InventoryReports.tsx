@@ -56,7 +56,7 @@ const InventoryReports = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("*, product_stock(quantity, avg_cost, warehouse_id, warehouses(branch_id))")
+        .select("*, product_stock(quantity, avg_cost, warehouse_id, warehouses(branch_id, name, name_en))")
         .eq("company_id", companyId!)
         .eq("is_active", true)
         .neq("product_type", "service");
