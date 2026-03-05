@@ -133,12 +133,12 @@ const ProductCard = () => {
   const canEdit = can("EDIT_PRODUCT");
   const canDelete = can("DELETE_PRODUCT");
 
-  const totalQty = stockByBranch.reduce((s: number, ps: any) => s + (ps.quantity || 0), 0);
-  const totalValue = stockByBranch.reduce((s: number, ps: any) => s + (ps.quantity || 0) * (ps.avg_cost || 0), 0);
+  const totalQty = filteredStock.reduce((s: number, ps: any) => s + (ps.quantity || 0), 0);
+  const totalValue = filteredStock.reduce((s: number, ps: any) => s + (ps.quantity || 0) * (ps.avg_cost || 0), 0);
   const avgCost = totalQty > 0 ? totalValue / totalQty : 0;
 
   let runningBalance = 0;
-  const ledger = [...movements].reverse().map(m => {
+  const ledger = [...filteredMovements].reverse().map(m => {
     runningBalance += (m as any).quantity || 0;
     return { ...m, balance: runningBalance };
   }).reverse();
@@ -192,7 +192,28 @@ const ProductCard = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Branch Filter */}
+      <Card>
+        <CardContent className="p-4">
+          <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={branchFilter} onValueChange={setBranchFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder={isRTL ? "الفرع" : "Branch"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isRTL ? "جميع الفروع" : "All Branches"}</SelectItem>
+                {branches.map((b: any) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {isRTL ? b.name : b.name_en || b.name}
+                    {b.is_main ? (isRTL ? " (رئيسي)" : " (Main)") : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{isRTL ? "الرصيد الإجمالي" : "Total Stock"}</CardTitle></CardHeader>
