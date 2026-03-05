@@ -175,11 +175,22 @@ const CreateProduct = () => {
 
     setSaving(true);
     try {
+      // Auto-generate SKU if not provided
+      let finalSku = sku.trim();
+      if (!finalSku) {
+        const { count } = await supabase
+          .from("products")
+          .select("id", { count: "exact", head: true })
+          .eq("company_id", companyId);
+        const nextNum = (count || 0) + 1;
+        finalSku = `PRD-${String(nextNum).padStart(4, "0")}`;
+      }
+
       const insertData = {
         company_id: companyId,
         name: name.trim(),
         name_en: nameEn.trim() || null,
-        sku: sku.trim() || null,
+        sku: finalSku,
         barcode: barcode.trim() || null,
         category_id: categoryId || null,
         unit_id: unit || null,
