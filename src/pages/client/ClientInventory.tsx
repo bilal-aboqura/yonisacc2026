@@ -253,9 +253,20 @@ const ClientInventory = ({ tab }: ClientInventoryProps) => {
                 <SelectItem value="inactive">{isRTL ? "معطل" : "Inactive"}</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-        </CardContent>
-      </Card>
+            <Select value={branchFilter} onValueChange={setBranchFilter}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder={isRTL ? "الفرع" : "Branch"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isRTL ? "جميع الفروع" : "All Branches"}</SelectItem>
+                {branches.map((b: any) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {isRTL ? b.name : b.name_en || b.name}
+                    {b.is_main ? (isRTL ? " (رئيسي)" : " (Main)") : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
       {/* Products Table */}
       <Card>
