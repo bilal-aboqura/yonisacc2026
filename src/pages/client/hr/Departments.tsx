@@ -7,16 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Building, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Building, Pencil, Trash2, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 const Departments = () => {
   const { isRTL } = useLanguage();
   const { companyId } = useCompanyId();
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", name_en: "", manager_name: "" });
 
@@ -31,7 +30,6 @@ const Departments = () => {
     enabled: !!companyId,
   });
 
-  // Count employees per department
   const { data: empCounts = {} } = useQuery({
     queryKey: ["hr-emp-counts", companyId],
     queryFn: async () => {
@@ -58,7 +56,7 @@ const Departments = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-departments"] });
-      setDialogOpen(false);
+      setShowForm(false);
       setEditId(null);
       setForm({ name: "", name_en: "", manager_name: "" });
       toast.success(isRTL ? "تم الحفظ" : "Saved");
@@ -77,11 +75,41 @@ const Departments = () => {
     },
   });
 
+  if (showForm) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => { setShowForm(false); setEditId(null); setForm({ name: "", name_en: "", manager_name: "" }); }}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">
+            {editId ? (isRTL ? "تعديل قسم" : "Edit Department") : (isRTL ? "إضافة قسم" : "Add Department")}
+          </h1>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>{isRTL ? "اسم القسم" : "Name (AR)"}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "الاسم بالإنجليزي" : "Name (EN)"}</Label><Input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "اسم المدير" : "Manager Name"}</Label><Input value={form.manager_name} onChange={(e) => setForm({ ...form, manager_name: e.target.value })} /></div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => { setShowForm(false); setEditId(null); }}>{isRTL ? "إلغاء" : "Cancel"}</Button>
+              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name}>
+                {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}{isRTL ? "حفظ" : "Save"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{isRTL ? "الأقسام" : "Departments"}</h1>
-        <Button onClick={() => { setEditId(null); setForm({ name: "", name_en: "", manager_name: "" }); setDialogOpen(true); }}>
+        <Button onClick={() => { setEditId(null); setForm({ name: "", name_en: "", manager_name: "" }); setShowForm(true); }}>
           <Plus className="h-4 w-4 me-2" />{isRTL ? "إضافة قسم" : "Add Department"}
         </Button>
       </div>
@@ -109,7 +137,7 @@ const Departments = () => {
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
                         setEditId(d.id);
                         setForm({ name: d.name, name_en: d.name_en || "", manager_name: d.manager_name || "" });
-                        setDialogOpen(true);
+                        setShowForm(true);
                       }}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(d.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
@@ -120,23 +148,6 @@ const Departments = () => {
           </Table>}
         </CardContent>
       </Card>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editId ? (isRTL ? "تعديل قسم" : "Edit Department") : (isRTL ? "إضافة قسم" : "Add Department")}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2"><Label>{isRTL ? "اسم القسم" : "Name (AR)"}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "الاسم بالإنجليزي" : "Name (EN)"}</Label><Input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "اسم المدير" : "Manager Name"}</Label><Input value={form.manager_name} onChange={(e) => setForm({ ...form, manager_name: e.target.value })} /></div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline">{isRTL ? "إلغاء" : "Cancel"}</Button></DialogClose>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name}>
-              {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}{isRTL ? "حفظ" : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

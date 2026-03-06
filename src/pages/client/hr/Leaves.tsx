@@ -9,9 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Calendar, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Plus, Calendar, CheckCircle, XCircle, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 const LEAVE_TYPES = [
@@ -25,7 +24,7 @@ const Leaves = () => {
   const { isRTL } = useLanguage();
   const { companyId } = useCompanyId();
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ employee_id: "", leave_type: "annual", start_date: "", end_date: "", days_count: 1, notes: "" });
 
   const { data: employees = [] } = useQuery({
@@ -59,7 +58,7 @@ const Leaves = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-leaves"] });
-      setDialogOpen(false);
+      setShowForm(false);
       toast.success(isRTL ? "تم تسجيل الإجازة" : "Leave recorded");
     },
     onError: (e: any) => toast.error(e.message),
@@ -91,7 +90,6 @@ const Leaves = () => {
     return lt ? (isRTL ? lt.ar : lt.en) : t;
   };
 
-  // Compute days when dates change
   const updateDays = (start: string, end: string) => {
     if (start && end) {
       const diff = Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86400000) + 1;
@@ -99,11 +97,54 @@ const Leaves = () => {
     }
   };
 
+  if (showForm) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">{isRTL ? "طلب إجازة" : "Request Leave"}</h1>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? "الموظف" : "Employee"}</Label>
+                <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>{employees.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.employee_number} - {isRTL ? e.name : (e.name_en || e.name)}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "النوع" : "Type"}</Label>
+                <Select value={form.leave_type} onValueChange={(v) => setForm({ ...form, leave_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{LEAVE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{isRTL ? t.ar : t.en}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>{isRTL ? "من" : "From"}</Label><Input type="date" value={form.start_date} onChange={(e) => updateDays(e.target.value, form.end_date)} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "إلى" : "To"}</Label><Input type="date" value={form.end_date} onChange={(e) => updateDays(form.start_date, e.target.value)} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "عدد الأيام" : "Days"}</Label><Input type="number" value={form.days_count} readOnly /></div>
+              <div className="space-y-2"><Label>{isRTL ? "ملاحظات" : "Notes"}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setShowForm(false)}>{isRTL ? "إلغاء" : "Cancel"}</Button>
+              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.employee_id || !form.start_date || !form.end_date}>
+                {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}{isRTL ? "حفظ" : "Save"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{isRTL ? "الإجازات" : "Leaves"}</h1>
-        <Button onClick={() => { setForm({ employee_id: "", leave_type: "annual", start_date: "", end_date: "", days_count: 1, notes: "" }); setDialogOpen(true); }}>
+        <Button onClick={() => { setForm({ employee_id: "", leave_type: "annual", start_date: "", end_date: "", days_count: 1, notes: "" }); setShowForm(true); }}>
           <Plus className="h-4 w-4 me-2" />{isRTL ? "طلب إجازة" : "Request Leave"}
         </Button>
       </div>
@@ -165,40 +206,6 @@ const Leaves = () => {
           </Table>}
         </CardContent>
       </Card>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{isRTL ? "طلب إجازة" : "Request Leave"}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{isRTL ? "الموظف" : "Employee"}</Label>
-              <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
-                <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
-                <SelectContent>{employees.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.employee_number} - {isRTL ? e.name : (e.name_en || e.name)}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>{isRTL ? "النوع" : "Type"}</Label>
-              <Select value={form.leave_type} onValueChange={(v) => setForm({ ...form, leave_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{LEAVE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{isRTL ? t.ar : t.en}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>{isRTL ? "من" : "From"}</Label><Input type="date" value={form.start_date} onChange={(e) => updateDays(e.target.value, form.end_date)} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "إلى" : "To"}</Label><Input type="date" value={form.end_date} onChange={(e) => updateDays(form.start_date, e.target.value)} /></div>
-            </div>
-            <div className="space-y-2"><Label>{isRTL ? "عدد الأيام" : "Days"}</Label><Input type="number" value={form.days_count} readOnly /></div>
-            <div className="space-y-2"><Label>{isRTL ? "ملاحظات" : "Notes"}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline">{isRTL ? "إلغاء" : "Cancel"}</Button></DialogClose>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.employee_id || !form.start_date || !form.end_date}>
-              {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}{isRTL ? "حفظ" : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
