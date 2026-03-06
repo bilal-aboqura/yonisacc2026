@@ -58,11 +58,14 @@ const CashFlow = () => {
     queryKey: ["cash-flow-report", companyId, startDate, endDate],
     queryFn: async () => {
       if (!companyId) return null;
-      const { data, error } = await supabase.rpc("get_cash_flow_report", {
-        p_company_id: companyId,
-        p_start_date: startDate,
-        p_end_date: endDate,
-      });
+      const { data, error } = await supabase.rpc(
+        "get_cash_flow_report" as any,
+        {
+          p_company_id: companyId,
+          p_start_date: startDate,
+          p_end_date: endDate,
+        }
+      );
       if (error) throw error;
       return data as unknown as CashFlowData;
     },
