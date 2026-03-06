@@ -124,7 +124,7 @@ const CreateGoldSale = () => {
 
       const invoiceNumber = `GS-${Date.now().toString(36).toUpperCase()}`;
 
-      const { data: inv, error: invErr } = await supabase.from("gold_sales_invoices" as any).insert({
+      const { data: inv, error: invErr } = await (supabase as any).from("gold_sales_invoices").insert({
         company_id: companyId, branch_id: branchId, invoice_number: invoiceNumber,
         invoice_date: invoiceDate, contact_id: contactId || null,
         total_weight: totalWeight, total_amount: totalAmount,
@@ -143,7 +143,7 @@ const CreateGoldSale = () => {
         total: item.total,
       }));
 
-      const { error: itemsErr } = await supabase.from("gold_sales_invoice_items" as any).insert(lineItems);
+      const { error: itemsErr } = await (supabase as any).from("gold_sales_invoice_items").insert(lineItems);
       if (itemsErr) throw itemsErr;
     },
     onSuccess: () => {

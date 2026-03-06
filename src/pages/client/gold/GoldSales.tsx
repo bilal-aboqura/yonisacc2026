@@ -36,7 +36,7 @@ const GoldSales = () => {
 
   const confirmMutation = useMutation({
     mutationFn: async (invoiceId: string) => {
-      const { data, error } = await supabase.rpc("confirm_gold_sale", { p_invoice_id: invoiceId } as any);
+      const { data, error } = await (supabase as any).rpc("confirm_gold_sale", { p_invoice_id: invoiceId });
       if (error) throw error;
       return data;
     },

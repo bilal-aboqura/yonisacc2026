@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -124,7 +125,7 @@ const CreateGoldPurchase = () => {
 
       const invoiceNumber = `GP-${Date.now().toString(36).toUpperCase()}`;
 
-      const { data: inv, error: invErr } = await supabase.from("gold_purchase_invoices" as any).insert({
+      const { data: inv, error: invErr } = await (supabase as any).from("gold_purchase_invoices").insert({
         company_id: companyId, branch_id: branchId, invoice_number: invoiceNumber,
         invoice_date: invoiceDate, contact_id: contactId || null,
         total_weight: totalWeight, total_amount: totalAmount,
@@ -143,7 +144,7 @@ const CreateGoldPurchase = () => {
         total: item.total,
       }));
 
-      const { error: itemsErr } = await supabase.from("gold_purchase_invoice_items" as any).insert(lineItems);
+      const { error: itemsErr } = await (supabase as any).from("gold_purchase_invoice_items").insert(lineItems);
       if (itemsErr) throw itemsErr;
     },
     onSuccess: () => {
