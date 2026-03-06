@@ -6,6 +6,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { useAutoPartsAccess } from "@/hooks/useAutoPartsAccess";
+import { useGoldAccess } from "@/hooks/useGoldAccess";
 import { useRBAC } from "@/hooks/useRBAC";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
@@ -60,6 +61,7 @@ import {
   ArrowRightLeft,
   Wrench,
   Factory,
+  Gem,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -188,6 +190,19 @@ const autoPartsMenuGroup: MenuItem = {
     { icon: Search, label: "كتالوج القطع", labelEn: "Parts Catalog", path: "/client/auto-parts/catalog", permission: "VIEW_AUTO_PARTS" },
     { icon: Car, label: "ماركات السيارات", labelEn: "Car Brands", path: "/client/auto-parts/brands", permission: "VIEW_AUTO_PARTS" },
     { icon: Tag, label: "موديلات السيارات", labelEn: "Car Models", path: "/client/auto-parts/models", permission: "VIEW_AUTO_PARTS" },
+  ]
+};
+
+const goldMenuGroup: MenuItem = {
+  icon: Gem,
+  label: "الذهب والمجوهرات",
+  labelEn: "Gold & Jewelry",
+  children: [
+    { icon: Gem, label: "أصناف الذهب", labelEn: "Gold Items", path: "/client/gold/items", permission: "VIEW_INVENTORY" },
+    { icon: ShoppingCart, label: "مشتريات الذهب", labelEn: "Gold Purchases", path: "/client/gold/purchases", permission: "VIEW_PURCHASES" },
+    { icon: Receipt, label: "مبيعات الذهب", labelEn: "Gold Sales", path: "/client/gold/sales", permission: "VIEW_SALES" },
+    { icon: TrendingUp, label: "أسعار الذهب", labelEn: "Gold Prices", path: "/client/gold/prices", permission: "VIEW_INVENTORY" },
+    { icon: BarChart3, label: "تقارير الذهب", labelEn: "Gold Reports", path: "/client/gold/reports", permission: "VIEW_INVENTORY" },
   ]
 };
 
