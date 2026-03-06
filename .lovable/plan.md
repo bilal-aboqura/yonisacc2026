@@ -1,100 +1,127 @@
 
 
-# خطة تطوير مديول المخزون المتكامل
+# تطوير نظام ZATCA Phase 2 - مرحلة الربط والتكامل الكاملة
 
-## الوضع الحالي
-- جداول موجودة: `products`, `product_categories` (شجرية), `product_stock`, `stock_movements`, `warehouses`, `units` (بدون تحويلات)
-- الجداول الناقصة: `stock_adjustments`, `stock_transfers`, `internal_consumptions`, `bill_of_materials`, `manufacturing_orders`, تحويل الوحدات، أنواع المنتجات، طرق التتبع
-- الواجهة الحالية: صفحة منتجات بسيطة + صفحة إنشاء منتج + حركة مخزون فارغة
-- القائمة الجانبية: رابطان فقط (المنتجات، حركة المخزون)
+## تحليل الوضع الحالي
 
-## خطة التنفيذ (مقسمة على مراحل)
+النظام يحتوي بالفعل على بنية أساسية جيدة:
+- ✅ جداول `zatca_settings` و `zatca_invoice_logs` موجودة
+- ✅ Edge functions: `zatca-onboard` و `zatca-submit` موجودة
+- ✅ شاشة إعدادات ZATCA موجودة
+- ✅ زر إرسال للهيئة في ViewInvoice
+- ✅ QR Code بصيغة TLV Base64
+- ✅ UUID + ICV + PIH (Hash Chain)
+- ✅ UBL 2.1 XML builder
+- ✅ دعم Sandbox + Production
+- ✅ Multi-company support
 
-### المرحلة 1: تحديث قاعدة البيانات
+## المتطلبات الناقصة (ما سيتم تنفيذه)
 
-**تعديل جدول `units`** — إضافة:
-- `symbol` (موجود)، `allows_fractions` (boolean)، `base_unit_id` (uuid FK → units)، `conversion_rate` (numeric)
+| # | المتطلب | الحالة |
+|---|---------|--------|
+| 1 | **Retry Queue** للفواتير الفاشلة | ❌ غير موجود |
+| 2 | **Dashboard متابعة** بإحصائيات تفصيلية | ❌ بسيط جداً |
+| 3 | **منع تعديل/حذف** الفواتير بعد الإصدار (Anti-Tampering) | ❌ غير مطبق |
+| 4 | **Schema Validation** قبل الإرسال | ❌ غير موجود |
+| 5 | **XML محسّن** (QR embedded, Signature placeholders) | ⚠️ بحاجة تحسين |
+| 6 | **Device Registration** مع CSID Flow كامل | ⚠️ جزئي |
+| 7 | **سجل API Logs** مفصل | ⚠️ جزئي |
+| 8 | **إرسال تلقائي** عند تأكيد الفاتورة | ❌ يدوي فقط |
+| 9 | **اختيار نوع الفاتورة** (B2B/B2C) عند الإنشاء | ❌ تلقائي فقط |
+| 10 | **حفظ XML** مع إمكانية التحميل | ❌ محفوظ لكن غير قابل للتحميل |
 
-**تعديل جدول `products`** — إضافة:
-- `product_type` (text: stock/service/manufacturing/bundle)
-- `tracking_method` (text: none/batch/serial)
-- `unit_id` (uuid FK → units)
-- `is_taxable` (boolean, default true)
-- `reorder_level` (integer)
+---
 
-**تعديل جدول `product_categories`** — إضافة:
-- `image_url` (text)
+## التغييرات المطلوبة
 
-**جدول جديد: `stock_adjustments`**
-- id, company_id, branch_id, adjustment_date, adjustment_type (increase/decrease), reason, status (draft/approved), notes, created_by, approved_by, created_at
+### 1. قاعدة البيانات
 
-**جدول جديد: `stock_adjustment_items`**
-- id, adjustment_id, product_id, quantity, unit_cost, notes
+**جدول جديد: `zatca_retry_queue`** — طابور إعادة الإرسال
 
-**جدول جديد: `stock_transfers`**
-- id, company_id, from_branch_id, to_branch_id, transfer_date, status (draft/sent/received), notes, created_by, received_by, created_at
+| العمود | النوع |
+|--------|-------|
+| id | uuid PK |
+| company_id | uuid FK |
+| invoice_id | uuid FK |
+| retry_count | integer (default 0) |
+| max_retries | integer (default 5) |
+| next_retry_at | timestamptz |
+| last_error | text |
+| status | text (pending/processing/failed/completed) |
+| created_at | timestamptz |
 
-**جدول جديد: `stock_transfer_items`**
-- id, transfer_id, product_id, quantity_sent, quantity_received, notes
+**تعديل `invoices`**: إضافة عمود `is_locked boolean DEFAULT false` لمنع التعديل بعد الإرسال.
 
-**جدول جديد: `internal_consumptions`**
-- id, company_id, branch_id, consumption_date, department, reason, status, notes, created_by, created_at
+**RLS**: نفس نمط `is_company_owner`.
 
-**جدول جديد: `internal_consumption_items`**
-- id, consumption_id, product_id, quantity, unit_cost, notes
+### 2. تحسين Edge Function `zatca-submit`
 
-**جدول جديد: `bill_of_materials`**
-- id, company_id, product_id (المنتج النهائي), is_active, notes, created_at
+- إضافة **Schema Validation** للتحقق من وجود كل الحقول المطلوبة قبل بناء XML
+- إضافة **QR Code** داخل XML كـ `AdditionalDocumentReference`
+- تحسين XML: إضافة `UBLExtensions` مع placeholder للتوقيع الرقمي
+- عند الفشل: إدراج سجل في `zatca_retry_queue` بدلاً من الفشل الصامت
+- قفل الفاتورة (`is_locked = true`) بعد الإرسال الناجح
 
-**جدول جديد: `bom_items`**
-- id, bom_id, product_id (مادة خام), quantity, unit_id
+### 3. Edge Function جديدة: `zatca-retry`
 
-**جدول جديد: `manufacturing_orders`**
-- id, company_id, branch_id, bom_id, product_id, quantity, status (draft/in_progress/completed/cancelled), production_cost, notes, created_by, completed_at, created_at
+- تعالج الفواتير في `zatca_retry_queue` بحالة `pending`
+- تحاول إعادة الإرسال
+- تحدث `retry_count` و `next_retry_at` (backoff تصاعدي)
+- عند النجاح: تحدث حالة الفاتورة وتحذف من القائمة
 
-**RLS**: جميع الجداول ستستخدم `is_company_owner(company_id)` مع Realtime على `product_stock` و `stock_movements`.
+### 4. تطوير شاشة `ZatcaSettings.tsx`
 
-### المرحلة 2: الواجهات الأمامية
+إضافة أقسام جديدة:
 
-**1. إدارة الوحدات** — `/client/inventory/units`
-- CRUD وحدات مع دعم التحويل والكسور
+- **Dashboard إحصائيات**: 4 بطاقات (إجمالي مرسلة، معتمدة، مبلغ عنها، مرفوضة)
+- **Retry Queue**: جدول بالفواتير المعلقة مع زر "إعادة إرسال"
+- **تحميل XML**: زر تحميل XML لكل فاتورة في سجل الإرسال
+- **Device Info**: عرض معرف الجهاز وحالة الشهادة بتفصيل أكبر
 
-**2. إدارة التصنيفات** — `/client/inventory/categories`
-- شجرة تصنيفات مع إضافة/تعديل/حذف + صورة + تفعيل/تعطيل
+### 5. تعديل `CreateSalesInvoice.tsx`
 
-**3. تطوير المنتجات** — تحديث `CreateProduct` و إنشاء `EditProduct`
-- إضافة نوع المنتج، طريقة التتبع، ربط الوحدة من جدول الوحدات، خاضع للضريبة
+- إضافة **اختيار نوع الفاتورة** (Standard B2B / Simplified B2C)
+- عند التأكيد وZATCA مفعل: **إرسال تلقائي** للهيئة
+- توليد UUID تلقائياً عند الحفظ
 
-**4. كرت المنتج** — `/client/inventory/product/:id`
-- الرصيد بكل فرع، متوسط التكلفة، قيمة المخزون، سجل الحركات (Stock Ledger)
+### 6. تعديل `ViewInvoice.tsx`
 
-**5. عرض المخزون (Stock Overview)** — `/client/inventory/stock`
-- جدول بجميع المنتجات مع الكميات وفلترة بالفرع/التصنيف/تحت الحد الأدنى
+- عرض **شارة القفل** إذا الفاتورة مقفلة (is_locked)
+- إخفاء أزرار التعديل/الحذف للفواتير المقفلة
+- إضافة زر **تحميل XML** من zatca_invoice_logs
+- عرض UUID وICV في معلومات الفاتورة
 
-**6. تسوية المخزون** — `/client/inventory/adjustments`
-- إنشاء تسوية (زيادة/نقص) مع السبب والفرع، تحديث `product_stock` و `stock_movements`
+### 7. Anti-Tampering في شاشات التعديل
 
-**7. تحويل بين الفروع** — `/client/inventory/transfers`
-- إنشاء طلب تحويل (Draft → Sent → Received)، تحديث المخزون عند الاستلام
+- في `CreateSalesInvoice` (وضع التعديل): منع التعديل إذا `is_locked = true`
+- في قائمة المبيعات: إخفاء زر الحذف للفواتير المقفلة
 
-**8. الاستهلاك الداخلي** — `/client/inventory/consumptions`
-- صرف منتجات لاستخدام داخلي مع القسم والسبب
+### 8. i18n
 
-**9. التصنيع** — `/client/inventory/manufacturing`
-- إدارة BOM + أوامر التصنيع مع خصم المواد وإضافة المنتج النهائي
+إضافة مفاتيح جديدة للـ Retry Queue، Dashboard، والعناصر الجديدة.
 
-**10. تقارير المخزون** — `/client/inventory/reports`
-- 7 تقارير مع فلترة بالفرع والفترة + تصدير PDF/Excel
+---
 
-### المرحلة 3: التكامل
+## ترتيب التنفيذ
 
-- **القائمة الجانبية**: توسيع قسم المخزون ليشمل جميع الروابط الجديدة
-- **RBAC**: إضافة أكواد صلاحيات جديدة (VIEW_UNITS, MANAGE_UNITS, VIEW_CATEGORIES, MANAGE_ADJUSTMENTS, إلخ)
-- **Audit Log**: تسجيل جميع العمليات عبر triggers
-- **Realtime**: تفعيل `supabase_realtime` على `product_stock`
-- **i18n**: إضافة جميع النصوص في `ar.json` و `en.json`
-- **منع تعديل المعتمد**: العمليات المعتمدة (approved/completed/received) لا تقبل التعديل
+1. Database: `zatca_retry_queue` + `invoices.is_locked` + RLS
+2. Edge Functions: تحسين `zatca-submit` + إنشاء `zatca-retry`
+3. Frontend: `ZatcaSettings.tsx` (dashboard + retry + download XML)
+4. Frontend: `CreateSalesInvoice.tsx` (نوع الفاتورة + إرسال تلقائي)
+5. Frontend: `ViewInvoice.tsx` (قفل + تحميل XML)
+6. i18n
 
-## ملاحظة مهمة
-هذا المديول ضخم جداً (10+ شاشة، 10+ جدول جديد، RPCs). سأبدأ بالتنفيذ على مراحل — الجداول أولاً، ثم الشاشات الأساسية (الوحدات، التصنيفات، المنتجات المطورة)، ثم العمليات (تسوية، تحويل، استهلاك، تصنيع)، وأخيراً التقارير.
+## الملفات
+
+**جديدة (1):**
+- `supabase/functions/zatca-retry/index.ts`
+
+**معدلة (6):**
+- `supabase/functions/zatca-submit/index.ts`
+- `src/pages/client/ZatcaSettings.tsx`
+- `src/pages/client/CreateSalesInvoice.tsx`
+- `src/pages/client/ViewInvoice.tsx`
+- `src/i18n/locales/ar.json`
+- `src/i18n/locales/en.json`
+- `supabase/config.toml`
 
