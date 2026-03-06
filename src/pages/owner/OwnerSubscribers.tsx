@@ -18,15 +18,19 @@ import {
 import {
   Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Building2, Eye, Pencil, Pause, Ban, Trash2, Mail, Phone, Calendar, MapPin, Archive, Users, RotateCcw, KeyRound, Loader2, ShieldCheck, Shield, Monitor, Plus, UserPlus, EyeOff } from "lucide-react";
-import ManagePermissionsDialog from "@/components/owner/ManagePermissionsDialog";
-// CompanyScreensDialog removed - screen access now controlled by RBAC
+import {
+  Search, Building2, Eye, Pause, Ban, Trash2, Mail, Phone, Calendar,
+  MapPin, Archive, RotateCcw, KeyRound, Loader2, UserPlus, EyeOff,
+  MoreVertical, ShieldCheck, Package, Settings2, Users,
+} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
@@ -36,8 +40,6 @@ const PAGE_SIZE = 20;
 
 const isStrongPassword = (pw: string) =>
   pw.length >= 8 && /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw) && /[!@#$%^&*()_+\-=\[\]{};':"\\|<>?,./`~]/.test(pw);
-
-type SubscriptionStatus = "trialing" | "active" | "past_due" | "suspended" | "terminated" | "cancelled" | "pending" | "expired";
 
 const statusConfig: Record<string, { color: string; labelAr: string; labelEn: string }> = {
   trialing: { color: "bg-blue-500/10 text-blue-600 border-blue-200", labelAr: "تجريبي", labelEn: "Trialing" },
@@ -62,11 +64,6 @@ const OwnerSubscribers = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [restoreCompany, setRestoreCompany] = useState<any>(null);
   const [restorePassword, setRestorePassword] = useState("");
-  
-  const [managePermissionsCompany, setManagePermissionsCompany] = useState<any>(null);
-  
-
-  // Add subscriber state
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newSub, setNewSub] = useState({
     email: "", password: "", company_name: "", company_name_en: "",
@@ -75,7 +72,6 @@ const OwnerSubscribers = () => {
   });
   const [showNewPassword, setShowNewPassword] = useState(false);
 
-  // Fetch plans for the create dialog
   const { data: plans } = useQuery({
     queryKey: ["subscription-plans-list"],
     queryFn: async () => {
@@ -99,9 +95,7 @@ const OwnerSubscribers = () => {
 
   const createSubscriberMutation = useMutation({
     mutationFn: async () => {
-      const response = await supabase.functions.invoke("create-subscriber", {
-        body: newSub,
-      });
+      const response = await supabase.functions.invoke("create-subscriber", { body: newSub });
       if (response.error) throw new Error(response.error.message || "Failed");
       if (response.data?.error) throw new Error(response.data.error);
       return response.data;
@@ -110,19 +104,13 @@ const OwnerSubscribers = () => {
       queryClient.invalidateQueries({ queryKey: ["owner-subscribers"] });
       toast({
         title: isRTL ? "تم إنشاء المشترك" : "Subscriber Created",
-        description: isRTL
-          ? `تم إنشاء حساب ${data.email} بنجاح`
-          : `Account ${data.email} created successfully`,
+        description: isRTL ? `تم إنشاء حساب ${data.email} بنجاح` : `Account ${data.email} created successfully`,
       });
       setShowAddDialog(false);
       resetNewSub();
     },
     onError: (error: Error) => {
-      toast({
-        title: isRTL ? "خطأ" : "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: isRTL ? "خطأ" : "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -131,26 +119,17 @@ const OwnerSubscribers = () => {
     queryFn: async () => {
       let query = supabase
         .from("companies")
-        .select(`
-          *,
-          subscriptions:subscriptions(
-            id, status, start_date, end_date,
-            plan:subscription_plans(name_ar, name_en, price)
-          )
-        `, { count: "exact" })
+        .select(`*, subscriptions:subscriptions(id, status, start_date, end_date, plan:subscription_plans(name_ar, name_en, price))`, { count: "exact" })
         .order("created_at", { ascending: false })
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
-
       if (showArchived) {
         query = query.not("deleted_at", "is", null);
       } else {
         query = query.is("deleted_at", null);
       }
-
       if (search.trim()) {
         query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,name_en.ilike.%${search}%`);
       }
-
       const { data, error, count } = await query;
       if (error) throw error;
       return { companies: data || [], total: count || 0 };
@@ -163,11 +142,7 @@ const OwnerSubscribers = () => {
   const actionMutation = useMutation({
     mutationFn: async ({ type, companyId, subscriptionId }: { type: string; companyId: string; subscriptionId?: string }) => {
       if (type === "delete") {
-        // Use edge function for proper soft delete + auth user cleanup
-        const { data: { session } } = await supabase.auth.getSession();
-        const response = await supabase.functions.invoke("delete-subscriber", {
-          body: { companyId },
-        });
+        const response = await supabase.functions.invoke("delete-subscriber", { body: { companyId } });
         if (response.error) throw new Error(response.error.message || "Delete failed");
         if (response.data?.error) throw new Error(response.data.error);
       } else if (type === "suspend" || type === "terminate") {
@@ -189,19 +164,13 @@ const OwnerSubscribers = () => {
       setConfirmAction(null);
     },
     onError: () => {
-      toast({
-        title: isRTL ? "خطأ" : "Error",
-        description: isRTL ? "حدث خطأ أثناء تنفيذ الإجراء" : "An error occurred",
-        variant: "destructive",
-      });
+      toast({ title: isRTL ? "خطأ" : "Error", description: isRTL ? "حدث خطأ" : "An error occurred", variant: "destructive" });
     },
   });
 
   const restoreMutation = useMutation({
     mutationFn: async ({ companyId, newPassword }: { companyId: string; newPassword: string }) => {
-      const response = await supabase.functions.invoke("restore-subscriber", {
-        body: { companyId, newPassword },
-      });
+      const response = await supabase.functions.invoke("restore-subscriber", { body: { companyId, newPassword } });
       if (response.error) throw new Error(response.error.message || "Restore failed");
       if (response.data?.error) throw new Error(response.data.error);
       return response.data;
@@ -210,19 +179,13 @@ const OwnerSubscribers = () => {
       queryClient.invalidateQueries({ queryKey: ["owner-subscribers"] });
       toast({
         title: isRTL ? "تم الاستعادة" : "Restored",
-        description: isRTL
-          ? `تم استعادة الحساب بنجاح. البريد: ${data.email}`
-          : `Account restored successfully. Email: ${data.email}`,
+        description: isRTL ? `تم استعادة الحساب بنجاح. البريد: ${data.email}` : `Account restored. Email: ${data.email}`,
       });
       setRestoreCompany(null);
       setRestorePassword("");
     },
     onError: (error: Error) => {
-      toast({
-        title: isRTL ? "خطأ" : "Error",
-        description: error.message || (isRTL ? "فشل في استعادة الحساب" : "Failed to restore account"),
-        variant: "destructive",
-      });
+      toast({ title: isRTL ? "خطأ" : "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -234,43 +197,64 @@ const OwnerSubscribers = () => {
   const handleConfirmAction = () => {
     if (!confirmAction) return;
     const sub = getActiveSubscription(confirmAction.company.subscriptions || []);
-    actionMutation.mutate({
-      type: confirmAction.type,
-      companyId: confirmAction.company.id,
-      subscriptionId: sub?.id,
-    });
+    actionMutation.mutate({ type: confirmAction.type, companyId: confirmAction.company.id, subscriptionId: sub?.id });
   };
 
   const confirmMessages: Record<string, { titleAr: string; titleEn: string; descAr: string; descEn: string }> = {
-    suspend: {
-      titleAr: "تعليق الاشتراك",
-      titleEn: "Suspend Subscription",
-      descAr: "هل أنت متأكد من تعليق هذا الاشتراك؟ سيتم إيقاف الوصول مؤقتاً.",
-      descEn: "Are you sure you want to suspend this subscription? Access will be temporarily blocked.",
-    },
-    terminate: {
-      titleAr: "إنهاء الاشتراك",
-      titleEn: "Terminate Subscription",
-      descAr: "هل أنت متأكد من إنهاء هذا الاشتراك؟ سيتم حظر الوصول نهائياً.",
-      descEn: "Are you sure you want to terminate this subscription? Access will be permanently blocked.",
-    },
-    delete: {
-      titleAr: "حذف المشترك",
-      titleEn: "Delete Subscriber",
-      descAr: "سيتم أرشفة الشركة وإلغاء الاشتراك وتحرير البريد الإلكتروني للتسجيل مجدداً. لن يتم حذف السجلات المحاسبية.",
-      descEn: "The company will be archived, subscription cancelled, and the email freed for re-registration. Accounting records will be preserved.",
-    },
+    suspend: { titleAr: "تعليق الاشتراك", titleEn: "Suspend Subscription", descAr: "هل أنت متأكد من تعليق هذا الاشتراك؟", descEn: "Are you sure you want to suspend this subscription?" },
+    terminate: { titleAr: "إنهاء الاشتراك", titleEn: "Terminate Subscription", descAr: "هل أنت متأكد من إنهاء هذا الاشتراك؟", descEn: "Are you sure you want to terminate this subscription?" },
+    delete: { titleAr: "حذف المشترك", titleEn: "Delete Subscriber", descAr: "سيتم أرشفة الشركة وتحرير البريد الإلكتروني.", descEn: "The company will be archived and the email freed." },
   };
+
+  // Stats
+  const activeCount = companies.filter((c: any) => {
+    const sub = getActiveSubscription(c.subscriptions || []);
+    return sub?.status === "active";
+  }).length;
+  const trialingCount = companies.filter((c: any) => {
+    const sub = getActiveSubscription(c.subscriptions || []);
+    return sub?.status === "trialing";
+  }).length;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">{isRTL ? "المشتركين" : "Subscribers"}</h1>
-        <p className="text-muted-foreground mt-1">
-          {isRTL ? "إدارة الشركات المسجلة في النظام" : "Manage registered companies"}
-        </p>
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">{isRTL ? "المشتركين" : "Subscribers"}</h1>
+          <p className="text-muted-foreground mt-1">
+            {isRTL ? "إدارة الشركات والصلاحيات والوحدات المتاحة" : "Manage companies, permissions & available modules"}
+          </p>
+        </div>
+        <Button className="gap-2" onClick={() => { resetNewSub(); setShowAddDialog(true); }}>
+          <UserPlus className="h-4 w-4" />
+          {isRTL ? "إضافة مشترك" : "Add Subscriber"}
+        </Button>
       </div>
 
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { icon: Building2, label: isRTL ? "إجمالي الشركات" : "Total Companies", value: data?.total || 0, color: "text-primary", bg: "bg-primary/10" },
+          { icon: Users, label: isRTL ? "نشط" : "Active", value: activeCount, color: "text-green-600", bg: "bg-green-500/10" },
+          { icon: Package, label: isRTL ? "تجريبي" : "Trial", value: trialingCount, color: "text-blue-600", bg: "bg-blue-500/10" },
+          { icon: Archive, label: isRTL ? "مؤرشف" : "Archived", value: showArchived ? companies.length : "—", color: "text-muted-foreground", bg: "bg-muted" },
+        ].map((stat, i) => (
+          <Card key={i} className="border-0 shadow-lg">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className={`p-2.5 rounded-xl ${stat.bg}`}>
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{stat.label}</p>
+                <p className="text-xl font-bold">{stat.value}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
       <Card className="border-0 shadow-lg">
         <CardContent className="p-4">
           <div className="flex items-center gap-3 flex-wrap">
@@ -292,14 +276,6 @@ const OwnerSubscribers = () => {
               <Archive className="h-4 w-4" />
               {isRTL ? "المؤرشفين" : "Archived"}
             </Button>
-            <Button
-              size="sm"
-              className="gap-2"
-              onClick={() => { resetNewSub(); setShowAddDialog(true); }}
-            >
-              <UserPlus className="h-4 w-4" />
-              {isRTL ? "إضافة مشترك" : "Add Subscriber"}
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -311,13 +287,13 @@ const OwnerSubscribers = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="min-w-[180px]">{isRTL ? "الشركة" : "Company"}</TableHead>
-                  <TableHead className="min-w-[180px] hidden sm:table-cell">{isRTL ? "البريد الإلكتروني" : "Email"}</TableHead>
-                  <TableHead className="min-w-[120px]">{isRTL ? "الباقة" : "Plan"}</TableHead>
-                  <TableHead className="min-w-[100px]">{isRTL ? "الحالة" : "Status"}</TableHead>
-                  <TableHead className="min-w-[120px] hidden md:table-cell">{isRTL ? "نهاية التجربة" : "Trial End"}</TableHead>
-                  <TableHead className="min-w-[120px] hidden lg:table-cell">{isRTL ? "تاريخ التسجيل" : "Created"}</TableHead>
-                  <TableHead className="min-w-[140px] text-center">{isRTL ? "الإجراءات" : "Actions"}</TableHead>
+                  <TableHead className="min-w-[200px]">{isRTL ? "الشركة" : "Company"}</TableHead>
+                  <TableHead className="min-w-[140px] hidden sm:table-cell">{isRTL ? "البريد الإلكتروني" : "Email"}</TableHead>
+                  <TableHead className="min-w-[100px] hidden md:table-cell">{isRTL ? "نوع النشاط" : "Activity"}</TableHead>
+                  <TableHead className="min-w-[100px]">{isRTL ? "الباقة" : "Plan"}</TableHead>
+                  <TableHead className="min-w-[80px]">{isRTL ? "الحالة" : "Status"}</TableHead>
+                  <TableHead className="min-w-[100px] hidden lg:table-cell">{isRTL ? "التسجيل" : "Created"}</TableHead>
+                  <TableHead className="w-[60px]">{isRTL ? "إجراء" : "Actions"}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -325,7 +301,7 @@ const OwnerSubscribers = () => {
                   [...Array(5)].map((_, i) => (
                     <TableRow key={i}>
                       {[...Array(7)].map((_, j) => (
-                        <TableCell key={j} className={j === 1 ? "hidden sm:table-cell" : j === 4 ? "hidden md:table-cell" : j === 5 ? "hidden lg:table-cell" : ""}>
+                        <TableCell key={j} className={j === 1 ? "hidden sm:table-cell" : j === 2 ? "hidden md:table-cell" : j === 5 ? "hidden lg:table-cell" : ""}>
                           <Skeleton className="h-4 w-20" />
                         </TableCell>
                       ))}
@@ -361,6 +337,9 @@ const OwnerSubscribers = () => {
                         <TableCell className="hidden sm:table-cell">
                           <span className="text-sm truncate">{company.email || "—"}</span>
                         </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <span className="text-xs text-muted-foreground">{company.activity_type || "—"}</span>
+                        </TableCell>
                         <TableCell>
                           <span className="font-medium text-sm">
                             {sub?.plan ? (isRTL ? sub.plan.name_ar : sub.plan.name_en) : "—"}
@@ -371,120 +350,60 @@ const OwnerSubscribers = () => {
                             {isRTL ? cfg.labelAr : cfg.labelEn}
                           </Badge>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-sm">
-                          {sub?.end_date && status === "trialing"
-                            ? format(new Date(sub.end_date), "dd MMM yyyy", { locale: isRTL ? ar : enUS })
-                            : "—"}
-                        </TableCell>
                         <TableCell className="hidden lg:table-cell text-sm">
                           {format(new Date(company.created_at), "dd MMM yyyy", { locale: isRTL ? ar : enUS })}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center justify-center gap-0.5">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewCompany(company)}>
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "عرض" : "View"}</TooltipContent>
-                            </Tooltip>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align={isRTL ? "start" : "end"} className="w-52">
+                              <DropdownMenuItem onClick={() => setViewCompany(company)}>
+                                <Eye className="h-4 w-4 me-2" />
+                                {isRTL ? "عرض التفاصيل" : "View Details"}
+                              </DropdownMenuItem>
 
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost" size="icon"
-                                  className="h-8 w-8 hover:text-primary"
-                                  disabled={isArchived}
-                                  onClick={() => navigate(`/owner/subscribers/${company.id}/access`)}
-                                >
-                                  <ShieldCheck className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "إدارة الوصول" : "Manage Access"}</TooltipContent>
-                            </Tooltip>
+                              <DropdownMenuSeparator />
 
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost" size="icon"
-                                  className="h-8 w-8 hover:text-primary"
-                                  disabled={isArchived}
-                                  onClick={() => setManagePermissionsCompany(company)}
-                                >
-                                  <Shield className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "الصلاحيات التفصيلية" : "Feature Permissions"}</TooltipContent>
-                            </Tooltip>
+                              <DropdownMenuItem
+                                disabled={isArchived}
+                                onClick={() => navigate(`/owner/subscribers/${company.id}/access`)}
+                              >
+                                <ShieldCheck className="h-4 w-4 me-2 text-primary" />
+                                {isRTL ? "إدارة الوصول والصلاحيات" : "Manage Access & Permissions"}
+                              </DropdownMenuItem>
 
+                              <DropdownMenuSeparator />
 
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isArchived || isTerminated}>
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "تعديل" : "Edit"}</TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost" size="icon"
-                                  className="h-8 w-8 hover:text-yellow-600"
-                                  disabled={isArchived || isTerminated || status === "suspended"}
-                                  onClick={() => setConfirmAction({ type: "suspend", company })}
-                                >
-                                  <Pause className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "تعليق" : "Suspend"}</TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost" size="icon"
-                                  className="h-8 w-8 hover:text-red-600"
-                                  disabled={isArchived || isTerminated}
-                                  onClick={() => setConfirmAction({ type: "terminate", company })}
-                                >
-                                  <Ban className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "إنهاء" : "Terminate"}</TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost" size="icon"
-                                  className="h-8 w-8 hover:text-destructive"
-                                  disabled={isArchived}
-                                  onClick={() => setConfirmAction({ type: "delete", company })}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>{isRTL ? "حذف" : "Delete"}</TooltipContent>
-                            </Tooltip>
-
-                            {isArchived && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost" size="icon"
-                                    className="h-8 w-8 hover:text-green-600"
-                                    onClick={() => { setRestoreCompany(company); setRestorePassword(""); }}
-                                  >
-                                    <RotateCcw className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{isRTL ? "استعادة" : "Restore"}</TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
+                              {!isArchived && !isTerminated && status !== "suspended" && (
+                                <DropdownMenuItem onClick={() => setConfirmAction({ type: "suspend", company })}>
+                                  <Pause className="h-4 w-4 me-2 text-yellow-600" />
+                                  {isRTL ? "تعليق الاشتراك" : "Suspend"}
+                                </DropdownMenuItem>
+                              )}
+                              {!isArchived && !isTerminated && (
+                                <DropdownMenuItem onClick={() => setConfirmAction({ type: "terminate", company })}>
+                                  <Ban className="h-4 w-4 me-2 text-red-600" />
+                                  {isRTL ? "إنهاء الاشتراك" : "Terminate"}
+                                </DropdownMenuItem>
+                              )}
+                              {!isArchived && (
+                                <DropdownMenuItem onClick={() => setConfirmAction({ type: "delete", company })} className="text-destructive">
+                                  <Trash2 className="h-4 w-4 me-2" />
+                                  {isRTL ? "حذف المشترك" : "Delete Subscriber"}
+                                </DropdownMenuItem>
+                              )}
+                              {isArchived && (
+                                <DropdownMenuItem onClick={() => { setRestoreCompany(company); setRestorePassword(""); }}>
+                                  <RotateCcw className="h-4 w-4 me-2 text-green-600" />
+                                  {isRTL ? "استعادة" : "Restore"}
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     );
@@ -494,32 +413,23 @@ const OwnerSubscribers = () => {
             </Table>
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="border-t p-4">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
+                    <PaginationPrevious onClick={() => setPage((p) => Math.max(1, p - 1))} className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} />
                   </PaginationItem>
                   {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                     const pageNum = totalPages <= 5 ? i + 1 : Math.max(1, Math.min(page - 2, totalPages - 4)) + i;
                     return (
                       <PaginationItem key={pageNum}>
-                        <PaginationLink isActive={page === pageNum} onClick={() => setPage(pageNum)} className="cursor-pointer">
-                          {pageNum}
-                        </PaginationLink>
+                        <PaginationLink isActive={page === pageNum} onClick={() => setPage(pageNum)} className="cursor-pointer">{pageNum}</PaginationLink>
                       </PaginationItem>
                     );
                   })}
                   <PaginationItem>
-                    <PaginationNext
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
+                    <PaginationNext onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} />
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
@@ -545,54 +455,21 @@ const OwnerSubscribers = () => {
                   {viewCompany.name_en && <p className="text-sm text-muted-foreground">{viewCompany.name_en}</p>}
                 </div>
               </div>
-
               <div className="space-y-3">
-                {viewCompany.email && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{viewCompany.email}</span>
-                  </div>
-                )}
-                {viewCompany.phone && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{viewCompany.phone}</span>
-                  </div>
-                )}
-                {viewCompany.address && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{viewCompany.address}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-3 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>{format(new Date(viewCompany.created_at), "dd MMM yyyy", { locale: isRTL ? ar : enUS })}</span>
-                </div>
+                {viewCompany.email && <div className="flex items-center gap-3 text-sm"><Mail className="h-4 w-4 text-muted-foreground" /><span>{viewCompany.email}</span></div>}
+                {viewCompany.phone && <div className="flex items-center gap-3 text-sm"><Phone className="h-4 w-4 text-muted-foreground" /><span>{viewCompany.phone}</span></div>}
+                {viewCompany.address && <div className="flex items-center gap-3 text-sm"><MapPin className="h-4 w-4 text-muted-foreground" /><span>{viewCompany.address}</span></div>}
+                <div className="flex items-center gap-3 text-sm"><Calendar className="h-4 w-4 text-muted-foreground" /><span>{format(new Date(viewCompany.created_at), "dd MMM yyyy", { locale: isRTL ? ar : enUS })}</span></div>
               </div>
-
               <div className="border-t pt-4 space-y-2">
                 <h4 className="font-medium text-sm text-muted-foreground">{isRTL ? "معلومات إضافية" : "Additional Info"}</h4>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">{isRTL ? "السجل التجاري" : "CR"}</p>
-                    <p className="font-medium">{viewCompany.commercial_register || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">{isRTL ? "الرقم الضريبي" : "Tax No."}</p>
-                    <p className="font-medium">{viewCompany.tax_number || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">{isRTL ? "نوع النشاط" : "Activity"}</p>
-                    <p className="font-medium">{viewCompany.activity_type || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">{isRTL ? "العملة" : "Currency"}</p>
-                    <p className="font-medium">{viewCompany.currency || "SAR"}</p>
-                  </div>
+                  <div><p className="text-muted-foreground">{isRTL ? "السجل التجاري" : "CR"}</p><p className="font-medium">{viewCompany.commercial_register || "—"}</p></div>
+                  <div><p className="text-muted-foreground">{isRTL ? "الرقم الضريبي" : "Tax No."}</p><p className="font-medium">{viewCompany.tax_number || "—"}</p></div>
+                  <div><p className="text-muted-foreground">{isRTL ? "نوع النشاط" : "Activity"}</p><p className="font-medium">{viewCompany.activity_type || "—"}</p></div>
+                  <div><p className="text-muted-foreground">{isRTL ? "العملة" : "Currency"}</p><p className="font-medium">{viewCompany.currency || "SAR"}</p></div>
                 </div>
               </div>
-
               {(() => {
                 const sub = getActiveSubscription(viewCompany.subscriptions || []);
                 if (!sub) return null;
@@ -613,6 +490,14 @@ const OwnerSubscribers = () => {
                   </div>
                 );
               })()}
+              {/* Quick Access Button */}
+              <Button
+                className="w-full gap-2"
+                onClick={() => { setViewCompany(null); navigate(`/owner/subscribers/${viewCompany.id}/access`); }}
+              >
+                <Settings2 className="h-4 w-4" />
+                {isRTL ? "إدارة الوصول والصلاحيات" : "Manage Access & Permissions"}
+              </Button>
             </div>
           )}
         </SheetContent>
@@ -622,12 +507,8 @@ const OwnerSubscribers = () => {
       <Dialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {confirmAction && (isRTL ? confirmMessages[confirmAction.type].titleAr : confirmMessages[confirmAction.type].titleEn)}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmAction && (isRTL ? confirmMessages[confirmAction.type].descAr : confirmMessages[confirmAction.type].descEn)}
-            </DialogDescription>
+            <DialogTitle>{confirmAction && (isRTL ? confirmMessages[confirmAction.type].titleAr : confirmMessages[confirmAction.type].titleEn)}</DialogTitle>
+            <DialogDescription>{confirmAction && (isRTL ? confirmMessages[confirmAction.type].descAr : confirmMessages[confirmAction.type].descEn)}</DialogDescription>
           </DialogHeader>
           {confirmAction && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
@@ -636,33 +517,25 @@ const OwnerSubscribers = () => {
             </div>
           )}
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setConfirmAction(null)}>
-              {isRTL ? "إلغاء" : "Cancel"}
-            </Button>
+            <Button variant="outline" onClick={() => setConfirmAction(null)}>{isRTL ? "إلغاء" : "Cancel"}</Button>
             <Button
               variant={confirmAction?.type === "delete" || confirmAction?.type === "terminate" ? "destructive" : "default"}
               onClick={handleConfirmAction}
               disabled={actionMutation.isPending}
             >
-              {actionMutation.isPending
-                ? (isRTL ? "جاري التنفيذ..." : "Processing...")
-                : (isRTL ? "تأكيد" : "Confirm")}
+              {actionMutation.isPending ? (isRTL ? "جاري التنفيذ..." : "Processing...") : (isRTL ? "تأكيد" : "Confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {/* Restore Dialog */}
       <Dialog open={!!restoreCompany} onOpenChange={() => { setRestoreCompany(null); setRestorePassword(""); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <RotateCcw className="h-5 w-5" />
-              {isRTL ? "استعادة المشترك" : "Restore Subscriber"}
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><RotateCcw className="h-5 w-5" />{isRTL ? "استعادة المشترك" : "Restore Subscriber"}</DialogTitle>
             <DialogDescription>
-              {isRTL
-                ? "سيتم استعادة الشركة وإعادة تفعيل الحساب مع كلمة مرور جديدة وتجربة مجانية لمدة 14 يوم."
-                : "The company will be restored, account reactivated with a new password, and a 14-day trial will be started."}
+              {isRTL ? "سيتم استعادة الشركة مع كلمة مرور جديدة وتجربة 14 يوم." : "Company will be restored with a new password and 14-day trial."}
             </DialogDescription>
           </DialogHeader>
           {restoreCompany && (
@@ -671,218 +544,92 @@ const OwnerSubscribers = () => {
                 <Building2 className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <span className="font-medium">{restoreCompany.name}</span>
-                  {restoreCompany.email && (
-                    <p className="text-xs text-muted-foreground">{restoreCompany.email}</p>
-                  )}
+                  {restoreCompany.email && <p className="text-xs text-muted-foreground">{restoreCompany.email}</p>}
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <KeyRound className="h-4 w-4" />
-                  {isRTL ? "كلمة المرور الجديدة" : "New Password"}
-                </Label>
-                <Input
-                  type="password"
-                  value={restorePassword}
-                  onChange={(e) => setRestorePassword(e.target.value)}
-                  placeholder={isRTL ? "مثال: Pass@123" : "e.g. Pass@123"}
-                  dir="ltr"
-                />
-                <p className="text-xs text-muted-foreground">
-                  {isRTL
-                    ? "يجب أن تحتوي على: حرف كبير، حرف صغير، رقم، ورمز خاص (8 أحرف على الأقل)"
-                    : "Must contain: uppercase, lowercase, number, and special character (min 8 chars)"}
-                </p>
-              </div>
-            </div>
-          )}
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { setRestoreCompany(null); setRestorePassword(""); }}>
-              {isRTL ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button
-              onClick={() => restoreMutation.mutate({ companyId: restoreCompany.id, newPassword: restorePassword })}
-              disabled={restoreMutation.isPending || !isStrongPassword(restorePassword)}
-            >
-              {restoreMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
-              {restoreMutation.isPending
-                ? (isRTL ? "جاري الاستعادة..." : "Restoring...")
-                : (isRTL ? "استعادة الحساب" : "Restore Account")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-
-
-
-      {/* Manage Permissions Dialog */}
-      <ManagePermissionsDialog
-        open={!!managePermissionsCompany}
-        onOpenChange={() => setManagePermissionsCompany(null)}
-        company={managePermissionsCompany}
-        onSaved={() => queryClient.invalidateQueries({ queryKey: ["owner-subscribers"] })}
-      />
-
-
-      {/* Add Subscriber Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={(open) => { if (!open) { setShowAddDialog(false); resetNewSub(); } }}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
-              {isRTL ? "إضافة مشترك جديد" : "Add New Subscriber"}
-            </DialogTitle>
-            <DialogDescription>
-              {isRTL ? "أدخل بيانات المشترك الجديد لإنشاء حسابه" : "Enter new subscriber details to create their account"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Email & Password */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{isRTL ? "البريد الإلكتروني *" : "Email *"}</Label>
-                <Input
-                  type="email" dir="ltr"
-                  value={newSub.email}
-                  onChange={(e) => setNewSub({ ...newSub, email: e.target.value })}
-                  placeholder="user@example.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{isRTL ? "كلمة المرور *" : "Password *"}</Label>
-                <div className="relative">
-                  <Input
-                    type={showNewPassword ? "text" : "password"} dir="ltr"
-                    value={newSub.password}
-                    onChange={(e) => setNewSub({ ...newSub, password: e.target.value })}
-                    placeholder="Pass@123"
-                  />
-                  <Button
-                    type="button" variant="ghost" size="icon"
-                    className="absolute end-0 top-0 h-10 w-10"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                  >
-                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
+                <Label className="flex items-center gap-2"><KeyRound className="h-4 w-4" />{isRTL ? "كلمة المرور الجديدة" : "New Password"}</Label>
+                <Input type="password" value={restorePassword} onChange={(e) => setRestorePassword(e.target.value)} placeholder="Pass@123" dir="ltr" />
                 <p className="text-xs text-muted-foreground">
                   {isRTL ? "حرف كبير + صغير + رقم + رمز (8 أحرف)" : "Upper + lower + number + symbol (8 chars)"}
                 </p>
               </div>
             </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setRestoreCompany(null); setRestorePassword(""); }}>{isRTL ? "إلغاء" : "Cancel"}</Button>
+            <Button
+              onClick={() => restoreMutation.mutate({ companyId: restoreCompany.id, newPassword: restorePassword })}
+              disabled={restoreMutation.isPending || !isStrongPassword(restorePassword)}
+            >
+              {restoreMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+              {isRTL ? "استعادة الحساب" : "Restore Account"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            {/* Company Name */}
+      {/* Add Subscriber Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={(open) => { if (!open) { setShowAddDialog(false); resetNewSub(); } }}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><UserPlus className="h-5 w-5" />{isRTL ? "إضافة مشترك جديد" : "Add New Subscriber"}</DialogTitle>
+            <DialogDescription>{isRTL ? "أدخل بيانات المشترك الجديد" : "Enter new subscriber details"}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{isRTL ? "اسم الشركة (عربي) *" : "Company Name (Arabic) *"}</Label>
-                <Input
-                  value={newSub.company_name}
-                  onChange={(e) => setNewSub({ ...newSub, company_name: e.target.value })}
-                />
+                <Label>{isRTL ? "البريد الإلكتروني *" : "Email *"}</Label>
+                <Input type="email" dir="ltr" value={newSub.email} onChange={(e) => setNewSub({ ...newSub, email: e.target.value })} placeholder="user@example.com" />
               </div>
               <div className="space-y-2">
-                <Label>{isRTL ? "اسم الشركة (إنجليزي)" : "Company Name (English)"}</Label>
-                <Input
-                  dir="ltr"
-                  value={newSub.company_name_en}
-                  onChange={(e) => setNewSub({ ...newSub, company_name_en: e.target.value })}
-                />
+                <Label>{isRTL ? "كلمة المرور *" : "Password *"}</Label>
+                <div className="relative">
+                  <Input type={showNewPassword ? "text" : "password"} dir="ltr" value={newSub.password} onChange={(e) => setNewSub({ ...newSub, password: e.target.value })} placeholder="Pass@123" />
+                  <Button type="button" variant="ghost" size="icon" className="absolute end-0 top-0 h-10 w-10" onClick={() => setShowNewPassword(!showNewPassword)}>
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
             </div>
-
-            {/* Full Name & Phone */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{isRTL ? "اسم المسؤول" : "Contact Name"}</Label>
-                <Input
-                  value={newSub.full_name}
-                  onChange={(e) => setNewSub({ ...newSub, full_name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{isRTL ? "رقم الجوال" : "Phone"}</Label>
-                <Input
-                  dir="ltr"
-                  value={newSub.phone}
-                  onChange={(e) => setNewSub({ ...newSub, phone: e.target.value })}
-                  placeholder="05XXXXXXXX"
-                />
-              </div>
+              <div className="space-y-2"><Label>{isRTL ? "اسم الشركة (عربي) *" : "Company Name (Arabic) *"}</Label><Input value={newSub.company_name} onChange={(e) => setNewSub({ ...newSub, company_name: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "اسم الشركة (إنجليزي)" : "Company Name (English)"}</Label><Input dir="ltr" value={newSub.company_name_en} onChange={(e) => setNewSub({ ...newSub, company_name_en: e.target.value })} /></div>
             </div>
-
-            {/* Plan Selection */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>{isRTL ? "اسم المسؤول" : "Contact Name"}</Label><Input value={newSub.full_name} onChange={(e) => setNewSub({ ...newSub, full_name: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "رقم الجوال" : "Phone"}</Label><Input dir="ltr" value={newSub.phone} onChange={(e) => setNewSub({ ...newSub, phone: e.target.value })} placeholder="05XXXXXXXX" /></div>
+            </div>
             <div className="space-y-2">
               <Label>{isRTL ? "الباقة *" : "Plan *"}</Label>
               <Select value={newSub.plan_id} onValueChange={(v) => setNewSub({ ...newSub, plan_id: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder={isRTL ? "اختر الباقة" : "Select plan"} />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={isRTL ? "اختر الباقة" : "Select plan"} /></SelectTrigger>
                 <SelectContent>
                   {(plans || []).map((plan: any) => (
                     <SelectItem key={plan.id} value={plan.id}>
-                      {isRTL ? plan.name_ar : plan.name_en} — {plan.price} {isRTL ? "ر.س" : "SAR"} / {plan.duration_months} {isRTL ? "شهر" : "mo"}
+                      {isRTL ? plan.name_ar : plan.name_en} — {plan.price} {isRTL ? "ر.س" : "SAR"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Optional fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{isRTL ? "نوع النشاط" : "Activity Type"}</Label>
-                <Input
-                  value={newSub.activity_type}
-                  onChange={(e) => setNewSub({ ...newSub, activity_type: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{isRTL ? "الرقم الضريبي" : "Tax Number"}</Label>
-                <Input
-                  dir="ltr"
-                  value={newSub.tax_number}
-                  onChange={(e) => setNewSub({ ...newSub, tax_number: e.target.value })}
-                />
-              </div>
+              <div className="space-y-2"><Label>{isRTL ? "نوع النشاط" : "Activity Type"}</Label><Input value={newSub.activity_type} onChange={(e) => setNewSub({ ...newSub, activity_type: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "الرقم الضريبي" : "Tax Number"}</Label><Input dir="ltr" value={newSub.tax_number} onChange={(e) => setNewSub({ ...newSub, tax_number: e.target.value })} /></div>
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{isRTL ? "السجل التجاري" : "Commercial Register"}</Label>
-                <Input
-                  dir="ltr"
-                  value={newSub.commercial_register}
-                  onChange={(e) => setNewSub({ ...newSub, commercial_register: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{isRTL ? "العنوان" : "Address"}</Label>
-                <Input
-                  value={newSub.address}
-                  onChange={(e) => setNewSub({ ...newSub, address: e.target.value })}
-                />
-              </div>
+              <div className="space-y-2"><Label>{isRTL ? "السجل التجاري" : "Commercial Register"}</Label><Input dir="ltr" value={newSub.commercial_register} onChange={(e) => setNewSub({ ...newSub, commercial_register: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "العنوان" : "Address"}</Label><Input value={newSub.address} onChange={(e) => setNewSub({ ...newSub, address: e.target.value })} /></div>
             </div>
           </div>
-
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetNewSub(); }}>
-              {isRTL ? "إلغاء" : "Cancel"}
-            </Button>
+            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetNewSub(); }}>{isRTL ? "إلغاء" : "Cancel"}</Button>
             <Button
               onClick={() => createSubscriberMutation.mutate()}
-              disabled={
-                createSubscriberMutation.isPending ||
-                !newSub.email || !newSub.company_name || !newSub.plan_id ||
-                !isStrongPassword(newSub.password)
-              }
+              disabled={createSubscriberMutation.isPending || !newSub.email || !newSub.company_name || !newSub.plan_id || !isStrongPassword(newSub.password)}
             >
               {createSubscriberMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
-              {createSubscriberMutation.isPending
-                ? (isRTL ? "جاري الإنشاء..." : "Creating...")
-                : (isRTL ? "إنشاء المشترك" : "Create Subscriber")}
+              {isRTL ? "إنشاء المشترك" : "Create Subscriber"}
             </Button>
           </DialogFooter>
         </DialogContent>
