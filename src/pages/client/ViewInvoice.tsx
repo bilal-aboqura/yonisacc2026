@@ -179,6 +179,28 @@ const ViewInvoice = () => {
 
   const handlePrint = () => window.print();
 
+  const handleZatcaSubmit = async () => {
+    if (!companyId || !id) return;
+    setSubmittingZatca(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zatca-submit", {
+        body: { company_id: companyId, invoice_id: id },
+      });
+      if (error) throw error;
+      sonnerToast.success(
+        isRTL 
+          ? `تم إرسال الفاتورة للهيئة - الحالة: ${data?.status}` 
+          : `Invoice submitted to ZATCA - Status: ${data?.status}`
+      );
+      // Refresh invoice data
+      fetchInvoiceData();
+    } catch (err: any) {
+      sonnerToast.error(err?.message || (isRTL ? "فشل في إرسال الفاتورة" : "Failed to submit invoice"));
+    } finally {
+      setSubmittingZatca(false);
+    }
+  };
+
   const fmt = (amount: number | null) =>
     (amount || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
