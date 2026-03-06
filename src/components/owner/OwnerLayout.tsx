@@ -34,11 +34,18 @@ const OwnerLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Check if user has owner role
+  // Check if user has owner role via database AND email whitelist
+  const OWNER_EMAIL = "youssef@costamine.com";
+
   const { data: isOwner, isLoading: isRoleLoading } = useQuery({
     queryKey: ["user-role", user?.id],
     queryFn: async () => {
       if (!user?.id) return false;
+      
+      // First check: email must match
+      if (user.email !== OWNER_EMAIL) return false;
+      
+      // Second check: must have owner role in database
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
