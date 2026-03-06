@@ -1,0 +1,369 @@
+import { useState, useEffect } from "react";
+import { useLanguage } from "@/hooks/useLanguage";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyId } from "@/hooks/useCompanyId";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Loader2, CheckCircle2, XCircle, Clock, Shield, Link2, FileText } from "lucide-react";
+import { toast } from "sonner";
+import { ZATCA_STATUS_MAP, ZATCA_ENV_MAP, type ZatcaStatus } from "@/lib/zatcaUtils";
+
+const ZatcaSettings = () => {
+  const { isRTL } = useLanguage();
+  const { user } = useAuth();
+  const { companyId } = useCompanyId();
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [onboarding, setOnboarding] = useState(false);
+  const [settings, setSettings] = useState<Record<string, unknown> | null>(null);
+  const [logs, setLogs] = useState<Array<Record<string, unknown>>>([]);
+
+  // Form state
+  const [sellerName, setSellerName] = useState("");
+  const [vatNumber, setVatNumber] = useState("");
+  const [buildingNumber, setBuildingNumber] = useState("");
+  const [street, setStreet] = useState("");
+  const [district, setDistrict] = useState("");
+  const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [environment, setEnvironment] = useState("sandbox");
+  const [otp, setOtp] = useState("");
+
+  useEffect(() => {
+    if (companyId) fetchData();
+  }, [companyId]);
+
+  const fetchData = async () => {
+    try {
+      // Fetch settings
+      const { data: settingsData } = await supabase
+        .from("zatca_settings")
+        .select("*")
+        .eq("company_id", companyId!)
+        .maybeSingle();
+
+      if (settingsData) {
+        setSettings(settingsData);
+        setSellerName((settingsData as any).seller_name || "");
+        setVatNumber((settingsData as any).vat_number || "");
+        setBuildingNumber((settingsData as any).building_number || "");
+        setStreet((settingsData as any).street || "");
+        setDistrict((settingsData as any).district || "");
+        setCity((settingsData as any).city || "");
+        setPostalCode((settingsData as any).postal_code || "");
+        setEnvironment((settingsData as any).environment || "sandbox");
+      } else {
+        // Pre-fill from company data
+        const { data: company } = await supabase
+          .from("companies")
+          .select("name, tax_number, address")
+          .eq("id", companyId!)
+          .single();
+        if (company) {
+          setSellerName(company.name || "");
+          setVatNumber(company.tax_number || "");
+        }
+      }
+
+      // Fetch logs
+      const { data: logsData } = await supabase
+        .from("zatca_invoice_logs")
+        .select("*, invoice:invoices(invoice_number, total, type)")
+        .eq("company_id", companyId!)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      setLogs(logsData || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveSellerInfo = async () => {
+    if (!companyId) return;
+    setSaving(true);
+    try {
+      const data = {
+        seller_name: sellerName,
+        vat_number: vatNumber,
+        building_number: buildingNumber,
+        street,
+        district,
+        city,
+        postal_code: postalCode,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (settings) {
+        await supabase.from("zatca_settings").update(data).eq("company_id", companyId);
+      } else {
+        await supabase.from("zatca_settings").insert({ ...data, company_id: companyId });
+      }
+
+      toast.success(isRTL ? "تم حفظ بيانات البائع" : "Seller info saved");
+      fetchData();
+    } catch {
+      toast.error(isRTL ? "فشل في الحفظ" : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOnboard = async () => {
+    if (!companyId || !otp) {
+      toast.error(isRTL ? "يرجى إدخال رمز OTP" : "Please enter OTP");
+      return;
+    }
+    setOnboarding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zatca-onboard", {
+        body: { company_id: companyId, otp, environment },
+      });
+      if (error) throw error;
+      toast.success(data?.message || (isRTL ? "تم الربط بنجاح" : "Connected successfully"));
+      setOtp("");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.message || (isRTL ? "فشل في الربط" : "Connection failed"));
+    } finally {
+      setOnboarding(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const isConnected = settings && (settings as any).is_enabled;
+  const currentEnv = (settings as any)?.environment;
+
+  return (
+    <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+          {isRTL ? "الفوترة الإلكترونية (ZATCA)" : "E-Invoicing (ZATCA)"}
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          {isRTL ? "إعدادات الربط مع هيئة الزكاة والضريبة والجمارك - المرحلة الثانية" : "ZATCA Phase 2 Integration Settings"}
+        </p>
+      </div>
+
+      {/* Connection Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            {isRTL ? "حالة الربط" : "Connection Status"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            {isConnected ? (
+              <>
+                <CheckCircle2 className="h-8 w-8 text-green-500" />
+                <div>
+                  <p className="font-semibold text-green-700 dark:text-green-400">
+                    {isRTL ? "مربوط" : "Connected"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {isRTL 
+                      ? `البيئة: ${ZATCA_ENV_MAP[currentEnv as keyof typeof ZATCA_ENV_MAP]?.ar || currentEnv}`
+                      : `Environment: ${ZATCA_ENV_MAP[currentEnv as keyof typeof ZATCA_ENV_MAP]?.en || currentEnv}`
+                    }
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {isRTL ? `عداد الفواتير (ICV): ${(settings as any)?.icv_counter || 0}` : `Invoice Counter (ICV): ${(settings as any)?.icv_counter || 0}`}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <XCircle className="h-8 w-8 text-muted-foreground" />
+                <div>
+                  <p className="font-semibold">{isRTL ? "غير مربوط" : "Not Connected"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isRTL ? "يرجى إدخال بيانات البائع ثم الربط مع الهيئة" : "Please enter seller info and connect with ZATCA"}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Seller Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{isRTL ? "بيانات البائع" : "Seller Information"}</CardTitle>
+          <CardDescription>
+            {isRTL ? "بيانات البائع المطلوبة للفوترة الإلكترونية" : "Seller details required for e-invoicing"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>{isRTL ? "اسم البائع" : "Seller Name"}</Label>
+              <Input value={sellerName} onChange={(e) => setSellerName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{isRTL ? "الرقم الضريبي" : "VAT Number"}</Label>
+              <Input value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} dir="ltr" placeholder="3XXXXXXXXXXXXXXX" />
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>{isRTL ? "رقم المبنى" : "Building Number"}</Label>
+              <Input value={buildingNumber} onChange={(e) => setBuildingNumber(e.target.value)} dir="ltr" />
+            </div>
+            <div className="space-y-2">
+              <Label>{isRTL ? "الشارع" : "Street"}</Label>
+              <Input value={street} onChange={(e) => setStreet(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>{isRTL ? "الحي" : "District"}</Label>
+              <Input value={district} onChange={(e) => setDistrict(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{isRTL ? "المدينة" : "City"}</Label>
+              <Input value={city} onChange={(e) => setCity(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>{isRTL ? "الرمز البريدي" : "Postal Code"}</Label>
+              <Input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} dir="ltr" />
+            </div>
+          </div>
+          <Button onClick={saveSellerInfo} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+            {isRTL ? "حفظ بيانات البائع" : "Save Seller Info"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Onboarding / Connection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-5 w-5" />
+            {isRTL ? "الربط مع الهيئة" : "Connect with ZATCA"}
+          </CardTitle>
+          <CardDescription>
+            {isRTL ? "إدخال رمز OTP من بوابة فاتورة للربط" : "Enter OTP from Fatoora portal to connect"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>{isRTL ? "البيئة" : "Environment"}</Label>
+              <Select value={environment} onValueChange={setEnvironment}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sandbox">{isRTL ? "بيئة اختبار (Sandbox)" : "Sandbox"}</SelectItem>
+                  <SelectItem value="production">{isRTL ? "بيئة إنتاج (Production)" : "Production"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{isRTL ? "رمز OTP" : "OTP Code"}</Label>
+              <Input value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="123456" dir="ltr" />
+            </div>
+            <div className="flex items-end">
+              <Button onClick={handleOnboard} disabled={onboarding || !otp} className="w-full">
+                {onboarding && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+                {isRTL ? "ربط مع الهيئة" : "Connect"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Submission Logs */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            {isRTL ? "سجل الإرسال" : "Submission Log"}
+          </CardTitle>
+          <CardDescription>
+            {isRTL ? "آخر الفواتير المرسلة للهيئة" : "Recent invoices submitted to ZATCA"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {logs.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              {isRTL ? "لا توجد فواتير مرسلة بعد" : "No invoices submitted yet"}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{isRTL ? "رقم الفاتورة" : "Invoice #"}</TableHead>
+                    <TableHead>{isRTL ? "النوع" : "Type"}</TableHead>
+                    <TableHead>UUID</TableHead>
+                    <TableHead>ICV</TableHead>
+                    <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
+                    <TableHead>{isRTL ? "تاريخ الإرسال" : "Submitted"}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.map((log: any) => {
+                    const statusInfo = ZATCA_STATUS_MAP[log.submission_status as ZatcaStatus] || ZATCA_STATUS_MAP.pending;
+                    return (
+                      <TableRow key={log.id}>
+                        <TableCell className="font-mono text-sm">
+                          {log.invoice?.invoice_number || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {log.invoice_type === "standard" 
+                              ? (isRTL ? "قياسية B2B" : "Standard B2B")
+                              : (isRTL ? "مبسطة B2C" : "Simplified B2C")
+                            }
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs max-w-[120px] truncate" title={log.uuid}>
+                          {log.uuid?.substring(0, 8)}...
+                        </TableCell>
+                        <TableCell>{log.icv}</TableCell>
+                        <TableCell>
+                          <Badge variant={statusInfo.color}>
+                            {isRTL ? statusInfo.ar : statusInfo.en}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {log.submitted_at 
+                            ? new Date(log.submitted_at).toLocaleDateString(isRTL ? "ar-SA" : "en-US")
+                            : "-"
+                          }
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default ZatcaSettings;
