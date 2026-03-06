@@ -3824,6 +3824,14 @@ export type Database = {
         Returns: undefined
       }
       get_account_balances: { Args: { p_company_id: string }; Returns: Json }
+      get_cash_flow_report: {
+        Args: {
+          p_company_id: string
+          p_end_date?: string
+          p_start_date?: string
+        }
+        Returns: Json
+      }
       get_company_features: { Args: { p_company_id: string }; Returns: Json }
       get_company_permissions: { Args: { p_company_id: string }; Returns: Json }
       get_company_usage: { Args: { p_company_id: string }; Returns: Json }
