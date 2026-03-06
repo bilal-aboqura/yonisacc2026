@@ -466,6 +466,26 @@
     "openingBalances": {
       "title": "الأرصدة الافتتاحية",
       "subtitle": "إدارة الأرصدة الافتتاحية للحسابات"
+    },
+    "gold": {
+      "title": "الذهب والمجوهرات",
+      "items": "أصناف الذهب",
+      "purchases": "مشتريات الذهب",
+      "sales": "مبيعات الذهب",
+      "prices": "أسعار الذهب",
+      "reports": "تقارير الذهب",
+      "karat": "العيار",
+      "weight": "الوزن",
+      "makingCost": "تكلفة المصنعية",
+      "stoneCost": "تكلفة الأحجار",
+      "goldCost": "تكلفة الذهب",
+      "pricePerGram": "سعر الجرام",
+      "itemType": "نوع القطعة",
+      "barcode": "الباركود",
+      "totalWeight": "إجمالي الوزن",
+      "totalValue": "إجمالي القيمة",
+      "confirmed": "مؤكدة",
+      "draft": "مسودة"
     }
   }
 }

@@ -6,6 +6,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { useAutoPartsAccess } from "@/hooks/useAutoPartsAccess";
+import { useGoldAccess } from "@/hooks/useGoldAccess";
 import { useRBAC } from "@/hooks/useRBAC";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
@@ -60,6 +61,7 @@ import {
   ArrowRightLeft,
   Wrench,
   Factory,
+  Gem,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -191,10 +193,24 @@ const autoPartsMenuGroup: MenuItem = {
   ]
 };
 
+const goldMenuGroup: MenuItem = {
+  icon: Gem,
+  label: "الذهب والمجوهرات",
+  labelEn: "Gold & Jewelry",
+  children: [
+    { icon: Gem, label: "أصناف الذهب", labelEn: "Gold Items", path: "/client/gold/items", permission: "VIEW_INVENTORY" },
+    { icon: ShoppingCart, label: "مشتريات الذهب", labelEn: "Gold Purchases", path: "/client/gold/purchases", permission: "VIEW_PURCHASES" },
+    { icon: Receipt, label: "مبيعات الذهب", labelEn: "Gold Sales", path: "/client/gold/sales", permission: "VIEW_SALES" },
+    { icon: TrendingUp, label: "أسعار الذهب", labelEn: "Gold Prices", path: "/client/gold/prices", permission: "VIEW_INVENTORY" },
+    { icon: BarChart3, label: "تقارير الذهب", labelEn: "Gold Reports", path: "/client/gold/reports", permission: "VIEW_INVENTORY" },
+  ]
+};
+
 const ClientLayout = () => {
   const { isRTL } = useLanguage();
   const { signOut, user, isLoading } = useAuth();
   const { isAutoPartsCompany } = useAutoPartsAccess();
+  const { isGoldCompany } = useGoldAccess();
   const { status: subStatus } = useSubscriptionGuard();
   const { can } = useRBAC();
   const navigate = useNavigate();
@@ -232,7 +248,20 @@ const ClientLayout = () => {
         } else {
           items.push(...autoPartsFiltered);
         }
+    }
+
+    // Add gold & jewelry if company is gold type
+    if (isGoldCompany) {
+      const goldFiltered = filterByPermission([goldMenuGroup]);
+      if (goldFiltered.length > 0) {
+        const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
+        if (reportsIdx !== -1) {
+          items.splice(reportsIdx, 0, ...goldFiltered);
+        } else {
+          items.push(...goldFiltered);
+        }
       }
+    }
     }
 
     // Add danger zone for test owner

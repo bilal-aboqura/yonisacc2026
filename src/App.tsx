@@ -76,6 +76,16 @@ import Manufacturing from "./pages/client/inventory/Manufacturing";
 import InventoryReports from "./pages/client/inventory/InventoryReports";
 import ProductCard from "./pages/client/inventory/ProductCard";
 
+// Gold & Jewelry
+import GoldItems from "./pages/client/gold/GoldItems";
+import CreateGoldItem from "./pages/client/gold/CreateGoldItem";
+import GoldPurchases from "./pages/client/gold/GoldPurchases";
+import CreateGoldPurchase from "./pages/client/gold/CreateGoldPurchase";
+import GoldSales from "./pages/client/gold/GoldSales";
+import CreateGoldSale from "./pages/client/gold/CreateGoldSale";
+import GoldPriceSettings from "./pages/client/gold/GoldPriceSettings";
+import GoldReports from "./pages/client/gold/GoldReports";
+
 // HR Pages
 import HRDashboard from "./pages/client/hr/HRDashboard";
 import Employees from "./pages/client/hr/Employees";
@@ -200,6 +210,17 @@ const App = () => (
               <Route path="inventory/manufacturing" element={<Manufacturing />} />
               <Route path="inventory/reports" element={<InventoryReports />} />
               <Route path="inventory/movements" element={<ClientInventory tab="movements" />} />
+
+              {/* Gold & Jewelry */}
+              <Route path="gold/items" element={<GoldItems />} />
+              <Route path="gold/items/new" element={<CreateGoldItem />} />
+              <Route path="gold/items/:id/edit" element={<CreateGoldItem />} />
+              <Route path="gold/purchases" element={<GoldPurchases />} />
+              <Route path="gold/purchases/new" element={<CreateGoldPurchase />} />
+              <Route path="gold/sales" element={<GoldSales />} />
+              <Route path="gold/sales/new" element={<CreateGoldSale />} />
+              <Route path="gold/prices" element={<GoldPriceSettings />} />
+              <Route path="gold/reports" element={<GoldReports />} />
               
               {/* Other */}
               <Route path="contacts" element={<ClientContacts />} />
