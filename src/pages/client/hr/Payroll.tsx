@@ -10,9 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DollarSign, Play, Loader2, Eye, CheckCircle } from "lucide-react";
+import { DollarSign, Play, Loader2, Eye, CheckCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 const Payroll = () => {
@@ -20,7 +19,7 @@ const Payroll = () => {
   const { companyId } = useCompanyId();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showRunForm, setShowRunForm] = useState(false);
   const [viewRun, setViewRun] = useState<any>(null);
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -52,19 +51,16 @@ const Payroll = () => {
 
   const runPayrollMutation = useMutation({
     mutationFn: async () => {
-      // Fetch active employees
       const { data: employees, error: empError } = await (supabase as any)
         .from("hr_employees").select("*").eq("company_id", companyId).eq("status", "active");
       if (empError) throw empError;
       if (!employees || employees.length === 0) throw new Error(isRTL ? "لا يوجد موظفين نشطين" : "No active employees");
 
-      // Fetch active loans
       const { data: loans } = await (supabase as any)
         .from("hr_loans").select("*").eq("company_id", companyId).eq("status", "active");
 
-      // Fetch absence count for the month
       const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-      const endDate = `${year}-${String(month).padStart(2, "0")}-28`; // Simplified
+      const endDate = `${year}-${String(month).padStart(2, "0")}-28`;
       const { data: absences } = await (supabase as any)
         .from("hr_attendance").select("employee_id, status")
         .eq("company_id", companyId).eq("status", "absent")
@@ -76,7 +72,6 @@ const Payroll = () => {
       const loanMap: Record<string, number> = {};
       (loans || []).forEach((l: any) => { if (l.remaining > 0) loanMap[l.employee_id] = (loanMap[l.employee_id] || 0) + l.monthly_deduction; });
 
-      // Create payroll run
       const runNumber = `PR-${year}-${String(month).padStart(2, "0")}`;
       let totalBasic = 0, totalAllowances = 0, totalDeductions = 0, totalNet = 0;
 
@@ -117,7 +112,6 @@ const Payroll = () => {
         }).select().single();
       if (runError) throw runError;
 
-      // Insert items
       const itemsWithRun = items.map((i: any) => ({ ...i, payroll_run_id: run.id }));
       const { error: itemsError } = await (supabase as any).from("hr_payroll_items").insert(itemsWithRun);
       if (itemsError) throw itemsError;
@@ -126,16 +120,14 @@ const Payroll = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-payroll-runs"] });
-      setDialogOpen(false);
+      setShowRunForm(false);
       toast.success(isRTL ? "تم تشغيل مسير الرواتب" : "Payroll run completed");
     },
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Post payroll (create journal entry)
   const postPayrollMutation = useMutation({
     mutationFn: async (run: any) => {
-      // Fetch accounts: 512=Salaries Expense, 117=Employee Advances, 111=Cash
       const { data: accounts } = await (supabase as any)
         .from("accounts").select("id, code")
         .eq("company_id", companyId)
@@ -156,15 +148,10 @@ const Payroll = () => {
       const entryNumber = `${prefix}${String(nextNum).padStart(6, "0")}`;
 
       const totalGross = run.total_basic + run.total_allowances;
-      const totalLoanDeductions = run.total_deductions; // Simplified
+      const totalLoanDeductions = run.total_deductions;
 
       const desc = isRTL ? `رواتب شهر ${run.period_month}/${run.period_year}` : `Payroll ${run.period_month}/${run.period_year}`;
 
-      const lines: any[] = [
-        { debit: totalGross, credit: 0, description: desc }, // Dr. Salaries Expense
-      ];
-
-      // Journal: Dr. Salaries 512, Cr. Cash 111, Cr. Employee Advances 117 (if loans)
       const { data: je, error: jeError } = await (supabase as any)
         .from("journal_entries").insert({
           company_id: companyId, entry_number: entryNumber,
@@ -185,11 +172,8 @@ const Payroll = () => {
 
       await (supabase as any).from("journal_entry_lines").insert(jeLines);
       await (supabase as any).from("company_settings").update({ next_journal_number: nextNum + 1 }).eq("company_id", companyId);
-
-      // Update payroll run status
       await (supabase as any).from("hr_payroll_runs").update({ status: "posted", journal_entry_id: je.id }).eq("id", run.id);
 
-      // Update loan balances
       const { data: items } = await (supabase as any).from("hr_payroll_items").select("employee_id, loan_deduction").eq("payroll_run_id", run.id);
       for (const item of (items || [])) {
         if (item.loan_deduction > 0) {
@@ -214,11 +198,118 @@ const Payroll = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
+  // View payroll details inline
+  if (viewRun) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setViewRun(null)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">{isRTL ? "تفاصيل مسير الرواتب" : "Payroll Details"} - {viewRun.run_number}</h1>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card><CardContent className="pt-4">
+            <p className="text-sm text-muted-foreground">{isRTL ? "الأساسي" : "Basic"}</p>
+            <p className="text-2xl font-bold">{(viewRun.total_basic || 0).toLocaleString()}</p>
+          </CardContent></Card>
+          <Card><CardContent className="pt-4">
+            <p className="text-sm text-muted-foreground">{isRTL ? "البدلات" : "Allowances"}</p>
+            <p className="text-2xl font-bold text-emerald-600">{(viewRun.total_allowances || 0).toLocaleString()}</p>
+          </CardContent></Card>
+          <Card><CardContent className="pt-4">
+            <p className="text-sm text-muted-foreground">{isRTL ? "الاستقطاعات" : "Deductions"}</p>
+            <p className="text-2xl font-bold text-destructive">{(viewRun.total_deductions || 0).toLocaleString()}</p>
+          </CardContent></Card>
+          <Card><CardContent className="pt-4">
+            <p className="text-sm text-muted-foreground">{isRTL ? "الصافي" : "Net"}</p>
+            <p className="text-2xl font-bold">{(viewRun.total_net || 0).toLocaleString()}</p>
+          </CardContent></Card>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>{isRTL ? "الموظف" : "Employee"}</TableHead>
+                <TableHead>{isRTL ? "أساسي" : "Basic"}</TableHead>
+                <TableHead>{isRTL ? "بدلات" : "Allow."}</TableHead>
+                <TableHead>{isRTL ? "خصم غياب" : "Absence"}</TableHead>
+                <TableHead>{isRTL ? "خصم سلف" : "Loan"}</TableHead>
+                <TableHead>{isRTL ? "صافي" : "Net"}</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {payrollItems.map((item: any) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.hr_employees ? (isRTL ? item.hr_employees.name : (item.hr_employees.name_en || item.hr_employees.name)) : "—"}</TableCell>
+                    <TableCell>{(item.basic_salary || 0).toLocaleString()}</TableCell>
+                    <TableCell>{(item.total_allowances || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-destructive">{(item.absence_deduction || 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-destructive">{(item.loan_deduction || 0).toLocaleString()}</TableCell>
+                    <TableCell className="font-bold">{(item.net_salary || 0).toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Run payroll form inline
+  if (showRunForm) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setShowRunForm(false)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">{isRTL ? "تشغيل مسير الرواتب" : "Run Payroll"}</h1>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? "الشهر" : "Month"}</Label>
+                <Select value={String(month)} onValueChange={(v) => setMonth(+v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>
+                        {new Date(2000, i).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { month: "long" })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "السنة" : "Year"}</Label>
+                <Input type="number" value={year} onChange={(e) => setYear(+e.target.value)} />
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mt-4">
+              {isRTL ? "سيتم احتساب رواتب جميع الموظفين النشطين مع خصم الغيابات والسلف تلقائياً" : "All active employees' salaries will be calculated with automatic absence and loan deductions"}
+            </p>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setShowRunForm(false)}>{isRTL ? "إلغاء" : "Cancel"}</Button>
+              <Button onClick={() => runPayrollMutation.mutate()} disabled={runPayrollMutation.isPending}>
+                {runPayrollMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+                {isRTL ? "تشغيل" : "Run"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{isRTL ? "الرواتب" : "Payroll"}</h1>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button onClick={() => setShowRunForm(true)}>
           <Play className="h-4 w-4 me-2" />{isRTL ? "تشغيل مسير الرواتب" : "Run Payroll"}
         </Button>
       </div>
@@ -269,73 +360,6 @@ const Payroll = () => {
           </Table>}
         </CardContent>
       </Card>
-
-      {/* Run Payroll Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{isRTL ? "تشغيل مسير الرواتب" : "Run Payroll"}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{isRTL ? "الشهر" : "Month"}</Label>
-                <Select value={String(month)} onValueChange={(v) => setMonth(+v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <SelectItem key={i + 1} value={String(i + 1)}>
-                        {new Date(2000, i).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { month: "long" })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>{isRTL ? "السنة" : "Year"}</Label>
-                <Input type="number" value={year} onChange={(e) => setYear(+e.target.value)} />
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {isRTL ? "سيتم احتساب رواتب جميع الموظفين النشطين مع خصم الغيابات والسلف تلقائياً" : "All active employees' salaries will be calculated with automatic absence and loan deductions"}
-            </p>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline">{isRTL ? "إلغاء" : "Cancel"}</Button></DialogClose>
-            <Button onClick={() => runPayrollMutation.mutate()} disabled={runPayrollMutation.isPending}>
-              {runPayrollMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
-              {isRTL ? "تشغيل" : "Run"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* View Payroll Items Dialog */}
-      <Dialog open={!!viewRun} onOpenChange={(o) => !o && setViewRun(null)}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{isRTL ? "تفاصيل مسير الرواتب" : "Payroll Details"} - {viewRun?.run_number}</DialogTitle></DialogHeader>
-          <Table>
-            <TableHeader><TableRow>
-              <TableHead>{isRTL ? "الموظف" : "Employee"}</TableHead>
-              <TableHead>{isRTL ? "أساسي" : "Basic"}</TableHead>
-              <TableHead>{isRTL ? "بدلات" : "Allow."}</TableHead>
-              <TableHead>{isRTL ? "خصم غياب" : "Absence"}</TableHead>
-              <TableHead>{isRTL ? "خصم سلف" : "Loan"}</TableHead>
-              <TableHead>{isRTL ? "صافي" : "Net"}</TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {payrollItems.map((item: any) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.hr_employees ? (isRTL ? item.hr_employees.name : (item.hr_employees.name_en || item.hr_employees.name)) : "—"}</TableCell>
-                  <TableCell>{(item.basic_salary || 0).toLocaleString()}</TableCell>
-                  <TableCell>{(item.total_allowances || 0).toLocaleString()}</TableCell>
-                  <TableCell className="text-destructive">{(item.absence_deduction || 0).toLocaleString()}</TableCell>
-                  <TableCell className="text-destructive">{(item.loan_deduction || 0).toLocaleString()}</TableCell>
-                  <TableCell className="font-bold">{(item.net_salary || 0).toLocaleString()}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

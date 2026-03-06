@@ -9,9 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Clock, Loader2 } from "lucide-react";
+import { Plus, Clock, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
@@ -25,7 +24,7 @@ const Attendance = () => {
   const { isRTL } = useLanguage();
   const { companyId } = useCompanyId();
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [form, setForm] = useState({ employee_id: "", check_in: "08:00", check_out: "17:00", status: "present", notes: "" });
 
@@ -63,7 +62,8 @@ const Attendance = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-attendance"] });
-      setDialogOpen(false);
+      setShowForm(false);
+      setForm({ employee_id: "", check_in: "08:00", check_out: "17:00", status: "present", notes: "" });
       toast.success(isRTL ? "تم التسجيل" : "Recorded");
     },
     onError: (e: any) => toast.error(e.message),
@@ -80,11 +80,60 @@ const Attendance = () => {
   const presentCount = records.filter((r: any) => r.status === "present").length;
   const absentCount = records.filter((r: any) => r.status === "absent").length;
 
+  if (showForm) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">{isRTL ? "تسجيل حضور" : "Record Attendance"}</h1>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? "الموظف" : "Employee"}</Label>
+                <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>
+                    {employees.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.employee_number} - {isRTL ? e.name : (e.name_en || e.name)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "الحالة" : "Status"}</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="present">{isRTL ? "حاضر" : "Present"}</SelectItem>
+                    <SelectItem value="absent">{isRTL ? "غائب" : "Absent"}</SelectItem>
+                    <SelectItem value="late">{isRTL ? "متأخر" : "Late"}</SelectItem>
+                    <SelectItem value="leave">{isRTL ? "إجازة" : "Leave"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>{isRTL ? "وقت الدخول" : "Check In"}</Label><Input type="time" value={form.check_in} onChange={(e) => setForm({ ...form, check_in: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "وقت الخروج" : "Check Out"}</Label><Input type="time" value={form.check_out} onChange={(e) => setForm({ ...form, check_out: e.target.value })} /></div>
+              <div className="space-y-2 md:col-span-2"><Label>{isRTL ? "ملاحظات" : "Notes"}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setShowForm(false)}>{isRTL ? "إلغاء" : "Cancel"}</Button>
+              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.employee_id}>
+                {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}{isRTL ? "حفظ" : "Save"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{isRTL ? "الحضور والانصراف" : "Attendance"}</h1>
-        <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 me-2" />{isRTL ? "تسجيل حضور" : "Record Attendance"}</Button>
+        <Button onClick={() => setShowForm(true)}><Plus className="h-4 w-4 me-2" />{isRTL ? "تسجيل حضور" : "Record Attendance"}</Button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -133,46 +182,6 @@ const Attendance = () => {
           </Table>}
         </CardContent>
       </Card>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{isRTL ? "تسجيل حضور" : "Record Attendance"}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{isRTL ? "الموظف" : "Employee"}</Label>
-              <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
-                <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
-                <SelectContent>
-                  {employees.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.employee_number} - {isRTL ? e.name : (e.name_en || e.name)}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>{isRTL ? "وقت الدخول" : "Check In"}</Label><Input type="time" value={form.check_in} onChange={(e) => setForm({ ...form, check_in: e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "وقت الخروج" : "Check Out"}</Label><Input type="time" value={form.check_out} onChange={(e) => setForm({ ...form, check_out: e.target.value })} /></div>
-            </div>
-            <div className="space-y-2">
-              <Label>{isRTL ? "الحالة" : "Status"}</Label>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="present">{isRTL ? "حاضر" : "Present"}</SelectItem>
-                  <SelectItem value="absent">{isRTL ? "غائب" : "Absent"}</SelectItem>
-                  <SelectItem value="late">{isRTL ? "متأخر" : "Late"}</SelectItem>
-                  <SelectItem value="leave">{isRTL ? "إجازة" : "Leave"}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label>{isRTL ? "ملاحظات" : "Notes"}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline">{isRTL ? "إلغاء" : "Cancel"}</Button></DialogClose>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.employee_id}>
-              {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}{isRTL ? "حفظ" : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

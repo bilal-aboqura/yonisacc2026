@@ -9,16 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Users, Pencil, Trash2, Loader2, Search } from "lucide-react";
+import { Plus, Users, Pencil, Trash2, Loader2, Search, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 const Employees = () => {
   const { isRTL } = useLanguage();
   const { companyId } = useCompanyId();
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({
@@ -64,7 +63,7 @@ const Employees = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
-      setDialogOpen(false);
+      setShowForm(false);
       resetForm();
       toast.success(isRTL ? "تم الحفظ" : "Saved");
     },
@@ -103,7 +102,7 @@ const Employees = () => {
       bank_name: emp.bank_name || "", bank_iban: emp.bank_iban || "",
       department_id: emp.department_id || "", status: emp.status || "active",
     });
-    setDialogOpen(true);
+    setShowForm(true);
   };
 
   const totalSalary = (emp: any) =>
@@ -114,16 +113,81 @@ const Employees = () => {
     e.employee_number.toLowerCase().includes(search.toLowerCase())
   );
 
+  if (showForm) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => { setShowForm(false); resetForm(); }}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">
+            {editId ? (isRTL ? "تعديل موظف" : "Edit Employee") : (isRTL ? "إضافة موظف" : "Add Employee")}
+          </h1>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? "رقم الموظف" : "Employee #"}</Label>
+                <Input value={form.employee_number} onChange={(e) => setForm({ ...form, employee_number: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "القسم" : "Department"}</Label>
+                <Select value={form.department_id} onValueChange={(v) => setForm({ ...form, department_id: v })}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>
+                    {departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{isRTL ? d.name : (d.name_en || d.name)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>{isRTL ? "الاسم بالعربي" : "Name (AR)"}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "الاسم بالإنجليزي" : "Name (EN)"}</Label><Input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "رقم الهوية" : "National ID"}</Label><Input value={form.national_id} onChange={(e) => setForm({ ...form, national_id: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "الجوال" : "Phone"}</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "البريد" : "Email"}</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "تاريخ التعيين" : "Hire Date"}</Label><Input type="date" value={form.hire_date} onChange={(e) => setForm({ ...form, hire_date: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "المسمى الوظيفي" : "Job Title"}</Label><Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "المسمى بالإنجليزي" : "Job Title (EN)"}</Label><Input value={form.job_title_en} onChange={(e) => setForm({ ...form, job_title_en: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "الراتب الأساسي" : "Basic Salary"}</Label><Input type="number" value={form.basic_salary} onChange={(e) => setForm({ ...form, basic_salary: +e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "بدل سكن" : "Housing"}</Label><Input type="number" value={form.housing_allowance} onChange={(e) => setForm({ ...form, housing_allowance: +e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "بدل نقل" : "Transport"}</Label><Input type="number" value={form.transport_allowance} onChange={(e) => setForm({ ...form, transport_allowance: +e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "بدلات أخرى" : "Other"}</Label><Input type="number" value={form.other_allowance} onChange={(e) => setForm({ ...form, other_allowance: +e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "البنك" : "Bank"}</Label><Input value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "آيبان" : "IBAN"}</Label><Input value={form.bank_iban} onChange={(e) => setForm({ ...form, bank_iban: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "الحالة" : "Status"}</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">{isRTL ? "نشط" : "Active"}</SelectItem>
+                    <SelectItem value="terminated">{isRTL ? "منتهي" : "Terminated"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => { setShowForm(false); resetForm(); }}>{isRTL ? "إلغاء" : "Cancel"}</Button>
+              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name || !form.employee_number}>
+                {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+                {isRTL ? "حفظ" : "Save"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{isRTL ? "الموظفين" : "Employees"}</h1>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
+        <Button onClick={() => { resetForm(); setShowForm(true); }}>
           <Plus className="h-4 w-4 me-2" />{isRTL ? "إضافة موظف" : "Add Employee"}
         </Button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card><CardContent className="pt-4">
           <p className="text-sm text-muted-foreground">{isRTL ? "إجمالي الموظفين" : "Total Employees"}</p>
@@ -143,7 +207,6 @@ const Employees = () => {
         </CardContent></Card>
       </div>
 
-      {/* Search */}
       <div className="relative max-w-sm">
         <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input className="ps-10" placeholder={isRTL ? "بحث..." : "Search..."} value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -195,58 +258,6 @@ const Employees = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editId ? (isRTL ? "تعديل موظف" : "Edit Employee") : (isRTL ? "إضافة موظف" : "Add Employee")}</DialogTitle></DialogHeader>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{isRTL ? "رقم الموظف" : "Employee #"}</Label>
-              <Input value={form.employee_number} onChange={(e) => setForm({ ...form, employee_number: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>{isRTL ? "القسم" : "Department"}</Label>
-              <Select value={form.department_id} onValueChange={(v) => setForm({ ...form, department_id: v })}>
-                <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
-                <SelectContent>
-                  {departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{isRTL ? d.name : (d.name_en || d.name)}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label>{isRTL ? "الاسم بالعربي" : "Name (AR)"}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "الاسم بالإنجليزي" : "Name (EN)"}</Label><Input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "رقم الهوية" : "National ID"}</Label><Input value={form.national_id} onChange={(e) => setForm({ ...form, national_id: e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "الجوال" : "Phone"}</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "البريد" : "Email"}</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "تاريخ التعيين" : "Hire Date"}</Label><Input type="date" value={form.hire_date} onChange={(e) => setForm({ ...form, hire_date: e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "المسمى الوظيفي" : "Job Title"}</Label><Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "الراتب الأساسي" : "Basic Salary"}</Label><Input type="number" value={form.basic_salary} onChange={(e) => setForm({ ...form, basic_salary: +e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "بدل سكن" : "Housing"}</Label><Input type="number" value={form.housing_allowance} onChange={(e) => setForm({ ...form, housing_allowance: +e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "بدل نقل" : "Transport"}</Label><Input type="number" value={form.transport_allowance} onChange={(e) => setForm({ ...form, transport_allowance: +e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "بدلات أخرى" : "Other"}</Label><Input type="number" value={form.other_allowance} onChange={(e) => setForm({ ...form, other_allowance: +e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "البنك" : "Bank"}</Label><Input value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "آيبان" : "IBAN"}</Label><Input value={form.bank_iban} onChange={(e) => setForm({ ...form, bank_iban: e.target.value })} /></div>
-            <div className="space-y-2">
-              <Label>{isRTL ? "الحالة" : "Status"}</Label>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">{isRTL ? "نشط" : "Active"}</SelectItem>
-                  <SelectItem value="terminated">{isRTL ? "منتهي" : "Terminated"}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline">{isRTL ? "إلغاء" : "Cancel"}</Button></DialogClose>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name || !form.employee_number}>
-              {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
-              {isRTL ? "حفظ" : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

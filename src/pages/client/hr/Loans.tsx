@@ -9,16 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Banknote, Loader2 } from "lucide-react";
+import { Plus, Banknote, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 const Loans = () => {
   const { isRTL } = useLanguage();
   const { companyId } = useCompanyId();
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ employee_id: "", loan_type: "advance", amount: 0, monthly_deduction: 0, start_date: new Date().toISOString().split("T")[0], notes: "" });
 
   const { data: employees = [] } = useQuery({
@@ -53,8 +52,7 @@ const Loans = () => {
       });
       if (error) throw error;
 
-      // Create journal entry for loan: Dr. Employee Advances (117), Cr. Cash (111)
-      // This links to accounting
+      // Create journal entry for loan
       const { data: accounts } = await (supabase as any)
         .from("accounts").select("id, code")
         .eq("company_id", companyId)
@@ -64,7 +62,6 @@ const Loans = () => {
         const advanceAcc = accounts.find((a: any) => a.code === "117");
         const cashAcc = accounts.find((a: any) => a.code === "111");
         if (advanceAcc && cashAcc) {
-          // Create journal entry
           const { data: settings } = await (supabase as any)
             .from("company_settings").select("journal_prefix, next_journal_number")
             .eq("company_id", companyId).maybeSingle();
@@ -89,7 +86,6 @@ const Loans = () => {
               { entry_id: je.id, account_id: advanceAcc.id, debit: form.amount, credit: 0, description: desc },
               { entry_id: je.id, account_id: cashAcc.id, debit: 0, credit: form.amount, description: desc },
             ]);
-            // Update next journal number
             await (supabase as any).from("company_settings").update({ next_journal_number: nextNum + 1 }).eq("company_id", companyId);
           }
         }
@@ -97,7 +93,7 @@ const Loans = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-loans"] });
-      setDialogOpen(false);
+      setShowForm(false);
       toast.success(isRTL ? "تم تسجيل السلفة مع القيد المحاسبي" : "Loan recorded with journal entry");
     },
     onError: (e: any) => toast.error(e.message),
@@ -105,11 +101,57 @@ const Loans = () => {
 
   const totalActive = loans.filter((l: any) => l.status === "active").reduce((s: number, l: any) => s + (l.remaining || 0), 0);
 
+  if (showForm) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">{isRTL ? "إضافة سلفة" : "Add Advance"}</h1>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? "الموظف" : "Employee"}</Label>
+                <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>{employees.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.employee_number} - {isRTL ? e.name : (e.name_en || e.name)}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "النوع" : "Type"}</Label>
+                <Select value={form.loan_type} onValueChange={(v) => setForm({ ...form, loan_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="advance">{isRTL ? "سلفة" : "Advance"}</SelectItem>
+                    <SelectItem value="loan">{isRTL ? "قرض" : "Loan"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>{isRTL ? "المبلغ" : "Amount"}</Label><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: +e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "الاستقطاع الشهري" : "Monthly Deduction"}</Label><Input type="number" value={form.monthly_deduction} onChange={(e) => setForm({ ...form, monthly_deduction: +e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "تاريخ البدء" : "Start Date"}</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "ملاحظات" : "Notes"}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setShowForm(false)}>{isRTL ? "إلغاء" : "Cancel"}</Button>
+              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.employee_id || !form.amount}>
+                {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}{isRTL ? "حفظ مع قيد محاسبي" : "Save with Journal Entry"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{isRTL ? "السلف والقروض" : "Loans & Advances"}</h1>
-        <Button onClick={() => { setForm({ employee_id: "", loan_type: "advance", amount: 0, monthly_deduction: 0, start_date: new Date().toISOString().split("T")[0], notes: "" }); setDialogOpen(true); }}>
+        <Button onClick={() => { setForm({ employee_id: "", loan_type: "advance", amount: 0, monthly_deduction: 0, start_date: new Date().toISOString().split("T")[0], notes: "" }); setShowForm(true); }}>
           <Plus className="h-4 w-4 me-2" />{isRTL ? "إضافة سلفة" : "Add Advance"}
         </Button>
       </div>
@@ -162,41 +204,6 @@ const Loans = () => {
           </Table>}
         </CardContent>
       </Card>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{isRTL ? "إضافة سلفة" : "Add Advance"}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{isRTL ? "الموظف" : "Employee"}</Label>
-              <Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}>
-                <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
-                <SelectContent>{employees.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.employee_number} - {isRTL ? e.name : (e.name_en || e.name)}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>{isRTL ? "النوع" : "Type"}</Label>
-              <Select value={form.loan_type} onValueChange={(v) => setForm({ ...form, loan_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="advance">{isRTL ? "سلفة" : "Advance"}</SelectItem>
-                  <SelectItem value="loan">{isRTL ? "قرض" : "Loan"}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label>{isRTL ? "المبلغ" : "Amount"}</Label><Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: +e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "الاستقطاع الشهري" : "Monthly Deduction"}</Label><Input type="number" value={form.monthly_deduction} onChange={(e) => setForm({ ...form, monthly_deduction: +e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "تاريخ البدء" : "Start Date"}</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
-            <div className="space-y-2"><Label>{isRTL ? "ملاحظات" : "Notes"}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline">{isRTL ? "إلغاء" : "Cancel"}</Button></DialogClose>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.employee_id || !form.amount}>
-              {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}{isRTL ? "حفظ مع قيد محاسبي" : "Save with Journal Entry"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
