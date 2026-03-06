@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Printer, Loader2, Send } from "lucide-react";
+import { ArrowRight, Printer, Loader2, Send, Lock, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyId } from "@/hooks/useCompanyId";
@@ -242,6 +242,13 @@ const ViewInvoice = () => {
             <h1 className="text-xl font-bold">{isRTL ? config.titleAr : config.titleEn}</h1>
             <p className="text-sm text-muted-foreground">{isRTL ? "رقم:" : "#"} {invoice.invoice_number}</p>
           </div>
+          {/* Lock Badge */}
+          {(invoice as any).is_locked && (
+            <Badge variant="secondary" className="gap-1">
+              <Lock className="h-3 w-3" />
+              {isRTL ? "مقفلة" : "Locked"}
+            </Badge>
+          )}
           {/* ZATCA Status Badge */}
           {(invoice as any).zatca_status && (invoice as any).zatca_status !== "not_submitted" && (
             <Badge variant={ZATCA_STATUS_MAP[(invoice as any).zatca_status as ZatcaStatus]?.color || "secondary"}>
@@ -251,10 +258,16 @@ const ViewInvoice = () => {
               }
             </Badge>
           )}
+          {/* UUID & ICV info */}
+          {(invoice as any).zatca_uuid && (
+            <span className="text-xs text-muted-foreground font-mono">
+              UUID: {(invoice as any).zatca_uuid?.substring(0, 8)}...
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          {/* ZATCA Submit Button - only for confirmed sales invoices not yet submitted */}
-          {invoice.type === "sale" && invoice.status === "confirmed" && 
+          {/* ZATCA Submit Button - only for confirmed sales invoices not yet submitted and not locked */}
+          {invoice.type === "sale" && invoice.status === "confirmed" && !(invoice as any).is_locked &&
            (!(invoice as any).zatca_status || (invoice as any).zatca_status === "not_submitted") && (
             <Button onClick={handleZatcaSubmit} disabled={submittingZatca} variant="outline" className="gap-2">
               {submittingZatca ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

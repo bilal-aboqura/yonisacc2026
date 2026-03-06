@@ -33,3 +33,6 @@ verify_jwt = false
 [functions.zatca-submit]
 verify_jwt = false
 
+[functions.zatca-retry]
+verify_jwt = false
+
