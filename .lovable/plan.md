@@ -1,73 +1,100 @@
 
 
-# خطة تطوير عرض وجداول وشاشات مديول المخزون
+# خطة تطوير مديول المخزون المتكامل
 
-## نطاق العمل
-تحسين الواجهات الحالية لمديول المخزون (7 شاشات) من حيث التصميم، تجربة المستخدم، والاحترافية — بدون تغيير المنطق البرمجي أو الـ RPCs.
+## الوضع الحالي
+- جداول موجودة: `products`, `product_categories` (شجرية), `product_stock`, `stock_movements`, `warehouses`, `units` (بدون تحويلات)
+- الجداول الناقصة: `stock_adjustments`, `stock_transfers`, `internal_consumptions`, `bill_of_materials`, `manufacturing_orders`, تحويل الوحدات، أنواع المنتجات، طرق التتبع
+- الواجهة الحالية: صفحة منتجات بسيطة + صفحة إنشاء منتج + حركة مخزون فارغة
+- القائمة الجانبية: رابطان فقط (المنتجات، حركة المخزون)
 
-## الشاشات المستهدفة والتحسينات
+## خطة التنفيذ (مقسمة على مراحل)
 
-### 1. StockOverview — عرض المخزون
-- إضافة **بطاقات إحصائية** أعلى الصفحة (إجمالي المنتجات، القيمة الكلية، منتجات تحت الحد، منتجات بدون حركة)
-- إضافة **شريط تقدم مصغر** بجانب كل منتج يوضح نسبة المخزون من حد إعادة الطلب
-- تحسين تمييز المنتجات تحت الحد الأدنى بلون خلفية أوضح مع أيقونة تنبيه
-- إضافة زر **عرض كرت المنتج** (Eye icon) كإجراء مباشر لكل صف
-- إضافة زر **تصدير Excel** للجدول
+### المرحلة 1: تحديث قاعدة البيانات
 
-### 2. StockAdjustments — التسويات
-- إضافة بطاقات إحصائية (عدد التسويات، زيادات، نقص، آخر تسوية)
-- عرض **عدد الأصناف والقيمة الإجمالية** لكل تسوية في الجدول
-- إضافة عمود **المبلغ الإجمالي** في قائمة التسويات
-- تحسين نموذج الإدخال: عرض **إجمالي الكمية والتكلفة** أسفل جدول الأصناف
-- إضافة فلتر بالتاريخ والنوع والفرع
+**تعديل جدول `units`** — إضافة:
+- `symbol` (موجود)، `allows_fractions` (boolean)، `base_unit_id` (uuid FK → units)، `conversion_rate` (numeric)
 
-### 3. StockTransfers — التحويلات
-- إضافة بطاقات إحصائية (إجمالي، مسودة، مرسلة، مستلمة)
-- عرض **عدد الأصناف** في كل تحويل
-- إضافة أيقونة **سهم** بين الفرعين بدل نصين منفصلين
-- تحسين أزرار الإجراءات (إرسال/استلام) بألوان مميزة
-- إضافة فلتر بالحالة والتاريخ
+**تعديل جدول `products`** — إضافة:
+- `product_type` (text: stock/service/manufacturing/bundle)
+- `tracking_method` (text: none/batch/serial)
+- `unit_id` (uuid FK → units)
+- `is_taxable` (boolean, default true)
+- `reorder_level` (integer)
 
-### 4. InternalConsumptions — الاستهلاك الداخلي
-- إضافة بطاقات إحصائية (عدد العمليات، القيمة الإجمالية)
-- عرض **القيمة الإجمالية** لكل عملية استهلاك في الجدول
-- إضافة فلتر بالقسم والتاريخ
+**تعديل جدول `product_categories`** — إضافة:
+- `image_url` (text)
 
-### 5. Manufacturing — التصنيع
-- تحسين عرض **قوائم المواد (BOM)**: إظهار عدد المواد الخام وتكلفة تقديرية
-- تحسين عرض أوامر التصنيع: إضافة عمود **تاريخ الإنشاء** و**تاريخ الإكمال**
-- إضافة بطاقات إحصائية (أوامر مكتملة، قيد التنفيذ، إجمالي تكلفة الإنتاج)
-- تحسين نموذج إنشاء الأمر بإظهار المواد المطلوبة من الـ BOM المختارة
+**جدول جديد: `stock_adjustments`**
+- id, company_id, branch_id, adjustment_date, adjustment_type (increase/decrease), reason, status (draft/approved), notes, created_by, approved_by, created_at
 
-### 6. InventoryReports — التقارير
-- تحسين تاب **تقييم المخزون**: إضافة عمود متوسط التكلفة ونسبة من إجمالي القيمة
-- تحسين تاب **حركة المخزون**: إضافة ترميز لوني لأنواع الحركات (أخضر للوارد، أحمر للصادر)
-- إضافة تاب جديد: **ملخص حسب التصنيف** (عدد المنتجات، الكمية، القيمة لكل تصنيف)
-- تحسين تاب **تحت الحد الأدنى**: إضافة أولوية (منخفض/متوسط/حرج) بناء على نسبة النقص
+**جدول جديد: `stock_adjustment_items`**
+- id, adjustment_id, product_id, quantity, unit_cost, notes
 
-### 7. ProductCard — كرت المنتج
-- تحسين بطاقات المعلومات بتصميم أكثر وضوحاً (أيقونات ملونة، حدود مميزة)
-- إضافة **رسم بياني مصغر** (Sparkline) لاتجاه حركة المنتج آخر 30 يوم
-- تحسين سجل الحركات بترميز لوني واضح للوارد والصادر
-- إضافة معلومات إضافية: النوع، الوحدة، التصنيف، خاضع للضريبة
+**جدول جديد: `stock_transfers`**
+- id, company_id, from_branch_id, to_branch_id, transfer_date, status (draft/sent/received), notes, created_by, received_by, created_at
 
-## التحسينات العامة المشتركة
-- توحيد نمط **الحالة الفارغة** (Empty State) مع أيقونة وعنوان ونص فرعي وزر إجراء
-- توحيد نمط **التحميل** (Loading) بـ Skeleton بدل Spinner وحيد
-- إضافة **عداد الصفوف** في تذييل كل جدول بشكل موحد
-- تحسين **التجاوب** على الموبايل (تحويل الجداول لبطاقات على الشاشات الصغيرة)
-- توحيد تنسيق الأرقام (tabular-nums) والتواريخ عبر جميع الشاشات
+**جدول جديد: `stock_transfer_items`**
+- id, transfer_id, product_id, quantity_sent, quantity_received, notes
 
-## ترتيب التنفيذ
-1. التحسينات العامة المشتركة (Empty states, loading, footer)
-2. StockOverview + ProductCard (الأكثر استخداماً)
-3. StockAdjustments + StockTransfers
-4. InternalConsumptions + Manufacturing
-5. InventoryReports (التقارير)
+**جدول جديد: `internal_consumptions`**
+- id, company_id, branch_id, consumption_date, department, reason, status, notes, created_by, created_at
 
-## ملاحظات تقنية
-- لا تغيير على الـ RPCs أو المنطق البرمجي
-- استخدام المكونات الموجودة (Card, Badge, Table, Tabs)
-- إضافة recharts للرسم البياني المصغر في كرت المنتج (المكتبة مثبتة)
-- الحفاظ على دعم RTL/LTR الكامل
+**جدول جديد: `internal_consumption_items`**
+- id, consumption_id, product_id, quantity, unit_cost, notes
+
+**جدول جديد: `bill_of_materials`**
+- id, company_id, product_id (المنتج النهائي), is_active, notes, created_at
+
+**جدول جديد: `bom_items`**
+- id, bom_id, product_id (مادة خام), quantity, unit_id
+
+**جدول جديد: `manufacturing_orders`**
+- id, company_id, branch_id, bom_id, product_id, quantity, status (draft/in_progress/completed/cancelled), production_cost, notes, created_by, completed_at, created_at
+
+**RLS**: جميع الجداول ستستخدم `is_company_owner(company_id)` مع Realtime على `product_stock` و `stock_movements`.
+
+### المرحلة 2: الواجهات الأمامية
+
+**1. إدارة الوحدات** — `/client/inventory/units`
+- CRUD وحدات مع دعم التحويل والكسور
+
+**2. إدارة التصنيفات** — `/client/inventory/categories`
+- شجرة تصنيفات مع إضافة/تعديل/حذف + صورة + تفعيل/تعطيل
+
+**3. تطوير المنتجات** — تحديث `CreateProduct` و إنشاء `EditProduct`
+- إضافة نوع المنتج، طريقة التتبع، ربط الوحدة من جدول الوحدات، خاضع للضريبة
+
+**4. كرت المنتج** — `/client/inventory/product/:id`
+- الرصيد بكل فرع، متوسط التكلفة، قيمة المخزون، سجل الحركات (Stock Ledger)
+
+**5. عرض المخزون (Stock Overview)** — `/client/inventory/stock`
+- جدول بجميع المنتجات مع الكميات وفلترة بالفرع/التصنيف/تحت الحد الأدنى
+
+**6. تسوية المخزون** — `/client/inventory/adjustments`
+- إنشاء تسوية (زيادة/نقص) مع السبب والفرع، تحديث `product_stock` و `stock_movements`
+
+**7. تحويل بين الفروع** — `/client/inventory/transfers`
+- إنشاء طلب تحويل (Draft → Sent → Received)، تحديث المخزون عند الاستلام
+
+**8. الاستهلاك الداخلي** — `/client/inventory/consumptions`
+- صرف منتجات لاستخدام داخلي مع القسم والسبب
+
+**9. التصنيع** — `/client/inventory/manufacturing`
+- إدارة BOM + أوامر التصنيع مع خصم المواد وإضافة المنتج النهائي
+
+**10. تقارير المخزون** — `/client/inventory/reports`
+- 7 تقارير مع فلترة بالفرع والفترة + تصدير PDF/Excel
+
+### المرحلة 3: التكامل
+
+- **القائمة الجانبية**: توسيع قسم المخزون ليشمل جميع الروابط الجديدة
+- **RBAC**: إضافة أكواد صلاحيات جديدة (VIEW_UNITS, MANAGE_UNITS, VIEW_CATEGORIES, MANAGE_ADJUSTMENTS, إلخ)
+- **Audit Log**: تسجيل جميع العمليات عبر triggers
+- **Realtime**: تفعيل `supabase_realtime` على `product_stock`
+- **i18n**: إضافة جميع النصوص في `ar.json` و `en.json`
+- **منع تعديل المعتمد**: العمليات المعتمدة (approved/completed/received) لا تقبل التعديل
+
+## ملاحظة مهمة
+هذا المديول ضخم جداً (10+ شاشة، 10+ جدول جديد، RPCs). سأبدأ بالتنفيذ على مراحل — الجداول أولاً، ثم الشاشات الأساسية (الوحدات، التصنيفات، المنتجات المطورة)، ثم العمليات (تسوية، تحويل، استهلاك، تصنيع)، وأخيراً التقارير.
 
