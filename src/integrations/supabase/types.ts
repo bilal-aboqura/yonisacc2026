@@ -2128,6 +2128,8 @@ export type Database = {
           type: string
           updated_at: string
           warehouse_id: string | null
+          zatca_status: string | null
+          zatca_uuid: string | null
         }
         Insert: {
           branch_id?: string | null
@@ -2152,6 +2154,8 @@ export type Database = {
           type: string
           updated_at?: string
           warehouse_id?: string | null
+          zatca_status?: string | null
+          zatca_uuid?: string | null
         }
         Update: {
           branch_id?: string | null
@@ -2176,6 +2180,8 @@ export type Database = {
           type?: string
           updated_at?: string
           warehouse_id?: string | null
+          zatca_status?: string | null
+          zatca_uuid?: string | null
         }
         Relationships: [
           {
@@ -4156,6 +4162,149 @@ export type Database = {
             foreignKeyName: "warehouses_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zatca_invoice_logs: {
+        Row: {
+          company_id: string
+          created_at: string
+          icv: number
+          id: string
+          invoice_hash: string | null
+          invoice_id: string
+          invoice_type: string
+          pih: string | null
+          qr_code: string | null
+          submission_status: string
+          submitted_at: string | null
+          uuid: string
+          xml_content: string | null
+          zatca_response: Json | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          icv: number
+          id?: string
+          invoice_hash?: string | null
+          invoice_id: string
+          invoice_type?: string
+          pih?: string | null
+          qr_code?: string | null
+          submission_status?: string
+          submitted_at?: string | null
+          uuid: string
+          xml_content?: string | null
+          zatca_response?: Json | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          icv?: number
+          id?: string
+          invoice_hash?: string | null
+          invoice_id?: string
+          invoice_type?: string
+          pih?: string | null
+          qr_code?: string | null
+          submission_status?: string
+          submitted_at?: string | null
+          uuid?: string
+          xml_content?: string | null
+          zatca_response?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zatca_invoice_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zatca_invoice_logs_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zatca_settings: {
+        Row: {
+          building_number: string | null
+          city: string | null
+          company_id: string
+          compliance_csid: string | null
+          country_code: string | null
+          created_at: string
+          district: string | null
+          environment: string
+          icv_counter: number
+          id: string
+          is_enabled: boolean
+          last_invoice_hash: string | null
+          otp: string | null
+          postal_code: string | null
+          private_key: string | null
+          production_csid: string | null
+          seller_name: string | null
+          street: string | null
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          building_number?: string | null
+          city?: string | null
+          company_id: string
+          compliance_csid?: string | null
+          country_code?: string | null
+          created_at?: string
+          district?: string | null
+          environment?: string
+          icv_counter?: number
+          id?: string
+          is_enabled?: boolean
+          last_invoice_hash?: string | null
+          otp?: string | null
+          postal_code?: string | null
+          private_key?: string | null
+          production_csid?: string | null
+          seller_name?: string | null
+          street?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          building_number?: string | null
+          city?: string | null
+          company_id?: string
+          compliance_csid?: string | null
+          country_code?: string | null
+          created_at?: string
+          district?: string | null
+          environment?: string
+          icv_counter?: number
+          id?: string
+          is_enabled?: boolean
+          last_invoice_hash?: string | null
+          otp?: string | null
+          postal_code?: string | null
+          private_key?: string | null
+          production_csid?: string | null
+          seller_name?: string | null
+          street?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zatca_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
