@@ -39,6 +39,7 @@ const moduleIcons: Record<string, React.ComponentType<{ className?: string }>> =
   hr: Users,
   reports: BarChart3,
   auto_parts: Car,
+  gold: Package,
 };
 
 const moduleNames: Record<string, { ar: string; en: string }> = {
@@ -49,6 +50,7 @@ const moduleNames: Record<string, { ar: string; en: string }> = {
   hr: { ar: "الموارد البشرية", en: "HR" },
   reports: { ar: "التقارير", en: "Reports" },
   auto_parts: { ar: "قطع الغيار", en: "Auto Parts" },
+  gold: { ar: "الذهب والمجوهرات", en: "Gold & Jewelry" },
 };
 
 const CompanyScreensDialog = ({ open, onOpenChange, company, onSaved }: CompanyScreensDialogProps) => {

@@ -19,6 +19,7 @@ const moduleIcons: Record<string, any> = {
   hr: Users,
   reports: BarChart3,
   auto_parts: Car,
+  gold: Package,
 };
 
 const OwnerScreens = () => {
@@ -172,6 +173,7 @@ const OwnerScreens = () => {
     hr: { ar: "الموارد البشرية", en: "HR" },
     reports: { ar: "التقارير", en: "Reports" },
     auto_parts: { ar: "قطع الغيار", en: "Auto Parts" },
+    gold: { ar: "الذهب والمجوهرات", en: "Gold & Jewelry" },
   };
 
   return (

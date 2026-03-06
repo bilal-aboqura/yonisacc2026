@@ -81,11 +81,12 @@ const moduleLabels: Record<string, { ar: string; en: string }> = {
   settings: { ar: "الإعدادات", en: "Settings" },
   print: { ar: "الطباعة", en: "Print" },
   auto_parts: { ar: "قطع الغيار", en: "Auto Parts" },
+  gold: { ar: "الذهب والمجوهرات", en: "Gold & Jewelry" },
 };
 
 const screenModuleIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   settings: Settings2, sales: FileText, inventory: Package,
-  accounting: Calculator, hr: Users, reports: BarChart3, auto_parts: Car,
+  accounting: Calculator, hr: Users, reports: BarChart3, auto_parts: Car, gold: Package,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────
@@ -526,7 +527,7 @@ const ManageCompanyAccess = () => {
           </div>
         </TabsContent>
 
-        {/* ─── Tab: Permissions ───────────────────────────────────────── */}
+        {/* ─── Tab: Permissions (Table) ──────────────────────────────── */}
         <TabsContent value="permissions" className="space-y-4">
           <p className="text-sm text-muted-foreground">
             {isRTL ? "حدد السقف الأعلى للصلاحيات المتاحة لهذه الباقة (الصلاحيات المحظورة لن تكون متاحة حتى لو أضافها مدير الشركة)" : "Set the maximum permissions available (blocked permissions won't be available even if assigned by company admin)"}
@@ -541,59 +542,80 @@ const ManageCompanyAccess = () => {
           )}
 
           {planId && (
-            <ScrollArea className="max-h-[60vh]">
-              <div className="space-y-2">
-                {Object.entries(groupedPerms).map(([module, perms]) => {
-                  const label = moduleLabels[module] || { ar: module, en: module };
-                  const isOpen = openModules.includes(module);
-                  const blockedCount = perms.filter(p => blockedIds.has(p.id)).length;
-
-                  return (
-                    <Collapsible key={module} open={isOpen} onOpenChange={() => {
-                      setOpenModules(prev => prev.includes(module) ? prev.filter(m => m !== module) : [...prev, module]);
-                    }}>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-between h-11 px-3 hover:bg-muted/50">
-                          <div className="flex items-center gap-2">
-                            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            <span className="font-medium">{isRTL ? label.ar : label.en}</span>
-                            <Badge variant="secondary" className="text-xs">{perms.length}</Badge>
-                          </div>
-                          {blockedCount > 0 && (
-                            <Badge variant="destructive" className="text-xs">
-                              {blockedCount} {isRTL ? "محظور" : "blocked"}
-                            </Badge>
-                          )}
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <div className="space-y-1 ps-6 pe-2 pb-2">
-                          {perms.map(perm => {
-                            const isAllowed = !blockedIds.has(perm.id);
-                            return (
-                              <div
-                                key={perm.id}
-                                className={`flex items-center justify-between py-2 px-3 rounded-md transition-colors ${
-                                  !isAllowed ? "bg-destructive/5 border border-destructive/20" : "hover:bg-muted/30"
-                                }`}
-                              >
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium">
-                                    {isRTL ? (perm.description_ar || perm.description) : perm.description}
-                                  </p>
-                                  <span className="text-xs text-muted-foreground font-mono">{perm.code}</span>
-                                </div>
-                                <Switch checked={isAllowed} onCheckedChange={() => togglePermission(perm.id)} />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  );
-                })}
-              </div>
-            </ScrollArea>
+            <Card>
+              <CardContent className="p-0">
+                <div className="relative w-full overflow-auto">
+                  <table className="w-full caption-bottom text-sm">
+                    <thead className="[&_tr]:border-b [&_tr]:bg-muted/60 dark:[&_tr]:bg-muted/30">
+                      <tr className="border-b">
+                        <th className="h-12 px-4 text-start align-middle font-semibold text-muted-foreground whitespace-nowrap">
+                          {isRTL ? "الوحدة" : "Module"}
+                        </th>
+                        <th className="h-12 px-4 text-start align-middle font-semibold text-muted-foreground whitespace-nowrap">
+                          {isRTL ? "الصلاحية" : "Permission"}
+                        </th>
+                        <th className="h-12 px-4 text-start align-middle font-semibold text-muted-foreground whitespace-nowrap">
+                          {isRTL ? "الكود" : "Code"}
+                        </th>
+                        <th className="h-12 px-4 text-center align-middle font-semibold text-muted-foreground whitespace-nowrap">
+                          {isRTL ? "مسموح" : "Allowed"}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="[&_tr:last-child]:border-0">
+                      {Object.entries(groupedPerms).map(([module, perms]) => {
+                        const label = moduleLabels[module] || { ar: module, en: module };
+                        return perms.map((perm, idx) => {
+                          const isAllowed = !blockedIds.has(perm.id);
+                          return (
+                            <tr
+                              key={perm.id}
+                              className={`border-b transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${
+                                !isAllowed ? "bg-destructive/5" : ""
+                              }`}
+                            >
+                              {idx === 0 && (
+                                <td
+                                  rowSpan={perms.length}
+                                  className="px-4 py-3.5 align-middle font-medium border-e"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    {(() => {
+                                      const Icon = screenModuleIcons[module] || Shield;
+                                      return <Icon className="h-4 w-4 text-muted-foreground" />;
+                                    })()}
+                                    <span>{isRTL ? label.ar : label.en}</span>
+                                  </div>
+                                  <Badge variant="secondary" className="mt-1 text-xs">
+                                    {perms.filter(p => !blockedIds.has(p.id)).length}/{perms.length}
+                                  </Badge>
+                                </td>
+                              )}
+                              <td className="px-4 py-3.5 align-middle">
+                                <span className="text-sm">
+                                  {isRTL ? (perm.description_ar || perm.description) : perm.description}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5 align-middle">
+                                <code className="text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
+                                  {perm.code}
+                                </code>
+                              </td>
+                              <td className="px-4 py-3.5 align-middle text-center">
+                                <Switch
+                                  checked={isAllowed}
+                                  onCheckedChange={() => togglePermission(perm.id)}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {planId && (
