@@ -111,6 +111,7 @@ const ViewInvoice = () => {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [company, setCompany] = useState<CompanyInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submittingZatca, setSubmittingZatca] = useState(false);
 
   useEffect(() => {
     if (companyLoading) return;
