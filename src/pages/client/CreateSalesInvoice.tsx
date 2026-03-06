@@ -199,6 +199,12 @@ const CreateSalesInvoice = () => {
               .maybeSingle();
 
             if (existingInvoice) {
+              // Prevent editing locked invoices (ZATCA submitted)
+              if ((existingInvoice as any).is_locked) {
+                toast.error(isRTL ? "لا يمكن تعديل فاتورة مقفلة (مرسلة للهيئة)" : "Cannot edit a locked invoice (submitted to ZATCA)");
+                navigate("/client/sales");
+                return;
+              }
               // Only allow editing drafts
               if (existingInvoice.status !== "draft") {
                 toast.error(isRTL ? "لا يمكن تعديل فاتورة مؤكدة" : "Cannot edit a confirmed invoice");
@@ -464,6 +470,27 @@ const CreateSalesInvoice = () => {
             p_invoice_id: invoiceId,
           });
         if (postError) throw postError;
+
+        // Auto-submit to ZATCA if enabled
+        try {
+          const { data: zatcaSettings } = await (supabase as any)
+            .from("zatca_settings")
+            .select("is_enabled")
+            .eq("company_id", company.id)
+            .maybeSingle();
+
+          if (zatcaSettings?.is_enabled) {
+            const { data: zatcaResult, error: zatcaError } = await supabase.functions.invoke("zatca-submit", {
+              body: { company_id: company.id, invoice_id: invoiceId },
+            });
+            if (!zatcaError && zatcaResult?.success) {
+              toast.success(isRTL ? "تم إرسال الفاتورة للهيئة تلقائياً" : "Invoice auto-submitted to ZATCA");
+            }
+          }
+        } catch (zatcaErr) {
+          console.warn("ZATCA auto-submit failed:", zatcaErr);
+          // Don't block - invoice is saved, ZATCA will retry
+        }
       }
 
       // Increment usage counter only for new invoices
