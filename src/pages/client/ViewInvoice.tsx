@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, Printer, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Printer, Loader2, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyId } from "@/hooks/useCompanyId";
@@ -10,6 +11,8 @@ import { usePrintSettings } from "@/hooks/usePrintSettings";
 import { useLanguage } from "@/hooks/useLanguage";
 import { toast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
+import { ZATCA_STATUS_MAP, type ZatcaStatus } from "@/lib/zatcaUtils";
+import { toast as sonnerToast } from "sonner";
 
 interface InvoiceItem {
   id: string;
@@ -108,6 +111,7 @@ const ViewInvoice = () => {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [company, setCompany] = useState<CompanyInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submittingZatca, setSubmittingZatca] = useState(false);
 
   useEffect(() => {
     if (companyLoading) return;
@@ -175,6 +179,28 @@ const ViewInvoice = () => {
 
   const handlePrint = () => window.print();
 
+  const handleZatcaSubmit = async () => {
+    if (!companyId || !id) return;
+    setSubmittingZatca(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("zatca-submit", {
+        body: { company_id: companyId, invoice_id: id },
+      });
+      if (error) throw error;
+      sonnerToast.success(
+        isRTL 
+          ? `تم إرسال الفاتورة للهيئة - الحالة: ${data?.status}` 
+          : `Invoice submitted to ZATCA - Status: ${data?.status}`
+      );
+      // Refresh invoice data
+      fetchInvoiceData();
+    } catch (err: any) {
+      sonnerToast.error(err?.message || (isRTL ? "فشل في إرسال الفاتورة" : "Failed to submit invoice"));
+    } finally {
+      setSubmittingZatca(false);
+    }
+  };
+
   const fmt = (amount: number | null) =>
     (amount || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -216,11 +242,30 @@ const ViewInvoice = () => {
             <h1 className="text-xl font-bold">{isRTL ? config.titleAr : config.titleEn}</h1>
             <p className="text-sm text-muted-foreground">{isRTL ? "رقم:" : "#"} {invoice.invoice_number}</p>
           </div>
+          {/* ZATCA Status Badge */}
+          {(invoice as any).zatca_status && (invoice as any).zatca_status !== "not_submitted" && (
+            <Badge variant={ZATCA_STATUS_MAP[(invoice as any).zatca_status as ZatcaStatus]?.color || "secondary"}>
+              {isRTL 
+                ? ZATCA_STATUS_MAP[(invoice as any).zatca_status as ZatcaStatus]?.ar 
+                : ZATCA_STATUS_MAP[(invoice as any).zatca_status as ZatcaStatus]?.en
+              }
+            </Badge>
+          )}
         </div>
-        <Button onClick={handlePrint} variant="outline" className="gap-2">
-          <Printer className="h-4 w-4" />
-          {isRTL ? "طباعة" : "Print"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* ZATCA Submit Button - only for confirmed sales invoices not yet submitted */}
+          {invoice.type === "sale" && invoice.status === "confirmed" && 
+           (!(invoice as any).zatca_status || (invoice as any).zatca_status === "not_submitted") && (
+            <Button onClick={handleZatcaSubmit} disabled={submittingZatca} variant="outline" className="gap-2">
+              {submittingZatca ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isRTL ? "إرسال للهيئة" : "Submit to ZATCA"}
+            </Button>
+          )}
+          <Button onClick={handlePrint} variant="outline" className="gap-2">
+            <Printer className="h-4 w-4" />
+            {isRTL ? "طباعة" : "Print"}
+          </Button>
+        </div>
       </div>
 
       {/* ═══════ A4 Print Document ═══════ */}

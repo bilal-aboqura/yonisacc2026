@@ -85,6 +85,7 @@ import GoldSales from "./pages/client/gold/GoldSales";
 import CreateGoldSale from "./pages/client/gold/CreateGoldSale";
 import GoldPriceSettings from "./pages/client/gold/GoldPriceSettings";
 import GoldReports from "./pages/client/gold/GoldReports";
+import ZatcaSettings from "./pages/client/ZatcaSettings";
 
 // HR Pages
 import HRDashboard from "./pages/client/hr/HRDashboard";
@@ -244,6 +245,7 @@ const App = () => (
               <Route path="settings/payment-methods" element={<ClientSettings tab="payment-methods" />} />
               <Route path="settings/appearance" element={<ClientSettings tab="appearance" />} />
               <Route path="settings/danger" element={<ClientSettings tab="danger" />} />
+              <Route path="settings/zatca" element={<ZatcaSettings />} />
             </Route>
             
             
