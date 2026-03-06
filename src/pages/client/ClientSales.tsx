@@ -7,6 +7,7 @@ import { useCompanyId } from "@/hooks/useCompanyId";
 import { useAuth } from "@/contexts/AuthContext";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
 import type { DataTableColumn } from "@/components/ui/data-table";
+import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Eye, Trash2, CreditCard, Undo2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -235,6 +236,11 @@ const ClientSales = () => {
       : new Date(2000, i).toLocaleDateString("en-US", { month: "long" }),
   }));
 
+  const totalSales = filteredInvoices.reduce((s: number, inv: any) => s + (inv.total || 0), 0);
+  const totalPaid = filteredInvoices.reduce((s: number, inv: any) => s + (inv.paid_amount || 0), 0);
+  const totalUnpaid = totalSales - totalPaid;
+  const confirmedCount = filteredInvoices.filter((inv: any) => inv.status === "confirmed" || inv.status === "posted").length;
+
   return (
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
       <div>
@@ -244,6 +250,26 @@ const ClientSales = () => {
         <p className="text-muted-foreground mt-1">
           {isRTL ? "إدارة فواتير المبيعات والعملاء" : "Manage sales invoices and customers"}
         </p>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card><CardContent className="pt-4">
+          <p className="text-sm text-muted-foreground">{isRTL ? "إجمالي الفواتير" : "Total Invoices"}</p>
+          <p className="text-2xl font-bold">{filteredInvoices.length}</p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-sm text-muted-foreground">{isRTL ? "إجمالي المبيعات" : "Total Sales"}</p>
+          <p className="text-2xl font-bold">{totalSales.toLocaleString()}</p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-sm text-muted-foreground">{isRTL ? "المحصّل" : "Collected"}</p>
+          <p className="text-2xl font-bold text-emerald-600">{totalPaid.toLocaleString()}</p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-sm text-muted-foreground">{isRTL ? "المتبقي" : "Outstanding"}</p>
+          <p className="text-2xl font-bold text-amber-600">{totalUnpaid.toLocaleString()}</p>
+        </CardContent></Card>
       </div>
 
       {/* Filters */}
