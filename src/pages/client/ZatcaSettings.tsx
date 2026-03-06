@@ -10,9 +10,35 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, CheckCircle2, XCircle, Clock, Shield, Link2, FileText } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Shield, Link2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { ZATCA_STATUS_MAP, ZATCA_ENV_MAP, type ZatcaStatus } from "@/lib/zatcaUtils";
+
+interface ZatcaSettingsData {
+  id: string;
+  company_id: string;
+  is_enabled: boolean;
+  environment: string;
+  icv_counter: number;
+  seller_name: string | null;
+  vat_number: string | null;
+  building_number: string | null;
+  street: string | null;
+  district: string | null;
+  city: string | null;
+  postal_code: string | null;
+  last_invoice_hash: string | null;
+}
+
+interface ZatcaLogEntry {
+  id: string;
+  uuid: string;
+  icv: number;
+  submission_status: string;
+  invoice_type: string;
+  submitted_at: string | null;
+  invoice: { invoice_number: string; total: number; type: string } | null;
+}
 
 const ZatcaSettings = () => {
   const { isRTL } = useLanguage();
@@ -22,8 +48,8 @@ const ZatcaSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [onboarding, setOnboarding] = useState(false);
-  const [settings, setSettings] = useState<Record<string, unknown> | null>(null);
-  const [logs, setLogs] = useState<Array<Record<string, unknown>>>([]);
+  const [settings, setSettings] = useState<ZatcaSettingsData | null>(null);
+  const [logs, setLogs] = useState<ZatcaLogEntry[]>([]);
 
   // Form state
   const [sellerName, setSellerName] = useState("");
@@ -42,8 +68,7 @@ const ZatcaSettings = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch settings
-      const { data: settingsData } = await supabase
+      const { data: settingsData } = await (supabase as any)
         .from("zatca_settings")
         .select("*")
         .eq("company_id", companyId!)
@@ -51,16 +76,15 @@ const ZatcaSettings = () => {
 
       if (settingsData) {
         setSettings(settingsData);
-        setSellerName((settingsData as any).seller_name || "");
-        setVatNumber((settingsData as any).vat_number || "");
-        setBuildingNumber((settingsData as any).building_number || "");
-        setStreet((settingsData as any).street || "");
-        setDistrict((settingsData as any).district || "");
-        setCity((settingsData as any).city || "");
-        setPostalCode((settingsData as any).postal_code || "");
-        setEnvironment((settingsData as any).environment || "sandbox");
+        setSellerName(settingsData.seller_name || "");
+        setVatNumber(settingsData.vat_number || "");
+        setBuildingNumber(settingsData.building_number || "");
+        setStreet(settingsData.street || "");
+        setDistrict(settingsData.district || "");
+        setCity(settingsData.city || "");
+        setPostalCode(settingsData.postal_code || "");
+        setEnvironment(settingsData.environment || "sandbox");
       } else {
-        // Pre-fill from company data
         const { data: company } = await supabase
           .from("companies")
           .select("name, tax_number, address")
@@ -72,8 +96,7 @@ const ZatcaSettings = () => {
         }
       }
 
-      // Fetch logs
-      const { data: logsData } = await supabase
+      const { data: logsData } = await (supabase as any)
         .from("zatca_invoice_logs")
         .select("*, invoice:invoices(invoice_number, total, type)")
         .eq("company_id", companyId!)
@@ -104,9 +127,9 @@ const ZatcaSettings = () => {
       };
 
       if (settings) {
-        await supabase.from("zatca_settings").update(data).eq("company_id", companyId);
+        await (supabase as any).from("zatca_settings").update(data).eq("company_id", companyId);
       } else {
-        await supabase.from("zatca_settings").insert({ ...data, company_id: companyId });
+        await (supabase as any).from("zatca_settings").insert({ ...data, company_id: companyId });
       }
 
       toast.success(isRTL ? "تم حفظ بيانات البائع" : "Seller info saved");
@@ -147,8 +170,8 @@ const ZatcaSettings = () => {
     );
   }
 
-  const isConnected = settings && (settings as any).is_enabled;
-  const currentEnv = (settings as any)?.environment;
+  const isConnected = settings?.is_enabled;
+  const currentEnv = settings?.environment;
 
   return (
     <div className={`space-y-6 ${isRTL ? "rtl" : "ltr"}`}>
@@ -173,9 +196,9 @@ const ZatcaSettings = () => {
           <div className="flex items-center gap-4">
             {isConnected ? (
               <>
-                <CheckCircle2 className="h-8 w-8 text-green-500" />
+                <CheckCircle2 className="h-8 w-8 text-primary" />
                 <div>
-                  <p className="font-semibold text-green-700 dark:text-green-400">
+                  <p className="font-semibold text-primary">
                     {isRTL ? "مربوط" : "Connected"}
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -185,7 +208,7 @@ const ZatcaSettings = () => {
                     }
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {isRTL ? `عداد الفواتير (ICV): ${(settings as any)?.icv_counter || 0}` : `Invoice Counter (ICV): ${(settings as any)?.icv_counter || 0}`}
+                    {isRTL ? `عداد الفواتير (ICV): ${settings?.icv_counter || 0}` : `Invoice Counter (ICV): ${settings?.icv_counter || 0}`}
                   </p>
                 </div>
               </>
@@ -254,7 +277,7 @@ const ZatcaSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Onboarding / Connection */}
+      {/* Onboarding */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -293,7 +316,7 @@ const ZatcaSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Submission Logs */}
+      {/* Logs */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -323,7 +346,7 @@ const ZatcaSettings = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log: any) => {
+                  {logs.map((log) => {
                     const statusInfo = ZATCA_STATUS_MAP[log.submission_status as ZatcaStatus] || ZATCA_STATUS_MAP.pending;
                     return (
                       <TableRow key={log.id}>
