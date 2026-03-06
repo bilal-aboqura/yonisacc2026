@@ -242,11 +242,30 @@ const ViewInvoice = () => {
             <h1 className="text-xl font-bold">{isRTL ? config.titleAr : config.titleEn}</h1>
             <p className="text-sm text-muted-foreground">{isRTL ? "رقم:" : "#"} {invoice.invoice_number}</p>
           </div>
+          {/* ZATCA Status Badge */}
+          {(invoice as any).zatca_status && (invoice as any).zatca_status !== "not_submitted" && (
+            <Badge variant={ZATCA_STATUS_MAP[(invoice as any).zatca_status as ZatcaStatus]?.color || "secondary"}>
+              {isRTL 
+                ? ZATCA_STATUS_MAP[(invoice as any).zatca_status as ZatcaStatus]?.ar 
+                : ZATCA_STATUS_MAP[(invoice as any).zatca_status as ZatcaStatus]?.en
+              }
+            </Badge>
+          )}
         </div>
-        <Button onClick={handlePrint} variant="outline" className="gap-2">
-          <Printer className="h-4 w-4" />
-          {isRTL ? "طباعة" : "Print"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* ZATCA Submit Button - only for confirmed sales invoices not yet submitted */}
+          {invoice.type === "sale" && invoice.status === "confirmed" && 
+           (!(invoice as any).zatca_status || (invoice as any).zatca_status === "not_submitted") && (
+            <Button onClick={handleZatcaSubmit} disabled={submittingZatca} variant="outline" className="gap-2">
+              {submittingZatca ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isRTL ? "إرسال للهيئة" : "Submit to ZATCA"}
+            </Button>
+          )}
+          <Button onClick={handlePrint} variant="outline" className="gap-2">
+            <Printer className="h-4 w-4" />
+            {isRTL ? "طباعة" : "Print"}
+          </Button>
+        </div>
       </div>
 
       {/* ═══════ A4 Print Document ═══════ */}
