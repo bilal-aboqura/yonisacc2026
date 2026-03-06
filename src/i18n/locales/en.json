@@ -466,6 +466,26 @@
     "openingBalances": {
       "title": "Opening Balances",
       "subtitle": "Manage opening balances for accounts"
+    },
+    "gold": {
+      "title": "Gold & Jewelry",
+      "items": "Gold Items",
+      "purchases": "Gold Purchases",
+      "sales": "Gold Sales",
+      "prices": "Gold Prices",
+      "reports": "Gold Reports",
+      "karat": "Karat",
+      "weight": "Weight",
+      "makingCost": "Making Cost",
+      "stoneCost": "Stone Cost",
+      "goldCost": "Gold Cost",
+      "pricePerGram": "Price per Gram",
+      "itemType": "Item Type",
+      "barcode": "Barcode",
+      "totalWeight": "Total Weight",
+      "totalValue": "Total Value",
+      "confirmed": "Confirmed",
+      "draft": "Draft"
     }
   }
 }

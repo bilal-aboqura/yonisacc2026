@@ -248,7 +248,20 @@ const ClientLayout = () => {
         } else {
           items.push(...autoPartsFiltered);
         }
+    }
+
+    // Add gold & jewelry if company is gold type
+    if (isGoldCompany) {
+      const goldFiltered = filterByPermission([goldMenuGroup]);
+      if (goldFiltered.length > 0) {
+        const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
+        if (reportsIdx !== -1) {
+          items.splice(reportsIdx, 0, ...goldFiltered);
+        } else {
+          items.push(...goldFiltered);
+        }
       }
+    }
     }
 
     // Add danger zone for test owner
