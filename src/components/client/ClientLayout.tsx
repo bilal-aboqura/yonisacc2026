@@ -210,6 +210,7 @@ const ClientLayout = () => {
   const { isRTL } = useLanguage();
   const { signOut, user, isLoading } = useAuth();
   const { isAutoPartsCompany } = useAutoPartsAccess();
+  const { isGoldCompany } = useGoldAccess();
   const { status: subStatus } = useSubscriptionGuard();
   const { can } = useRBAC();
   const navigate = useNavigate();
