@@ -1451,6 +1451,369 @@ export type Database = {
         }
         Relationships: []
       }
+      gold_items: {
+        Row: {
+          barcode: string | null
+          company_id: string
+          created_at: string
+          gold_cost: number
+          id: string
+          is_active: boolean
+          item_type: string
+          karat: string
+          making_cost: number
+          name: string
+          name_en: string | null
+          product_id: string | null
+          stone_cost: number
+          updated_at: string
+          weight_grams: number
+        }
+        Insert: {
+          barcode?: string | null
+          company_id: string
+          created_at?: string
+          gold_cost?: number
+          id?: string
+          is_active?: boolean
+          item_type?: string
+          karat?: string
+          making_cost?: number
+          name: string
+          name_en?: string | null
+          product_id?: string | null
+          stone_cost?: number
+          updated_at?: string
+          weight_grams?: number
+        }
+        Update: {
+          barcode?: string | null
+          company_id?: string
+          created_at?: string
+          gold_cost?: number
+          id?: string
+          is_active?: boolean
+          item_type?: string
+          karat?: string
+          making_cost?: number
+          name?: string
+          name_en?: string | null
+          product_id?: string | null
+          stone_cost?: number
+          updated_at?: string
+          weight_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gold_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gold_price_settings: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          karat: string
+          price_date: string
+          price_per_gram: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          karat: string
+          price_date?: string
+          price_per_gram?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          karat?: string
+          price_date?: string
+          price_per_gram?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gold_price_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gold_purchase_invoice_items: {
+        Row: {
+          gold_item_id: string | null
+          id: string
+          invoice_id: string
+          karat: string
+          making_cost: number
+          price_per_gram: number
+          stone_cost: number
+          total: number
+          weight_grams: number
+        }
+        Insert: {
+          gold_item_id?: string | null
+          id?: string
+          invoice_id: string
+          karat?: string
+          making_cost?: number
+          price_per_gram?: number
+          stone_cost?: number
+          total?: number
+          weight_grams?: number
+        }
+        Update: {
+          gold_item_id?: string | null
+          id?: string
+          invoice_id?: string
+          karat?: string
+          making_cost?: number
+          price_per_gram?: number
+          stone_cost?: number
+          total?: number
+          weight_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gold_purchase_invoice_items_gold_item_id_fkey"
+            columns: ["gold_item_id"]
+            isOneToOne: false
+            referencedRelation: "gold_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_purchase_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "gold_purchase_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gold_purchase_invoices: {
+        Row: {
+          branch_id: string
+          company_id: string
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string
+          journal_entry_id: string | null
+          notes: string | null
+          status: string
+          total_amount: number
+          total_weight: number
+        }
+        Insert: {
+          branch_id: string
+          company_id: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          status?: string
+          total_amount?: number
+          total_weight?: number
+        }
+        Update: {
+          branch_id?: string
+          company_id?: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          status?: string
+          total_amount?: number
+          total_weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gold_purchase_invoices_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_purchase_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_purchase_invoices_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_purchase_invoices_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gold_sales_invoice_items: {
+        Row: {
+          gold_item_id: string | null
+          id: string
+          invoice_id: string
+          karat: string
+          making_cost: number
+          price_per_gram: number
+          stone_cost: number
+          total: number
+          weight_grams: number
+        }
+        Insert: {
+          gold_item_id?: string | null
+          id?: string
+          invoice_id: string
+          karat?: string
+          making_cost?: number
+          price_per_gram?: number
+          stone_cost?: number
+          total?: number
+          weight_grams?: number
+        }
+        Update: {
+          gold_item_id?: string | null
+          id?: string
+          invoice_id?: string
+          karat?: string
+          making_cost?: number
+          price_per_gram?: number
+          stone_cost?: number
+          total?: number
+          weight_grams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gold_sales_invoice_items_gold_item_id_fkey"
+            columns: ["gold_item_id"]
+            isOneToOne: false
+            referencedRelation: "gold_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_sales_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "gold_sales_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gold_sales_invoices: {
+        Row: {
+          branch_id: string
+          company_id: string
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string
+          journal_entry_id: string | null
+          notes: string | null
+          status: string
+          total_amount: number
+          total_weight: number
+        }
+        Insert: {
+          branch_id: string
+          company_id: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          status?: string
+          total_amount?: number
+          total_weight?: number
+        }
+        Update: {
+          branch_id?: string
+          company_id?: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          status?: string
+          total_amount?: number
+          total_weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gold_sales_invoices_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_sales_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_sales_invoices_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_sales_invoices_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_consumption_items: {
         Row: {
           consumption_id: string
@@ -3811,6 +4174,8 @@ export type Database = {
         Args: { p_company_id: string; p_usage_type: string }
         Returns: Json
       }
+      confirm_gold_purchase: { Args: { p_invoice_id: string }; Returns: Json }
+      confirm_gold_sale: { Args: { p_invoice_id: string }; Returns: Json }
       create_default_chart_of_accounts: {
         Args: { p_company_id: string }
         Returns: undefined
