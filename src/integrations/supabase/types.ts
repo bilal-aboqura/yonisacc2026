@@ -2116,6 +2116,7 @@ export type Database = {
           id: string
           invoice_date: string
           invoice_number: string
+          is_locked: boolean | null
           journal_entry_id: string | null
           notes: string | null
           paid_amount: number | null
@@ -2142,6 +2143,7 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_number: string
+          is_locked?: boolean | null
           journal_entry_id?: string | null
           notes?: string | null
           paid_amount?: number | null
@@ -2168,6 +2170,7 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_number?: string
+          is_locked?: boolean | null
           journal_entry_id?: string | null
           notes?: string | null
           paid_amount?: number | null
@@ -4226,6 +4229,57 @@ export type Database = {
           },
           {
             foreignKeyName: "zatca_invoice_logs_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zatca_retry_queue: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          invoice_id: string
+          last_error: string | null
+          max_retries: number
+          next_retry_at: string
+          retry_count: number
+          status: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          invoice_id: string
+          last_error?: string | null
+          max_retries?: number
+          next_retry_at?: string
+          retry_count?: number
+          status?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          last_error?: string | null
+          max_retries?: number
+          next_retry_at?: string
+          retry_count?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zatca_retry_queue_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zatca_retry_queue_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
