@@ -1814,6 +1814,430 @@ export type Database = {
           },
         ]
       }
+      hr_attendance: {
+        Row: {
+          attendance_date: string
+          check_in: string | null
+          check_out: string | null
+          company_id: string
+          created_at: string | null
+          employee_id: string
+          id: string
+          notes: string | null
+          status: string | null
+        }
+        Insert: {
+          attendance_date?: string
+          check_in?: string | null
+          check_out?: string | null
+          company_id: string
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          notes?: string | null
+          status?: string | null
+        }
+        Update: {
+          attendance_date?: string
+          check_in?: string | null
+          check_out?: string | null
+          company_id?: string
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_attendance_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_departments: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          manager_name: string | null
+          name: string
+          name_en: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_name?: string | null
+          name: string
+          name_en?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_name?: string | null
+          name?: string
+          name_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_departments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_employees: {
+        Row: {
+          bank_iban: string | null
+          bank_name: string | null
+          basic_salary: number
+          company_id: string
+          created_at: string | null
+          department_id: string | null
+          email: string | null
+          employee_number: string
+          hire_date: string
+          housing_allowance: number | null
+          id: string
+          job_title: string | null
+          job_title_en: string | null
+          name: string
+          name_en: string | null
+          national_id: string | null
+          other_allowance: number | null
+          phone: string | null
+          status: string | null
+          termination_date: string | null
+          termination_reason: string | null
+          transport_allowance: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          bank_iban?: string | null
+          bank_name?: string | null
+          basic_salary?: number
+          company_id: string
+          created_at?: string | null
+          department_id?: string | null
+          email?: string | null
+          employee_number: string
+          hire_date?: string
+          housing_allowance?: number | null
+          id?: string
+          job_title?: string | null
+          job_title_en?: string | null
+          name: string
+          name_en?: string | null
+          national_id?: string | null
+          other_allowance?: number | null
+          phone?: string | null
+          status?: string | null
+          termination_date?: string | null
+          termination_reason?: string | null
+          transport_allowance?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          bank_iban?: string | null
+          bank_name?: string | null
+          basic_salary?: number
+          company_id?: string
+          created_at?: string | null
+          department_id?: string | null
+          email?: string | null
+          employee_number?: string
+          hire_date?: string
+          housing_allowance?: number | null
+          id?: string
+          job_title?: string | null
+          job_title_en?: string | null
+          name?: string
+          name_en?: string | null
+          national_id?: string | null
+          other_allowance?: number | null
+          phone?: string | null
+          status?: string | null
+          termination_date?: string | null
+          termination_reason?: string | null
+          transport_allowance?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "hr_departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_leaves: {
+        Row: {
+          approved_by: string | null
+          company_id: string
+          created_at: string | null
+          days_count: number
+          employee_id: string
+          end_date: string
+          id: string
+          leave_type: string
+          notes: string | null
+          start_date: string
+          status: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          company_id: string
+          created_at?: string | null
+          days_count?: number
+          employee_id: string
+          end_date: string
+          id?: string
+          leave_type?: string
+          notes?: string | null
+          start_date: string
+          status?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          company_id?: string
+          created_at?: string | null
+          days_count?: number
+          employee_id?: string
+          end_date?: string
+          id?: string
+          leave_type?: string
+          notes?: string | null
+          start_date?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_leaves_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_leaves_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_loans: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string | null
+          employee_id: string
+          id: string
+          journal_entry_id: string | null
+          loan_type: string | null
+          monthly_deduction: number
+          notes: string | null
+          remaining: number | null
+          start_date: string
+          status: string | null
+          total_paid: number | null
+        }
+        Insert: {
+          amount?: number
+          company_id: string
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          journal_entry_id?: string | null
+          loan_type?: string | null
+          monthly_deduction?: number
+          notes?: string | null
+          remaining?: number | null
+          start_date?: string
+          status?: string | null
+          total_paid?: number | null
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          journal_entry_id?: string | null
+          loan_type?: string | null
+          monthly_deduction?: number
+          notes?: string | null
+          remaining?: number | null
+          start_date?: string
+          status?: string | null
+          total_paid?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_loans_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_loans_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_payroll_items: {
+        Row: {
+          absence_deduction: number | null
+          basic_salary: number | null
+          employee_id: string
+          housing_allowance: number | null
+          id: string
+          loan_deduction: number | null
+          net_salary: number | null
+          other_allowance: number | null
+          other_deduction: number | null
+          payroll_run_id: string
+          total_allowances: number | null
+          total_deductions: number | null
+          transport_allowance: number | null
+        }
+        Insert: {
+          absence_deduction?: number | null
+          basic_salary?: number | null
+          employee_id: string
+          housing_allowance?: number | null
+          id?: string
+          loan_deduction?: number | null
+          net_salary?: number | null
+          other_allowance?: number | null
+          other_deduction?: number | null
+          payroll_run_id: string
+          total_allowances?: number | null
+          total_deductions?: number | null
+          transport_allowance?: number | null
+        }
+        Update: {
+          absence_deduction?: number | null
+          basic_salary?: number | null
+          employee_id?: string
+          housing_allowance?: number | null
+          id?: string
+          loan_deduction?: number | null
+          net_salary?: number | null
+          other_allowance?: number | null
+          other_deduction?: number | null
+          payroll_run_id?: string
+          total_allowances?: number | null
+          total_deductions?: number | null
+          transport_allowance?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_payroll_items_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_payroll_items_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "hr_payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_payroll_runs: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          journal_entry_id: string | null
+          period_month: number
+          period_year: number
+          run_date: string | null
+          run_number: string
+          status: string | null
+          total_allowances: number | null
+          total_basic: number | null
+          total_deductions: number | null
+          total_net: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          period_month: number
+          period_year: number
+          run_date?: string | null
+          run_number: string
+          status?: string | null
+          total_allowances?: number | null
+          total_basic?: number | null
+          total_deductions?: number | null
+          total_net?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          period_month?: number
+          period_year?: number
+          run_date?: string | null
+          run_number?: string
+          status?: string | null
+          total_allowances?: number | null
+          total_basic?: number | null
+          total_deductions?: number | null
+          total_net?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_payroll_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_consumption_items: {
         Row: {
           consumption_id: string
