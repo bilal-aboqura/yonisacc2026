@@ -42,9 +42,9 @@ const CreateGoldItem = () => {
   const { data: goldPrice } = useQuery({
     queryKey: ["gold-price-latest", companyId, form.karat],
     queryFn: async () => {
-      if (!companyId) return null;
-      const { data } = await supabase
-        .from("gold_price_settings" as any)
+      if (!companyId) return 0;
+      const { data } = await (supabase as any)
+        .from("gold_price_settings")
         .select("price_per_gram")
         .eq("company_id", companyId)
         .eq("karat", form.karat)
@@ -59,7 +59,7 @@ const CreateGoldItem = () => {
   // Load existing item for edit
   useEffect(() => {
     if (isEdit && companyId) {
-      supabase.from("gold_items" as any).select("*").eq("id", id).single().then(({ data }) => {
+      (supabase as any).from("gold_items").select("*").eq("id", id).single().then(({ data }: any) => {
         if (data) setForm({
           name: data.name || "", name_en: data.name_en || "", karat: data.karat || "21k",
           weight_grams: String(data.weight_grams || ""), item_type: data.item_type || "ring",
@@ -102,7 +102,7 @@ const CreateGoldItem = () => {
         productId = prod.id;
       }
 
-      const payload: any = {
+      const payload = {
         company_id: companyId,
         name: form.name,
         name_en: form.name_en || null,
@@ -114,14 +114,14 @@ const CreateGoldItem = () => {
         gold_cost: goldCost,
         barcode: form.barcode || null,
         updated_at: new Date().toISOString(),
-      };
+      } as any;
 
       if (isEdit) {
-        const { error } = await supabase.from("gold_items" as any).update(payload).eq("id", id);
+        const { error } = await (supabase as any).from("gold_items").update(payload).eq("id", id);
         if (error) throw error;
       } else {
         payload.product_id = productId;
-        const { error } = await supabase.from("gold_items" as any).insert(payload);
+        const { error } = await (supabase as any).from("gold_items").insert(payload);
         if (error) throw error;
       }
     },
