@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, Printer, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Printer, Loader2, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyId } from "@/hooks/useCompanyId";
@@ -10,6 +11,8 @@ import { usePrintSettings } from "@/hooks/usePrintSettings";
 import { useLanguage } from "@/hooks/useLanguage";
 import { toast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
+import { ZATCA_STATUS_MAP, type ZatcaStatus } from "@/lib/zatcaUtils";
+import { toast as sonnerToast } from "sonner";
 
 interface InvoiceItem {
   id: string;
