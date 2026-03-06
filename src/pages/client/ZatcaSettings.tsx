@@ -10,9 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, CheckCircle2, XCircle, Shield, Link2, FileText } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Shield, Link2, FileText, Download, RefreshCw, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
-import { ZATCA_STATUS_MAP, ZATCA_ENV_MAP, type ZatcaStatus } from "@/lib/zatcaUtils";
+import { ZATCA_STATUS_MAP, type ZatcaStatus } from "@/lib/zatcaUtils";
 
 interface ZatcaSettingsData {
   id: string;
@@ -37,7 +37,19 @@ interface ZatcaLogEntry {
   submission_status: string;
   invoice_type: string;
   submitted_at: string | null;
+  xml_content: string | null;
   invoice: { invoice_number: string; total: number; type: string } | null;
+}
+
+interface RetryQueueEntry {
+  id: string;
+  invoice_id: string;
+  retry_count: number;
+  max_retries: number;
+  next_retry_at: string;
+  last_error: string | null;
+  status: string;
+  created_at: string;
 }
 
 const ZatcaSettings = () => {
@@ -50,6 +62,8 @@ const ZatcaSettings = () => {
   const [onboarding, setOnboarding] = useState(false);
   const [settings, setSettings] = useState<ZatcaSettingsData | null>(null);
   const [logs, setLogs] = useState<ZatcaLogEntry[]>([]);
+  const [retryQueue, setRetryQueue] = useState<RetryQueueEntry[]>([]);
+  const [stats, setStats] = useState({ total: 0, cleared: 0, reported: 0, rejected: 0, pending: 0 });
 
   // Form state
   const [sellerName, setSellerName] = useState("");
@@ -96,14 +110,34 @@ const ZatcaSettings = () => {
         }
       }
 
+      // Fetch logs
       const { data: logsData } = await (supabase as any)
         .from("zatca_invoice_logs")
         .select("*, invoice:invoices(invoice_number, total, type)")
         .eq("company_id", companyId!)
         .order("created_at", { ascending: false })
         .limit(20);
-
       setLogs(logsData || []);
+
+      // Calculate stats
+      const allLogs = logsData || [];
+      setStats({
+        total: allLogs.length,
+        cleared: allLogs.filter((l: any) => l.submission_status === "cleared").length,
+        reported: allLogs.filter((l: any) => l.submission_status === "reported").length,
+        rejected: allLogs.filter((l: any) => l.submission_status === "rejected").length,
+        pending: allLogs.filter((l: any) => l.submission_status === "pending").length,
+      });
+
+      // Fetch retry queue
+      const { data: retryData } = await (supabase as any)
+        .from("zatca_retry_queue")
+        .select("*")
+        .eq("company_id", companyId!)
+        .in("status", ["pending", "processing"])
+        .order("created_at", { ascending: false });
+      setRetryQueue(retryData || []);
+
     } catch (err) {
       console.error(err);
     } finally {
@@ -162,6 +196,31 @@ const ZatcaSettings = () => {
     }
   };
 
+  const handleRetryManual = async (retryId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("zatca-retry", {});
+      if (error) throw error;
+      toast.success(isRTL ? "تم إعادة المحاولة" : "Retry processed");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.message || (isRTL ? "فشل في إعادة المحاولة" : "Retry failed"));
+    }
+  };
+
+  const downloadXML = (log: ZatcaLogEntry) => {
+    if (!log.xml_content) {
+      toast.error(isRTL ? "لا يوجد محتوى XML" : "No XML content");
+      return;
+    }
+    const blob = new Blob([log.xml_content], { type: "application/xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `invoice-${log.uuid?.substring(0, 8)}.xml`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -184,6 +243,24 @@ const ZatcaSettings = () => {
         </p>
       </div>
 
+      {/* Stats Dashboard */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {[
+          { label: isRTL ? "إجمالي المرسلة" : "Total Submitted", value: stats.total, color: "text-foreground" },
+          { label: isRTL ? "معتمدة (Cleared)" : "Cleared", value: stats.cleared, color: "text-emerald-600" },
+          { label: isRTL ? "مُبلغ عنها (Reported)" : "Reported", value: stats.reported, color: "text-blue-600" },
+          { label: isRTL ? "مرفوضة (Rejected)" : "Rejected", value: stats.rejected, color: "text-destructive" },
+          { label: isRTL ? "قيد الانتظار" : "Pending", value: stats.pending, color: "text-amber-600" },
+        ].map((stat, i) => (
+          <Card key={i}>
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       {/* Connection Status */}
       <Card>
         <CardHeader>
@@ -202,10 +279,7 @@ const ZatcaSettings = () => {
                     {isRTL ? "مربوط" : "Connected"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {isRTL 
-                      ? `البيئة: ${ZATCA_ENV_MAP[currentEnv as keyof typeof ZATCA_ENV_MAP]?.ar || currentEnv}`
-                      : `Environment: ${ZATCA_ENV_MAP[currentEnv as keyof typeof ZATCA_ENV_MAP]?.en || currentEnv}`
-                    }
+                    {isRTL ? `البيئة: ${currentEnv === "production" ? "إنتاج" : "اختبار"}` : `Environment: ${currentEnv}`}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {isRTL ? `عداد الفواتير (ICV): ${settings?.icv_counter || 0}` : `Invoice Counter (ICV): ${settings?.icv_counter || 0}`}
@@ -316,7 +390,57 @@ const ZatcaSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Logs */}
+      {/* Retry Queue */}
+      {retryQueue.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5" />
+              {isRTL ? "طابور إعادة الإرسال" : "Retry Queue"}
+            </CardTitle>
+            <CardDescription>
+              {isRTL ? "الفواتير التي فشل إرسالها وتنتظر إعادة المحاولة" : "Failed invoices awaiting retry"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{isRTL ? "الفاتورة" : "Invoice"}</TableHead>
+                  <TableHead>{isRTL ? "المحاولات" : "Retries"}</TableHead>
+                  <TableHead>{isRTL ? "المحاولة التالية" : "Next Retry"}</TableHead>
+                  <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
+                  <TableHead>{isRTL ? "إجراء" : "Action"}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {retryQueue.map((retry) => (
+                  <TableRow key={retry.id}>
+                    <TableCell className="font-mono text-sm">{retry.invoice_id.substring(0, 8)}...</TableCell>
+                    <TableCell>{retry.retry_count}/{retry.max_retries}</TableCell>
+                    <TableCell className="text-sm">
+                      {new Date(retry.next_retry_at).toLocaleString(isRTL ? "ar-SA" : "en-US")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={retry.status === "processing" ? "default" : "secondary"}>
+                        {retry.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline" onClick={() => handleRetryManual(retry.id)}>
+                        <RefreshCw className="h-3 w-3 me-1" />
+                        {isRTL ? "إعادة" : "Retry"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Submission Logs */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -343,6 +467,7 @@ const ZatcaSettings = () => {
                     <TableHead>ICV</TableHead>
                     <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
                     <TableHead>{isRTL ? "تاريخ الإرسال" : "Submitted"}</TableHead>
+                    <TableHead>XML</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -375,6 +500,13 @@ const ZatcaSettings = () => {
                             ? new Date(log.submitted_at).toLocaleDateString(isRTL ? "ar-SA" : "en-US")
                             : "-"
                           }
+                        </TableCell>
+                        <TableCell>
+                          {log.xml_content && (
+                            <Button size="sm" variant="ghost" onClick={() => downloadXML(log)}>
+                              <Download className="h-3 w-3" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );

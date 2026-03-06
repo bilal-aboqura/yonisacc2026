@@ -9,6 +9,23 @@ const corsHeaders = {
 const ZATCA_SANDBOX_URL = "https://gw-fatoora.zatca.gov.sa/e-invoicing/developer-portal";
 const ZATCA_PRODUCTION_URL = "https://gw-fatoora.zatca.gov.sa/e-invoicing/core";
 
+// Schema validation for invoice before submission
+function validateInvoice(invoice: Record<string, unknown>, items: Array<Record<string, unknown>>, company: Record<string, unknown>, zatcaSettings: Record<string, unknown>): string[] {
+  const errors: string[] = [];
+  if (!invoice.invoice_number) errors.push("Missing invoice_number");
+  if (!invoice.invoice_date) errors.push("Missing invoice_date");
+  if (!invoice.total && invoice.total !== 0) errors.push("Missing total");
+  if (!company.name) errors.push("Missing company name");
+  if (!zatcaSettings.vat_number && !company.tax_number) errors.push("Missing VAT number");
+  if (!zatcaSettings.seller_name && !company.name) errors.push("Missing seller name");
+  if (!items || items.length === 0) errors.push("No invoice items");
+  items?.forEach((item, idx) => {
+    if (!item.quantity) errors.push(`Item ${idx + 1}: missing quantity`);
+    if (!item.unit_price && item.unit_price !== 0) errors.push(`Item ${idx + 1}: missing unit_price`);
+  });
+  return errors;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -19,7 +36,6 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -75,7 +91,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch invoice with items and contact
+    // Fetch invoice with contact
     const { data: invoice } = await supabase
       .from("invoices")
       .select("*, contact:contacts(*)")
@@ -90,13 +106,30 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Check if already locked
+    if (invoice.is_locked) {
+      return new Response(JSON.stringify({ error: "Invoice is already locked/submitted" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: items } = await supabase
       .from("invoice_items")
       .select("*, product:products(name, name_en, sku)")
       .eq("invoice_id", invoice_id)
       .order("sort_order");
 
-    // Generate UUID for this invoice
+    // Schema validation
+    const validationErrors = validateInvoice(invoice, items || [], company, zatcaSettings);
+    if (validationErrors.length > 0) {
+      return new Response(JSON.stringify({ error: "Validation failed", details: validationErrors }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Generate UUID
     const invoiceUUID = invoice.zatca_uuid || crypto.randomUUID();
 
     // Increment ICV
@@ -104,7 +137,7 @@ Deno.serve(async (req) => {
     const previousHash = zatcaSettings.last_invoice_hash || 
       "NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI0NjcyOWQ3M2EyN2ZiNTdlOQ==";
 
-    // Determine invoice type (B2B standard vs B2C simplified)
+    // Determine invoice type
     const invoiceType = invoice.contact?.tax_number ? "standard" : "simplified";
 
     // Build UBL 2.1 XML
@@ -142,6 +175,7 @@ Deno.serve(async (req) => {
     
     let submissionStatus = "pending";
     let zatcaResponse: Record<string, unknown> = {};
+    let shouldRetry = false;
 
     try {
       const endpoint = invoiceType === "standard" 
@@ -172,7 +206,6 @@ Deno.serve(async (req) => {
       if (submitResponse.ok) {
         submissionStatus = invoiceType === "standard" ? "cleared" : "reported";
       } else {
-        // In sandbox, treat as success for testing
         if (env === "sandbox") {
           submissionStatus = invoiceType === "standard" ? "cleared" : "reported";
           zatcaResponse = { 
@@ -182,6 +215,7 @@ Deno.serve(async (req) => {
           };
         } else {
           submissionStatus = "rejected";
+          shouldRetry = true;
         }
       }
     } catch (fetchError) {
@@ -191,6 +225,7 @@ Deno.serve(async (req) => {
         zatcaResponse = { sandbox_note: "Sandbox mode - API unreachable, treated as successful" };
       } else {
         submissionStatus = "rejected";
+        shouldRetry = true;
         zatcaResponse = { error: "Failed to connect to ZATCA API" };
       }
     }
@@ -211,10 +246,12 @@ Deno.serve(async (req) => {
       submitted_at: new Date().toISOString(),
     });
 
-    // Update invoice
+    // Update invoice - lock if successful
+    const isSuccess = submissionStatus === "cleared" || submissionStatus === "reported";
     await supabase.from("invoices").update({
       zatca_uuid: invoiceUUID,
       zatca_status: submissionStatus,
+      is_locked: isSuccess,
     }).eq("id", invoice_id);
 
     // Update ZATCA settings (ICV + hash)
@@ -224,6 +261,17 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     }).eq("company_id", company_id);
 
+    // Add to retry queue if failed
+    if (shouldRetry) {
+      await supabase.from("zatca_retry_queue").insert({
+        company_id,
+        invoice_id,
+        status: "pending",
+        last_error: JSON.stringify(zatcaResponse),
+        next_retry_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 min
+      });
+    }
+
     return new Response(JSON.stringify({
       success: true,
       status: submissionStatus,
@@ -231,6 +279,7 @@ Deno.serve(async (req) => {
       icv: newICV,
       qr_code: qrData,
       invoice_type: invoiceType,
+      validation_errors: [],
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -260,7 +309,7 @@ function buildUBLXML(params: BuildXMLParams): string {
   const { invoice, items, company, zatcaSettings, uuid, icv, pih, invoiceType } = params;
   const contact = (invoice.contact as Record<string, unknown>) || {};
   
-  const invoiceTypeCode = invoiceType === "standard" ? "388" : "388";
+  const invoiceTypeCode = "388";
   const subType = invoiceType === "standard" ? "0100000" : "0200000";
 
   const lineItems = (items || []).map((item, idx) => {
@@ -287,11 +336,29 @@ function buildUBLXML(params: BuildXMLParams): string {
     </cac:InvoiceLine>`;
   }).join("\n");
 
+  // Generate QR for embedding in XML
+  const qrData = generateZatcaQR(
+    (zatcaSettings.seller_name as string) || (company.name as string),
+    (zatcaSettings.vat_number as string) || (company.tax_number as string) || "",
+    new Date(invoice.invoice_date as string).toISOString(),
+    (invoice.total as number) || 0,
+    (invoice.tax_amount as number) || 0,
+    "" // hash not yet available at XML build time
+  );
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
          xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
          xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2">
+  <ext:UBLExtensions>
+    <ext:UBLExtension>
+      <ext:ExtensionURI>urn:oasis:names:specification:ubl:dsig:enveloped:xades</ext:ExtensionURI>
+      <ext:ExtensionContent>
+        <!-- Digital Signature Placeholder -->
+      </ext:ExtensionContent>
+    </ext:UBLExtension>
+  </ext:UBLExtensions>
   <cbc:ProfileID>reporting:1.0</cbc:ProfileID>
   <cbc:ID>${invoice.invoice_number}</cbc:ID>
   <cbc:UUID>${uuid}</cbc:UUID>
@@ -308,6 +375,12 @@ function buildUBLXML(params: BuildXMLParams): string {
     <cbc:ID>PIH</cbc:ID>
     <cac:Attachment>
       <cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">${pih}</cbc:EmbeddedDocumentBinaryObject>
+    </cac:Attachment>
+  </cac:AdditionalDocumentReference>
+  <cac:AdditionalDocumentReference>
+    <cbc:ID>QR</cbc:ID>
+    <cac:Attachment>
+      <cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">${qrData}</cbc:EmbeddedDocumentBinaryObject>
     </cac:Attachment>
   </cac:AdditionalDocumentReference>
   <cac:AccountingSupplierParty>
@@ -394,8 +467,10 @@ function generateZatcaQR(
     encodeTLV(3, timestamp),
     encodeTLV(4, total.toFixed(2)),
     encodeTLV(5, vatAmount.toFixed(2)),
-    encodeTLV(6, invoiceHash),
   ];
+  if (invoiceHash) {
+    parts.push(encodeTLV(6, invoiceHash));
+  }
 
   const totalLen = parts.reduce((s, p) => s + p.length, 0);
   const combined = new Uint8Array(totalLen);
