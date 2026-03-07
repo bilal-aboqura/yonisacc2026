@@ -37,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useActivePaymentMethods } from "@/hooks/useActivePaymentMethods";
+import { fetchCompanyId } from "@/hooks/useCompanyId";
 
 interface Contact {
   id: string;
@@ -110,30 +111,22 @@ const CreateTreasuryTransaction = forwardRef<HTMLDivElement>((_, ref) => {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const { data: companyData, error: companyError } = await supabase
-        .from("companies")
-        .select("id")
-        .eq("owner_id", user?.id)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const resolvedCompanyId = await fetchCompanyId(user!.id);
 
-      if (companyError) throw companyError;
-      if (!companyData) throw new Error("NO_ACTIVE_COMPANY");
+      if (!resolvedCompanyId) throw new Error("NO_ACTIVE_COMPANY");
 
-      setCompanyId(companyData.id);
+      setCompanyId(resolvedCompanyId);
 
       const [contactsRes, accountsRes] = await Promise.all([
         supabase
           .from("contacts")
           .select("id, name, name_en, type, account_id")
-          .eq("company_id", companyData.id)
+          .eq("company_id", resolvedCompanyId)
           .eq("is_active", true),
         supabase
           .from("accounts")
           .select("id, code, name, name_en")
-          .eq("company_id", companyData.id)
+          .eq("company_id", resolvedCompanyId)
           .eq("is_active", true)
           .or("is_parent.is.null,is_parent.eq.false")
           .like("code", "111%")
