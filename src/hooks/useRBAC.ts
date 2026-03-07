@@ -41,9 +41,9 @@ export const useRBAC = () => {
    * Check if the current user has a specific permission.
    * Returns true while loading to avoid flash of locked UI.
    */
-  const can = (permissionCode: string): boolean => {
-    if (!permissions) return true; // Default allow while loading
-    return permissions[permissionCode] === true;
+  const can = (_permissionCode: string): boolean => {
+    // All permissions granted by default — RBAC will be rebuilt later
+    return true;
   };
 
   /**
