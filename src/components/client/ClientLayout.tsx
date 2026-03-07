@@ -62,6 +62,9 @@ import {
   Wrench,
   Factory,
   Gem,
+  Monitor,
+  UtensilsCrossed,
+  Gift,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -148,6 +151,20 @@ const baseMenuItems: MenuItem[] = [
       { icon: Wrench, label: "الاستهلاك الداخلي", labelEn: "Internal Consumption", path: "/client/inventory/consumptions", permission: "VIEW_CONSUMPTIONS" },
       { icon: Factory, label: "التصنيع", labelEn: "Manufacturing", path: "/client/inventory/manufacturing", permission: "VIEW_MANUFACTURING" },
       { icon: BarChart3, label: "تقارير المخزون", labelEn: "Inventory Reports", path: "/client/inventory/reports", permission: "VIEW_INVENTORY_REPORTS" },
+    ]
+  },
+  {
+    icon: Monitor,
+    label: "نقاط البيع",
+    labelEn: "Point of Sale",
+    children: [
+      { icon: Monitor, label: "شاشة البيع", labelEn: "POS Screen", path: "/client/pos", permission: "VIEW_POS" },
+      { icon: UtensilsCrossed, label: "الطاولات", labelEn: "Tables", path: "/client/pos/tables", permission: "MANAGE_POS_TABLES" },
+      { icon: ClipboardList, label: "المنيو", labelEn: "Menus", path: "/client/pos/menus", permission: "MANAGE_POS_MENUS" },
+      { icon: Gift, label: "العروض", labelEn: "Promotions", path: "/client/pos/promotions", permission: "MANAGE_POS_PROMOTIONS" },
+      { icon: Target, label: "الأهداف", labelEn: "Targets", path: "/client/pos/targets", permission: "MANAGE_POS_TARGETS" },
+      { icon: BarChart3, label: "تقارير POS", labelEn: "POS Reports", path: "/client/pos/reports", permission: "VIEW_POS_REPORTS" },
+      { icon: Settings, label: "إعدادات POS", labelEn: "POS Settings", path: "/client/pos/settings", permission: "MANAGE_POS" },
     ]
   },
   {
