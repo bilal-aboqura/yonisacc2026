@@ -379,6 +379,7 @@ const App = () => (
               <Route path="delivery/areas/:id/edit" element={<CreateDeliveryArea />} />
               <Route path="delivery/reports" element={<DeliveryReports />} />
               <Route path="delivery/setup" element={<DeliveryAccountSetup />} />
+              <Route path="delivery/settlement" element={<DriverSettlement />} />
 
               {/* Gold & Jewelry */}
               <Route path="gold/items" element={<GoldItems />} />
