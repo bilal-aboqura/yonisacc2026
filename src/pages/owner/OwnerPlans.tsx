@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Loader2, CreditCard, Plus, X, Package, Shield, BarChart3, FileText } from "lucide-react";
+import { Pencil, Trash2, Loader2, CreditCard, Plus, X, Shield, BarChart3, FileText, Users, Building2, FileBarChart, BookOpen } from "lucide-react";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
 
 interface Plan {
@@ -31,12 +31,6 @@ interface Plan {
   max_sales_invoices: number | null;
   max_purchase_invoices: number | null;
   max_journal_entries: number | null;
-  module_sales: boolean;
-  module_purchases: boolean;
-  module_reports: boolean;
-  module_inventory: boolean;
-  module_hr: boolean;
-  module_auto_parts: boolean;
   features_ar: string[] | null;
   features_en: string[] | null;
   not_included_ar: string[] | null;
@@ -59,12 +53,6 @@ interface FormData {
   max_sales_invoices: string;
   max_purchase_invoices: string;
   max_journal_entries: string;
-  module_sales: boolean;
-  module_purchases: boolean;
-  module_reports: boolean;
-  module_inventory: boolean;
-  module_hr: boolean;
-  module_auto_parts: boolean;
   features_ar: string[];
   features_en: string[];
   not_included_ar: string[];
@@ -78,8 +66,6 @@ const defaultForm: FormData = {
   price: 0, duration_months: 1,
   max_invoices: "", max_entries: "", max_users: "", max_branches: "",
   max_sales_invoices: "", max_purchase_invoices: "", max_journal_entries: "",
-  module_sales: true, module_purchases: true, module_reports: true,
-  module_inventory: true, module_hr: false, module_auto_parts: false,
   features_ar: [], features_en: [], not_included_ar: [], not_included_en: [],
   is_active: true, sort_order: 0,
 };
@@ -113,9 +99,6 @@ const OwnerPlans = () => {
         max_sales_invoices: data.max_sales_invoices ? parseInt(data.max_sales_invoices) : null,
         max_purchase_invoices: data.max_purchase_invoices ? parseInt(data.max_purchase_invoices) : null,
         max_journal_entries: data.max_journal_entries ? parseInt(data.max_journal_entries) : null,
-        module_sales: data.module_sales, module_purchases: data.module_purchases,
-        module_reports: data.module_reports, module_inventory: data.module_inventory,
-        module_hr: data.module_hr, module_auto_parts: data.module_auto_parts,
         features_ar: data.features_ar.length ? data.features_ar : [],
         features_en: data.features_en.length ? data.features_en : [],
         not_included_ar: data.not_included_ar.length ? data.not_included_ar : [],
@@ -168,9 +151,6 @@ const OwnerPlans = () => {
       max_sales_invoices: plan.max_sales_invoices?.toString() || "",
       max_purchase_invoices: plan.max_purchase_invoices?.toString() || "",
       max_journal_entries: plan.max_journal_entries?.toString() || "",
-      module_sales: plan.module_sales, module_purchases: plan.module_purchases,
-      module_reports: plan.module_reports, module_inventory: plan.module_inventory,
-      module_hr: plan.module_hr, module_auto_parts: plan.module_auto_parts,
       features_ar: plan.features_ar || [], features_en: plan.features_en || [],
       not_included_ar: plan.not_included_ar || [], not_included_en: plan.not_included_en || [],
       is_active: plan.is_active, sort_order: plan.sort_order || 0,
@@ -178,9 +158,15 @@ const OwnerPlans = () => {
     setIsDialogOpen(true);
   };
 
-  const activeModulesCount = (p: Plan) => {
-    return [p.module_sales, p.module_purchases, p.module_reports, p.module_inventory, p.module_hr, p.module_auto_parts].filter(Boolean).length;
-  };
+  const limitsConfig = [
+    { key: "max_users" as const, ar: "المستخدمين", en: "Users", icon: Users },
+    { key: "max_branches" as const, ar: "الفروع", en: "Branches", icon: Building2 },
+    { key: "max_sales_invoices" as const, ar: "فواتير المبيعات/شهر", en: "Sales Invoices/mo", icon: FileBarChart },
+    { key: "max_purchase_invoices" as const, ar: "فواتير المشتريات/شهر", en: "Purchase Invoices/mo", icon: FileBarChart },
+    { key: "max_journal_entries" as const, ar: "القيود المحاسبية/شهر", en: "Journal Entries/mo", icon: BookOpen },
+    { key: "max_invoices" as const, ar: "إجمالي الفواتير", en: "Total Invoices", icon: FileBarChart },
+    { key: "max_entries" as const, ar: "إجمالي القيود", en: "Total Entries", icon: BookOpen },
+  ];
 
   return (
     <div className="space-y-6">
@@ -203,13 +189,12 @@ const OwnerPlans = () => {
               </p>
             </div>
           )},
-          { key: "modules", header: isRTL ? "الوحدات" : "Modules", render: (p: Plan) => (
-            <Badge variant="secondary" className="font-mono">{activeModulesCount(p)}/6</Badge>
-          ), hideOnMobile: true },
           { key: "limits", header: isRTL ? "الحدود" : "Limits", render: (p: Plan) => (
             <div className="text-xs space-y-0.5">
-              <p>{isRTL ? "مستخدمين" : "Users"}: <span className="font-medium">{p.max_users || "∞"}</span></p>
-              <p>{isRTL ? "فروع" : "Branches"}: <span className="font-medium">{p.max_branches || "∞"}</span></p>
+              <p><Users className="inline h-3 w-3 me-1 text-muted-foreground" />{isRTL ? "مستخدمين" : "Users"}: <span className="font-medium">{p.max_users || "∞"}</span></p>
+              <p><Building2 className="inline h-3 w-3 me-1 text-muted-foreground" />{isRTL ? "فروع" : "Branches"}: <span className="font-medium">{p.max_branches || "∞"}</span></p>
+              <p><FileBarChart className="inline h-3 w-3 me-1 text-muted-foreground" />{isRTL ? "فواتير/شهر" : "Invoices/mo"}: <span className="font-medium">{p.max_sales_invoices || "∞"}</span></p>
+              <p><BookOpen className="inline h-3 w-3 me-1 text-muted-foreground" />{isRTL ? "قيود/شهر" : "Entries/mo"}: <span className="font-medium">{p.max_journal_entries || "∞"}</span></p>
             </div>
           ), hideOnMobile: true },
           { key: "status", header: isRTL ? "الحالة" : "Status", render: (p: Plan) => (
@@ -236,14 +221,10 @@ const OwnerPlans = () => {
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(formData); }}>
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="w-full grid grid-cols-4 mb-4">
+              <TabsList className="w-full grid grid-cols-3 mb-4">
                 <TabsTrigger value="basic" className="gap-1.5 text-xs sm:text-sm">
                   <FileText className="h-3.5 w-3.5 hidden sm:block" />
                   {isRTL ? "أساسي" : "Basic"}
-                </TabsTrigger>
-                <TabsTrigger value="modules" className="gap-1.5 text-xs sm:text-sm">
-                  <Package className="h-3.5 w-3.5 hidden sm:block" />
-                  {isRTL ? "الوحدات" : "Modules"}
                 </TabsTrigger>
                 <TabsTrigger value="limits" className="gap-1.5 text-xs sm:text-sm">
                   <Shield className="h-3.5 w-3.5 hidden sm:block" />
@@ -297,48 +278,18 @@ const OwnerPlans = () => {
                 </div>
               </TabsContent>
 
-              {/* Modules Tab */}
-              <TabsContent value="modules" className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  {isRTL ? "اختر الوحدات المتاحة في هذه الباقة:" : "Select which modules are available in this plan:"}
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { key: "module_sales" as const, ar: "المبيعات", en: "Sales" },
-                    { key: "module_purchases" as const, ar: "المشتريات", en: "Purchases" },
-                    { key: "module_reports" as const, ar: "التقارير", en: "Reports" },
-                    { key: "module_inventory" as const, ar: "المخزون", en: "Inventory" },
-                    { key: "module_hr" as const, ar: "الموارد البشرية", en: "HR" },
-                    { key: "module_auto_parts" as const, ar: "قطع الغيار", en: "Auto Parts" },
-                  ].map((mod) => (
-                    <div key={mod.key} className="flex items-center justify-between rounded-lg border p-3 bg-card">
-                      <Label className="font-medium">{isRTL ? mod.ar : mod.en}</Label>
-                      <Switch
-                        checked={formData[mod.key]}
-                        onCheckedChange={(checked) => setFormData({ ...formData, [mod.key]: checked })}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-
               {/* Limits Tab */}
               <TabsContent value="limits" className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   {isRTL ? "اترك الحقل فارغاً للسماح بعدد غير محدود:" : "Leave empty for unlimited:"}
                 </p>
                 <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { key: "max_users" as const, ar: "الحد الأقصى للمستخدمين", en: "Max Users" },
-                    { key: "max_branches" as const, ar: "الحد الأقصى للفروع", en: "Max Branches" },
-                    { key: "max_invoices" as const, ar: "إجمالي الفواتير", en: "Total Invoices" },
-                    { key: "max_entries" as const, ar: "إجمالي القيود", en: "Total Entries" },
-                    { key: "max_sales_invoices" as const, ar: "فواتير المبيعات/شهر", en: "Sales Invoices/mo" },
-                    { key: "max_purchase_invoices" as const, ar: "فواتير المشتريات/شهر", en: "Purchase Invoices/mo" },
-                    { key: "max_journal_entries" as const, ar: "القيود المحاسبية/شهر", en: "Journal Entries/mo" },
-                  ].map((limit) => (
-                    <div key={limit.key} className="space-y-2">
-                      <Label>{isRTL ? limit.ar : limit.en}</Label>
+                  {limitsConfig.map((limit) => (
+                    <div key={limit.key} className="space-y-2 rounded-lg border p-3 bg-card">
+                      <Label className="flex items-center gap-2">
+                        <limit.icon className="h-4 w-4 text-muted-foreground" />
+                        {isRTL ? limit.ar : limit.en}
+                      </Label>
                       <Input
                         type="number" min="0"
                         placeholder={isRTL ? "غير محدود" : "Unlimited"}
@@ -397,7 +348,6 @@ const OwnerPlans = () => {
   );
 };
 
-// Sub-component for managing feature lists
 function FeaturesListEditor({ label, items, onChange, placeholder, variant }: {
   label: string;
   items: string[];
