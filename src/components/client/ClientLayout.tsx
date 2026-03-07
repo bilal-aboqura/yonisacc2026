@@ -66,6 +66,9 @@ import {
   Stethoscope,
   Pill,
   HeartPulse,
+  Landmark,
+  KeyRound,
+  Home,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -267,6 +270,22 @@ const clinicMenuGroup: MenuItem = {
   ]
 };
 
+const realEstateMenuGroup: MenuItem = {
+  icon: Landmark,
+  label: "إدارة العقارات",
+  labelEn: "Real Estate",
+  children: [
+    { icon: Building2, label: "العقارات", labelEn: "Properties", path: "/client/realestate/properties", permission: "VIEW_ACCOUNTS" },
+    { icon: Home, label: "الوحدات", labelEn: "Units", path: "/client/realestate/units", permission: "VIEW_ACCOUNTS" },
+    { icon: Users, label: "المستأجرين", labelEn: "Tenants", path: "/client/realestate/tenants", permission: "VIEW_ACCOUNTS" },
+    { icon: FileText, label: "عقود الإيجار", labelEn: "Leases", path: "/client/realestate/leases", permission: "VIEW_ACCOUNTS" },
+    { icon: Receipt, label: "فواتير الإيجار", labelEn: "Rent Invoices", path: "/client/realestate/invoices", permission: "VIEW_ACCOUNTS" },
+    { icon: Wrench, label: "طلبات الصيانة", labelEn: "Maintenance", path: "/client/realestate/maintenance", permission: "VIEW_ACCOUNTS" },
+    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/realestate/reports", permission: "VIEW_ACCOUNTS" },
+    { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/realestate/setup", permission: "VIEW_SETTINGS" },
+  ]
+};
+
 const ClientLayout = () => {
   const { isRTL } = useLanguage();
   const { signOut, user, isLoading } = useAuth();
@@ -334,6 +353,16 @@ const ClientLayout = () => {
         items.splice(reportsIdx, 0, clinicMenuGroup);
       } else {
         items.push(clinicMenuGroup);
+      }
+    }
+
+    // Real Estate module
+    {
+      const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
+      if (reportsIdx !== -1) {
+        items.splice(reportsIdx, 0, realEstateMenuGroup);
+      } else {
+        items.push(realEstateMenuGroup);
       }
     }
 

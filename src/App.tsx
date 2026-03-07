@@ -119,6 +119,23 @@ import PayClinicInvoice from "./pages/client/clinic/PayClinicInvoice";
 import ClinicReports from "./pages/client/clinic/ClinicReports";
 import ClinicAccountSetup from "./pages/client/clinic/ClinicAccountSetup";
 
+// Real Estate
+import REProperties from "./pages/client/realestate/Properties";
+import CreateProperty from "./pages/client/realestate/CreateProperty";
+import REUnits from "./pages/client/realestate/Units";
+import CreateUnit from "./pages/client/realestate/CreateUnit";
+import RETenants from "./pages/client/realestate/Tenants";
+import CreateTenant from "./pages/client/realestate/CreateTenant";
+import RELeases from "./pages/client/realestate/Leases";
+import CreateLease from "./pages/client/realestate/CreateLease";
+import RentInvoices from "./pages/client/realestate/RentInvoices";
+import CreateRentInvoice from "./pages/client/realestate/CreateRentInvoice";
+import PayRentInvoice from "./pages/client/realestate/PayRentInvoice";
+import MaintenanceRequests from "./pages/client/realestate/MaintenanceRequests";
+import CreateMaintenanceRequest from "./pages/client/realestate/CreateMaintenanceRequest";
+import RealEstateReports from "./pages/client/realestate/RealEstateReports";
+import RealEstateAccountSetup from "./pages/client/realestate/RealEstateAccountSetup";
+
 // Gold & Jewelry
 import GoldItems from "./pages/client/gold/GoldItems";
 import CreateGoldItem from "./pages/client/gold/CreateGoldItem";
@@ -307,6 +324,27 @@ const App = () => (
               <Route path="clinic/billing/:id/pay" element={<PayClinicInvoice />} />
               <Route path="clinic/reports" element={<ClinicReports />} />
               <Route path="clinic/setup" element={<ClinicAccountSetup />} />
+
+              {/* Real Estate */}
+              <Route path="realestate/properties" element={<REProperties />} />
+              <Route path="realestate/properties/new" element={<CreateProperty />} />
+              <Route path="realestate/properties/:id/edit" element={<CreateProperty />} />
+              <Route path="realestate/units" element={<REUnits />} />
+              <Route path="realestate/units/new" element={<CreateUnit />} />
+              <Route path="realestate/units/:id/edit" element={<CreateUnit />} />
+              <Route path="realestate/tenants" element={<RETenants />} />
+              <Route path="realestate/tenants/new" element={<CreateTenant />} />
+              <Route path="realestate/tenants/:id/edit" element={<CreateTenant />} />
+              <Route path="realestate/leases" element={<RELeases />} />
+              <Route path="realestate/leases/new" element={<CreateLease />} />
+              <Route path="realestate/leases/:id/edit" element={<CreateLease />} />
+              <Route path="realestate/invoices" element={<RentInvoices />} />
+              <Route path="realestate/invoices/new" element={<CreateRentInvoice />} />
+              <Route path="realestate/invoices/:id/pay" element={<PayRentInvoice />} />
+              <Route path="realestate/maintenance" element={<MaintenanceRequests />} />
+              <Route path="realestate/maintenance/new" element={<CreateMaintenanceRequest />} />
+              <Route path="realestate/reports" element={<RealEstateReports />} />
+              <Route path="realestate/setup" element={<RealEstateAccountSetup />} />
 
               {/* Gold & Jewelry */}
               <Route path="gold/items" element={<GoldItems />} />
