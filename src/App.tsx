@@ -104,10 +104,18 @@ import AssetAccountSetup from "./pages/client/assets/AssetAccountSetup";
 
 // Clinic
 import Patients from "./pages/client/clinic/Patients";
+import CreatePatient from "./pages/client/clinic/CreatePatient";
+import ViewPatient from "./pages/client/clinic/ViewPatient";
 import Doctors from "./pages/client/clinic/Doctors";
+import CreateDoctor from "./pages/client/clinic/CreateDoctor";
 import ClinicAppointments from "./pages/client/clinic/Appointments";
+import CreateAppointment from "./pages/client/clinic/CreateAppointment";
 import Prescriptions from "./pages/client/clinic/Prescriptions";
+import CreatePrescription from "./pages/client/clinic/CreatePrescription";
+import ViewPrescription from "./pages/client/clinic/ViewPrescription";
 import ClinicBilling from "./pages/client/clinic/ClinicBilling";
+import CreateClinicInvoice from "./pages/client/clinic/CreateClinicInvoice";
+import PayClinicInvoice from "./pages/client/clinic/PayClinicInvoice";
 import ClinicReports from "./pages/client/clinic/ClinicReports";
 import ClinicAccountSetup from "./pages/client/clinic/ClinicAccountSetup";
 
