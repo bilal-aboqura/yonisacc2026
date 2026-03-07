@@ -78,7 +78,7 @@ const POSMenuManager = () => {
         </Button>
       </div>
 
-      <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
+      <BranchSelector companyId={companyId!} value={selectedBranch} onChange={setSelectedBranch} />
 
       <Card>
         <Table>

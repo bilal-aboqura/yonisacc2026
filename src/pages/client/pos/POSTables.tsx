@@ -95,7 +95,7 @@ const POSTables = () => {
       </div>
 
       <div className="flex items-center gap-4 flex-wrap">
-        <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
+        <BranchSelector companyId={companyId!} value={selectedBranch} onChange={setSelectedBranch} />
         {floors.length > 0 && (
           <div className="flex gap-1">
             {floors.map((f) => (

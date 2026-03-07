@@ -83,7 +83,7 @@ const POSSettings = () => {
 
         <TabsContent value="terminals" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
-            <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
+            <BranchSelector companyId={companyId!} value={selectedBranch} onChange={setSelectedBranch} />
             <Button onClick={() => { setEditingTerminal(null); setForm({ name: "", name_en: "", terminal_type: "retail", is_active: true }); setTerminalDialog(true); }}>
               <Plus className="h-4 w-4 me-2" /> {isRTL ? "إضافة نقطة بيع" : "Add Terminal"}
             </Button>

@@ -62,7 +62,7 @@ const POSReports = () => {
       </div>
 
       <div className="flex items-center gap-4 flex-wrap">
-        <BranchSelector value={selectedBranch} onChange={setSelectedBranch} />
+        <BranchSelector companyId={companyId!} value={selectedBranch} onChange={setSelectedBranch} />
         <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-[180px]" placeholder={isRTL ? "من تاريخ" : "From"} />
         <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-[180px]" placeholder={isRTL ? "إلى تاريخ" : "To"} />
       </div>
