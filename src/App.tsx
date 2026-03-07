@@ -136,6 +136,18 @@ import CreateMaintenanceRequest from "./pages/client/realestate/CreateMaintenanc
 import RealEstateReports from "./pages/client/realestate/RealEstateReports";
 import RealEstateAccountSetup from "./pages/client/realestate/RealEstateAccountSetup";
 
+// Delivery
+import DeliveryDashboard from "./pages/client/delivery/DeliveryDashboard";
+import DeliveryOrders from "./pages/client/delivery/DeliveryOrders";
+import CreateDeliveryOrder from "./pages/client/delivery/CreateDeliveryOrder";
+import ViewDeliveryOrder from "./pages/client/delivery/ViewDeliveryOrder";
+import DeliveryDrivers from "./pages/client/delivery/DeliveryDrivers";
+import CreateDeliveryDriver from "./pages/client/delivery/CreateDeliveryDriver";
+import DeliveryAreas from "./pages/client/delivery/DeliveryAreas";
+import CreateDeliveryArea from "./pages/client/delivery/CreateDeliveryArea";
+import DeliveryReports from "./pages/client/delivery/DeliveryReports";
+import DeliveryAccountSetup from "./pages/client/delivery/DeliveryAccountSetup";
+
 // Gold & Jewelry
 import GoldItems from "./pages/client/gold/GoldItems";
 import CreateGoldItem from "./pages/client/gold/CreateGoldItem";
@@ -345,6 +357,21 @@ const App = () => (
               <Route path="realestate/maintenance/new" element={<CreateMaintenanceRequest />} />
               <Route path="realestate/reports" element={<RealEstateReports />} />
               <Route path="realestate/setup" element={<RealEstateAccountSetup />} />
+
+              {/* Delivery */}
+              <Route path="delivery" element={<DeliveryDashboard />} />
+              <Route path="delivery/orders" element={<DeliveryOrders />} />
+              <Route path="delivery/orders/new" element={<CreateDeliveryOrder />} />
+              <Route path="delivery/orders/:id" element={<ViewDeliveryOrder />} />
+              <Route path="delivery/orders/:id/edit" element={<CreateDeliveryOrder />} />
+              <Route path="delivery/drivers" element={<DeliveryDrivers />} />
+              <Route path="delivery/drivers/new" element={<CreateDeliveryDriver />} />
+              <Route path="delivery/drivers/:id/edit" element={<CreateDeliveryDriver />} />
+              <Route path="delivery/areas" element={<DeliveryAreas />} />
+              <Route path="delivery/areas/new" element={<CreateDeliveryArea />} />
+              <Route path="delivery/areas/:id/edit" element={<CreateDeliveryArea />} />
+              <Route path="delivery/reports" element={<DeliveryReports />} />
+              <Route path="delivery/setup" element={<DeliveryAccountSetup />} />
 
               {/* Gold & Jewelry */}
               <Route path="gold/items" element={<GoldItems />} />
