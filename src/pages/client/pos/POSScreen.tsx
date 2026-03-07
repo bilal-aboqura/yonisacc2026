@@ -224,8 +224,9 @@ const POSScreen = () => {
     },
   });
 
-  // Filter products
+  // Filter products - only show products with show_in_pos = true
   const filteredProducts = (products || []).filter((p: any) => {
+    if ((p as any).show_in_pos === false) return false;
     const matchSearch = !searchTerm || 
       p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.name_en?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -234,6 +235,9 @@ const POSScreen = () => {
     const matchCategory = !selectedCategory || p.category_id === selectedCategory;
     return matchSearch && matchCategory;
   });
+
+  // Available payment methods for selected branch
+  const availablePaymentMethods = branchPaymentMethods || [];
 
   // Get price based on order type
   const getProductPrice = useCallback((product: any) => {
