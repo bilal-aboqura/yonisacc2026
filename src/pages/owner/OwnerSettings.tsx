@@ -127,6 +127,10 @@ const OwnerSettings = () => {
       if (resendSetting?.setting_value) {
         setResendApi(resendSetting.setting_value as unknown as ResendApiSettings);
       }
+      const gatewaySetting = settings.find(s => s.setting_key === "payment_gateways");
+      if (gatewaySetting?.setting_value) {
+        setPaymentGateways(gatewaySetting.setting_value as unknown as PaymentGatewaySettings);
+      }
     }
   }, [settings]);
 
