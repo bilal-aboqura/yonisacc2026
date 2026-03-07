@@ -25,7 +25,7 @@ const AutoPartsReports = () => {
   const { data: salesByPart = [], isLoading: loadingSales } = useQuery({
     queryKey: ["ap-report-sales-part", companyId, dateFrom, dateTo],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("invoice_items")
         .select("product_id, quantity, total, products(name, name_en, sku, oem_number)")
         .eq("company_id", companyId!)
@@ -68,7 +68,7 @@ const AutoPartsReports = () => {
       const ids = (products || []).map((p: any) => p.id);
       if (!ids.length) return [];
 
-      const { data: stock } = await supabase
+      const { data: stock } = await (supabase as any)
         .from("warehouse_stock")
         .select("product_id, quantity")
         .eq("company_id", companyId!)

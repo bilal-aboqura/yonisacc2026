@@ -23,14 +23,14 @@ const AutoPartsDashboard = () => {
       // Low stock items
       const { data: lowStockItems } = await supabase
         .from("products")
-        .select("id, name, name_en, sku, oem_number")
+        .select("id, name, name_en, sku, oem_number, min_stock")
         .eq("company_id", companyId!)
         .eq("is_active", true)
         .not("min_stock", "is", null)
         .limit(100);
 
       // Check stock levels
-      const { data: stockData } = await supabase
+      const { data: stockData } = await (supabase as any)
         .from("warehouse_stock")
         .select("product_id, quantity")
         .eq("company_id", companyId!);
@@ -81,7 +81,7 @@ const AutoPartsDashboard = () => {
       const totalPurchasesToday = (todayPurchases || []).reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0);
 
       // Top selling products (recent sales)
-      const { data: recentSaleItems } = await supabase
+      const { data: recentSaleItems } = await (supabase as any)
         .from("invoice_items")
         .select("product_id, quantity, products(name, name_en, sku)")
         .eq("company_id", companyId!)
