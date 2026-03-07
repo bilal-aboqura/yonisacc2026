@@ -498,6 +498,55 @@ export type Database = {
           },
         ]
       }
+      branch_payment_methods: {
+        Row: {
+          branch_id: string
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          payment_method_id: string
+        }
+        Insert: {
+          branch_id: string
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          payment_method_id: string
+        }
+        Update: {
+          branch_id?: string
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          payment_method_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branch_payment_methods_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_payment_methods_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_payment_methods_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           address: string | null
