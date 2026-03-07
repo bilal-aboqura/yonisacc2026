@@ -109,11 +109,21 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
         const errMsg = signUpError.message?.toLowerCase() || "";
         let msg = isRTL ? "حدث خطأ أثناء إنشاء الحساب" : "Failed to create account";
         if (errMsg.includes("already registered") || errMsg.includes("already been registered") || signUpError.status === 422) {
-          msg = isRTL ? "هذا البريد الإلكتروني مسجل مسبقاً" : "This email is already registered";
+          msg = isRTL ? "هذا البريد الإلكتروني مسجل مسبقاً. يرجى تسجيل الدخول أو استخدام بريد آخر." : "This email is already registered. Please sign in or use a different email.";
         } else if (errMsg.includes("password")) {
           msg = isRTL ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل" : "Password must be at least 6 characters";
         }
         throw new Error(msg);
+      }
+
+      // Supabase returns user with empty identities when email already exists (no error thrown)
+      const identities = signUpData.user?.identities;
+      if (!identities || identities.length === 0) {
+        throw new Error(
+          isRTL
+            ? "هذا البريد الإلكتروني مسجل مسبقاً. يرجى تسجيل الدخول أو استخدام بريد آخر."
+            : "This email is already registered. Please sign in or use a different email."
+        );
       }
 
       if (!signUpData.session) {
@@ -122,7 +132,7 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
           password: data.password,
         });
         if (signInError || !signInData.session) {
-          throw new Error(isRTL ? "فشل تسجيل الدخول بعد إنشاء الحساب. حاول تسجيل الدخول يدوياً." : "Failed to sign in after signup. Try logging in manually.");
+          throw new Error(isRTL ? "تم إنشاء الحساب بنجاح. يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول." : "Account created. Please confirm your email then sign in.");
         }
       }
 
