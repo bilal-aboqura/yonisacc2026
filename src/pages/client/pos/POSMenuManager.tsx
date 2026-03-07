@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useTenantIsolation } from "@/hooks/useTenantIsolation";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { MenuSquare, UtensilsCrossed, ShoppingBag, Truck, Save, Image } from "lucide-react";
+import { MenuSquare, UtensilsCrossed, ShoppingBag, Truck, Save, Image, Loader2 } from "lucide-react";
 
 const POSMenuManager = () => {
   const { isRTL } = useLanguage();
@@ -19,9 +19,10 @@ const POSMenuManager = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"dine_in" | "takeaway" | "delivery">("dine_in");
   const [priceEdits, setPriceEdits] = useState<Record<string, number>>({});
-  const [priceDirty, setPriceDirty] = useState(false);
+  const [posToggleEdits, setPosToggleEdits] = useState<Record<string, boolean>>({});
 
-  // Fetch products with categories
+  const isDirty = Object.keys(priceEdits).length > 0 || Object.keys(posToggleEdits).length > 0;
+
   const { data: products } = useQuery({
     queryKey: ["pos-menu-products", companyId],
     queryFn: async () => {
@@ -36,7 +37,6 @@ const POSMenuManager = () => {
     enabled: !!companyId,
   });
 
-  // Fetch categories
   const { data: categories } = useQuery({
     queryKey: ["pos-menu-categories", companyId],
     queryFn: async () => {
@@ -51,7 +51,6 @@ const POSMenuManager = () => {
     enabled: !!companyId,
   });
 
-  // Fetch menu prices
   const { data: menuPrices } = useQuery({
     queryKey: ["pos-menu-prices", companyId],
     queryFn: async () => {
@@ -64,7 +63,6 @@ const POSMenuManager = () => {
     enabled: !!companyId,
   });
 
-  // Fetch BOMs for recipe linking
   const { data: boms } = useQuery({
     queryKey: ["pos-boms", companyId],
     queryFn: async () => {
@@ -87,47 +85,52 @@ const POSMenuManager = () => {
     return product?.sale_price || 0;
   };
 
-  const updatePrice = (productId: string, orderType: string, price: number) => {
-    setPriceEdits(prev => ({ ...prev, [`${productId}_${orderType}`]: price }));
-    setPriceDirty(true);
+  const getShowInPos = (productId: string) => {
+    if (posToggleEdits[productId] !== undefined) return posToggleEdits[productId];
+    const product = products?.find((p: any) => p.id === productId);
+    return (product as any)?.show_in_pos !== false;
   };
 
-  const savePricesMutation = useMutation({
+  const updatePrice = (productId: string, orderType: string, price: number) => {
+    setPriceEdits(prev => ({ ...prev, [`${productId}_${orderType}`]: price }));
+  };
+
+  const toggleShowInPos = (productId: string, value: boolean) => {
+    setPosToggleEdits(prev => ({ ...prev, [productId]: value }));
+  };
+
+  const saveAllMutation = useMutation({
     mutationFn: async () => {
-      const upserts = Object.entries(priceEdits).map(([key, price]) => {
+      // Save prices
+      const priceUpserts = Object.entries(priceEdits).map(([key, price]) => {
         const [product_id, order_type] = key.split("_");
         return { company_id: companyId, product_id, order_type, price, is_active: true };
       });
-      if (upserts.length === 0) return;
-      const { error } = await supabase.from("pos_menu_prices" as any).upsert(upserts as any, { onConflict: "company_id,product_id,order_type" });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success(isRTL ? "تم حفظ الأسعار" : "Prices saved");
-      setPriceEdits({});
-      setPriceDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["pos-menu-prices"] });
-    },
-    onError: () => toast.error(isRTL ? "خطأ في حفظ الأسعار" : "Error saving prices"),
-  });
+      if (priceUpserts.length > 0) {
+        const { error } = await supabase.from("pos_menu_prices" as any).upsert(priceUpserts as any, { onConflict: "company_id,product_id,order_type" });
+        if (error) throw error;
+      }
 
-  const toggleShowInPosMutation = useMutation({
-    mutationFn: async ({ productId, showInPos }: { productId: string; showInPos: boolean }) => {
-      const { error } = await supabase
-        .from("products")
-        .update({ show_in_pos: showInPos } as any)
-        .eq("id", productId);
-      if (error) throw error;
+      // Save POS visibility toggles
+      for (const [productId, showInPos] of Object.entries(posToggleEdits)) {
+        const { error } = await supabase
+          .from("products")
+          .update({ show_in_pos: showInPos } as any)
+          .eq("id", productId);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
+      toast.success(isRTL ? "تم حفظ التغييرات" : "Changes saved");
+      setPriceEdits({});
+      setPosToggleEdits({});
+      queryClient.invalidateQueries({ queryKey: ["pos-menu-prices"] });
       queryClient.invalidateQueries({ queryKey: ["pos-menu-products"] });
     },
-    onError: () => toast.error(isRTL ? "خطأ في التحديث" : "Error updating"),
+    onError: () => toast.error(isRTL ? "خطأ في الحفظ" : "Error saving"),
   });
 
-  const getProductBom = (productId: string) => {
-    return boms?.find((b: any) => b.product_id === productId);
-  };
+  const getProductBom = (productId: string) => boms?.find((b: any) => b.product_id === productId);
 
   const orderTypeLabel = (type: string) => {
     switch (type) {
@@ -138,13 +141,12 @@ const POSMenuManager = () => {
     }
   };
 
-  // Group products by category
-  const groupedProducts = (categories || []).map((cat: any) => ({
+  const groupedProducts = useMemo(() => (categories || []).map((cat: any) => ({
     ...cat,
     products: (products || []).filter((p: any) => p.category_id === cat.id),
-  })).filter((g: any) => g.products.length > 0);
+  })).filter((g: any) => g.products.length > 0), [categories, products]);
 
-  const uncategorized = (products || []).filter((p: any) => !p.category_id);
+  const uncategorized = useMemo(() => (products || []).filter((p: any) => !p.category_id), [products]);
 
   const renderProductRow = (product: any, index: number, orderType: string) => {
     const bom = getProductBom(product.id);
@@ -152,7 +154,7 @@ const POSMenuManager = () => {
     const basePrice = product.sale_price || 0;
     const costPrice = product.purchase_price || 0;
     const priceDiff = currentPrice - basePrice;
-    const showInPos = (product as any).show_in_pos !== false;
+    const showInPos = getShowInPos(product.id);
 
     return (
       <TableRow key={product.id} className={index % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}>
@@ -207,7 +209,7 @@ const POSMenuManager = () => {
         <TableCell className="w-[70px] text-center">
           <Switch
             checked={showInPos}
-            onCheckedChange={(v) => toggleShowInPosMutation.mutate({ productId: product.id, showInPos: v })}
+            onCheckedChange={(v) => toggleShowInPos(product.id, v)}
             className="data-[state=checked]:bg-primary"
           />
         </TableCell>
@@ -241,24 +243,20 @@ const POSMenuManager = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{isRTL ? "إدارة المنيو" : "Menu Management"}</h1>
-          <p className="text-sm text-muted-foreground">{isRTL ? "إدارة أسعار المنيو حسب نوع الطلب (محلي - سفري - توصيل)" : "Manage menu pricing by order type (Dine In - Takeaway - Delivery)"}</p>
+          <p className="text-sm text-muted-foreground">{isRTL ? "إدارة أسعار المنيو حسب نوع الطلب والتحكم في ظهور المنتجات" : "Manage menu pricing by order type and control product visibility"}</p>
         </div>
+        {isDirty && (
+          <Button onClick={() => saveAllMutation.mutate()} disabled={saveAllMutation.isPending} className="gap-2">
+            {saveAllMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {isRTL ? "حفظ التغييرات" : "Save Changes"}
+          </Button>
+        )}
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{isRTL ? "تسعير المنيو" : "Menu Pricing"}</CardTitle>
-              <CardDescription>{isRTL ? "تعديل أسعار المنتجات لكل فئة طلب والتحكم في ظهورها في نقاط البيع" : "Edit product prices for each order type and control POS visibility"}</CardDescription>
-            </div>
-            {priceDirty && (
-              <Button onClick={() => savePricesMutation.mutate()} disabled={savePricesMutation.isPending} className="gap-2">
-                <Save className="h-4 w-4" />
-                {isRTL ? "حفظ الأسعار" : "Save Prices"}
-              </Button>
-            )}
-          </div>
+          <CardTitle>{isRTL ? "تسعير المنيو" : "Menu Pricing"}</CardTitle>
+          <CardDescription>{isRTL ? "تعديل أسعار المنتجات لكل فئة طلب والتحكم في ظهورها في نقاط البيع" : "Edit product prices for each order type and control POS visibility"}</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} dir={isRTL ? "rtl" : "ltr"}>
