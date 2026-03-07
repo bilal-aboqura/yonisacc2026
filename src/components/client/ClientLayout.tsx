@@ -218,6 +218,19 @@ const autoPartsMenuGroup: MenuItem = {
   ]
 };
 
+const fixedAssetsMenuGroup: MenuItem = {
+  icon: Building2,
+  label: "الأصول الثابتة",
+  labelEn: "Fixed Assets",
+  children: [
+    { icon: Building2, label: "سجل الأصول", labelEn: "Asset Register", path: "/client/assets", permission: "VIEW_ACCOUNTS" },
+    { icon: FolderTree, label: "تصنيفات الأصول", labelEn: "Categories", path: "/client/assets/categories", permission: "VIEW_ACCOUNTS" },
+    { icon: Calculator, label: "تشغيل الإهلاك", labelEn: "Run Depreciation", path: "/client/assets/depreciation", permission: "VIEW_ACCOUNTS" },
+    { icon: BarChart3, label: "تقارير الأصول", labelEn: "Asset Reports", path: "/client/assets/reports", permission: "VIEW_ACCOUNTS" },
+    { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/assets/setup", permission: "VIEW_SETTINGS" },
+  ]
+};
+
 const goldMenuGroup: MenuItem = {
   icon: Gem,
   label: "الذهب والمجوهرات",
@@ -269,6 +282,16 @@ const ClientLayout = () => {
         items.splice(reportsIdx, 0, autoPartsMenuGroup);
       } else {
         items.push(autoPartsMenuGroup);
+      }
+    }
+
+    // Fixed Assets module
+    {
+      const reportsIdx2 = items.findIndex(i => i.labelEn === "Reports");
+      if (reportsIdx2 !== -1) {
+        items.splice(reportsIdx2, 0, fixedAssetsMenuGroup);
+      } else {
+        items.push(fixedAssetsMenuGroup);
       }
     }
 

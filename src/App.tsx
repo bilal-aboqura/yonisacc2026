@@ -89,6 +89,15 @@ import POSUsers from "./pages/client/pos/POSUsers";
 import POSUserLogs from "./pages/client/pos/POSUserLogs";
 import POSInvoices from "./pages/client/pos/POSInvoices";
 
+// Fixed Assets
+import FixedAssets from "./pages/client/assets/FixedAssets";
+import CreateFixedAsset from "./pages/client/assets/CreateFixedAsset";
+import ViewFixedAsset from "./pages/client/assets/ViewFixedAsset";
+import AssetCategories from "./pages/client/assets/AssetCategories";
+import DepreciationRun from "./pages/client/assets/DepreciationRun";
+import AssetReports from "./pages/client/assets/AssetReports";
+import AssetAccountSetup from "./pages/client/assets/AssetAccountSetup";
+
 // Gold & Jewelry
 import GoldItems from "./pages/client/gold/GoldItems";
 import CreateGoldItem from "./pages/client/gold/CreateGoldItem";
@@ -248,6 +257,16 @@ const App = () => (
               <Route path="pos/user-logs" element={<POSUserLogs />} />
               <Route path="pos/invoices" element={<POSInvoices />} />
               <Route path="pos/account-setup" element={<POSAccountSetup />} />
+
+              {/* Fixed Assets */}
+              <Route path="assets" element={<FixedAssets />} />
+              <Route path="assets/new" element={<CreateFixedAsset />} />
+              <Route path="assets/:id" element={<ViewFixedAsset />} />
+              <Route path="assets/:id/edit" element={<CreateFixedAsset />} />
+              <Route path="assets/categories" element={<AssetCategories />} />
+              <Route path="assets/depreciation" element={<DepreciationRun />} />
+              <Route path="assets/reports" element={<AssetReports />} />
+              <Route path="assets/setup" element={<AssetAccountSetup />} />
 
               {/* Gold & Jewelry */}
               <Route path="gold/items" element={<GoldItems />} />
