@@ -186,6 +186,10 @@ const baseMenuItems: MenuItem[] = [
       { icon: Wallet, label: "التدفقات النقدية", labelEn: "Cash Flow", path: "/client/reports/cash-flow", permission: "VIEW_CASH_FLOW" },
       { icon: Receipt, label: "تقرير ضريبة القيمة المضافة", labelEn: "VAT Report", path: "/client/reports/vat", permission: "VIEW_VAT_REPORT" },
       { icon: BarChart3, label: "تقارير مراكز التكلفة", labelEn: "Cost Center Reports", path: "/client/cost-centers/reports", permission: "VIEW_COST_CENTER_REPORTS" },
+      { icon: ShoppingCart, label: "تقارير المبيعات", labelEn: "Sales Reports", path: "/client/reports/sales", permission: "VIEW_SALES" },
+      { icon: ClipboardList, label: "تقارير المشتريات", labelEn: "Purchase Reports", path: "/client/reports/purchases", permission: "VIEW_PURCHASES" },
+      { icon: Package, label: "تقارير المخزون", labelEn: "Inventory Reports", path: "/client/reports/inventory", permission: "VIEW_INVENTORY" },
+      { icon: Factory, label: "التقارير التشغيلية", labelEn: "Operational Reports", path: "/client/reports/operations", permission: "VIEW_INVENTORY" },
     ]
   },
   {
