@@ -3245,6 +3245,700 @@ export type Database = {
           },
         ]
       }
+      pos_activity_log: {
+        Row: {
+          action: string
+          company_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          company_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          company_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_activity_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_activity_log_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_menu_items: {
+        Row: {
+          category_group: string | null
+          display_name: string | null
+          display_name_en: string | null
+          id: string
+          is_available: boolean
+          menu_id: string
+          price_override: number | null
+          product_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          category_group?: string | null
+          display_name?: string | null
+          display_name_en?: string | null
+          id?: string
+          is_available?: boolean
+          menu_id: string
+          price_override?: number | null
+          product_id?: string | null
+          sort_order?: number
+        }
+        Update: {
+          category_group?: string | null
+          display_name?: string | null
+          display_name_en?: string | null
+          id?: string
+          is_available?: boolean
+          menu_id?: string
+          price_override?: number | null
+          product_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_menu_items_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "pos_menus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_menu_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_menus: {
+        Row: {
+          branch_id: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          name_en: string | null
+        }
+        Insert: {
+          branch_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          name_en?: string | null
+        }
+        Update: {
+          branch_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          name_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_menus_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_menus_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_promotions: {
+        Row: {
+          applicable_branches: Json | null
+          applicable_products: Json | null
+          company_id: string
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          min_amount: number | null
+          name: string
+          name_en: string | null
+          start_date: string | null
+          type: string
+          value: number
+        }
+        Insert: {
+          applicable_branches?: Json | null
+          applicable_products?: Json | null
+          company_id: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          min_amount?: number | null
+          name: string
+          name_en?: string | null
+          start_date?: string | null
+          type?: string
+          value?: number
+        }
+        Update: {
+          applicable_branches?: Json | null
+          applicable_products?: Json | null
+          company_id?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          min_amount?: number | null
+          name?: string
+          name_en?: string | null
+          start_date?: string | null
+          type?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_promotions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_reservations: {
+        Row: {
+          branch_id: string
+          company_id: string
+          customer_name: string
+          deposit_amount: number | null
+          id: string
+          notes: string | null
+          party_size: number
+          phone: string | null
+          reservation_date: string
+          reservation_time: string
+          status: string
+          table_id: string | null
+        }
+        Insert: {
+          branch_id: string
+          company_id: string
+          customer_name: string
+          deposit_amount?: number | null
+          id?: string
+          notes?: string | null
+          party_size?: number
+          phone?: string | null
+          reservation_date: string
+          reservation_time: string
+          status?: string
+          table_id?: string | null
+        }
+        Update: {
+          branch_id?: string
+          company_id?: string
+          customer_name?: string
+          deposit_amount?: number | null
+          id?: string
+          notes?: string | null
+          party_size?: number
+          phone?: string | null
+          reservation_date?: string
+          reservation_time?: string
+          status?: string
+          table_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_reservations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_reservations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_reservations_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "pos_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_sales_targets: {
+        Row: {
+          achieved_value: number
+          branch_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          notification_interval: Json | null
+          period_end: string
+          period_start: string
+          product_id: string | null
+          target_type: string
+          target_value: number
+          user_id: string | null
+        }
+        Insert: {
+          achieved_value?: number
+          branch_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notification_interval?: Json | null
+          period_end: string
+          period_start: string
+          product_id?: string | null
+          target_type?: string
+          target_value?: number
+          user_id?: string | null
+        }
+        Update: {
+          achieved_value?: number
+          branch_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          notification_interval?: Json | null
+          period_end?: string
+          period_start?: string
+          product_id?: string | null
+          target_type?: string
+          target_value?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_sales_targets_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sales_targets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sales_targets_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_sessions: {
+        Row: {
+          branch_id: string
+          closed_at: string | null
+          closed_by: string | null
+          closing_amount: number | null
+          company_id: string
+          expected_amount: number | null
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string | null
+          opening_amount: number
+          status: string
+          terminal_id: string
+        }
+        Insert: {
+          branch_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_amount?: number | null
+          company_id: string
+          expected_amount?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opening_amount?: number
+          status?: string
+          terminal_id: string
+        }
+        Update: {
+          branch_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_amount?: number | null
+          company_id?: string
+          expected_amount?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opening_amount?: number
+          status?: string
+          terminal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_sessions_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_tables: {
+        Row: {
+          branch_id: string
+          capacity: number
+          company_id: string
+          current_transaction_id: string | null
+          floor_level: number
+          id: string
+          position_x: number | null
+          position_y: number | null
+          shape: string
+          status: string
+          table_number: string
+        }
+        Insert: {
+          branch_id: string
+          capacity?: number
+          company_id: string
+          current_transaction_id?: string | null
+          floor_level?: number
+          id?: string
+          position_x?: number | null
+          position_y?: number | null
+          shape?: string
+          status?: string
+          table_number: string
+        }
+        Update: {
+          branch_id?: string
+          capacity?: number
+          company_id?: string
+          current_transaction_id?: string | null
+          floor_level?: number
+          id?: string
+          position_x?: number | null
+          position_y?: number | null
+          shape?: string
+          status?: string
+          table_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_tables_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_tables_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_terminals: {
+        Row: {
+          branch_id: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          name_en: string | null
+          operating_hours: Json | null
+          printer_config: Json | null
+          terminal_type: string
+        }
+        Insert: {
+          branch_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          name_en?: string | null
+          operating_hours?: Json | null
+          printer_config?: Json | null
+          terminal_type?: string
+        }
+        Update: {
+          branch_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          name_en?: string | null
+          operating_hours?: Json | null
+          printer_config?: Json | null
+          terminal_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_terminals_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_terminals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_transaction_items: {
+        Row: {
+          discount: number
+          id: string
+          notes: string | null
+          product_id: string | null
+          quantity: number
+          tax_amount: number
+          total: number
+          transaction_id: string
+          unit_price: number
+        }
+        Insert: {
+          discount?: number
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          quantity?: number
+          tax_amount?: number
+          total?: number
+          transaction_id: string
+          unit_price?: number
+        }
+        Update: {
+          discount?: number
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          quantity?: number
+          tax_amount?: number
+          total?: number
+          transaction_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_transaction_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transaction_items_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "pos_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_transactions: {
+        Row: {
+          branch_id: string
+          change_amount: number
+          company_id: string
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          delivery_app: string | null
+          delivery_fee: number
+          discount_amount: number
+          extra_charges: number
+          id: string
+          invoice_id: string | null
+          order_type: string
+          paid_amount: number
+          payment_method: string
+          session_id: string | null
+          status: string
+          subtotal: number
+          table_id: string | null
+          tax_amount: number
+          terminal_id: string | null
+          total: number
+          transaction_number: string
+        }
+        Insert: {
+          branch_id: string
+          change_amount?: number
+          company_id: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_app?: string | null
+          delivery_fee?: number
+          discount_amount?: number
+          extra_charges?: number
+          id?: string
+          invoice_id?: string | null
+          order_type?: string
+          paid_amount?: number
+          payment_method?: string
+          session_id?: string | null
+          status?: string
+          subtotal?: number
+          table_id?: string | null
+          tax_amount?: number
+          terminal_id?: string | null
+          total?: number
+          transaction_number: string
+        }
+        Update: {
+          branch_id?: string
+          change_amount?: number
+          company_id?: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_app?: string | null
+          delivery_fee?: number
+          discount_amount?: number
+          extra_charges?: number
+          id?: string
+          invoice_id?: string | null
+          order_type?: string
+          paid_amount?: number
+          payment_method?: string
+          session_id?: string | null
+          status?: string
+          subtotal?: number
+          table_id?: string | null
+          tax_amount?: number
+          terminal_id?: string | null
+          total?: number
+          transaction_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_transactions_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "pos_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_transactions_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_list_items: {
         Row: {
           created_at: string

@@ -158,13 +158,13 @@ const baseMenuItems: MenuItem[] = [
     label: "نقاط البيع",
     labelEn: "Point of Sale",
     children: [
-      { icon: Monitor, label: "شاشة البيع", labelEn: "POS Screen", path: "/client/pos", permission: "VIEW_POS" },
-      { icon: UtensilsCrossed, label: "الطاولات", labelEn: "Tables", path: "/client/pos/tables", permission: "MANAGE_POS_TABLES" },
-      { icon: ClipboardList, label: "المنيو", labelEn: "Menus", path: "/client/pos/menus", permission: "MANAGE_POS_MENUS" },
-      { icon: Gift, label: "العروض", labelEn: "Promotions", path: "/client/pos/promotions", permission: "MANAGE_POS_PROMOTIONS" },
-      { icon: Target, label: "الأهداف", labelEn: "Targets", path: "/client/pos/targets", permission: "MANAGE_POS_TARGETS" },
-      { icon: BarChart3, label: "تقارير POS", labelEn: "POS Reports", path: "/client/pos/reports", permission: "VIEW_POS_REPORTS" },
-      { icon: Settings, label: "إعدادات POS", labelEn: "POS Settings", path: "/client/pos/settings", permission: "MANAGE_POS" },
+      { icon: Monitor, label: "شاشة البيع", labelEn: "POS Screen", path: "/client/pos" },
+      { icon: UtensilsCrossed, label: "الطاولات", labelEn: "Tables", path: "/client/pos/tables" },
+      { icon: ClipboardList, label: "المنيو", labelEn: "Menus", path: "/client/pos/menus" },
+      { icon: Gift, label: "العروض", labelEn: "Promotions", path: "/client/pos/promotions" },
+      { icon: Target, label: "الأهداف", labelEn: "Targets", path: "/client/pos/targets" },
+      { icon: BarChart3, label: "تقارير POS", labelEn: "POS Reports", path: "/client/pos/reports" },
+      { icon: Settings, label: "إعدادات POS", labelEn: "POS Settings", path: "/client/pos/settings" },
     ]
   },
   {
