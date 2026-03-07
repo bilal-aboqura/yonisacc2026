@@ -223,6 +223,28 @@ const OwnerSettings = () => {
     updateSettingMutation.mutate({ key: "resend_api_key", value: resendApi });
   };
 
+  const saveSocialMedia = () => {
+    updateSettingMutation.mutate({ key: "social_media", value: socialMedia });
+  };
+
+  const addSocialLink = () => {
+    setSocialMedia(prev => ({
+      links: [...prev.links, { id: crypto.randomUUID(), platform: 'other', url: '', is_visible: true }],
+    }));
+  };
+
+  const removeSocialLink = (id: string) => {
+    setSocialMedia(prev => ({
+      links: prev.links.filter(l => l.id !== id),
+    }));
+  };
+
+  const updateSocialLink = (id: string, field: keyof SocialMediaLink, value: string | boolean) => {
+    setSocialMedia(prev => ({
+      links: prev.links.map(l => l.id === id ? { ...l, [field]: value } : l),
+    }));
+  };
+
   const savePaymentGateways = () => {
     updateSettingMutation.mutate({ key: "payment_gateways", value: paymentGateways });
   };
