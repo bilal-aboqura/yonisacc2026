@@ -76,6 +76,15 @@ import Manufacturing from "./pages/client/inventory/Manufacturing";
 import InventoryReports from "./pages/client/inventory/InventoryReports";
 import ProductCard from "./pages/client/inventory/ProductCard";
 
+// POS
+import POSScreen from "./pages/client/pos/POSScreen";
+import POSTables from "./pages/client/pos/POSTables";
+import POSSettings from "./pages/client/pos/POSSettings";
+import POSMenuManager from "./pages/client/pos/POSMenuManager";
+import POSPromotions from "./pages/client/pos/POSPromotions";
+import POSTargets from "./pages/client/pos/POSTargets";
+import POSReports from "./pages/client/pos/POSReports";
+
 // Gold & Jewelry
 import GoldItems from "./pages/client/gold/GoldItems";
 import CreateGoldItem from "./pages/client/gold/CreateGoldItem";
@@ -211,6 +220,15 @@ const App = () => (
               <Route path="inventory/manufacturing" element={<Manufacturing />} />
               <Route path="inventory/reports" element={<InventoryReports />} />
               <Route path="inventory/movements" element={<ClientInventory tab="movements" />} />
+
+              {/* POS */}
+              <Route path="pos" element={<POSScreen />} />
+              <Route path="pos/tables" element={<POSTables />} />
+              <Route path="pos/settings" element={<POSSettings />} />
+              <Route path="pos/menus" element={<POSMenuManager />} />
+              <Route path="pos/promotions" element={<POSPromotions />} />
+              <Route path="pos/targets" element={<POSTargets />} />
+              <Route path="pos/reports" element={<POSReports />} />
 
               {/* Gold & Jewelry */}
               <Route path="gold/items" element={<GoldItems />} />
