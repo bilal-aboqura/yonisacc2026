@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { MenuSquare, UtensilsCrossed, ShoppingBag, Truck, Save, Image, Eye, EyeOff } from "lucide-react";
+import { MenuSquare, UtensilsCrossed, ShoppingBag, Truck, Save, Image } from "lucide-react";
 
 const POSMenuManager = () => {
   const { isRTL } = useLanguage();
@@ -20,18 +20,6 @@ const POSMenuManager = () => {
   const [activeTab, setActiveTab] = useState<"dine_in" | "takeaway" | "delivery">("dine_in");
   const [priceEdits, setPriceEdits] = useState<Record<string, number>>({});
   const [priceDirty, setPriceDirty] = useState(false);
-  const [priceDirty, setPriceDirty] = useState(false);
-
-  const { data: menus } = useQuery({
-    queryKey: ["pos-menus", companyId, selectedBranch],
-    queryFn: async () => {
-      let query = supabase.from("pos_menus" as any).select("*").eq("company_id", companyId!);
-      if (selectedBranch) query = query.eq("branch_id", selectedBranch);
-      const { data } = await query.order("created_at", { ascending: false });
-      return (data || []) as any[];
-    },
-    enabled: !!companyId,
-  });
 
   // Fetch products with categories
   const { data: products } = useQuery({
@@ -123,35 +111,18 @@ const POSMenuManager = () => {
     onError: () => toast.error(isRTL ? "خطأ في حفظ الأسعار" : "Error saving prices"),
   });
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const payload = { ...form, company_id: companyId, branch_id: selectedBranch } as any;
-      if (editingMenu) {
-        const { error } = await supabase.from("pos_menus" as any).update(payload).eq("id", editingMenu.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("pos_menus" as any).insert(payload as any);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      toast.success(isRTL ? "تم الحفظ" : "Saved");
-      setMenuDialog(false);
-      setEditingMenu(null);
-      queryClient.invalidateQueries({ queryKey: ["pos-menus"] });
-    },
-    onError: () => toast.error(isRTL ? "خطأ" : "Error"),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("pos_menus" as any).delete().eq("id", id);
+  const toggleShowInPosMutation = useMutation({
+    mutationFn: async ({ productId, showInPos }: { productId: string; showInPos: boolean }) => {
+      const { error } = await supabase
+        .from("products")
+        .update({ show_in_pos: showInPos } as any)
+        .eq("id", productId);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success(isRTL ? "تم الحذف" : "Deleted");
-      queryClient.invalidateQueries({ queryKey: ["pos-menus"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-menu-products"] });
     },
+    onError: () => toast.error(isRTL ? "خطأ في التحديث" : "Error updating"),
   });
 
   const getProductBom = (productId: string) => {
@@ -171,9 +142,99 @@ const POSMenuManager = () => {
   const groupedProducts = (categories || []).map((cat: any) => ({
     ...cat,
     products: (products || []).filter((p: any) => p.category_id === cat.id),
-  })).filter(g => g.products.length > 0);
+  })).filter((g: any) => g.products.length > 0);
 
   const uncategorized = (products || []).filter((p: any) => !p.category_id);
+
+  const renderProductRow = (product: any, index: number, orderType: string) => {
+    const bom = getProductBom(product.id);
+    const currentPrice = getPrice(product.id, orderType);
+    const basePrice = product.sale_price || 0;
+    const costPrice = product.purchase_price || 0;
+    const priceDiff = currentPrice - basePrice;
+    const showInPos = (product as any).show_in_pos !== false;
+
+    return (
+      <TableRow key={product.id} className={index % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}>
+        <TableCell className="w-[60px]">
+          {product.image_url ? (
+            <img src={product.image_url} alt="" className="h-10 w-10 rounded-lg object-cover border border-border/50 shadow-sm" />
+          ) : (
+            <div className="h-10 w-10 rounded-lg bg-muted/60 flex items-center justify-center border border-border/30">
+              <Image className="h-4 w-4 text-muted-foreground/30" />
+            </div>
+          )}
+        </TableCell>
+        <TableCell>
+          <div className="min-w-[140px]">
+            <p className="font-medium text-foreground leading-tight">{isRTL ? product.name : product.name_en || product.name}</p>
+            {product.sku && <p className="text-xs text-muted-foreground mt-0.5">{product.sku}</p>}
+          </div>
+        </TableCell>
+        <TableCell className="text-end tabular-nums text-muted-foreground/60 w-[100px]">
+          {costPrice.toFixed(2)}
+        </TableCell>
+        <TableCell className="text-end tabular-nums text-muted-foreground font-medium w-[100px]">
+          {basePrice.toFixed(2)}
+        </TableCell>
+        <TableCell className="w-[160px]">
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              value={currentPrice}
+              onChange={(e) => updatePrice(product.id, orderType, Number(e.target.value))}
+              className="w-28 h-9 text-end tabular-nums font-medium"
+              min={0}
+              step={0.01}
+            />
+            {priceDiff !== 0 && (
+              <span className={`text-[10px] font-semibold whitespace-nowrap ${priceDiff > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                {priceDiff > 0 ? "+" : ""}{priceDiff.toFixed(2)}
+              </span>
+            )}
+          </div>
+        </TableCell>
+        <TableCell className="w-[100px]">
+          {bom ? (
+            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs gap-1">
+              <UtensilsCrossed className="h-3 w-3" />
+              {(bom.bom_items || []).length} {isRTL ? "مكون" : "items"}
+            </Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground/50">—</span>
+          )}
+        </TableCell>
+        <TableCell className="w-[70px] text-center">
+          <Switch
+            checked={showInPos}
+            onCheckedChange={(v) => toggleShowInPosMutation.mutate({ productId: product.id, showInPos: v })}
+            className="data-[state=checked]:bg-primary"
+          />
+        </TableCell>
+      </TableRow>
+    );
+  };
+
+  const renderTable = (productsList: any[], orderType: string) => (
+    <div className="overflow-auto rounded-lg border border-border/50">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[60px]">#</TableHead>
+            <TableHead>{isRTL ? "المنتج" : "Product"}</TableHead>
+            <TableHead className="text-end w-[100px]">{isRTL ? "التكلفة" : "Cost"}</TableHead>
+            <TableHead className="text-end w-[100px]">{isRTL ? "سعر البيع" : "Sale Price"}</TableHead>
+            <TableHead className="w-[160px]">{isRTL ? `سعر ${orderTypeLabel(orderType)}` : `${orderTypeLabel(orderType)} Price`}</TableHead>
+            <TableHead className="w-[100px]">{isRTL ? "الريسبي" : "Recipe"}</TableHead>
+            <TableHead className="w-[70px] text-center">{isRTL ? "POS" : "POS"}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {productsList.map((product: any, idx: number) => renderProductRow(product, idx, orderType))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -184,13 +245,12 @@ const POSMenuManager = () => {
         </div>
       </div>
 
-      {/* Order Type Tabs for Pricing */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>{isRTL ? "تسعير المنيو" : "Menu Pricing"}</CardTitle>
-              <CardDescription>{isRTL ? "تعديل أسعار المنتجات لكل فئة طلب" : "Edit product prices for each order type"}</CardDescription>
+              <CardDescription>{isRTL ? "تعديل أسعار المنتجات لكل فئة طلب والتحكم في ظهورها في نقاط البيع" : "Edit product prices for each order type and control POS visibility"}</CardDescription>
             </div>
             {priceDirty && (
               <Button onClick={() => savePricesMutation.mutate()} disabled={savePricesMutation.isPending} className="gap-2">
@@ -217,210 +277,50 @@ const POSMenuManager = () => {
               </TabsTrigger>
             </TabsList>
 
-            {["dine_in", "takeaway", "delivery"].map(orderType => {
-              const renderProductRow = (product: any, index: number) => {
-                const bom = getProductBom(product.id);
-                const currentPrice = getPrice(product.id, orderType);
-                const basePrice = product.sale_price || 0;
-                const priceDiff = currentPrice - basePrice;
-                return (
-                  <TableRow key={product.id} className={index % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}>
-                    <TableCell className="w-[60px]">
-                      {product.image_url ? (
-                        <img src={product.image_url} alt="" className="h-10 w-10 rounded-lg object-cover border border-border/50 shadow-sm" />
+            {["dine_in", "takeaway", "delivery"].map(orderType => (
+              <TabsContent key={orderType} value={orderType} className="space-y-6">
+                {groupedProducts.map((group: any) => (
+                  <div key={group.id}>
+                    <div className="flex items-center gap-3 mb-3 px-1">
+                      {group.image_url ? (
+                        <img src={group.image_url} alt="" className="h-8 w-8 rounded-lg object-cover border border-border/50 shadow-sm" />
                       ) : (
-                        <div className="h-10 w-10 rounded-lg bg-muted/60 flex items-center justify-center border border-border/30">
-                          <Image className="h-4 w-4 text-muted-foreground/30" />
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <MenuSquare className="h-4 w-4 text-primary" />
                         </div>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="min-w-[140px]">
-                        <p className="font-medium text-foreground leading-tight">{isRTL ? product.name : product.name_en || product.name}</p>
-                        {product.sku && <p className="text-xs text-muted-foreground mt-0.5">{product.sku}</p>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-end tabular-nums text-muted-foreground font-medium w-[120px]">
-                      {basePrice.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="w-[160px]">
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          value={currentPrice}
-                          onChange={(e) => updatePrice(product.id, orderType, Number(e.target.value))}
-                          className="w-28 h-9 text-end tabular-nums font-medium"
-                          min={0}
-                          step={0.01}
-                        />
-                        {priceDiff !== 0 && (
-                          <span className={`text-[10px] font-semibold whitespace-nowrap ${priceDiff > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
-                            {priceDiff > 0 ? "+" : ""}{priceDiff.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="w-[120px]">
-                      {bom ? (
-                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs gap-1">
-                          <UtensilsCrossed className="h-3 w-3" />
-                          {(bom.bom_items || []).length} {isRTL ? "مكون" : "items"}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/50">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              };
-
-              const renderTable = (productsList: any[]) => (
-                <div className="overflow-auto rounded-lg border border-border/50">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[60px]">#</TableHead>
-                        <TableHead>{isRTL ? "المنتج" : "Product"}</TableHead>
-                        <TableHead className="text-end w-[120px]">{isRTL ? "السعر الأساسي" : "Base Price"}</TableHead>
-                        <TableHead className="w-[160px]">{isRTL ? `سعر ${orderTypeLabel(orderType)}` : `${orderTypeLabel(orderType)} Price`}</TableHead>
-                        <TableHead className="w-[120px]">{isRTL ? "الريسبي" : "Recipe"}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {productsList.map((product: any, idx: number) => renderProductRow(product, idx))}
-                    </TableBody>
-                  </Table>
-                </div>
-              );
-
-              return (
-                <TabsContent key={orderType} value={orderType} className="space-y-6">
-                  {groupedProducts.map((group: any) => (
-                    <div key={group.id}>
-                      <div className="flex items-center gap-3 mb-3 px-1">
-                        {group.image_url ? (
-                          <img src={group.image_url} alt="" className="h-8 w-8 rounded-lg object-cover border border-border/50 shadow-sm" />
-                        ) : (
-                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <MenuSquare className="h-4 w-4 text-primary" />
-                          </div>
-                        )}
-                        <h3 className="font-semibold text-sm text-foreground">{isRTL ? group.name : group.name_en || group.name}</h3>
-                        <Badge variant="secondary" className="text-[10px] font-normal">{group.products.length}</Badge>
-                      </div>
-                      {renderTable(group.products)}
+                      <h3 className="font-semibold text-sm text-foreground">{isRTL ? group.name : group.name_en || group.name}</h3>
+                      <Badge variant="secondary" className="text-[10px] font-normal">{group.products.length}</Badge>
                     </div>
-                  ))}
+                    {renderTable(group.products, orderType)}
+                  </div>
+                ))}
 
-                  {uncategorized.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-3 mb-3 px-1">
-                        <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-                          <MenuSquare className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <h3 className="font-semibold text-sm text-foreground">{isRTL ? "بدون تصنيف" : "Uncategorized"}</h3>
-                        <Badge variant="secondary" className="text-[10px] font-normal">{uncategorized.length}</Badge>
+                {uncategorized.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-3 mb-3 px-1">
+                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                        <MenuSquare className="h-4 w-4 text-muted-foreground" />
                       </div>
-                      {renderTable(uncategorized)}
+                      <h3 className="font-semibold text-sm text-foreground">{isRTL ? "بدون تصنيف" : "Uncategorized"}</h3>
+                      <Badge variant="secondary" className="text-[10px] font-normal">{uncategorized.length}</Badge>
                     </div>
-                  )}
+                    {renderTable(uncategorized, orderType)}
+                  </div>
+                )}
 
-                  {(products || []).length === 0 && (
-                    <div className="py-16 text-center text-muted-foreground">
-                      <MenuSquare className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                      <p className="font-medium">{isRTL ? "لا توجد منتجات" : "No products found"}</p>
-                      <p className="text-xs mt-1">{isRTL ? "أضف منتجات من المخزون أولاً" : "Add products from inventory first"}</p>
-                    </div>
-                  )}
-                </TabsContent>
-              );
-            })}
+                {(products || []).length === 0 && (
+                  <div className="py-16 text-center text-muted-foreground">
+                    <MenuSquare className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                    <p className="font-medium">{isRTL ? "لا توجد منتجات" : "No products found"}</p>
+                    <p className="text-xs mt-1">{isRTL ? "أضف منتجات من المخزون أولاً" : "Add products from inventory first"}</p>
+                  </div>
+                )}
+              </TabsContent>
+            ))}
           </Tabs>
         </CardContent>
       </Card>
-
-      {/* Menus per Branch */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{isRTL ? "قوائم الفروع" : "Branch Menus"}</CardTitle>
-              <CardDescription>{isRTL ? "إدارة قوائم الطعام المخصصة لكل فرع" : "Manage branch-specific menus"}</CardDescription>
-            </div>
-            <Button onClick={() => { setEditingMenu(null); setForm({ name: "", name_en: "", is_active: true }); setMenuDialog(true); }} disabled={!selectedBranch} size="sm">
-              <Plus className="h-4 w-4 me-2" /> {isRTL ? "إضافة منيو" : "Add Menu"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4">
-            <BranchSelector companyId={companyId!} value={selectedBranch} onChange={setSelectedBranch} />
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{isRTL ? "الاسم" : "Name"}</TableHead>
-                <TableHead>{isRTL ? "الاسم بالإنجليزي" : "Name (EN)"}</TableHead>
-                <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-                <TableHead>{isRTL ? "إجراءات" : "Actions"}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(menus || []).map((menu: any) => (
-                <TableRow key={menu.id}>
-                  <TableCell className="font-medium">{menu.name}</TableCell>
-                  <TableCell>{menu.name_en || "-"}</TableCell>
-                  <TableCell>
-                    <Badge variant={menu.is_active ? "default" : "secondary"}>
-                      {menu.is_active ? (isRTL ? "نشط" : "Active") : (isRTL ? "معطل" : "Inactive")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingMenu(menu); setForm({ name: menu.name, name_en: menu.name_en || "", is_active: menu.is_active }); setMenuDialog(true); }}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteMutation.mutate(menu.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(menus || []).length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
-                    <MenuSquare className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    {selectedBranch ? (isRTL ? "لا توجد قوائم" : "No menus found") : (isRTL ? "اختر فرع أولاً" : "Select a branch first")}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Dialog open={menuDialog} onOpenChange={setMenuDialog}>
-        <DialogContent dir={isRTL ? "rtl" : "ltr"}>
-          <DialogHeader>
-            <DialogTitle>{editingMenu ? (isRTL ? "تعديل منيو" : "Edit Menu") : (isRTL ? "إضافة منيو" : "Add Menu")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div><Label>{isRTL ? "الاسم بالعربي" : "Name (Arabic)"}</Label><Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} /></div>
-            <div><Label>{isRTL ? "الاسم بالإنجليزي" : "Name (English)"}</Label><Input value={form.name_en} onChange={(e) => setForm(f => ({ ...f, name_en: e.target.value }))} /></div>
-            <div className="flex items-center gap-2">
-              <Switch checked={form.is_active} onCheckedChange={(v) => setForm(f => ({ ...f, is_active: v }))} />
-              <Label>{isRTL ? "نشط" : "Active"}</Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMenuDialog(false)}>{isRTL ? "إلغاء" : "Cancel"}</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name}>
-              {saveMutation.isPending ? "..." : (isRTL ? "حفظ" : "Save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
