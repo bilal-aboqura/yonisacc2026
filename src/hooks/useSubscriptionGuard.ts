@@ -23,21 +23,38 @@ export const useSubscriptionGuard = () => {
     }
 
     const checkSubscription = async () => {
-      // Get user's company
-      const { data: companies, error: companyError } = await supabase
+      let companyId: string | null = null;
+
+      // 1. Check as owner
+      const { data: owned } = await supabase
         .from("companies")
         .select("id")
         .eq("owner_id", user.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
-        .limit(1);
+        .limit(1)
+        .maybeSingle();
 
-      if (companyError || !companies?.length) {
+      if (owned) {
+        companyId = owned.id;
+      } else {
+        // 2. Check as team member
+        const { data: membership } = await supabase
+          .from("company_members")
+          .select("company_id")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        companyId = membership?.company_id ?? null;
+      }
+
+      if (!companyId) {
         setStatus("no_company");
         return;
       }
-
-      const companyId = companies[0].id;
 
       // Get active subscription
       const { data: subs, error: subError } = await supabase
