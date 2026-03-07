@@ -829,6 +829,46 @@ const POSScreen = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Closing Report Dialog */}
+      <Dialog open={closingReportDialog} onOpenChange={(open) => { if (!open) { setActiveSession(null); navigate("/client"); } setClosingReportDialog(open); }}>
+        <DialogContent className="sm:max-w-lg" dir={isRTL ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle>{isRTL ? "تقرير إغلاق الصندوق" : "Closing Report"}</DialogTitle>
+          </DialogHeader>
+          {closingReport && (
+            <div className="space-y-3 text-sm" id="closing-report">
+              <div className="grid grid-cols-2 gap-2 p-3 bg-muted rounded-lg">
+                <div><span className="text-muted-foreground">{isRTL ? "رصيد الافتتاح" : "Opening"}</span><p className="font-bold">{closingReport.openingAmount?.toFixed(2)}</p></div>
+                <div><span className="text-muted-foreground">{isRTL ? "عدد العمليات" : "Transactions"}</span><p className="font-bold">{closingReport.transactionCount}</p></div>
+              </div>
+              <div className="space-y-2 border-t pt-2">
+                <div className="flex justify-between"><span>{isRTL ? "إجمالي المبيعات" : "Total Sales"}</span><span className="font-bold">{closingReport.totalSales?.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>{isRTL ? "إجمالي المرتجعات" : "Total Returns"}</span><span className="font-bold text-destructive">{closingReport.totalReturns?.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>{isRTL ? "إجمالي الخصومات" : "Total Discounts"}</span><span className="font-bold">{closingReport.totalDiscounts?.toFixed(2)}</span></div>
+              </div>
+              <div className="border-t pt-2">
+                <p className="font-semibold mb-1">{isRTL ? "المدفوعات حسب طريقة الدفع" : "Payments by Method"}</p>
+                {Object.entries(closingReport.paymentSummary || {}).map(([k, v]) => (
+                  <div key={k} className="flex justify-between"><span className="capitalize">{k}</span><span>{(v as number).toFixed(2)}</span></div>
+                ))}
+              </div>
+              <div className="flex justify-between font-bold text-lg border-t pt-2">
+                <span>{isRTL ? "رصيد الإغلاق" : "Closing Balance"}</span>
+                <span className="text-primary">{closingReport.closingAmount?.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { window.print(); }}>
+              <Printer className="h-4 w-4 me-2" /> {isRTL ? "طباعة" : "Print"}
+            </Button>
+            <Button onClick={() => { setClosingReportDialog(false); setActiveSession(null); navigate("/client"); }}>
+              {isRTL ? "إغلاق" : "Close"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
