@@ -278,9 +278,12 @@ const App = () => (
               <Route path="hr/setup" element={<HRAccountSetup />} />
               
               {/* Auto Parts */}
+              <Route path="auto-parts" element={<AutoPartsDashboard />} />
               <Route path="auto-parts/catalog" element={<PartsCatalog />} />
               <Route path="auto-parts/brands" element={<CarBrands />} />
               <Route path="auto-parts/models" element={<CarModels />} />
+              <Route path="auto-parts/reports" element={<AutoPartsReports />} />
+              <Route path="auto-parts/setup" element={<AutoPartsAccountSetup />} />
 
               {/* Inventory */}
               <Route path="inventory" element={<ClientInventory />} />
