@@ -1,100 +1,148 @@
 
 
-# خطة تطوير مديول المخزون المتكامل
+## خطة: نظام نقاط البيع الشامل (POS)
 
-## الوضع الحالي
-- جداول موجودة: `products`, `product_categories` (شجرية), `product_stock`, `stock_movements`, `warehouses`, `units` (بدون تحويلات)
-- الجداول الناقصة: `stock_adjustments`, `stock_transfers`, `internal_consumptions`, `bill_of_materials`, `manufacturing_orders`, تحويل الوحدات، أنواع المنتجات، طرق التتبع
-- الواجهة الحالية: صفحة منتجات بسيطة + صفحة إنشاء منتج + حركة مخزون فارغة
-- القائمة الجانبية: رابطان فقط (المنتجات، حركة المخزون)
+### نطاق العمل
+نظام POS متكامل يدعم المطاعم والتجزئة، مع تكامل كامل مع المحاسبة والمخزون. سيتم التنفيذ على مراحل.
 
-## خطة التنفيذ (مقسمة على مراحل)
+---
 
-### المرحلة 1: تحديث قاعدة البيانات
+### المرحلة 1: البنية التحتية وقاعدة البيانات
 
-**تعديل جدول `units`** — إضافة:
-- `symbol` (موجود)، `allows_fractions` (boolean)، `base_unit_id` (uuid FK → units)، `conversion_rate` (numeric)
+**Migration — جداول جديدة:**
 
-**تعديل جدول `products`** — إضافة:
-- `product_type` (text: stock/service/manufacturing/bundle)
-- `tracking_method` (text: none/batch/serial)
-- `unit_id` (uuid FK → units)
-- `is_taxable` (boolean, default true)
-- `reorder_level` (integer)
+1. **`pos_terminals`** — نقاط البيع المربوطة بالفروع
+   - `id`, `company_id`, `branch_id`, `name`, `name_en`, `terminal_type` (retail/restaurant), `is_active`, `printer_config` (jsonb), `operating_hours` (jsonb), `created_at`
 
-**تعديل جدول `product_categories`** — إضافة:
-- `image_url` (text)
+2. **`pos_sessions`** — جلسات الكاشير (فتح/إغلاق)
+   - `id`, `company_id`, `branch_id`, `terminal_id`, `opened_by`, `closed_by`, `opening_amount`, `closing_amount`, `expected_amount`, `opened_at`, `closed_at`, `status` (open/closed), `notes`
 
-**جدول جديد: `stock_adjustments`**
-- id, company_id, branch_id, adjustment_date, adjustment_type (increase/decrease), reason, status (draft/approved), notes, created_by, approved_by, created_at
+3. **`pos_transactions`** — عمليات البيع
+   - `id`, `company_id`, `branch_id`, `session_id`, `terminal_id`, `transaction_number`, `contact_id`, `subtotal`, `discount_amount`, `tax_amount`, `delivery_fee`, `extra_charges`, `total`, `payment_method`, `paid_amount`, `change_amount`, `table_id`, `order_type` (dine_in/takeaway/delivery), `delivery_app`, `created_by`, `invoice_id`, `created_at`, `status`
 
-**جدول جديد: `stock_adjustment_items`**
-- id, adjustment_id, product_id, quantity, unit_cost, notes
+4. **`pos_transaction_items`** — أصناف العملية
+   - `id`, `transaction_id`, `product_id`, `quantity`, `unit_price`, `discount`, `tax_amount`, `total`, `notes`
 
-**جدول جديد: `stock_transfers`**
-- id, company_id, from_branch_id, to_branch_id, transfer_date, status (draft/sent/received), notes, created_by, received_by, created_at
+5. **`pos_tables`** — الطاولات (للمطاعم)
+   - `id`, `company_id`, `branch_id`, `table_number`, `floor_level`, `capacity`, `status` (available/occupied/reserved), `current_transaction_id`, `shape` (square/circle/rectangle), `position_x`, `position_y`
 
-**جدول جديد: `stock_transfer_items`**
-- id, transfer_id, product_id, quantity_sent, quantity_received, notes
+6. **`pos_reservations`** — الحجوزات
+   - `id`, `company_id`, `branch_id`, `table_id`, `customer_name`, `phone`, `reservation_date`, `reservation_time`, `party_size`, `deposit_amount`, `status`, `notes`
 
-**جدول جديد: `internal_consumptions`**
-- id, company_id, branch_id, consumption_date, department, reason, status, notes, created_by, created_at
+7. **`pos_menus`** — المنيو المخصص لكل فرع
+   - `id`, `company_id`, `branch_id`, `name`, `name_en`, `is_active`
 
-**جدول جديد: `internal_consumption_items`**
-- id, consumption_id, product_id, quantity, unit_cost, notes
+8. **`pos_menu_items`** — أصناف المنيو
+   - `id`, `menu_id`, `product_id`, `display_name`, `display_name_en`, `price_override`, `is_available`, `sort_order`, `category_group`
 
-**جدول جديد: `bill_of_materials`**
-- id, company_id, product_id (المنتج النهائي), is_active, notes, created_at
+9. **`pos_promotions`** — العروض والخصومات
+   - `id`, `company_id`, `name`, `name_en`, `type` (percentage/fixed/buy_x_get_y), `value`, `min_amount`, `start_date`, `end_date`, `is_active`, `applicable_products` (jsonb), `applicable_branches` (jsonb)
 
-**جدول جديد: `bom_items`**
-- id, bom_id, product_id (مادة خام), quantity, unit_id
+10. **`pos_sales_targets`** — تارقت المبيعات
+    - `id`, `company_id`, `branch_id`, `user_id`, `target_type` (amount/quantity), `product_id`, `target_value`, `achieved_value`, `period_start`, `period_end`, `notification_interval` (jsonb), `is_active`
 
-**جدول جديد: `manufacturing_orders`**
-- id, company_id, branch_id, bom_id, product_id, quantity, status (draft/in_progress/completed/cancelled), production_cost, notes, created_by, completed_at, created_at
+11. **`pos_activity_log`** — سجل نشاط المستخدمين
+    - `id`, `company_id`, `session_id`, `user_id`, `action`, `details` (jsonb), `created_at`
 
-**RLS**: جميع الجداول ستستخدم `is_company_owner(company_id)` مع Realtime على `product_stock` و `stock_movements`.
+- إضافة صلاحيات RBAC: `VIEW_POS`, `USE_POS`, `MANAGE_POS`, `MANAGE_POS_TABLES`, `MANAGE_POS_MENUS`, `VIEW_POS_REPORTS`, `MANAGE_POS_PROMOTIONS`, `MANAGE_POS_TARGETS`
+- RLS على جميع الجداول بـ `company_id`
 
-### المرحلة 2: الواجهات الأمامية
+---
 
-**1. إدارة الوحدات** — `/client/inventory/units`
-- CRUD وحدات مع دعم التحويل والكسور
+### المرحلة 2: شاشة POS الرئيسية
 
-**2. إدارة التصنيفات** — `/client/inventory/categories`
-- شجرة تصنيفات مع إضافة/تعديل/حذف + صورة + تفعيل/تعطيل
+**ملف: `src/pages/client/pos/POSScreen.tsx`**
+- تصميم ملء الشاشة (Full-screen) بدون sidebar
+- **القسم الأيسر (65%)**: 
+  - شريط بحث سريع + ماسح باركود
+  - تصفية بالتصنيف (أزرار ملونة)
+  - شبكة المنتجات (Grid) مع صور وأسعار
+  - مؤشر التوفر (متاح/غير متاح)
+- **القسم الأيمن (35%)**:
+  - سلة المشتريات (كمية، سعر، حذف، ملاحظات)
+  - اختيار العميل (اختياري)
+  - نوع الطلب (محلي/سفري/توصيل)
+  - تطبيق الخصم/العرض
+  - رسوم التوصيل
+  - الإجماليات (فرعي، ضريبة، خصم، إجمالي)
+  - أزرار الدفع (نقد، بطاقة، تحويل، تابي، تمارا)
+- **الشريط العلوي**: اسم الفرع، الكاشير، رقم الجلسة، زر إغلاق الصندوق
 
-**3. تطوير المنتجات** — تحديث `CreateProduct` و إنشاء `EditProduct`
-- إضافة نوع المنتج، طريقة التتبع، ربط الوحدة من جدول الوحدات، خاضع للضريبة
+---
 
-**4. كرت المنتج** — `/client/inventory/product/:id`
-- الرصيد بكل فرع، متوسط التكلفة، قيمة المخزون، سجل الحركات (Stock Ledger)
+### المرحلة 3: إدارة الطاولات (المطاعم)
 
-**5. عرض المخزون (Stock Overview)** — `/client/inventory/stock`
-- جدول بجميع المنتجات مع الكميات وفلترة بالفرع/التصنيف/تحت الحد الأدنى
+**ملف: `src/pages/client/pos/POSTables.tsx`**
+- عرض تفاعلي للطاولات حسب الطابق/المستوى
+- ألوان حسب الحالة (فارغة/مشغولة/محجوزة)
+- الضغط على طاولة يفتح شاشة POS مع ربطها بالطاولة
+- إدارة الحجوزات مع التأمينات
 
-**6. تسوية المخزون** — `/client/inventory/adjustments`
-- إنشاء تسوية (زيادة/نقص) مع السبب والفرع، تحديث `product_stock` و `stock_movements`
+---
 
-**7. تحويل بين الفروع** — `/client/inventory/transfers`
-- إنشاء طلب تحويل (Draft → Sent → Received)، تحديث المخزون عند الاستلام
+### المرحلة 4: الإعدادات والمنيو
 
-**8. الاستهلاك الداخلي** — `/client/inventory/consumptions`
-- صرف منتجات لاستخدام داخلي مع القسم والسبب
+**ملف: `src/pages/client/pos/POSSettings.tsx`**
+- ربط الفروع بنقاط البيع
+- إعداد المنيو المخصص لكل فرع
+- مواعيد العمل
+- إعدادات الطابعة
+- شاشة العرض للعملاء
+- تخصيص شكل الفاتورة
 
-**9. التصنيع** — `/client/inventory/manufacturing`
-- إدارة BOM + أوامر التصنيع مع خصم المواد وإضافة المنتج النهائي
+**ملف: `src/pages/client/pos/POSMenuManager.tsx`**
+- إدارة أصناف المنيو لكل فرع
+- تفعيل/تعطيل المنتجات
+- تغيير الأسعار حسب الفرع
 
-**10. تقارير المخزون** — `/client/inventory/reports`
-- 7 تقارير مع فلترة بالفرع والفترة + تصدير PDF/Excel
+---
 
-### المرحلة 3: التكامل
+### المرحلة 5: العروض والتارقت
 
-- **القائمة الجانبية**: توسيع قسم المخزون ليشمل جميع الروابط الجديدة
-- **RBAC**: إضافة أكواد صلاحيات جديدة (VIEW_UNITS, MANAGE_UNITS, VIEW_CATEGORIES, MANAGE_ADJUSTMENTS, إلخ)
-- **Audit Log**: تسجيل جميع العمليات عبر triggers
-- **Realtime**: تفعيل `supabase_realtime` على `product_stock`
-- **i18n**: إضافة جميع النصوص في `ar.json` و `en.json`
-- **منع تعديل المعتمد**: العمليات المعتمدة (approved/completed/received) لا تقبل التعديل
+**ملف: `src/pages/client/pos/POSPromotions.tsx`**
+- إنشاء عروض (نسبة/مبلغ ثابت/اشتر X واحصل Y)
+- تحديد فترة العرض والفروع المستهدفة
 
-## ملاحظة مهمة
-هذا المديول ضخم جداً (10+ شاشة، 10+ جدول جديد، RPCs). سأبدأ بالتنفيذ على مراحل — الجداول أولاً، ثم الشاشات الأساسية (الوحدات، التصنيفات، المنتجات المطورة)، ثم العمليات (تسوية، تحويل، استهلاك، تصنيع)، وأخيراً التقارير.
+**ملف: `src/pages/client/pos/POSTargets.tsx`**
+- تعيين تارقت لكل كاشير (قيمة/كمية/صنف)
+- إشعارات دورية للكاشير بالتقدم
+
+---
+
+### المرحلة 6: التقارير
+
+**ملف: `src/pages/client/pos/POSReports.tsx`**
+- تقارير حسب الموظف (أداء كل كاشير)
+- تقارير حسب الفرع (مقارنة الأداء)
+- تقارير حسب المنتج (الأكثر مبيعاً / الراكد)
+- تقارير حسب العميل
+- تقرير الإغلاق اليومي
+- رسوم بيانية (Recharts)
+
+---
+
+### المرحلة 7: المكونات المساعدة
+
+- `POSSessionDialog.tsx` — فتح/إغلاق الصندوق مع المطابقة
+- `POSReceipt.tsx` — إيصال حراري قابل للطباعة
+- `POSCustomerDisplay.tsx` — شاشة عرض العميل
+- `POSActivityLog.tsx` — سجل نشاط المستخدمين
+
+---
+
+### المرحلة 8: التكامل
+
+- تعديل `App.tsx` — إضافة مسارات POS تحت `/client/pos/*`
+- تعديل `ClientLayout.tsx` — إضافة قسم "نقاط البيع" بالقائمة الجانبية مع صلاحية `VIEW_POS`
+- ربط كل عملية POS بفاتورة مبيعات وقيد يومية تلقائي
+- تحديث المخزون تلقائياً عند إتمام البيع
+
+---
+
+### ملاحظات تقنية
+- شاشة POS تستخدم layout مستقل بدون sidebar لتجربة كاشير نظيفة
+- دعم اختصارات لوحة المفاتيح (F1-F4 للدفع، Esc للإلغاء)
+- دعم الباركود عبر حقل البحث
+- جميع الواجهات ثنائية اللغة (عربي/إنجليزي)
+- التصميم responsive للأجهزة اللوحية
 
