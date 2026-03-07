@@ -1863,6 +1863,185 @@ export type Database = {
           },
         ]
       }
+      hr_account_settings: {
+        Row: {
+          bank_account_id: string | null
+          cash_account_id: string | null
+          company_id: string
+          created_at: string | null
+          employee_advances_account_id: string | null
+          eos_expense_account_id: string | null
+          eos_provision_account_id: string | null
+          housing_expense_account_id: string | null
+          id: string
+          loan_receivable_account_id: string | null
+          other_allowance_account_id: string | null
+          penalties_revenue_account_id: string | null
+          rewards_expense_account_id: string | null
+          salary_expense_account_id: string | null
+          salary_payable_account_id: string | null
+          social_insurance_expense_account_id: string | null
+          social_insurance_payable_account_id: string | null
+          transport_expense_account_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bank_account_id?: string | null
+          cash_account_id?: string | null
+          company_id: string
+          created_at?: string | null
+          employee_advances_account_id?: string | null
+          eos_expense_account_id?: string | null
+          eos_provision_account_id?: string | null
+          housing_expense_account_id?: string | null
+          id?: string
+          loan_receivable_account_id?: string | null
+          other_allowance_account_id?: string | null
+          penalties_revenue_account_id?: string | null
+          rewards_expense_account_id?: string | null
+          salary_expense_account_id?: string | null
+          salary_payable_account_id?: string | null
+          social_insurance_expense_account_id?: string | null
+          social_insurance_payable_account_id?: string | null
+          transport_expense_account_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bank_account_id?: string | null
+          cash_account_id?: string | null
+          company_id?: string
+          created_at?: string | null
+          employee_advances_account_id?: string | null
+          eos_expense_account_id?: string | null
+          eos_provision_account_id?: string | null
+          housing_expense_account_id?: string | null
+          id?: string
+          loan_receivable_account_id?: string | null
+          other_allowance_account_id?: string | null
+          penalties_revenue_account_id?: string | null
+          rewards_expense_account_id?: string | null
+          salary_expense_account_id?: string | null
+          salary_payable_account_id?: string | null
+          social_insurance_expense_account_id?: string | null
+          social_insurance_payable_account_id?: string | null
+          transport_expense_account_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_account_settings_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_cash_account_id_fkey"
+            columns: ["cash_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_employee_advances_account_id_fkey"
+            columns: ["employee_advances_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_eos_expense_account_id_fkey"
+            columns: ["eos_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_eos_provision_account_id_fkey"
+            columns: ["eos_provision_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_housing_expense_account_id_fkey"
+            columns: ["housing_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_loan_receivable_account_id_fkey"
+            columns: ["loan_receivable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_other_allowance_account_id_fkey"
+            columns: ["other_allowance_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_penalties_revenue_account_id_fkey"
+            columns: ["penalties_revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_rewards_expense_account_id_fkey"
+            columns: ["rewards_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_salary_expense_account_id_fkey"
+            columns: ["salary_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_salary_payable_account_id_fkey"
+            columns: ["salary_payable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_social_insurance_expense_account_id_fkey"
+            columns: ["social_insurance_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_social_insurance_payable_account_id_fkey"
+            columns: ["social_insurance_payable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_account_settings_transport_expense_account_id_fkey"
+            columns: ["transport_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_attendance: {
         Row: {
           attendance_date: string
@@ -1954,6 +2133,7 @@ export type Database = {
       }
       hr_employees: {
         Row: {
+          account_id: string | null
           bank_iban: string | null
           bank_name: string | null
           basic_salary: number
@@ -1979,6 +2159,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          account_id?: string | null
           bank_iban?: string | null
           bank_name?: string | null
           basic_salary?: number
@@ -2004,6 +2185,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          account_id?: string | null
           bank_iban?: string | null
           bank_name?: string | null
           basic_salary?: number
@@ -2029,6 +2211,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "hr_employees_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hr_employees_company_id_fkey"
             columns: ["company_id"]
