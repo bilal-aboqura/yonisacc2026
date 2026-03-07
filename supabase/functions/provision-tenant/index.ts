@@ -122,6 +122,7 @@ serve(async (req) => {
       .from('profiles')
       .select('id')
       .eq('phone_number', normalizedPhone)
+      .neq('user_id', userId)
       .maybeSingle();
 
     if (phoneCheckError) {
