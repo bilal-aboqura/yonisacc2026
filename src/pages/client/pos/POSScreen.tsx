@@ -132,6 +132,20 @@ const POSScreen = () => {
     enabled: !!companyId,
   });
 
+  // Fetch branch payment methods
+  const { data: branchPaymentMethods } = useQuery({
+    queryKey: ["branch-payment-methods-pos", companyId, selectedBranch],
+    queryFn: async () => {
+      const { data } = await (supabase.from as any)("branch_payment_methods")
+        .select("*, payment_methods:payment_method_id(id, name, name_en, code, is_active)")
+        .eq("company_id", companyId!)
+        .eq("branch_id", selectedBranch)
+        .eq("is_active", true);
+      return (data || []).filter((d: any) => d.payment_methods?.is_active).map((d: any) => d.payment_methods) as any[];
+    },
+    enabled: !!companyId && !!selectedBranch,
+  });
+
   // Check active session
   const { data: session } = useQuery({
     queryKey: ["pos-session", companyId, selectedBranch],
