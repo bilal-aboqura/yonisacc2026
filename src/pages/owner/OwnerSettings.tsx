@@ -186,6 +186,10 @@ const OwnerSettings = () => {
     updateSettingMutation.mutate({ key: "resend_api_key", value: resendApi });
   };
 
+  const savePaymentGateways = () => {
+    updateSettingMutation.mutate({ key: "payment_gateways", value: paymentGateways });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
