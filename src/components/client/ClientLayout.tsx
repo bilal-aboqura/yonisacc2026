@@ -69,6 +69,7 @@ import {
   Landmark,
   KeyRound,
   Home,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
