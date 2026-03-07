@@ -68,6 +68,9 @@ import CreatePurchaseOrder from "./pages/client/CreatePurchaseOrder";
 import CarBrands from "./pages/client/autoparts/CarBrands";
 import CarModels from "./pages/client/autoparts/CarModels";
 import PartsCatalog from "./pages/client/autoparts/PartsCatalog";
+import AutoPartsDashboard from "./pages/client/autoparts/AutoPartsDashboard";
+import AutoPartsReports from "./pages/client/autoparts/AutoPartsReports";
+import AutoPartsAccountSetup from "./pages/client/autoparts/AutoPartsAccountSetup";
 
 // Inventory
 import UnitsManagement from "./pages/client/inventory/UnitsManagement";
@@ -147,6 +150,7 @@ import DeliveryAreas from "./pages/client/delivery/DeliveryAreas";
 import CreateDeliveryArea from "./pages/client/delivery/CreateDeliveryArea";
 import DeliveryReports from "./pages/client/delivery/DeliveryReports";
 import DeliveryAccountSetup from "./pages/client/delivery/DeliveryAccountSetup";
+import DriverSettlement from "./pages/client/delivery/DriverSettlement";
 
 // Gold & Jewelry
 import GoldItems from "./pages/client/gold/GoldItems";
@@ -274,9 +278,12 @@ const App = () => (
               <Route path="hr/setup" element={<HRAccountSetup />} />
               
               {/* Auto Parts */}
+              <Route path="auto-parts" element={<AutoPartsDashboard />} />
               <Route path="auto-parts/catalog" element={<PartsCatalog />} />
               <Route path="auto-parts/brands" element={<CarBrands />} />
               <Route path="auto-parts/models" element={<CarModels />} />
+              <Route path="auto-parts/reports" element={<AutoPartsReports />} />
+              <Route path="auto-parts/setup" element={<AutoPartsAccountSetup />} />
 
               {/* Inventory */}
               <Route path="inventory" element={<ClientInventory />} />
@@ -372,6 +379,7 @@ const App = () => (
               <Route path="delivery/areas/:id/edit" element={<CreateDeliveryArea />} />
               <Route path="delivery/reports" element={<DeliveryReports />} />
               <Route path="delivery/setup" element={<DeliveryAccountSetup />} />
+              <Route path="delivery/settlement" element={<DriverSettlement />} />
 
               {/* Gold & Jewelry */}
               <Route path="gold/items" element={<GoldItems />} />

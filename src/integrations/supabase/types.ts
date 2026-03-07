@@ -1850,6 +1850,331 @@ export type Database = {
           },
         ]
       }
+      delivery_account_settings: {
+        Row: {
+          bank_account_id: string | null
+          cash_account_id: string | null
+          company_id: string
+          created_at: string | null
+          customer_receivable_account_id: string | null
+          delivery_commission_expense_account_id: string | null
+          delivery_revenue_account_id: string | null
+          driver_payable_account_id: string | null
+          id: string
+          sales_return_account_id: string | null
+          sales_revenue_account_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bank_account_id?: string | null
+          cash_account_id?: string | null
+          company_id: string
+          created_at?: string | null
+          customer_receivable_account_id?: string | null
+          delivery_commission_expense_account_id?: string | null
+          delivery_revenue_account_id?: string | null
+          driver_payable_account_id?: string | null
+          id?: string
+          sales_return_account_id?: string | null
+          sales_revenue_account_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bank_account_id?: string | null
+          cash_account_id?: string | null
+          company_id?: string
+          created_at?: string | null
+          customer_receivable_account_id?: string | null
+          delivery_commission_expense_account_id?: string | null
+          delivery_revenue_account_id?: string | null
+          driver_payable_account_id?: string | null
+          id?: string
+          sales_return_account_id?: string | null
+          sales_revenue_account_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_account_settings_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_account_settings_cash_account_id_fkey"
+            columns: ["cash_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_account_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_account_settings_customer_receivable_account_id_fkey"
+            columns: ["customer_receivable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_account_settings_delivery_commission_expense_acco_fkey"
+            columns: ["delivery_commission_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_account_settings_delivery_revenue_account_id_fkey"
+            columns: ["delivery_revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_account_settings_driver_payable_account_id_fkey"
+            columns: ["driver_payable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_account_settings_sales_return_account_id_fkey"
+            columns: ["sales_return_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_account_settings_sales_revenue_account_id_fkey"
+            columns: ["sales_revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_areas: {
+        Row: {
+          branch_id: string | null
+          company_id: string
+          created_at: string | null
+          delivery_fee: number | null
+          estimated_time_minutes: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          company_id: string
+          created_at?: string | null
+          delivery_fee?: number | null
+          estimated_time_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          company_id?: string
+          created_at?: string | null
+          delivery_fee?: number | null
+          estimated_time_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_areas_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_areas_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_drivers: {
+        Row: {
+          branch_id: string | null
+          company_id: string
+          created_at: string | null
+          id: string
+          name: string
+          name_en: string | null
+          notes: string | null
+          phone: string | null
+          status: string
+          updated_at: string | null
+          vehicle_plate: string | null
+          vehicle_type: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string | null
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          updated_at?: string | null
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_drivers_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_drivers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_orders: {
+        Row: {
+          area_id: string | null
+          branch_id: string | null
+          company_id: string
+          created_at: string | null
+          customer_name: string
+          customer_phone: string | null
+          delivered_at: string | null
+          delivery_address: string | null
+          delivery_fee: number | null
+          driver_commission: number | null
+          driver_id: string | null
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          order_date: string
+          order_number: string
+          order_total: number | null
+          payment_method_id: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          area_id?: string | null
+          branch_id?: string | null
+          company_id: string
+          created_at?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_fee?: number | null
+          driver_commission?: number | null
+          driver_id?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          order_date?: string
+          order_number: string
+          order_total?: number | null
+          payment_method_id?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          area_id?: string | null
+          branch_id?: string | null
+          company_id?: string
+          created_at?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_fee?: number | null
+          driver_commission?: number | null
+          driver_id?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          order_date?: string
+          order_number?: string
+          order_total?: number | null
+          payment_method_id?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_orders_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_orders_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_orders_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_orders_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctors: {
         Row: {
           company_id: string
