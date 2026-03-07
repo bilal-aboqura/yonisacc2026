@@ -17,12 +17,9 @@ const POSMenuManager = () => {
   const { isRTL } = useLanguage();
   const { companyId } = useTenantIsolation();
   const queryClient = useQueryClient();
-  const [selectedBranch, setSelectedBranch] = useState("");
-  const [menuDialog, setMenuDialog] = useState(false);
-  const [editingMenu, setEditingMenu] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", name_en: "", is_active: true });
   const [activeTab, setActiveTab] = useState<"dine_in" | "takeaway" | "delivery">("dine_in");
   const [priceEdits, setPriceEdits] = useState<Record<string, number>>({});
+  const [priceDirty, setPriceDirty] = useState(false);
   const [priceDirty, setPriceDirty] = useState(false);
 
   const { data: menus } = useQuery({
