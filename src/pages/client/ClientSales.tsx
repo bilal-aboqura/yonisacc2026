@@ -4,7 +4,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyId } from "@/hooks/useCompanyId";
-import { useAuth } from "@/contexts/AuthContext";
+import { useRBAC } from "@/hooks/useRBAC";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
 import type { DataTableColumn } from "@/components/ui/data-table";
 import { Card, CardContent } from "@/components/ui/card";
