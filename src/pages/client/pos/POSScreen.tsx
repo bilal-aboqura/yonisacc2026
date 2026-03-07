@@ -400,14 +400,22 @@ const POSScreen = () => {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "F1") { e.preventDefault(); if (cart.length) { setPaymentMethod("cash"); setPaymentDialog(true); } }
-      if (e.key === "F2") { e.preventDefault(); if (cart.length) { setPaymentMethod("card"); setPaymentDialog(true); } }
+      if (e.key === "F1") { 
+        e.preventDefault(); 
+        const cashMethod = availablePaymentMethods.find((m: any) => m.code === "cash");
+        if (cart.length && cashMethod) { setPaymentMethod("cash"); setPaymentDialog(true); } 
+      }
+      if (e.key === "F2") { 
+        e.preventDefault(); 
+        const cardMethod = availablePaymentMethods.find((m: any) => m.code === "card");
+        if (cart.length && cardMethod) { setPaymentMethod("card"); setPaymentDialog(true); } 
+      }
       if (e.key === "Escape") { setPaymentDialog(false); setSessionDialog(false); }
       if (e.key === "F5") { e.preventDefault(); searchRef.current?.focus(); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [cart.length]);
+  }, [cart.length, availablePaymentMethods]);
 
   const branchName = branches?.find((b: any) => b.id === selectedBranch);
 
