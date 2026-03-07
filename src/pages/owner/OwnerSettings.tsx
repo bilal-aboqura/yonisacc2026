@@ -52,6 +52,30 @@ interface PaymentGatewaySettings {
   tamara_notification_token: string;
 }
 
+interface SocialMediaLink {
+  id: string;
+  platform: string;
+  url: string;
+  is_visible: boolean;
+}
+
+interface SocialMediaSettings {
+  links: SocialMediaLink[];
+}
+
+const PRESET_PLATFORMS = [
+  { value: 'facebook', label: 'Facebook', icon: 'f' },
+  { value: 'youtube', label: 'YouTube', icon: '▶' },
+  { value: 'telegram', label: 'Telegram', icon: '✈' },
+  { value: 'tiktok', label: 'TikTok', icon: '♪' },
+  { value: 'twitter', label: 'X (Twitter)', icon: '𝕏' },
+  { value: 'linkedin', label: 'LinkedIn', icon: 'in' },
+  { value: 'instagram', label: 'Instagram', icon: '📷' },
+  { value: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+  { value: 'snapchat', label: 'Snapchat', icon: '👻' },
+  { value: 'other', label: 'Other', icon: '🔗' },
+];
+
 const OwnerSettings = () => {
   const { isRTL } = useLanguage();
   const queryClient = useQueryClient();
