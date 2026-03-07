@@ -121,21 +121,6 @@ export const NizamFooter = () => {
               {t("landing.footer.description")}
             </p>
 
-            {/* Contact Info */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <Mail className="w-5 h-5 text-primary" />
-                <span>{t("landing.footer.contact.email")}</span>
-              </div>
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <Phone className="w-5 h-5 text-primary" />
-                <span dir="ltr">{t("landing.footer.contact.phone")}</span>
-              </div>
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <MapPin className="w-5 h-5 text-primary" />
-                <span>{t("landing.footer.contact.address")}</span>
-              </div>
-            </div>
 
             {/* Social Links */}
             <div className="flex gap-3 flex-wrap">
