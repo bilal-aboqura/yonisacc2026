@@ -787,6 +787,86 @@ const OwnerSettings = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Social Media Links */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Share2 className="h-5 w-5" />
+            {isRTL ? "روابط التواصل الاجتماعي" : "Social Media Links"}
+          </CardTitle>
+          <CardDescription>
+            {isRTL 
+              ? "إدارة روابط التواصل الاجتماعي التي تظهر في أسفل صفحة الهبوط" 
+              : "Manage social media links displayed in the landing page footer"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {socialMedia.links.map((link) => {
+            const platformInfo = PRESET_PLATFORMS.find(p => p.value === link.platform);
+            return (
+              <div key={link.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm">{platformInfo?.icon || '🔗'}</span>
+                </div>
+                <div className="flex-1 grid sm:grid-cols-[140px_1fr] gap-2">
+                  <Select
+                    value={link.platform}
+                    onValueChange={(val) => updateSocialLink(link.id, 'platform', val)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRESET_PLATFORMS.map(p => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.icon} {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={link.url}
+                    onChange={(e) => updateSocialLink(link.id, 'url', e.target.value)}
+                    placeholder="https://..."
+                    dir="ltr"
+                  />
+                </div>
+                <Switch
+                  checked={link.is_visible}
+                  onCheckedChange={(checked) => updateSocialLink(link.id, 'is_visible', checked)}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeSocialLink(link.id)}
+                  className="text-destructive hover:text-destructive shrink-0"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          })}
+
+          <Button variant="outline" onClick={addSocialLink} className="w-full">
+            <Plus className="h-4 w-4 me-2" />
+            {isRTL ? "إضافة رابط جديد" : "Add New Link"}
+          </Button>
+
+          <Button
+            onClick={saveSocialMedia}
+            disabled={updateSettingMutation.isPending}
+            className="gradient-primary text-white"
+          >
+            {updateSettingMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin me-2" />
+            ) : (
+              <Save className="h-4 w-4 me-2" />
+            )}
+            {isRTL ? "حفظ روابط التواصل" : "Save Social Links"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };
