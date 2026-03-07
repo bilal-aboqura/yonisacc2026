@@ -581,10 +581,21 @@ const POSScreen = () => {
         </div>
         <div className="flex items-center gap-2">
           {activeSession && (
-            <Badge variant="outline" className="border-primary-foreground/40 text-primary-foreground">
-              <Clock className="h-3 w-3 me-1" />
-              {isRTL ? "الجلسة نشطة" : "Session Active"}
-            </Badge>
+            <>
+              <Badge variant="outline" className="border-primary-foreground/40 text-primary-foreground">
+                <Clock className="h-3 w-3 me-1" />
+                {isRTL ? "الجلسة نشطة" : "Session Active"}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary-foreground hover:bg-primary-foreground/20"
+                onClick={() => setShowInvoices(!showInvoices)}
+              >
+                <FileText className="h-4 w-4 me-1" />
+                {isRTL ? "الفواتير" : "Invoices"}
+              </Button>
+            </>
           )}
           <Select value={selectedBranch} onValueChange={setSelectedBranch}>
             <SelectTrigger className="w-[160px] bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground">
