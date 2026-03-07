@@ -1500,6 +1500,135 @@ export type Database = {
         }
         Relationships: []
       }
+      gold_account_settings: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          gold_cogs_account_id: string | null
+          gold_inventory_account_id: string | null
+          gold_payable_account_id: string | null
+          gold_purchase_expense_account_id: string | null
+          gold_purchase_tax_account_id: string | null
+          gold_receivable_account_id: string | null
+          gold_sales_revenue_account_id: string | null
+          gold_sales_tax_account_id: string | null
+          id: string
+          making_cost_revenue_account_id: string | null
+          stone_cost_account_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          gold_cogs_account_id?: string | null
+          gold_inventory_account_id?: string | null
+          gold_payable_account_id?: string | null
+          gold_purchase_expense_account_id?: string | null
+          gold_purchase_tax_account_id?: string | null
+          gold_receivable_account_id?: string | null
+          gold_sales_revenue_account_id?: string | null
+          gold_sales_tax_account_id?: string | null
+          id?: string
+          making_cost_revenue_account_id?: string | null
+          stone_cost_account_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          gold_cogs_account_id?: string | null
+          gold_inventory_account_id?: string | null
+          gold_payable_account_id?: string | null
+          gold_purchase_expense_account_id?: string | null
+          gold_purchase_tax_account_id?: string | null
+          gold_receivable_account_id?: string | null
+          gold_sales_revenue_account_id?: string | null
+          gold_sales_tax_account_id?: string | null
+          id?: string
+          making_cost_revenue_account_id?: string | null
+          stone_cost_account_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gold_account_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_account_settings_gold_cogs_account_id_fkey"
+            columns: ["gold_cogs_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_account_settings_gold_inventory_account_id_fkey"
+            columns: ["gold_inventory_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_account_settings_gold_payable_account_id_fkey"
+            columns: ["gold_payable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_account_settings_gold_purchase_expense_account_id_fkey"
+            columns: ["gold_purchase_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_account_settings_gold_purchase_tax_account_id_fkey"
+            columns: ["gold_purchase_tax_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_account_settings_gold_receivable_account_id_fkey"
+            columns: ["gold_receivable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_account_settings_gold_sales_revenue_account_id_fkey"
+            columns: ["gold_sales_revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_account_settings_gold_sales_tax_account_id_fkey"
+            columns: ["gold_sales_tax_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_account_settings_making_cost_revenue_account_id_fkey"
+            columns: ["making_cost_revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gold_account_settings_stone_cost_account_id_fkey"
+            columns: ["stone_cost_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gold_items: {
         Row: {
           barcode: string | null
@@ -3479,6 +3608,145 @@ export type Database = {
             columns: ["screen_id"]
             isOneToOne: false
             referencedRelation: "system_screens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_account_settings: {
+        Row: {
+          bank_transfer_account_id: string | null
+          card_account_id: string | null
+          cash_account_id: string | null
+          cogs_account_id: string | null
+          company_id: string
+          coupon_expense_account_id: string | null
+          created_at: string | null
+          discount_account_id: string | null
+          id: string
+          inventory_account_id: string | null
+          refund_account_id: string | null
+          sales_revenue_account_id: string | null
+          sales_tax_account_id: string | null
+          tips_revenue_account_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bank_transfer_account_id?: string | null
+          card_account_id?: string | null
+          cash_account_id?: string | null
+          cogs_account_id?: string | null
+          company_id: string
+          coupon_expense_account_id?: string | null
+          created_at?: string | null
+          discount_account_id?: string | null
+          id?: string
+          inventory_account_id?: string | null
+          refund_account_id?: string | null
+          sales_revenue_account_id?: string | null
+          sales_tax_account_id?: string | null
+          tips_revenue_account_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bank_transfer_account_id?: string | null
+          card_account_id?: string | null
+          cash_account_id?: string | null
+          cogs_account_id?: string | null
+          company_id?: string
+          coupon_expense_account_id?: string | null
+          created_at?: string | null
+          discount_account_id?: string | null
+          id?: string
+          inventory_account_id?: string | null
+          refund_account_id?: string | null
+          sales_revenue_account_id?: string | null
+          sales_tax_account_id?: string | null
+          tips_revenue_account_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_account_settings_bank_transfer_account_id_fkey"
+            columns: ["bank_transfer_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_account_settings_card_account_id_fkey"
+            columns: ["card_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_account_settings_cash_account_id_fkey"
+            columns: ["cash_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_account_settings_cogs_account_id_fkey"
+            columns: ["cogs_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_account_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_account_settings_coupon_expense_account_id_fkey"
+            columns: ["coupon_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_account_settings_discount_account_id_fkey"
+            columns: ["discount_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_account_settings_inventory_account_id_fkey"
+            columns: ["inventory_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_account_settings_refund_account_id_fkey"
+            columns: ["refund_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_account_settings_sales_revenue_account_id_fkey"
+            columns: ["sales_revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_account_settings_sales_tax_account_id_fkey"
+            columns: ["sales_tax_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_account_settings_tips_revenue_account_id_fkey"
+            columns: ["tips_revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
         ]
