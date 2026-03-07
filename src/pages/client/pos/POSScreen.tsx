@@ -94,11 +94,25 @@ const POSScreen = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("*, product_categories(name, name_en)")
+        .select("*, product_categories(name, name_en, image_url)")
         .eq("company_id", companyId!)
         .eq("is_active", true)
         .order("name");
       return data || [];
+    },
+    enabled: !!companyId,
+  });
+
+  // Fetch menu prices by order type
+  const { data: menuPrices } = useQuery({
+    queryKey: ["pos-menu-prices", companyId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pos_menu_prices" as any)
+        .select("*")
+        .eq("company_id", companyId!)
+        .eq("is_active", true);
+      return (data || []) as any[];
     },
     enabled: !!companyId,
   });
@@ -207,18 +221,25 @@ const POSScreen = () => {
     return matchSearch && matchCategory;
   });
 
+  // Get price based on order type
+  const getProductPrice = useCallback((product: any) => {
+    const menuPrice = menuPrices?.find((p: any) => p.product_id === product.id && p.order_type === orderType);
+    if (menuPrice) return menuPrice.price;
+    return product.sale_price || product.price || 0;
+  }, [menuPrices, orderType]);
+
   // Cart operations
   const addToCart = useCallback((product: any) => {
+    const price = getProductPrice(product);
     setCart(prev => {
       const existing = prev.find(i => i.product_id === product.id);
       if (existing) {
         return prev.map(i =>
           i.product_id === product.id
-            ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unit_price - i.discount + i.tax_amount }
+            ? { ...i, quantity: i.quantity + 1, unit_price: price, total: (i.quantity + 1) * price - i.discount + i.tax_amount }
             : i
         );
       }
-      const price = product.sale_price || product.price || 0;
       const taxRate = product.is_taxable !== false ? 0.15 : 0;
       const tax = price * taxRate;
       return [...prev, {
@@ -233,7 +254,7 @@ const POSScreen = () => {
         notes: "",
       }];
     });
-  }, []);
+  }, [getProductPrice]);
 
   const updateQuantity = (productId: string, delta: number) => {
     setCart(prev => prev.map(i => {
@@ -476,7 +497,7 @@ const POSScreen = () => {
                     {isRTL ? product.name : product.name_en || product.name}
                   </span>
                   <span className="text-sm font-bold text-primary">
-                    {(product.sale_price || product.price || 0).toFixed(2)} <span className="text-xs font-normal text-muted-foreground">{isRTL ? "ر.س" : "SAR"}</span>
+                    {getProductPrice(product).toFixed(2)} <span className="text-xs font-normal text-muted-foreground">{isRTL ? "ر.س" : "SAR"}</span>
                   </span>
                 </button>
               ))}

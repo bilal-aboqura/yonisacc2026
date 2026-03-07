@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAutoPartsAccess } from "@/hooks/useAutoPartsAccess";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
+import ImageUpload from "@/components/client/ImageUpload";
 
 interface Category {
   id: string;
@@ -63,6 +64,7 @@ const CreateProduct = () => {
   const [description, setDescription] = useState("");
   const [isService, setIsService] = useState(false);
   const [isActive, setIsActive] = useState(true);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   // Auto parts fields
   const [oemNumber, setOemNumber] = useState("");
@@ -203,6 +205,7 @@ const CreateProduct = () => {
         description: description.trim() || null,
         is_service: isService,
         is_active: isActive,
+        image_url: imageUrl,
         oem_number: isAutoPartsCompany ? (oemNumber.trim() || null) : null,
         shelf_location: isAutoPartsCompany ? (shelfLocation.trim() || null) : null,
         part_condition: isAutoPartsCompany ? partCondition : "new",
@@ -280,6 +283,12 @@ const CreateProduct = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex gap-4 items-start">
+            <div>
+              <Label className="mb-2 block">{isService ? "صورة الخدمة" : "صورة المنتج"}</Label>
+              <ImageUpload value={imageUrl} onChange={setImageUrl} folder="products" size="lg" />
+            </div>
+            <div className="flex-1 space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>اسم المنتج (عربي) *</Label>
@@ -361,6 +370,8 @@ const CreateProduct = () => {
               placeholder="وصف المنتج..."
               rows={3}
             />
+          </div>
+            </div>
           </div>
         </CardContent>
       </Card>
