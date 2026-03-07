@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, Building2, Eye, EyeOff, Save, Loader2, Phone, Mail, MapPin, Key, CreditCard } from "lucide-react";
+import { Settings, Building2, Eye, EyeOff, Save, Loader2, Phone, Mail, MapPin, Key, CreditCard, Share2, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface BankAccountSettings {
@@ -51,6 +51,30 @@ interface PaymentGatewaySettings {
   tamara_api_token: string;
   tamara_notification_token: string;
 }
+
+interface SocialMediaLink {
+  id: string;
+  platform: string;
+  url: string;
+  is_visible: boolean;
+}
+
+interface SocialMediaSettings {
+  links: SocialMediaLink[];
+}
+
+const PRESET_PLATFORMS = [
+  { value: 'facebook', label: 'Facebook', icon: 'f' },
+  { value: 'youtube', label: 'YouTube', icon: '▶' },
+  { value: 'telegram', label: 'Telegram', icon: '✈' },
+  { value: 'tiktok', label: 'TikTok', icon: '♪' },
+  { value: 'twitter', label: 'X (Twitter)', icon: '𝕏' },
+  { value: 'linkedin', label: 'LinkedIn', icon: 'in' },
+  { value: 'instagram', label: 'Instagram', icon: '📷' },
+  { value: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+  { value: 'snapchat', label: 'Snapchat', icon: '👻' },
+  { value: 'other', label: 'Other', icon: '🔗' },
+];
 
 const OwnerSettings = () => {
   const { isRTL } = useLanguage();
@@ -96,6 +120,15 @@ const OwnerSettings = () => {
     tamara_notification_token: '',
   });
 
+  const [socialMedia, setSocialMedia] = useState<SocialMediaSettings>({
+    links: [
+      { id: '1', platform: 'facebook', url: '', is_visible: true },
+      { id: '2', platform: 'youtube', url: '', is_visible: true },
+      { id: '3', platform: 'telegram', url: '', is_visible: true },
+      { id: '4', platform: 'tiktok', url: '', is_visible: true },
+    ],
+  });
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ["owner-settings"],
     queryFn: async () => {
@@ -130,6 +163,10 @@ const OwnerSettings = () => {
       const gatewaySetting = settings.find(s => s.setting_key === "payment_gateways");
       if (gatewaySetting?.setting_value) {
         setPaymentGateways(gatewaySetting.setting_value as unknown as PaymentGatewaySettings);
+      }
+      const socialSetting = settings.find(s => s.setting_key === "social_media");
+      if (socialSetting?.setting_value) {
+        setSocialMedia(socialSetting.setting_value as unknown as SocialMediaSettings);
       }
     }
   }, [settings]);
@@ -184,6 +221,28 @@ const OwnerSettings = () => {
 
   const saveResendApi = () => {
     updateSettingMutation.mutate({ key: "resend_api_key", value: resendApi });
+  };
+
+  const saveSocialMedia = () => {
+    updateSettingMutation.mutate({ key: "social_media", value: socialMedia });
+  };
+
+  const addSocialLink = () => {
+    setSocialMedia(prev => ({
+      links: [...prev.links, { id: crypto.randomUUID(), platform: 'other', url: '', is_visible: true }],
+    }));
+  };
+
+  const removeSocialLink = (id: string) => {
+    setSocialMedia(prev => ({
+      links: prev.links.filter(l => l.id !== id),
+    }));
+  };
+
+  const updateSocialLink = (id: string, field: keyof SocialMediaLink, value: string | boolean) => {
+    setSocialMedia(prev => ({
+      links: prev.links.map(l => l.id === id ? { ...l, [field]: value } : l),
+    }));
   };
 
   const savePaymentGateways = () => {
@@ -725,6 +784,86 @@ const OwnerSettings = () => {
               <Save className="h-4 w-4 me-2" />
             )}
             {isRTL ? "حفظ إعدادات بوابات الدفع" : "Save Payment Gateways"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Social Media Links */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Share2 className="h-5 w-5" />
+            {isRTL ? "روابط التواصل الاجتماعي" : "Social Media Links"}
+          </CardTitle>
+          <CardDescription>
+            {isRTL 
+              ? "إدارة روابط التواصل الاجتماعي التي تظهر في أسفل صفحة الهبوط" 
+              : "Manage social media links displayed in the landing page footer"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {socialMedia.links.map((link) => {
+            const platformInfo = PRESET_PLATFORMS.find(p => p.value === link.platform);
+            return (
+              <div key={link.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm">{platformInfo?.icon || '🔗'}</span>
+                </div>
+                <div className="flex-1 grid sm:grid-cols-[140px_1fr] gap-2">
+                  <Select
+                    value={link.platform}
+                    onValueChange={(val) => updateSocialLink(link.id, 'platform', val)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRESET_PLATFORMS.map(p => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.icon} {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={link.url}
+                    onChange={(e) => updateSocialLink(link.id, 'url', e.target.value)}
+                    placeholder="https://..."
+                    dir="ltr"
+                  />
+                </div>
+                <Switch
+                  checked={link.is_visible}
+                  onCheckedChange={(checked) => updateSocialLink(link.id, 'is_visible', checked)}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeSocialLink(link.id)}
+                  className="text-destructive hover:text-destructive shrink-0"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          })}
+
+          <Button variant="outline" onClick={addSocialLink} className="w-full">
+            <Plus className="h-4 w-4 me-2" />
+            {isRTL ? "إضافة رابط جديد" : "Add New Link"}
+          </Button>
+
+          <Button
+            onClick={saveSocialMedia}
+            disabled={updateSettingMutation.isPending}
+            className="gradient-primary text-white"
+          >
+            {updateSettingMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin me-2" />
+            ) : (
+              <Save className="h-4 w-4 me-2" />
+            )}
+            {isRTL ? "حفظ روابط التواصل" : "Save Social Links"}
           </Button>
         </CardContent>
       </Card>

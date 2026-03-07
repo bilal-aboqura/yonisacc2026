@@ -1,8 +1,30 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Mail, Phone, MapPin } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-const socialLinks = [
+interface SocialMediaLink {
+  id: string;
+  platform: string;
+  url: string;
+  is_visible: boolean;
+}
+
+const PLATFORM_ICONS: Record<string, string> = {
+  facebook: 'f',
+  youtube: '▶',
+  telegram: '✈',
+  tiktok: '♪',
+  twitter: '𝕏',
+  linkedin: 'in',
+  instagram: '📷',
+  whatsapp: '💬',
+  snapchat: '👻',
+  other: '🔗',
+};
+
+const fallbackSocialLinks = [
   { label: "Twitter", href: "#", icon: "𝕏" },
   { label: "LinkedIn", href: "#", icon: "in" },
   { label: "YouTube", href: "#", icon: "▶" },
@@ -10,6 +32,21 @@ const socialLinks = [
 
 export const NizamFooter = () => {
   const { t } = useTranslation();
+
+  const { data: socialLinks } = useQuery({
+    queryKey: ["social-media-links"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("owner_settings")
+        .select("setting_value")
+        .eq("setting_key", "social_media")
+        .maybeSingle();
+      
+      if (error || !data?.setting_value) return null;
+      const settings = data.setting_value as unknown as { links: SocialMediaLink[] };
+      return settings.links?.filter(l => l.is_visible && l.url) || null;
+    },
+  });
 
   const footerLinks = [
     {
@@ -58,6 +95,14 @@ export const NizamFooter = () => {
     }
   };
 
+  const renderedSocials = socialLinks && socialLinks.length > 0
+    ? socialLinks.map(link => ({
+        label: link.platform,
+        href: link.url,
+        icon: PLATFORM_ICONS[link.platform] || '🔗',
+      }))
+    : fallbackSocialLinks;
+
   return (
     <footer id="contact" className="bg-sidebar-background text-sidebar-foreground">
       <div className="container-custom section-padding">
@@ -93,11 +138,13 @@ export const NizamFooter = () => {
             </div>
 
             {/* Social Links */}
-            <div className="flex gap-3">
-              {socialLinks.map((social, index) => (
+            <div className="flex gap-3 flex-wrap">
+              {renderedSocials.map((social, index) => (
                 <a
                   key={index}
                   href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                   aria-label={social.label}
                 >
