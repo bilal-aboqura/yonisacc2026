@@ -172,8 +172,10 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
       if (!result?.company_id) throw new Error(isRTL ? "لم يتم إرجاع معرف الشركة" : "Company ID not returned");
 
       localStorage.setItem("activeCompany", result.company_id);
-      toast.success(isRTL ? "تم إنشاء حسابك وشركتك بنجاح! أهلاً بك 🎉" : "Account & company created! Welcome 🎉");
-      navigate("/client/dashboard");
+      // Sign out so the user logs in fresh with their new account
+      await supabase.auth.signOut();
+      toast.success(isRTL ? "تم إنشاء حسابك وشركتك بنجاح! سجّل دخولك الآن 🎉" : "Account & company created! Please sign in 🎉");
+      navigate("/auth");
     } catch (err: any) {
       console.error("Onboarding error:", err);
       toast.error(err.message || (isRTL ? "حدث خطأ غير متوقع" : "Unexpected error"));
