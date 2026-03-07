@@ -111,6 +111,7 @@ import Loans from "./pages/client/hr/Loans";
 import Payroll from "./pages/client/hr/Payroll";
 import EndOfService from "./pages/client/hr/EndOfService";
 import HRReports from "./pages/client/hr/HRReports";
+import HRAccountSetup from "./pages/client/hr/HRAccountSetup";
 
 // Owner Portal
 import OwnerLayout from "./components/owner/OwnerLayout";
@@ -204,6 +205,7 @@ const App = () => (
               <Route path="hr/payroll" element={<Payroll />} />
               <Route path="hr/end-of-service" element={<EndOfService />} />
               <Route path="hr/reports" element={<HRReports />} />
+              <Route path="hr/setup" element={<HRAccountSetup />} />
               
               {/* Auto Parts */}
               <Route path="auto-parts/catalog" element={<PartsCatalog />} />
