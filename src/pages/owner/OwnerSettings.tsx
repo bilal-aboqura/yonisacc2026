@@ -565,6 +565,169 @@ const OwnerSettings = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Payment Gateways Settings */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            {isRTL ? "بوابات الدفع الإلكتروني" : "Payment Gateways"}
+          </CardTitle>
+          <CardDescription>
+            {isRTL 
+              ? "إعدادات ربط بوابات الدفع الإلكتروني (تابي وتمارا)" 
+              : "Configure electronic payment gateways (Tabby & Tamara)"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Tabby Section */}
+          <div className="space-y-4 p-4 rounded-lg border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#3CFFD0]/10 flex items-center justify-center">
+                  <span className="font-bold text-sm" style={{ color: '#3CFFD0' }}>T</span>
+                </div>
+                <div>
+                  <p className="font-semibold">{isRTL ? "تابي (Tabby)" : "Tabby"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isRTL ? "الدفع على أقساط" : "Buy now, pay later"}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={paymentGateways.tabby_enabled}
+                onCheckedChange={(checked) => 
+                  setPaymentGateways(prev => ({ ...prev, tabby_enabled: checked }))
+                }
+              />
+            </div>
+
+            {paymentGateways.tabby_enabled && (
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>{isRTL ? "البيئة" : "Environment"}</Label>
+                  <Select
+                    value={paymentGateways.tabby_environment}
+                    onValueChange={(val: 'sandbox' | 'production') => 
+                      setPaymentGateways(prev => ({ ...prev, tabby_environment: val }))
+                    }
+                  >
+                    <SelectTrigger className="max-w-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sandbox">{isRTL ? "تجريبية (Sandbox)" : "Sandbox"}</SelectItem>
+                      <SelectItem value="production">{isRTL ? "إنتاجية (Production)" : "Production"}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Public Key</Label>
+                    <Input
+                      value={paymentGateways.tabby_public_key}
+                      onChange={(e) => setPaymentGateways(prev => ({ ...prev, tabby_public_key: e.target.value }))}
+                      placeholder="pk_xxxxxxxx"
+                      dir="ltr"
+                      type="password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Secret Key</Label>
+                    <Input
+                      value={paymentGateways.tabby_secret_key}
+                      onChange={(e) => setPaymentGateways(prev => ({ ...prev, tabby_secret_key: e.target.value }))}
+                      placeholder="sk_xxxxxxxx"
+                      dir="ltr"
+                      type="password"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Tamara Section */}
+          <div className="space-y-4 p-4 rounded-lg border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#FF6B35]/10 flex items-center justify-center">
+                  <span className="font-bold text-sm" style={{ color: '#FF6B35' }}>T</span>
+                </div>
+                <div>
+                  <p className="font-semibold">{isRTL ? "تمارا (Tamara)" : "Tamara"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isRTL ? "الدفع لاحقاً" : "Buy now, pay later"}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={paymentGateways.tamara_enabled}
+                onCheckedChange={(checked) => 
+                  setPaymentGateways(prev => ({ ...prev, tamara_enabled: checked }))
+                }
+              />
+            </div>
+
+            {paymentGateways.tamara_enabled && (
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>{isRTL ? "البيئة" : "Environment"}</Label>
+                  <Select
+                    value={paymentGateways.tamara_environment}
+                    onValueChange={(val: 'sandbox' | 'production') => 
+                      setPaymentGateways(prev => ({ ...prev, tamara_environment: val }))
+                    }
+                  >
+                    <SelectTrigger className="max-w-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sandbox">{isRTL ? "تجريبية (Sandbox)" : "Sandbox"}</SelectItem>
+                      <SelectItem value="production">{isRTL ? "إنتاجية (Production)" : "Production"}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>API Token</Label>
+                    <Input
+                      value={paymentGateways.tamara_api_token}
+                      onChange={(e) => setPaymentGateways(prev => ({ ...prev, tamara_api_token: e.target.value }))}
+                      placeholder="token_xxxxxxxx"
+                      dir="ltr"
+                      type="password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Notification Token</Label>
+                    <Input
+                      value={paymentGateways.tamara_notification_token}
+                      onChange={(e) => setPaymentGateways(prev => ({ ...prev, tamara_notification_token: e.target.value }))}
+                      placeholder="notif_xxxxxxxx"
+                      dir="ltr"
+                      type="password"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Button
+            onClick={savePaymentGateways}
+            disabled={updateSettingMutation.isPending}
+            className="gradient-primary text-white"
+          >
+            {updateSettingMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin me-2" />
+            ) : (
+              <Save className="h-4 w-4 me-2" />
+            )}
+            {isRTL ? "حفظ إعدادات بوابات الدفع" : "Save Payment Gateways"}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };
