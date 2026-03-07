@@ -69,6 +69,7 @@ import {
   Landmark,
   KeyRound,
   Home,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -286,6 +287,20 @@ const realEstateMenuGroup: MenuItem = {
   ]
 };
 
+const deliveryMenuGroup: MenuItem = {
+  icon: Truck,
+  label: "إدارة التوصيل",
+  labelEn: "Delivery",
+  children: [
+    { icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard", path: "/client/delivery", permission: "VIEW_ACCOUNTS" },
+    { icon: Package, label: "طلبات التوصيل", labelEn: "Orders", path: "/client/delivery/orders", permission: "VIEW_ACCOUNTS" },
+    { icon: Users, label: "السائقين", labelEn: "Drivers", path: "/client/delivery/drivers", permission: "VIEW_ACCOUNTS" },
+    { icon: Building, label: "مناطق التوصيل", labelEn: "Areas", path: "/client/delivery/areas", permission: "VIEW_ACCOUNTS" },
+    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/delivery/reports", permission: "VIEW_ACCOUNTS" },
+    { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/delivery/setup", permission: "VIEW_SETTINGS" },
+  ]
+};
+
 const ClientLayout = () => {
   const { isRTL } = useLanguage();
   const { signOut, user, isLoading } = useAuth();
@@ -363,6 +378,16 @@ const ClientLayout = () => {
         items.splice(reportsIdx, 0, realEstateMenuGroup);
       } else {
         items.push(realEstateMenuGroup);
+      }
+    }
+
+    // Delivery module
+    {
+      const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
+      if (reportsIdx !== -1) {
+        items.splice(reportsIdx, 0, deliveryMenuGroup);
+      } else {
+        items.push(deliveryMenuGroup);
       }
     }
 
