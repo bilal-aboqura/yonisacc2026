@@ -176,6 +176,20 @@ const POSScreen = () => {
     enabled: !!companyId && !!selectedBranch && !!user,
   });
 
+  // Fetch session invoices
+  const { data: sessionInvoices } = useQuery({
+    queryKey: ["pos-session-invoices", companyId, selectedBranch, activeSession?.id],
+    queryFn: async () => {
+      if (!activeSession) return [];
+      const { data } = await supabase.from("pos_transactions" as any)
+        .select("*")
+        .eq("session_id", (activeSession as any).id)
+        .order("created_at", { ascending: false });
+      return (data || []) as any[];
+    },
+    enabled: !!companyId && !!activeSession,
+  });
+
   useEffect(() => {
     setActiveSession(session);
     if (!session && companyId && selectedBranch) {
