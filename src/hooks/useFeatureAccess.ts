@@ -111,18 +111,8 @@ export const useFeatureAccess = () => {
     refetchUsage();
   };
 
-  const isModuleEnabled = (module: string): boolean => {
-    const f = features || defaultFeatures;
-    switch (module) {
-      case "sales": return f.module_sales;
-      case "purchases": return f.module_purchases;
-      case "reports": return f.module_reports;
-      case "inventory": return f.module_inventory;
-      case "hr": return f.module_hr;
-      case "auto_parts": return f.module_auto_parts;
-      default: return true;
-    }
-  };
+  // All modules are enabled by default — plans only control usage limits
+  const isModuleEnabled = (_module: string): boolean => true;
 
   return {
     features: features || defaultFeatures,

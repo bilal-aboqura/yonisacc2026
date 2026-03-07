@@ -6,15 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import {
   Loader2, ShieldCheck, Settings2, ArrowLeft, ArrowRight, Building2, Save,
-  Package, Monitor, Shield, ChevronDown, ChevronRight, Gauge,
+  Package, Shield, Gauge,
   FileText, Users, BarChart3, Car, Calculator,
 } from "lucide-react";
 
@@ -25,18 +22,6 @@ interface OverrideData {
   max_sales_invoices: number | null;
   max_purchase_invoices: number | null;
   max_users: number | null;
-  module_sales: boolean;
-  module_purchases: boolean;
-  module_reports: boolean;
-  module_inventory: boolean;
-  module_hr: boolean;
-  module_auto_parts: boolean;
-}
-
-interface SystemScreen {
-  id: string; key: string; name_ar: string; name_en: string;
-  description_ar: string | null; description_en: string | null;
-  module: string; sort_order: number;
 }
 
 interface Permission {
@@ -48,8 +33,6 @@ const defaultOverride: OverrideData = {
   custom_override: false,
   max_journal_entries: null, max_sales_invoices: null,
   max_purchase_invoices: null, max_users: null,
-  module_sales: true, module_purchases: true, module_reports: true,
-  module_inventory: true, module_hr: false, module_auto_parts: false,
 };
 
 const limitItems = [
@@ -57,15 +40,6 @@ const limitItems = [
   { key: "max_sales_invoices", labelAr: "فواتير مبيعات / شهر", labelEn: "Sales Invoices / Month" },
   { key: "max_purchase_invoices", labelAr: "فواتير مشتريات / شهر", labelEn: "Purchase Invoices / Month" },
   { key: "max_users", labelAr: "عدد المستخدمين", labelEn: "Max Users" },
-];
-
-const moduleItems = [
-  { key: "module_sales", labelAr: "المبيعات", labelEn: "Sales", icon: FileText },
-  { key: "module_purchases", labelAr: "المشتريات", labelEn: "Purchases", icon: Package },
-  { key: "module_reports", labelAr: "التقارير", labelEn: "Reports", icon: BarChart3 },
-  { key: "module_inventory", labelAr: "المخزون", labelEn: "Inventory", icon: Package },
-  { key: "module_hr", labelAr: "الموارد البشرية", labelEn: "HR", icon: Users },
-  { key: "module_auto_parts", labelAr: "قطع الغيار", labelEn: "Auto Parts", icon: Car },
 ];
 
 const moduleLabels: Record<string, { ar: string; en: string }> = {
@@ -82,6 +56,7 @@ const moduleLabels: Record<string, { ar: string; en: string }> = {
   print: { ar: "الطباعة", en: "Print" },
   auto_parts: { ar: "قطع الغيار", en: "Auto Parts" },
   gold: { ar: "الذهب والمجوهرات", en: "Gold & Jewelry" },
+  pos: { ar: "نقاط البيع", en: "POS" },
 };
 
 const screenModuleIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -99,21 +74,15 @@ const ManageCompanyAccess = () => {
   const [company, setCompany] = useState<any>(null);
   const [planFeatures, setPlanFeatures] = useState<any>(null);
 
-  // Tab 1: Override data (modules + limits)
+  // Tab 1: Override data (limits only)
   const [data, setData] = useState<OverrideData>(defaultOverride);
   const [savingOverride, setSavingOverride] = useState(false);
 
-  // Tab 2: Screen access
-  const [screens, setScreens] = useState<SystemScreen[]>([]);
-  const [selectedScreens, setSelectedScreens] = useState<Set<string>>(new Set());
-  const [savingScreens, setSavingScreens] = useState(false);
-
-  // Tab 3: Permission bounds
+  // Tab 2: Permission bounds
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
   const [planId, setPlanId] = useState<string | null>(null);
   const [savingPerms, setSavingPerms] = useState(false);
-  const [openModules, setOpenModules] = useState<string[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -141,27 +110,12 @@ const ManageCompanyAccess = () => {
             max_sales_invoices: (override as any).max_sales_invoices,
             max_purchase_invoices: (override as any).max_purchase_invoices,
             max_users: (override as any).max_users,
-            module_sales: (override as any).module_sales ?? true,
-            module_purchases: (override as any).module_purchases ?? true,
-            module_reports: (override as any).module_reports ?? true,
-            module_inventory: (override as any).module_inventory ?? true,
-            module_hr: (override as any).module_hr ?? false,
-            module_auto_parts: (override as any).module_auto_parts ?? false,
           });
         }
 
         // Plan features
         const { data: features } = await supabase.rpc("get_company_features" as any, { p_company_id: id });
         setPlanFeatures(features);
-
-        // Screens
-        const { data: screensData } = await supabase.from("system_screens").select("*").order("sort_order");
-        setScreens((screensData as SystemScreen[]) || []);
-
-        const { data: compScreens } = await supabase.from("client_screens").select("screen_id, is_enabled").eq("company_id", id);
-        const enabledSet = new Set<string>();
-        ((compScreens as any[]) || []).forEach((cs: any) => { if (cs.is_enabled) enabledSet.add(cs.screen_id); });
-        setSelectedScreens(enabledSet);
 
         // RBAC Permissions
         const { data: permsData } = await supabase.from("rbac_permissions" as any).select("*").order("module, code");
@@ -197,7 +151,7 @@ const ManageCompanyAccess = () => {
     load();
   }, [id]);
 
-  // ─── Save: Modules & Limits ──────────────────────────────────────────
+  // ─── Save: Limits ──────────────────────────────────────────────────
   const handleSaveOverride = async () => {
     if (!id) return;
     setSavingOverride(true);
@@ -211,39 +165,14 @@ const ManageCompanyAccess = () => {
           max_sales_invoices: data.max_sales_invoices,
           max_purchase_invoices: data.max_purchase_invoices,
           max_users: data.max_users,
-          module_sales: data.module_sales,
-          module_purchases: data.module_purchases,
-          module_reports: data.module_reports,
-          module_inventory: data.module_inventory,
-          module_hr: data.module_hr,
-          module_auto_parts: data.module_auto_parts,
           updated_at: new Date().toISOString(),
         }, { onConflict: "company_id" } as any);
       if (error) throw error;
-      toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تحديث الوحدات والحدود" : "Modules & limits updated" });
+      toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تحديث الحدود" : "Limits updated" });
     } catch (e: any) {
       toast({ title: isRTL ? "خطأ" : "Error", description: e.message, variant: "destructive" });
     } finally {
       setSavingOverride(false);
-    }
-  };
-
-  // ─── Save: Screens ────────────────────────────────────────────────────
-  const handleSaveScreens = async () => {
-    if (!id) return;
-    setSavingScreens(true);
-    try {
-      await supabase.from("client_screens").delete().eq("company_id", id);
-      if (selectedScreens.size > 0) {
-        const rows = Array.from(selectedScreens).map((screenId) => ({ company_id: id, screen_id: screenId, is_enabled: true }));
-        const { error } = await supabase.from("client_screens").insert(rows);
-        if (error) throw error;
-      }
-      toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تحديث الشاشات" : "Screens updated" });
-    } catch (e: any) {
-      toast({ title: isRTL ? "خطأ" : "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setSavingScreens(false);
     }
   };
 
@@ -273,33 +202,6 @@ const ManageCompanyAccess = () => {
   const getEffectiveValue = (key: string) => {
     if (!planFeatures) return "—";
     return (planFeatures as any)[key] ?? (isRTL ? "غير محدود" : "Unlimited");
-  };
-
-  const groupedScreens = useMemo(() => {
-    const groups: Record<string, SystemScreen[]> = {};
-    screens.forEach((s) => {
-      if (!groups[s.module]) groups[s.module] = [];
-      groups[s.module].push(s);
-    });
-    return groups;
-  }, [screens]);
-
-  const toggleScreen = (screenId: string) => {
-    setSelectedScreens((prev) => {
-      const next = new Set(prev);
-      if (next.has(screenId)) next.delete(screenId); else next.add(screenId);
-      return next;
-    });
-  };
-
-  const toggleScreenModule = (module: string) => {
-    const ids = groupedScreens[module]?.map((s) => s.id) || [];
-    const allSelected = ids.every((id) => selectedScreens.has(id));
-    setSelectedScreens((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => { if (allSelected) next.delete(id); else next.add(id); });
-      return next;
-    });
   };
 
   const groupedPerms = useMemo(() => {
@@ -360,15 +262,11 @@ const ManageCompanyAccess = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="modules" className="w-full">
-        <TabsList className="w-full grid grid-cols-3 mb-4">
-          <TabsTrigger value="modules" className="gap-1.5 text-xs sm:text-sm">
-            <Package className="h-3.5 w-3.5 hidden sm:block" />
-            {isRTL ? "الوحدات والحدود" : "Modules & Limits"}
-          </TabsTrigger>
-          <TabsTrigger value="screens" className="gap-1.5 text-xs sm:text-sm">
-            <Monitor className="h-3.5 w-3.5 hidden sm:block" />
-            {isRTL ? "الشاشات" : "Screens"}
+      <Tabs defaultValue="limits" className="w-full">
+        <TabsList className="w-full grid grid-cols-2 mb-4">
+          <TabsTrigger value="limits" className="gap-1.5 text-xs sm:text-sm">
+            <Gauge className="h-3.5 w-3.5 hidden sm:block" />
+            {isRTL ? "الحدود" : "Limits"}
           </TabsTrigger>
           <TabsTrigger value="permissions" className="gap-1.5 text-xs sm:text-sm">
             <Shield className="h-3.5 w-3.5 hidden sm:block" />
@@ -376,8 +274,8 @@ const ManageCompanyAccess = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* ─── Tab: Modules & Limits ─────────────────────────────────── */}
-        <TabsContent value="modules" className="space-y-4">
+        {/* ─── Tab: Limits ─────────────────────────────────────────── */}
+        <TabsContent value="limits" className="space-y-4">
           {/* Custom Override Toggle */}
           <Card>
             <CardContent className="p-4">
@@ -401,30 +299,6 @@ const ManageCompanyAccess = () => {
                   {isRTL ? "الباقة الحالية:" : "Current plan:"} {planFeatures.plan_name}
                 </Badge>
               )}
-
-              {/* Modules */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Package className="h-5 w-5" />
-                    {isRTL ? "الوحدات المتاحة" : "Available Modules"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {moduleItems.map((mod) => (
-                    <div key={mod.key} className="flex items-center justify-between rounded-lg border p-3 bg-card">
-                      <div className="flex items-center gap-2">
-                        <mod.icon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">{isRTL ? mod.labelAr : mod.labelEn}</span>
-                      </div>
-                      <Switch
-                        checked={(data as any)[mod.key]}
-                        onCheckedChange={(v) => setData((d) => ({ ...d, [mod.key]: v }))}
-                      />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
 
               {/* Limits */}
               <Card>
@@ -466,63 +340,7 @@ const ManageCompanyAccess = () => {
           <div className="flex justify-end">
             <Button onClick={handleSaveOverride} disabled={savingOverride} className="gap-2">
               {savingOverride ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {isRTL ? "حفظ الوحدات والحدود" : "Save Modules & Limits"}
-            </Button>
-          </div>
-        </TabsContent>
-
-        {/* ─── Tab: Screens ──────────────────────────────────────────── */}
-        <TabsContent value="screens" className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {isRTL ? "تحكم في الصفحات المتاحة لهذه الشركة" : "Control which pages are available for this company"}
-          </p>
-
-          {Object.entries(groupedScreens).map(([module, moduleScreens]) => {
-            const Icon = screenModuleIcons[module] || Monitor;
-            const allSelected = moduleScreens.every((s) => selectedScreens.has(s.id));
-            const selectedCount = moduleScreens.filter((s) => selectedScreens.has(s.id)).length;
-            const label = moduleLabels[module] || { ar: module, en: module };
-
-            return (
-              <Card key={module}>
-                <CardContent className="p-0">
-                  {/* Module header */}
-                  <div className="flex items-center justify-between p-3 border-b bg-muted/30">
-                    <div className="flex items-center gap-3">
-                      <Checkbox checked={allSelected} onCheckedChange={() => toggleScreenModule(module)} />
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">{isRTL ? label.ar : label.en}</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">{selectedCount}/{moduleScreens.length}</Badge>
-                  </div>
-                  {/* Screen items */}
-                  <div className="divide-y">
-                    {moduleScreens.map((screen) => (
-                      <div
-                        key={screen.id}
-                        className="flex items-center gap-3 p-3 hover:bg-muted/30 transition-colors cursor-pointer"
-                        onClick={() => toggleScreen(screen.id)}
-                      >
-                        <Checkbox checked={selectedScreens.has(screen.id)} onCheckedChange={() => toggleScreen(screen.id)} />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{isRTL ? screen.name_ar : screen.name_en}</p>
-                          {(screen.description_ar || screen.description_en) && (
-                            <p className="text-xs text-muted-foreground truncate">{isRTL ? screen.description_ar : screen.description_en}</p>
-                          )}
-                        </div>
-                        <Badge variant="outline" className="text-xs shrink-0 font-mono">{screen.key}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-
-          <div className="flex justify-end">
-            <Button onClick={handleSaveScreens} disabled={savingScreens} className="gap-2">
-              {savingScreens ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {isRTL ? "حفظ الشاشات" : "Save Screens"}
+              {isRTL ? "حفظ الحدود" : "Save Limits"}
             </Button>
           </div>
         </TabsContent>
