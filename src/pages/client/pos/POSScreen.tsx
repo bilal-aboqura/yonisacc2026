@@ -74,6 +74,10 @@ const POSScreen = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [closingReport, setClosingReport] = useState<any>(null);
   const [closingReportDialog, setClosingReportDialog] = useState(false);
+  const [showInvoices, setShowInvoices] = useState(false);
+  const [viewTxDetail, setViewTxDetail] = useState<any>(null);
+  const [viewTxItems, setViewTxItems] = useState<any[]>([]);
+  const [returnConfirm, setReturnConfirm] = useState<any>(null);
 
   // Fetch branches
   const { data: branches } = useQuery({
