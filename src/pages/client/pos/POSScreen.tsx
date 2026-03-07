@@ -644,9 +644,23 @@ const POSScreen = () => {
             )}
           </ScrollArea>
 
-          {/* Discount */}
+          {/* Coupon & Discount */}
           {cart.length > 0 && (
-            <div className="px-3 pb-2">
+            <div className="px-3 pb-2 space-y-2">
+              <div className="flex items-center gap-2">
+                <Ticket className="h-4 w-4 text-muted-foreground" />
+                {appliedCoupon ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <Badge variant="default" className="gap-1">{appliedCoupon.code} ({appliedCoupon.discount_type === "percentage" ? `${appliedCoupon.discount_value}%` : appliedCoupon.discount_value})</Badge>
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setAppliedCoupon(null); setCouponCode(""); }}><X className="h-3 w-3" /></Button>
+                  </div>
+                ) : (
+                  <>
+                    <Input value={couponCode} onChange={e => setCouponCode(e.target.value)} placeholder={isRTL ? "كود الكوبون" : "Coupon code"} className="h-8 text-sm flex-1" onKeyDown={e => e.key === "Enter" && applyCoupon()} />
+                    <Button size="sm" variant="outline" className="h-8" onClick={applyCoupon}>{isRTL ? "تطبيق" : "Apply"}</Button>
+                  </>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <Percent className="h-4 w-4 text-muted-foreground" />
                 <Input
