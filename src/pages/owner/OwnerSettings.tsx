@@ -164,6 +164,10 @@ const OwnerSettings = () => {
       if (gatewaySetting?.setting_value) {
         setPaymentGateways(gatewaySetting.setting_value as unknown as PaymentGatewaySettings);
       }
+      const socialSetting = settings.find(s => s.setting_key === "social_media");
+      if (socialSetting?.setting_value) {
+        setSocialMedia(socialSetting.setting_value as unknown as SocialMediaSettings);
+      }
     }
   }, [settings]);
 
