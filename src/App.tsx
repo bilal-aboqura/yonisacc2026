@@ -68,6 +68,9 @@ import CreatePurchaseOrder from "./pages/client/CreatePurchaseOrder";
 import CarBrands from "./pages/client/autoparts/CarBrands";
 import CarModels from "./pages/client/autoparts/CarModels";
 import PartsCatalog from "./pages/client/autoparts/PartsCatalog";
+import AutoPartsDashboard from "./pages/client/autoparts/AutoPartsDashboard";
+import AutoPartsReports from "./pages/client/autoparts/AutoPartsReports";
+import AutoPartsAccountSetup from "./pages/client/autoparts/AutoPartsAccountSetup";
 
 // Inventory
 import UnitsManagement from "./pages/client/inventory/UnitsManagement";
@@ -147,6 +150,7 @@ import DeliveryAreas from "./pages/client/delivery/DeliveryAreas";
 import CreateDeliveryArea from "./pages/client/delivery/CreateDeliveryArea";
 import DeliveryReports from "./pages/client/delivery/DeliveryReports";
 import DeliveryAccountSetup from "./pages/client/delivery/DeliveryAccountSetup";
+import DriverSettlement from "./pages/client/delivery/DriverSettlement";
 
 // Gold & Jewelry
 import GoldItems from "./pages/client/gold/GoldItems";
