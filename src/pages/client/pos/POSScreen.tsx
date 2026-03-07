@@ -674,15 +674,10 @@ const POSScreen = () => {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">{isRTL ? "طريقة الدفع" : "Payment Method"}</label>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { key: "cash", label: "نقد", labelEn: "Cash" },
-                  { key: "card", label: "بطاقة", labelEn: "Card" },
-                  { key: "transfer", label: "تحويل", labelEn: "Transfer" },
-                  { key: "other", label: "أخرى", labelEn: "Other" },
-                ].map((m) => (
-                  <Button key={m.key} size="sm" variant={paymentMethod === m.key ? "default" : "outline"} onClick={() => setPaymentMethod(m.key)}>
-                    {isRTL ? m.label : m.labelEn}
+              <div className="grid grid-cols-2 gap-2">
+                {availablePaymentMethods.map((m: any) => (
+                  <Button key={m.id} size="sm" variant={paymentMethod === m.code ? "default" : "outline"} onClick={() => setPaymentMethod(m.code)}>
+                    {isRTL ? m.name : m.name_en || m.name}
                   </Button>
                 ))}
               </div>
