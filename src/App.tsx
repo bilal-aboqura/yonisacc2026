@@ -104,10 +104,18 @@ import AssetAccountSetup from "./pages/client/assets/AssetAccountSetup";
 
 // Clinic
 import Patients from "./pages/client/clinic/Patients";
+import CreatePatient from "./pages/client/clinic/CreatePatient";
+import ViewPatient from "./pages/client/clinic/ViewPatient";
 import Doctors from "./pages/client/clinic/Doctors";
+import CreateDoctor from "./pages/client/clinic/CreateDoctor";
 import ClinicAppointments from "./pages/client/clinic/Appointments";
+import CreateAppointment from "./pages/client/clinic/CreateAppointment";
 import Prescriptions from "./pages/client/clinic/Prescriptions";
+import CreatePrescription from "./pages/client/clinic/CreatePrescription";
+import ViewPrescription from "./pages/client/clinic/ViewPrescription";
 import ClinicBilling from "./pages/client/clinic/ClinicBilling";
+import CreateClinicInvoice from "./pages/client/clinic/CreateClinicInvoice";
+import PayClinicInvoice from "./pages/client/clinic/PayClinicInvoice";
 import ClinicReports from "./pages/client/clinic/ClinicReports";
 import ClinicAccountSetup from "./pages/client/clinic/ClinicAccountSetup";
 
@@ -283,10 +291,20 @@ const App = () => (
 
               {/* Clinic */}
               <Route path="clinic/patients" element={<Patients />} />
+              <Route path="clinic/patients/new" element={<CreatePatient />} />
+              <Route path="clinic/patients/:id" element={<ViewPatient />} />
+              <Route path="clinic/patients/:id/edit" element={<CreatePatient />} />
               <Route path="clinic/doctors" element={<Doctors />} />
+              <Route path="clinic/doctors/new" element={<CreateDoctor />} />
+              <Route path="clinic/doctors/:id/edit" element={<CreateDoctor />} />
               <Route path="clinic/appointments" element={<ClinicAppointments />} />
+              <Route path="clinic/appointments/new" element={<CreateAppointment />} />
               <Route path="clinic/prescriptions" element={<Prescriptions />} />
+              <Route path="clinic/prescriptions/new" element={<CreatePrescription />} />
+              <Route path="clinic/prescriptions/:id" element={<ViewPrescription />} />
               <Route path="clinic/billing" element={<ClinicBilling />} />
+              <Route path="clinic/billing/new" element={<CreateClinicInvoice />} />
+              <Route path="clinic/billing/:id/pay" element={<PayClinicInvoice />} />
               <Route path="clinic/reports" element={<ClinicReports />} />
               <Route path="clinic/setup" element={<ClinicAccountSetup />} />
 
