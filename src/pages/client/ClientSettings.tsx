@@ -12,6 +12,7 @@ import TeamManagement from "@/components/client/TeamManagement";
 import CompanyLogoUpload from "@/components/client/CompanyLogoUpload";
 import PrintSettingsTab from "@/components/print/PrintSettingsTab";
 import PaymentMethodsSettings from "@/components/client/PaymentMethodsSettings";
+import BranchPaymentMethods from "@/components/client/BranchPaymentMethods";
 import RolesPermissionsManager from "@/components/client/RolesPermissionsManager";
 import BranchAccountSettings from "@/components/client/BranchAccountSettings";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
