@@ -252,6 +252,21 @@ const goldMenuGroup: MenuItem = {
   ]
 };
 
+const clinicMenuGroup: MenuItem = {
+  icon: Stethoscope,
+  label: "إدارة العيادة",
+  labelEn: "Medical Clinic",
+  children: [
+    { icon: Users, label: "سجل المرضى", labelEn: "Patients", path: "/client/clinic/patients", permission: "VIEW_ACCOUNTS" },
+    { icon: HeartPulse, label: "الأطباء", labelEn: "Doctors", path: "/client/clinic/doctors", permission: "VIEW_ACCOUNTS" },
+    { icon: Calendar, label: "المواعيد", labelEn: "Appointments", path: "/client/clinic/appointments", permission: "VIEW_ACCOUNTS" },
+    { icon: Pill, label: "الوصفات الطبية", labelEn: "Prescriptions", path: "/client/clinic/prescriptions", permission: "VIEW_ACCOUNTS" },
+    { icon: Receipt, label: "الفوترة", labelEn: "Billing", path: "/client/clinic/billing", permission: "VIEW_ACCOUNTS" },
+    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/clinic/reports", permission: "VIEW_ACCOUNTS" },
+    { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/clinic/setup", permission: "VIEW_SETTINGS" },
+  ]
+};
+
 const ClientLayout = () => {
   const { isRTL } = useLanguage();
   const { signOut, user, isLoading } = useAuth();
