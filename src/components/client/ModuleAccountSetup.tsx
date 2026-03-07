@@ -36,9 +36,11 @@ interface Props {
   descriptionAr: string;
   descriptionEn: string;
   sections: SettingSection[];
+  /** If set, queries by branch_id + module_type instead of just company_id */
+  branchMode?: { moduleType: string };
 }
 
-const ModuleAccountSetup = ({ tableName, titleAr, titleEn, descriptionAr, descriptionEn, sections }: Props) => {
+const ModuleAccountSetup = ({ tableName, titleAr, titleEn, descriptionAr, descriptionEn, sections, branchMode }: Props) => {
   const { isRTL } = useLanguage();
   const { companyId } = useCompanyId();
   const queryClient = useQueryClient();
@@ -46,6 +48,7 @@ const ModuleAccountSetup = ({ tableName, titleAr, titleEn, descriptionAr, descri
   const allKeys = sections.flatMap((s) => s.fields.map((f) => f.key));
   const emptyForm = Object.fromEntries(allKeys.map((k) => [k, null])) as Record<string, string | null>;
   const [form, setForm] = useState<Record<string, string | null>>(emptyForm);
+  const [selectedBranch, setSelectedBranch] = useState<string>("");
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["setup-accounts", companyId],
@@ -62,17 +65,35 @@ const ModuleAccountSetup = ({ tableName, titleAr, titleEn, descriptionAr, descri
     enabled: !!companyId,
   });
 
-  const { data: existing, isLoading } = useQuery({
-    queryKey: [tableName, companyId],
+  const { data: branches } = useQuery({
+    queryKey: ["setup-branches", companyId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from(tableName)
-        .select("*")
-        .eq("company_id", companyId!)
-        .maybeSingle();
+      const { data } = await supabase.from("branches").select("id, name, name_en").eq("company_id", companyId!).eq("is_active", true);
+      return data || [];
+    },
+    enabled: !!companyId && !!branchMode,
+  });
+
+  // Auto-select first branch
+  useEffect(() => {
+    if (branchMode && branches?.length && !selectedBranch) {
+      setSelectedBranch(branches[0].id);
+    }
+  }, [branches, branchMode, selectedBranch]);
+
+  const queryEnabled = !!companyId && (!branchMode || !!selectedBranch);
+
+  const { data: existing, isLoading } = useQuery({
+    queryKey: [tableName, companyId, selectedBranch, branchMode?.moduleType],
+    queryFn: async () => {
+      let query = (supabase as any).from(tableName).select("*").eq("company_id", companyId!);
+      if (branchMode) {
+        query = query.eq("branch_id", selectedBranch).eq("module_type", branchMode.moduleType);
+      }
+      const { data } = await query.maybeSingle();
       return data;
     },
-    enabled: !!companyId,
+    enabled: queryEnabled,
   });
 
   useEffect(() => {
@@ -82,12 +103,18 @@ const ModuleAccountSetup = ({ tableName, titleAr, titleEn, descriptionAr, descri
         mapped[key] = existing[key] || null;
       }
       setForm(mapped);
+    } else {
+      setForm({ ...emptyForm });
     }
   }, [existing]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = { ...form, company_id: companyId, updated_at: new Date().toISOString() };
+      const payload: any = { ...form, company_id: companyId, updated_at: new Date().toISOString() };
+      if (branchMode) {
+        payload.branch_id = selectedBranch;
+        payload.module_type = branchMode.moduleType;
+      }
       if (existing?.id) {
         const { error } = await (supabase as any).from(tableName).update(payload).eq("id", existing.id);
         if (error) throw error;
@@ -113,7 +140,7 @@ const ModuleAccountSetup = ({ tableName, titleAr, titleEn, descriptionAr, descri
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold">{isRTL ? titleAr : titleEn}</h1>
           <p className="text-sm text-muted-foreground">{isRTL ? descriptionAr : descriptionEn}</p>
@@ -123,6 +150,28 @@ const ModuleAccountSetup = ({ tableName, titleAr, titleEn, descriptionAr, descri
           {isRTL ? "حفظ الإعدادات" : "Save Settings"}
         </Button>
       </div>
+
+      {branchMode && branches && branches.length > 0 && (
+        <Card>
+          <CardContent className="pt-4">
+            <div className="max-w-sm space-y-1.5">
+              <Label>{isRTL ? "الفرع" : "Branch"}</Label>
+              <Select value={selectedBranch} onValueChange={(v) => setSelectedBranch(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder={isRTL ? "اختر الفرع" : "Select Branch"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {isRTL ? b.name : b.name_en || b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {sections.map((section, idx) => (
