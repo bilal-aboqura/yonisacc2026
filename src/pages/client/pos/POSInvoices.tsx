@@ -123,19 +123,19 @@ const POSInvoices = () => {
               .select("id").eq("branch_id", tx.branch_id).limit(1).maybeSingle();
             if (wh) {
               // Add back to stock
-              const { data: currentStock } = await supabase.from("warehouse_stock")
+              const { data: currentStock } = await (supabase.from as any)("warehouse_stock")
                 .select("*").eq("warehouse_id", wh.id).eq("product_id", item.product_id).maybeSingle();
               if (currentStock) {
-                await supabase.from("warehouse_stock").update({
+                await (supabase.from as any)("warehouse_stock").update({
                   quantity: (currentStock.quantity || 0) + item.quantity
                 }).eq("id", currentStock.id);
               }
               // Record stock movement
               await supabase.from("stock_movements").insert({
-                company_id: companyId,
+                company_id: companyId!,
                 product_id: item.product_id,
                 warehouse_id: wh.id,
-                movement_type: "pos_return",
+                movement_type: "pos_return" as any,
                 quantity: item.quantity,
                 reference_type: "pos_refund",
                 reference_id: tx.id,
