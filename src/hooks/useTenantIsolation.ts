@@ -3,65 +3,88 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Hook for strict tenant (company) isolation
- * Ensures all data access is scoped to the user's company
+ * Hook for strict tenant (company) isolation.
+ * Works for both company owners AND team members (company_members).
  */
 export const useTenantIsolation = () => {
   const { user } = useAuth();
 
-  // Get user's company ID securely
   const { data: company, isLoading: isLoadingCompany } = useQuery({
     queryKey: ["user-company", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      
-      const { data, error } = await supabase
+
+      // 1. Check as owner first
+      const { data: owned } = await supabase
         .from("companies")
         .select("id, name, name_en, owner_id, activity_type")
         .eq("owner_id", user.id)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
-        .limit(1);
-      
-      if (error) {
-        console.error("Failed to fetch company:", error);
-        return null;
+        .limit(1)
+        .maybeSingle();
+
+      if (owned) return owned;
+
+      // 2. Check as team member
+      const { data: membership } = await supabase
+        .from("company_members")
+        .select("company_id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (membership) {
+        const { data: memberCompany } = await supabase
+          .from("companies")
+          .select("id, name, name_en, owner_id, activity_type")
+          .eq("id", membership.company_id)
+          .is("deleted_at", null)
+          .maybeSingle();
+        return memberCompany;
       }
-      
-      return data?.[0] || null;
+
+      return null;
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   /**
-   * Verify that a company_id belongs to the current user
-   * Use this before any sensitive operation
+   * Verify that a company_id belongs to the current user (owner or member)
    */
   const verifyTenantAccess = async (companyId: string): Promise<boolean> => {
     if (!user?.id || !companyId) return false;
     if (company?.id === companyId) return true;
-    
-    // Double-check with database
-    const { data, error } = await supabase
+
+    // Check ownership
+    const { data: owned } = await supabase
       .from("companies")
       .select("id")
       .eq("id", companyId)
       .eq("owner_id", user.id)
-      .single();
-    
-    if (error || !data) {
-      console.error("Tenant access verification failed:", { companyId, userId: user.id });
-      // Log access denied attempt
-      await logAccessDenied("companies", "ACCESS", companyId);
-      return false;
-    }
-    
-    return true;
+      .maybeSingle();
+
+    if (owned) return true;
+
+    // Check membership
+    const { data: member } = await supabase
+      .from("company_members")
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (member) return true;
+
+    console.error("Tenant access verification failed:", { companyId, userId: user.id });
+    await logAccessDenied("companies", "ACCESS", companyId);
+    return false;
   };
 
-  /**
-   * Log an access denied event
-   */
   const logAccessDenied = async (
     tableName: string,
     operation: string,
@@ -69,7 +92,6 @@ export const useTenantIsolation = () => {
     details?: string
   ) => {
     try {
-      // Use direct insert since the function may not be in types yet
       await supabase.from("audit_logs").insert({
         company_id: company?.id || null,
         user_id: user?.id || "00000000-0000-0000-0000-000000000000",
@@ -84,9 +106,6 @@ export const useTenantIsolation = () => {
     }
   };
 
-  /**
-   * Log an audit event
-   */
   const logAuditEvent = async (
     operationType: "SELECT" | "INSERT" | "UPDATE" | "DELETE" | "EXPORT" | "PRINT" | "API_ACCESS",
     tableName: string,
@@ -97,9 +116,8 @@ export const useTenantIsolation = () => {
     details?: string
   ) => {
     if (!company?.id || !user?.id) return;
-    
+
     try {
-      // Use direct insert for better type safety
       await supabase.from("audit_logs").insert({
         company_id: company.id,
         user_id: user.id,
@@ -116,19 +134,12 @@ export const useTenantIsolation = () => {
     }
   };
 
-  /**
-   * Get the current tenant's company ID
-   * Returns null if not authenticated or no company
-   */
   const getTenantId = (): string | null => {
     return company?.id || null;
   };
 
-  /**
-   * Check if user has access to their company
-   */
   const hasTenantAccess = (): boolean => {
-    return !!company?.id && company.owner_id === user?.id;
+    return !!company?.id;
   };
 
   return {
