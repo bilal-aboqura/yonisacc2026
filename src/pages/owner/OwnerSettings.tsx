@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings, Building2, Eye, EyeOff, Save, Loader2, Phone, Mail, MapPin, Key, CreditCard } from "lucide-react";
+import { Settings, Building2, Eye, EyeOff, Save, Loader2, Phone, Mail, MapPin, Key, CreditCard, Share2, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface BankAccountSettings {
