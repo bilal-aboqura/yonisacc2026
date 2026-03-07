@@ -84,6 +84,9 @@ import POSMenuManager from "./pages/client/pos/POSMenuManager";
 import POSPromotions from "./pages/client/pos/POSPromotions";
 import POSTargets from "./pages/client/pos/POSTargets";
 import POSReports from "./pages/client/pos/POSReports";
+import POSCoupons from "./pages/client/pos/POSCoupons";
+import POSUsers from "./pages/client/pos/POSUsers";
+import POSUserLogs from "./pages/client/pos/POSUserLogs";
 
 // Gold & Jewelry
 import GoldItems from "./pages/client/gold/GoldItems";
@@ -227,8 +230,11 @@ const App = () => (
               <Route path="pos/settings" element={<POSSettings />} />
               <Route path="pos/menus" element={<POSMenuManager />} />
               <Route path="pos/promotions" element={<POSPromotions />} />
+              <Route path="pos/coupons" element={<POSCoupons />} />
               <Route path="pos/targets" element={<POSTargets />} />
               <Route path="pos/reports" element={<POSReports />} />
+              <Route path="pos/users" element={<POSUsers />} />
+              <Route path="pos/user-logs" element={<POSUserLogs />} />
 
               {/* Gold & Jewelry */}
               <Route path="gold/items" element={<GoldItems />} />
