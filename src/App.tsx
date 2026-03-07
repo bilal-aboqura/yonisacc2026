@@ -187,6 +187,7 @@ const App = () => (
               <Route path="sales/:id" element={<ViewInvoice />} />
               <Route path="sales/:id/edit" element={<CreateSalesInvoice />} />
               <Route path="sales/:id" element={<ViewInvoice />} />
+              <Route path="sales/setup" element={<SalesAccountSetup />} />
               
               {/* Purchases */}
               <Route path="vendors" element={<Vendors />} />
@@ -198,6 +199,7 @@ const App = () => (
               <Route path="purchases/new" element={<CreatePurchaseInvoice />} />
               <Route path="purchases/:id" element={<ViewInvoice />} />
               <Route path="purchases/:id/edit" element={<CreatePurchaseInvoice />} />
+              <Route path="purchases/setup" element={<PurchasesAccountSetup />} />
               
               {/* HR */}
               <Route path="hr" element={<HRDashboard />} />
@@ -230,6 +232,7 @@ const App = () => (
               <Route path="inventory/consumptions" element={<InternalConsumptions />} />
               <Route path="inventory/manufacturing" element={<Manufacturing />} />
               <Route path="inventory/reports" element={<InventoryReports />} />
+              <Route path="inventory/setup" element={<InventoryAccountSetup />} />
               <Route path="inventory/movements" element={<ClientInventory tab="movements" />} />
 
               {/* POS */}
@@ -244,6 +247,7 @@ const App = () => (
               <Route path="pos/users" element={<POSUsers />} />
               <Route path="pos/user-logs" element={<POSUserLogs />} />
               <Route path="pos/invoices" element={<POSInvoices />} />
+              <Route path="pos/account-setup" element={<POSAccountSetup />} />
 
               {/* Gold & Jewelry */}
               <Route path="gold/items" element={<GoldItems />} />
@@ -255,6 +259,7 @@ const App = () => (
               <Route path="gold/sales/new" element={<CreateGoldSale />} />
               <Route path="gold/prices" element={<GoldPriceSettings />} />
               <Route path="gold/reports" element={<GoldReports />} />
+              <Route path="gold/setup" element={<GoldAccountSetup />} />
               
               {/* Other */}
               <Route path="contacts" element={<ClientContacts />} />
