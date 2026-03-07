@@ -30,6 +30,7 @@ const sections: SettingSection[] = [
 const InventoryAccountSetup = () => (
   <ModuleAccountSetup
     tableName="branch_account_settings"
+    branchMode={{ moduleType: "inventory" }}
     titleAr="تجهيز حسابات المخزون"
     titleEn="Inventory Account Setup"
     descriptionAr="ربط عمليات المخزون بحسابات دليل الحسابات لإنشاء القيود المحاسبية آلياً"

@@ -22,6 +22,7 @@ const sections: SettingSection[] = [
 const PurchasesAccountSetup = () => (
   <ModuleAccountSetup
     tableName="branch_account_settings"
+    branchMode={{ moduleType: "purchases" }}
     titleAr="تجهيز حسابات المشتريات"
     titleEn="Purchases Account Setup"
     descriptionAr="ربط عمليات المشتريات بحسابات دليل الحسابات لإنشاء القيود المحاسبية آلياً"

@@ -30,6 +30,7 @@ const sections: SettingSection[] = [
 const SalesAccountSetup = () => (
   <ModuleAccountSetup
     tableName="branch_account_settings"
+    branchMode={{ moduleType: "sales" }}
     titleAr="تجهيز حسابات المبيعات"
     titleEn="Sales Account Setup"
     descriptionAr="ربط عمليات المبيعات بحسابات دليل الحسابات لإنشاء القيود المحاسبية آلياً"
