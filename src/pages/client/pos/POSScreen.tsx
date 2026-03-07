@@ -497,7 +497,7 @@ const POSScreen = () => {
                     {isRTL ? product.name : product.name_en || product.name}
                   </span>
                   <span className="text-sm font-bold text-primary">
-                    {(product.sale_price || product.price || 0).toFixed(2)} <span className="text-xs font-normal text-muted-foreground">{isRTL ? "ر.س" : "SAR"}</span>
+                    {getProductPrice(product).toFixed(2)} <span className="text-xs font-normal text-muted-foreground">{isRTL ? "ر.س" : "SAR"}</span>
                   </span>
                 </button>
               ))}
