@@ -48,8 +48,8 @@ const InventoryDetailedReports = () => {
   const { data: movements = [] } = useQuery({
     queryKey: ["movements-report", companyId],
     queryFn: async () => {
-      const { data } = await supabase.from("stock_movements").select("*, products(name, name_en), warehouses(name, name_en, branch_id)").eq("company_id", companyId!).order("movement_date", { ascending: false }).limit(1000);
-      return data || [];
+      const { data } = await (supabase.from("stock_movements").select("*, products(name, name_en), warehouses(name, name_en, branch_id)").eq("company_id", companyId!).order("movement_date", { ascending: false }).limit(1000) as any);
+      return (data || []) as any[];
     },
     enabled: !!companyId,
   });
@@ -58,8 +58,8 @@ const InventoryDetailedReports = () => {
   const { data: salesInvoices = [] } = useQuery({
     queryKey: ["sales-invoices-items", companyId],
     queryFn: async () => {
-      const { data } = await supabase.from("invoices").select("items, contacts(name, name_en)").eq("company_id", companyId!).eq("invoice_type", "sale").neq("status", "draft");
-      return data || [];
+      const { data } = await (supabase.from("invoices").select("items, contacts(name, name_en)").eq("company_id", companyId!).eq("invoice_type", "sale").neq("status", "draft") as any);
+      return (data || []) as any[];
     },
     enabled: !!companyId,
   });
@@ -68,8 +68,8 @@ const InventoryDetailedReports = () => {
   const { data: purchaseInvoices = [] } = useQuery({
     queryKey: ["purchase-invoices-items", companyId],
     queryFn: async () => {
-      const { data } = await supabase.from("invoices").select("items, contacts(name, name_en)").eq("company_id", companyId!).eq("invoice_type", "purchase").neq("status", "draft");
-      return data || [];
+      const { data } = await (supabase.from("invoices").select("items, contacts(name, name_en)").eq("company_id", companyId!).eq("invoice_type", "purchase").neq("status", "draft") as any);
+      return (data || []) as any[];
     },
     enabled: !!companyId,
   });
