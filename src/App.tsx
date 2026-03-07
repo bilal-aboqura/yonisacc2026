@@ -46,6 +46,10 @@ import BalanceSheet from "./pages/client/reports/BalanceSheet";
 import CashFlow from "./pages/client/reports/CashFlow";
 import TrialBalance from "./pages/client/reports/TrialBalance";
 import VATReport from "./pages/client/reports/VATReport";
+import SalesReports from "./pages/client/reports/SalesReports";
+import PurchaseReports from "./pages/client/reports/PurchaseReports";
+import OperationalReports from "./pages/client/reports/OperationalReports";
+import InventoryDetailedReports from "./pages/client/reports/InventoryDetailedReports";
 
 // New Client Pages
 import CostCenters from "./pages/client/CostCenters";
@@ -290,6 +294,10 @@ const App = () => (
               <Route path="reports/cash-flow" element={<CashFlow />} />
               <Route path="reports/trial-balance" element={<TrialBalance />} />
               <Route path="reports/vat" element={<VATReport />} />
+              <Route path="reports/sales" element={<SalesReports />} />
+              <Route path="reports/purchases" element={<PurchaseReports />} />
+              <Route path="reports/operations" element={<OperationalReports />} />
+              <Route path="reports/inventory" element={<InventoryDetailedReports />} />
               
               {/* Settings */}
               <Route path="settings" element={<ClientSettings />} />
