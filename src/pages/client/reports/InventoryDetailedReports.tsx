@@ -68,7 +68,7 @@ const InventoryDetailedReports = () => {
   const { data: purchaseInvoices = [] } = useQuery({
     queryKey: ["purchase-invoices-items", companyId],
     queryFn: async () => {
-      const { data } = await (supabase.from("invoices").select("items, contacts(name, name_en)").eq("company_id", companyId!).eq("invoice_type", "purchase").neq("status", "draft") as any);
+      const { data } = await (supabase.from("invoices") as any).select("items, contacts(name, name_en)").eq("company_id", companyId!).eq("invoice_type", "purchase").neq("status", "draft");
       return (data || []) as any[];
     },
     enabled: !!companyId,
