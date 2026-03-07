@@ -380,6 +380,8 @@ const POSScreen = () => {
       setPaymentDialog(false);
       setPaidAmount("");
       setDiscountPercent(0);
+      setAppliedCoupon(null);
+      setCouponCode("");
       queryClient.invalidateQueries({ queryKey: ["pos-session"] });
     },
     onError: () => {
@@ -387,25 +389,60 @@ const POSScreen = () => {
     },
   });
 
-  // Close session
+  // Apply coupon
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    const { data, error } = await supabase.from("pos_coupons" as any)
+      .select("*").eq("company_id", companyId!).eq("code", couponCode.trim().toUpperCase()).eq("is_active", true).maybeSingle();
+    if (error || !data) { toast.error(isRTL ? "كوبون غير صالح" : "Invalid coupon"); return; }
+    const c = data as any;
+    if (c.max_uses && c.used_count >= c.max_uses) { toast.error(isRTL ? "تم استنفاد الكوبون" : "Coupon exhausted"); return; }
+    if (c.start_date && new Date(c.start_date) > new Date()) { toast.error(isRTL ? "الكوبون لم يبدأ بعد" : "Coupon not started"); return; }
+    if (c.end_date && new Date(c.end_date) < new Date()) { toast.error(isRTL ? "الكوبون منتهي" : "Coupon expired"); return; }
+    if (c.min_order_amount && subtotal < c.min_order_amount) { toast.error(isRTL ? `الحد الأدنى للطلب ${c.min_order_amount}` : `Min order ${c.min_order_amount}`); return; }
+    setAppliedCoupon(c);
+    toast.success(isRTL ? "تم تطبيق الكوبون" : "Coupon applied");
+  };
+
+  // Close session - compute report first
   const closeSessionMutation = useMutation({
     mutationFn: async () => {
       if (!activeSession) return;
-      const { error } = await supabase
-        .from("pos_sessions" as any)
-        .update({
-          status: "closed",
-          closed_by: user?.id,
-          closed_at: new Date().toISOString(),
-          closing_amount: (activeSession as any).opening_amount,
-        } as any)
-        .eq("id", (activeSession as any).id);
+      const sessionId = (activeSession as any).id;
+
+      // Fetch all transactions for this session
+      const { data: txns } = await supabase.from("pos_transactions" as any)
+        .select("*").eq("session_id", sessionId);
+      const transactions = (txns || []) as any[];
+
+      const totalSales = transactions.filter(t => t.status === "completed").reduce((s: number, t: any) => s + (t.total || 0), 0);
+      const totalReturns = transactions.filter(t => t.status === "refunded").reduce((s: number, t: any) => s + (t.total || 0), 0);
+      const totalDiscountsVal = transactions.reduce((s: number, t: any) => s + (t.discount_amount || 0), 0);
+      const paymentSummary: Record<string, number> = {};
+      transactions.filter(t => t.status === "completed").forEach((t: any) => {
+        const method = t.payment_method || "other";
+        paymentSummary[method] = (paymentSummary[method] || 0) + (t.total || 0);
+      });
+      const closingAmount = (activeSession as any).opening_amount + (paymentSummary["cash"] || 0) - totalReturns;
+
+      const report = {
+        totalSales, totalReturns, totalDiscounts: totalDiscountsVal,
+        paymentSummary, closingAmount, transactionCount: transactions.filter(t => t.status === "completed").length,
+        openingAmount: (activeSession as any).opening_amount,
+      };
+
+      // Update session
+      const { error } = await supabase.from("pos_sessions" as any).update({
+        status: "closed", closed_by: user?.id, closed_at: new Date().toISOString(),
+        closing_amount: closingAmount, total_sales: totalSales, total_returns: totalReturns,
+        total_discounts: totalDiscountsVal, payment_summary: paymentSummary,
+      } as any).eq("id", sessionId);
       if (error) throw error;
+      return report;
     },
-    onSuccess: () => {
-      toast.success(isRTL ? "تم إغلاق الصندوق" : "Session closed");
-      setActiveSession(null);
-      navigate("/client");
+    onSuccess: (report) => {
+      setClosingReport(report);
+      setClosingReportDialog(true);
     },
   });
 
