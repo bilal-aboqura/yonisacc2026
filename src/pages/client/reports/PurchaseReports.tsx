@@ -27,8 +27,8 @@ const PurchaseReports = () => {
   const { data: invoices = [], isLoading: invLoading } = useQuery({
     queryKey: ["purchase-invoices-report", companyId, dateFrom, dateTo],
     queryFn: async () => {
-      const base = supabase.from("invoices").select("*, contacts(name, name_en)");
-      let q: any = base.eq("company_id", companyId!).eq("invoice_type", "purchase").order("invoice_date", { ascending: false });
+      const base: any = supabase.from("invoices").select("*, contacts(name, name_en)");
+      let q = base.eq("company_id", companyId!).eq("invoice_type", "purchase").order("invoice_date", { ascending: false });
       if (dateFrom) q = q.gte("invoice_date", dateFrom);
       if (dateTo) q = q.lte("invoice_date", dateTo);
       const { data } = await q;
@@ -40,8 +40,8 @@ const PurchaseReports = () => {
   const { data: purchaseOrders = [] } = useQuery({
     queryKey: ["po-report", companyId, dateFrom, dateTo],
     queryFn: async () => {
-      const base = supabase.from("invoices").select("*, contacts(name, name_en)");
-      let q: any = base.eq("company_id", companyId!).eq("invoice_type", "purchase_order").order("invoice_date", { ascending: false });
+      const base: any = supabase.from("invoices").select("*, contacts(name, name_en)");
+      let q = base.eq("company_id", companyId!).eq("invoice_type", "purchase_order").order("invoice_date", { ascending: false });
       if (dateFrom) q = q.gte("invoice_date", dateFrom);
       if (dateTo) q = q.lte("invoice_date", dateTo);
       const { data } = await q;

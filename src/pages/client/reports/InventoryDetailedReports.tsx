@@ -39,7 +39,7 @@ const InventoryDetailedReports = () => {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products-full-report", companyId],
     queryFn: async () => {
-      const { data } = await (supabase.from("products").select("*, product_categories(name, name_en), product_stock(quantity, avg_cost, warehouse_id, warehouses(branch_id, name, name_en))").eq("company_id", companyId!).eq("is_active", true).neq("product_type", "service") as any);
+      const { data } = await (supabase.from("products") as any).select("*, product_categories(name, name_en), product_stock(quantity, avg_cost, warehouse_id, warehouses(branch_id, name, name_en))").eq("company_id", companyId!).eq("is_active", true).neq("product_type", "service");
       return (data || []) as any[];
     },
     enabled: !!companyId,
@@ -48,7 +48,7 @@ const InventoryDetailedReports = () => {
   const { data: movements = [] } = useQuery({
     queryKey: ["movements-report", companyId],
     queryFn: async () => {
-      const { data } = await (supabase.from("stock_movements").select("*, products(name, name_en), warehouses(name, name_en, branch_id)").eq("company_id", companyId!).order("movement_date", { ascending: false }).limit(1000) as any);
+      const { data } = await (supabase.from("stock_movements") as any).select("*, products(name, name_en), warehouses(name, name_en, branch_id)").eq("company_id", companyId!).order("movement_date", { ascending: false }).limit(1000);
       return (data || []) as any[];
     },
     enabled: !!companyId,
@@ -58,7 +58,7 @@ const InventoryDetailedReports = () => {
   const { data: salesInvoices = [] } = useQuery({
     queryKey: ["sales-invoices-items", companyId],
     queryFn: async () => {
-      const { data } = await (supabase.from("invoices").select("items, contacts(name, name_en)").eq("company_id", companyId!).eq("invoice_type", "sale").neq("status", "draft") as any);
+      const { data } = await (supabase.from("invoices") as any).select("items, contacts(name, name_en)").eq("company_id", companyId!).eq("invoice_type", "sale").neq("status", "draft");
       return (data || []) as any[];
     },
     enabled: !!companyId,
