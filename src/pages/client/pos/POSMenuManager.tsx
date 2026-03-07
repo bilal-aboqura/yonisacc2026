@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useTenantIsolation } from "@/hooks/useTenantIsolation";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,15 +6,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, MenuSquare, UtensilsCrossed, ShoppingBag, Truck, Save, Upload, Image } from "lucide-react";
-import BranchSelector from "@/components/client/BranchSelector";
+import { MenuSquare, UtensilsCrossed, ShoppingBag, Truck, Save, Image, Eye, EyeOff } from "lucide-react";
 
 const POSMenuManager = () => {
   const { isRTL } = useLanguage();
