@@ -294,7 +294,10 @@ const ClientSettings = ({ tab }: ClientSettingsProps) => {
 
       {activeTab === "payment-methods" && (
         company?.id ? (
-          <PaymentMethodsSettings companyId={company.id} />
+          <div className="space-y-6">
+            <PaymentMethodsSettings companyId={company.id} />
+            <BranchPaymentMethods companyId={company.id} />
+          </div>
         ) : (
           <Card><CardContent className="py-8 text-center text-muted-foreground">{isRTL ? "لا توجد شركة مرتبطة" : "No company linked"}</CardContent></Card>
         )
