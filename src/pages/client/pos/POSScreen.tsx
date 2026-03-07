@@ -94,11 +94,25 @@ const POSScreen = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("*, product_categories(name, name_en)")
+        .select("*, product_categories(name, name_en, image_url)")
         .eq("company_id", companyId!)
         .eq("is_active", true)
         .order("name");
       return data || [];
+    },
+    enabled: !!companyId,
+  });
+
+  // Fetch menu prices by order type
+  const { data: menuPrices } = useQuery({
+    queryKey: ["pos-menu-prices", companyId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pos_menu_prices" as any)
+        .select("*")
+        .eq("company_id", companyId!)
+        .eq("is_active", true);
+      return (data || []) as any[];
     },
     enabled: !!companyId,
   });
