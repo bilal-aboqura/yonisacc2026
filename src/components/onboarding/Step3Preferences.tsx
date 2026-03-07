@@ -160,12 +160,30 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
       const result = response.data;
       const fnError = response.error;
 
-      if (fnError || result?.error) {
-        const errorBody = result || {};
-        let msg = errorBody.error || fnError?.message || (isRTL ? "حدث خطأ في إنشاء الشركة" : "Failed to create company");
-        if (errorBody.code === 'PHONE_ALREADY_EXISTS') {
-          msg = isRTL ? "رقم الجوال مستخدم بالفعل" : "This phone number is already registered";
+      let errorBody: any = result && typeof result === "object" ? result : null;
+      if ((!errorBody || !errorBody.error) && fnError && typeof (fnError as any).context?.json === "function") {
+        try {
+          errorBody = await (fnError as any).context.json();
+        } catch {
+          // no-op: keep fallback message below
         }
+      }
+
+      if (fnError || errorBody?.error) {
+        const errorCode = errorBody?.code;
+
+        if (errorCode === "PHONE_ALREADY_EXISTS") {
+          await supabase.auth.signOut();
+          toast.error(
+            isRTL
+              ? "رقم الجوال مستخدم بالفعل. سجّل الدخول بالحساب المرتبط بهذا الرقم أو استخدم رقمًا آخر."
+              : "This phone number is already registered. Sign in with the existing account or use another number."
+          );
+          navigate("/auth");
+          return;
+        }
+
+        const msg = errorBody?.error || fnError?.message || (isRTL ? "حدث خطأ في إنشاء الشركة" : "Failed to create company");
         throw new Error(msg);
       }
 
