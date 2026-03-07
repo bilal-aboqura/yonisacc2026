@@ -3341,6 +3341,54 @@ export type Database = {
           },
         ]
       }
+      pos_menu_prices: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          order_type: string
+          price: number
+          product_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_type: string
+          price?: number
+          product_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_type?: string
+          price?: number
+          product_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_menu_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_menu_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_menus: {
         Row: {
           branch_id: string
