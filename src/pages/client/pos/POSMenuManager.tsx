@@ -223,141 +223,124 @@ const POSMenuManager = () => {
               </TabsTrigger>
             </TabsList>
 
-            {["dine_in", "takeaway", "delivery"].map(orderType => (
-              <TabsContent key={orderType} value={orderType}>
-                {groupedProducts.map((group: any) => (
-                  <div key={group.id} className="mb-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      {group.image_url ? (
-                        <img src={group.image_url} alt="" className="h-6 w-6 rounded object-cover" />
-                      ) : null}
-                      <h3 className="font-semibold text-base">{isRTL ? group.name : group.name_en || group.name}</h3>
-                      <Badge variant="outline" className="text-xs">{group.products.length}</Badge>
+            {["dine_in", "takeaway", "delivery"].map(orderType => {
+              const renderProductRow = (product: any, index: number) => {
+                const bom = getProductBom(product.id);
+                const currentPrice = getPrice(product.id, orderType);
+                const basePrice = product.sale_price || 0;
+                const priceDiff = currentPrice - basePrice;
+                return (
+                  <TableRow key={product.id} className={index % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}>
+                    <TableCell className="w-[60px]">
+                      {product.image_url ? (
+                        <img src={product.image_url} alt="" className="h-10 w-10 rounded-lg object-cover border border-border/50 shadow-sm" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg bg-muted/60 flex items-center justify-center border border-border/30">
+                          <Image className="h-4 w-4 text-muted-foreground/30" />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="min-w-[140px]">
+                        <p className="font-medium text-foreground leading-tight">{isRTL ? product.name : product.name_en || product.name}</p>
+                        {product.sku && <p className="text-xs text-muted-foreground mt-0.5">{product.sku}</p>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-end tabular-nums text-muted-foreground font-medium w-[120px]">
+                      {basePrice.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="w-[160px]">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={currentPrice}
+                          onChange={(e) => updatePrice(product.id, orderType, Number(e.target.value))}
+                          className="w-28 h-9 text-end tabular-nums font-medium"
+                          min={0}
+                          step={0.01}
+                        />
+                        {priceDiff !== 0 && (
+                          <span className={`text-[10px] font-semibold whitespace-nowrap ${priceDiff > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+                            {priceDiff > 0 ? "+" : ""}{priceDiff.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="w-[120px]">
+                      {bom ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs gap-1">
+                          <UtensilsCrossed className="h-3 w-3" />
+                          {(bom.bom_items || []).length} {isRTL ? "مكون" : "items"}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/50">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              };
+
+              const renderTable = (productsList: any[]) => (
+                <div className="overflow-auto rounded-lg border border-border/50">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[60px]">#</TableHead>
+                        <TableHead>{isRTL ? "المنتج" : "Product"}</TableHead>
+                        <TableHead className="text-end w-[120px]">{isRTL ? "السعر الأساسي" : "Base Price"}</TableHead>
+                        <TableHead className="w-[160px]">{isRTL ? `سعر ${orderTypeLabel(orderType)}` : `${orderTypeLabel(orderType)} Price`}</TableHead>
+                        <TableHead className="w-[120px]">{isRTL ? "الريسبي" : "Recipe"}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {productsList.map((product: any, idx: number) => renderProductRow(product, idx))}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+
+              return (
+                <TabsContent key={orderType} value={orderType} className="space-y-6">
+                  {groupedProducts.map((group: any) => (
+                    <div key={group.id}>
+                      <div className="flex items-center gap-3 mb-3 px-1">
+                        {group.image_url ? (
+                          <img src={group.image_url} alt="" className="h-8 w-8 rounded-lg object-cover border border-border/50 shadow-sm" />
+                        ) : (
+                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <MenuSquare className="h-4 w-4 text-primary" />
+                          </div>
+                        )}
+                        <h3 className="font-semibold text-sm text-foreground">{isRTL ? group.name : group.name_en || group.name}</h3>
+                        <Badge variant="secondary" className="text-[10px] font-normal">{group.products.length}</Badge>
+                      </div>
+                      {renderTable(group.products)}
                     </div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12">{isRTL ? "صورة" : "Image"}</TableHead>
-                          <TableHead>{isRTL ? "المنتج" : "Product"}</TableHead>
-                          <TableHead>{isRTL ? "السعر الأساسي" : "Base Price"}</TableHead>
-                          <TableHead>{isRTL ? `سعر ${orderTypeLabel(orderType)}` : `${orderTypeLabel(orderType)} Price`}</TableHead>
-                          <TableHead>{isRTL ? "الريسبي" : "Recipe"}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {group.products.map((product: any) => {
-                          const bom = getProductBom(product.id);
-                          return (
-                            <TableRow key={product.id}>
-                              <TableCell>
-                                {product.image_url ? (
-                                  <img src={product.image_url} alt="" className="h-10 w-10 rounded object-cover" />
-                                ) : (
-                                  <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                                    <Image className="h-4 w-4 text-muted-foreground/40" />
-                                  </div>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div>
-                                  <span className="font-medium">{isRTL ? product.name : product.name_en || product.name}</span>
-                                  <span className="text-xs text-muted-foreground block">{product.sku}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-muted-foreground">{(product.sale_price || 0).toFixed(2)}</TableCell>
-                              <TableCell>
-                                <Input
-                                  type="number"
-                                  value={getPrice(product.id, orderType)}
-                                  onChange={(e) => updatePrice(product.id, orderType, Number(e.target.value))}
-                                  className="w-28 h-8"
-                                  min={0}
-                                  step={0.01}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                {bom ? (
-                                  <Badge variant="outline" className="text-xs gap-1">
-                                    {(bom.bom_items || []).length} {isRTL ? "مكون" : "items"}
-                                  </Badge>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">{isRTL ? "بدون ريسبي" : "No recipe"}</span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ))}
+                  ))}
 
-                {uncategorized.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="font-semibold text-base mb-3">{isRTL ? "بدون تصنيف" : "Uncategorized"}</h3>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12">{isRTL ? "صورة" : "Image"}</TableHead>
-                          <TableHead>{isRTL ? "المنتج" : "Product"}</TableHead>
-                          <TableHead>{isRTL ? "السعر الأساسي" : "Base Price"}</TableHead>
-                          <TableHead>{isRTL ? `سعر ${orderTypeLabel(orderType)}` : `${orderTypeLabel(orderType)} Price`}</TableHead>
-                          <TableHead>{isRTL ? "الريسبي" : "Recipe"}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {uncategorized.map((product: any) => {
-                          const bom = getProductBom(product.id);
-                          return (
-                            <TableRow key={product.id}>
-                              <TableCell>
-                                {product.image_url ? (
-                                  <img src={product.image_url} alt="" className="h-10 w-10 rounded object-cover" />
-                                ) : (
-                                  <div className="h-10 w-10 rounded bg-muted flex items-center justify-center">
-                                    <Image className="h-4 w-4 text-muted-foreground/40" />
-                                  </div>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <span className="font-medium">{isRTL ? product.name : product.name_en || product.name}</span>
-                              </TableCell>
-                              <TableCell className="text-muted-foreground">{(product.sale_price || 0).toFixed(2)}</TableCell>
-                              <TableCell>
-                                <Input
-                                  type="number"
-                                  value={getPrice(product.id, orderType)}
-                                  onChange={(e) => updatePrice(product.id, orderType, Number(e.target.value))}
-                                  className="w-28 h-8"
-                                  min={0}
-                                  step={0.01}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                {bom ? (
-                                  <Badge variant="outline" className="text-xs gap-1">
-                                    {(bom.bom_items || []).length} {isRTL ? "مكون" : "items"}
-                                  </Badge>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">{isRTL ? "بدون ريسبي" : "No recipe"}</span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+                  {uncategorized.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-3 mb-3 px-1">
+                        <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                          <MenuSquare className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <h3 className="font-semibold text-sm text-foreground">{isRTL ? "بدون تصنيف" : "Uncategorized"}</h3>
+                        <Badge variant="secondary" className="text-[10px] font-normal">{uncategorized.length}</Badge>
+                      </div>
+                      {renderTable(uncategorized)}
+                    </div>
+                  )}
 
-                {(products || []).length === 0 && (
-                  <div className="py-16 text-center text-muted-foreground">
-                    <MenuSquare className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    {isRTL ? "لا توجد منتجات" : "No products found"}
-                  </div>
-                )}
-              </TabsContent>
-            ))}
+                  {(products || []).length === 0 && (
+                    <div className="py-16 text-center text-muted-foreground">
+                      <MenuSquare className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                      <p className="font-medium">{isRTL ? "لا توجد منتجات" : "No products found"}</p>
+                      <p className="text-xs mt-1">{isRTL ? "أضف منتجات من المخزون أولاً" : "Add products from inventory first"}</p>
+                    </div>
+                  )}
+                </TabsContent>
+              );
+            })}
           </Tabs>
         </CardContent>
       </Card>
