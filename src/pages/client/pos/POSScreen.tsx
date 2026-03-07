@@ -372,6 +372,11 @@ const POSScreen = () => {
         details: { transaction_number: txNumber, total: grandTotal, items: cart.length },
       } as any);
 
+      // Increment coupon used_count if applied
+      if (appliedCoupon) {
+        await supabase.from("pos_coupons" as any).update({ used_count: (appliedCoupon.used_count || 0) + 1 } as any).eq("id", appliedCoupon.id);
+      }
+
       return tx;
     },
     onSuccess: (tx) => {
