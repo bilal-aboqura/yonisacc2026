@@ -85,6 +85,17 @@ const OwnerSettings = () => {
     api_key: "",
   });
 
+  const [paymentGateways, setPaymentGateways] = useState<PaymentGatewaySettings>({
+    tabby_enabled: false,
+    tabby_environment: 'sandbox',
+    tabby_public_key: '',
+    tabby_secret_key: '',
+    tamara_enabled: false,
+    tamara_environment: 'sandbox',
+    tamara_api_token: '',
+    tamara_notification_token: '',
+  });
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ["owner-settings"],
     queryFn: async () => {
