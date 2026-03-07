@@ -39,8 +39,8 @@ const InventoryDetailedReports = () => {
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products-full-report", companyId],
     queryFn: async () => {
-      const { data } = await supabase.from("products").select("*, product_categories(name, name_en), product_stock(quantity, avg_cost, warehouse_id, warehouses(branch_id, name, name_en))").eq("company_id", companyId!).eq("is_active", true).neq("product_type", "service");
-      return data || [];
+      const { data } = await (supabase.from("products").select("*, product_categories(name, name_en), product_stock(quantity, avg_cost, warehouse_id, warehouses(branch_id, name, name_en))").eq("company_id", companyId!).eq("is_active", true).neq("product_type", "service") as any);
+      return (data || []) as any[];
     },
     enabled: !!companyId,
   });
