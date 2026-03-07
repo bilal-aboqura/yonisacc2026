@@ -102,6 +102,15 @@ import DepreciationRun from "./pages/client/assets/DepreciationRun";
 import AssetReports from "./pages/client/assets/AssetReports";
 import AssetAccountSetup from "./pages/client/assets/AssetAccountSetup";
 
+// Clinic
+import Patients from "./pages/client/clinic/Patients";
+import Doctors from "./pages/client/clinic/Doctors";
+import ClinicAppointments from "./pages/client/clinic/Appointments";
+import Prescriptions from "./pages/client/clinic/Prescriptions";
+import ClinicBilling from "./pages/client/clinic/ClinicBilling";
+import ClinicReports from "./pages/client/clinic/ClinicReports";
+import ClinicAccountSetup from "./pages/client/clinic/ClinicAccountSetup";
+
 // Gold & Jewelry
 import GoldItems from "./pages/client/gold/GoldItems";
 import CreateGoldItem from "./pages/client/gold/CreateGoldItem";
@@ -271,6 +280,15 @@ const App = () => (
               <Route path="assets/depreciation" element={<DepreciationRun />} />
               <Route path="assets/reports" element={<AssetReports />} />
               <Route path="assets/setup" element={<AssetAccountSetup />} />
+
+              {/* Clinic */}
+              <Route path="clinic/patients" element={<Patients />} />
+              <Route path="clinic/doctors" element={<Doctors />} />
+              <Route path="clinic/appointments" element={<ClinicAppointments />} />
+              <Route path="clinic/prescriptions" element={<Prescriptions />} />
+              <Route path="clinic/billing" element={<ClinicBilling />} />
+              <Route path="clinic/reports" element={<ClinicReports />} />
+              <Route path="clinic/setup" element={<ClinicAccountSetup />} />
 
               {/* Gold & Jewelry */}
               <Route path="gold/items" element={<GoldItems />} />

@@ -63,6 +63,9 @@ import {
   Monitor,
   UtensilsCrossed,
   Gift,
+  Stethoscope,
+  Pill,
+  HeartPulse,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
