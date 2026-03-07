@@ -221,18 +221,25 @@ const POSScreen = () => {
     return matchSearch && matchCategory;
   });
 
+  // Get price based on order type
+  const getProductPrice = useCallback((product: any) => {
+    const menuPrice = menuPrices?.find((p: any) => p.product_id === product.id && p.order_type === orderType);
+    if (menuPrice) return menuPrice.price;
+    return product.sale_price || product.price || 0;
+  }, [menuPrices, orderType]);
+
   // Cart operations
   const addToCart = useCallback((product: any) => {
+    const price = getProductPrice(product);
     setCart(prev => {
       const existing = prev.find(i => i.product_id === product.id);
       if (existing) {
         return prev.map(i =>
           i.product_id === product.id
-            ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unit_price - i.discount + i.tax_amount }
+            ? { ...i, quantity: i.quantity + 1, unit_price: price, total: (i.quantity + 1) * price - i.discount + i.tax_amount }
             : i
         );
       }
-      const price = product.sale_price || product.price || 0;
       const taxRate = product.is_taxable !== false ? 0.15 : 0;
       const tax = price * taxRate;
       return [...prev, {
@@ -247,7 +254,7 @@ const POSScreen = () => {
         notes: "",
       }];
     });
-  }, []);
+  }, [getProductPrice]);
 
   const updateQuantity = (productId: string, delta: number) => {
     setCart(prev => prev.map(i => {
