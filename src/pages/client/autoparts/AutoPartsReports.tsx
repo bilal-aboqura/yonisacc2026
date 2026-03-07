@@ -96,7 +96,7 @@ const AutoPartsReports = () => {
   const { data: salesByBrand = [], isLoading: loadingBrand } = useQuery({
     queryKey: ["ap-report-brand", companyId, dateFrom, dateTo],
     queryFn: async () => {
-      const { data: items } = await supabase
+      const { data: items } = await (supabase as any)
         .from("invoice_items")
         .select("product_id, quantity, total")
         .eq("company_id", companyId!)
