@@ -8231,6 +8231,10 @@ export type Database = {
         }
         Returns: Json
       }
+      reverse_and_delete_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: undefined
+      }
       reverse_treasury_transaction: {
         Args: { p_company_id: string; p_transaction_id: string }
         Returns: Json
