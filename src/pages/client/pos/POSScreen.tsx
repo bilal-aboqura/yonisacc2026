@@ -33,6 +33,9 @@ import {
   Clock,
   Ticket,
   Printer,
+  Eye,
+  RotateCcw,
+  FileText,
 } from "lucide-react";
 
 interface CartItem {
