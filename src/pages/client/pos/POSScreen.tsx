@@ -398,6 +398,75 @@ const POSScreen = () => {
         await supabase.from("pos_coupons" as any).update({ used_count: (appliedCoupon.used_count || 0) + 1 } as any).eq("id", appliedCoupon.id);
       }
 
+      // Deduct stock for each item
+      for (const item of cart) {
+        const { data: wh } = await supabase.from("warehouses")
+          .select("id").eq("branch_id", selectedBranch).limit(1).maybeSingle();
+        if (wh) {
+          const { data: currentStock } = await (supabase.from as any)("warehouse_stock")
+            .select("*").eq("warehouse_id", wh.id).eq("product_id", item.product_id).maybeSingle();
+          if (currentStock) {
+            await (supabase.from as any)("warehouse_stock").update({
+              quantity: Math.max(0, (currentStock.quantity || 0) - item.quantity)
+            }).eq("id", currentStock.id);
+          }
+          // Record stock movement
+          await supabase.from("stock_movements").insert({
+            company_id: companyId!,
+            product_id: item.product_id,
+            warehouse_id: wh.id,
+            movement_type: "pos_sale" as any,
+            quantity: -item.quantity,
+            reference_type: "pos_sale",
+            reference_id: (tx as any).id,
+            notes: `POS Sale: ${txNumber}`,
+          });
+        }
+      }
+
+      // Create journal entry for the sale
+      try {
+        const journalLines: any[] = [];
+        // Debit: Cash/Bank account (payment method account)
+        const { data: pmData } = await supabase.from("payment_methods")
+          .select("account_id").eq("company_id", companyId!).eq("code", paymentMethod).maybeSingle();
+        const cashAccountId = pmData?.account_id;
+        
+        // Get branch account settings for revenue and tax
+        const { data: branchSettings } = await supabase.from("branch_account_settings")
+          .select("*").eq("company_id", companyId!).eq("branch_id", selectedBranch).eq("module_type", "sales").maybeSingle();
+        
+        const revenueAccountId = branchSettings?.sales_revenue_account_id;
+        const taxAccountId = branchSettings?.sales_tax_account_id;
+
+        if (cashAccountId && revenueAccountId) {
+          journalLines.push({ account_id: cashAccountId, debit: grandTotal, credit: 0, description: `POS Sale ${txNumber}` });
+          journalLines.push({ account_id: revenueAccountId, debit: 0, credit: subtotal - totalDiscount, description: `POS Revenue ${txNumber}` });
+          if (taxAccountId && totalTax > 0) {
+            journalLines.push({ account_id: taxAccountId, debit: 0, credit: totalTax, description: `POS VAT ${txNumber}` });
+          }
+
+          // Get next journal number
+          const { data: settings } = await supabase.from("company_settings")
+            .select("next_journal_number, journal_prefix").eq("company_id", companyId!).maybeSingle();
+          const nextNum = settings?.next_journal_number || 1;
+          const prefix = settings?.journal_prefix || "JV";
+          const journalNumber = `${prefix}-${String(nextNum).padStart(6, "0")}`;
+
+          await supabase.rpc("post_journal_entry", {
+            p_company_id: companyId!,
+            p_created_by: user?.id || "",
+            p_description: isRTL ? `مبيعات نقاط البيع - ${txNumber}` : `POS Sale - ${txNumber}`,
+            p_entry_date: new Date().toISOString().split("T")[0],
+            p_entry_number: journalNumber,
+            p_lines: journalLines,
+            p_status: "posted",
+          });
+        }
+      } catch (journalErr) {
+        console.warn("Journal entry creation failed (non-blocking):", journalErr);
+      }
+
       return tx;
     },
     onSuccess: (tx) => {
@@ -409,6 +478,7 @@ const POSScreen = () => {
       setAppliedCoupon(null);
       setCouponCode("");
       queryClient.invalidateQueries({ queryKey: ["pos-session"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-session-invoices"] });
     },
     onError: () => {
       toast.error(isRTL ? "خطأ في إتمام العملية" : "Error completing sale");
