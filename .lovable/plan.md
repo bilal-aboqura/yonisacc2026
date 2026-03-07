@@ -1,40 +1,100 @@
 
 
-## خطة: إضافة إعدادات تابي وتمارا في لوحة المالك
+# خطة تطوير مديول المخزون المتكامل
 
-### الفكرة
-إضافة قسم جديد في صفحة إعدادات المالك (`OwnerSettings.tsx`) لإدارة بوابات الدفع (تابي وتمارا) — يشمل تفعيل/تعطيل كل بوابة، اختيار البيئة (تجريبية/إنتاجية)، وحفظ مفاتيح API. تُخزن الإعدادات في جدول `owner_settings` الموجود.
+## الوضع الحالي
+- جداول موجودة: `products`, `product_categories` (شجرية), `product_stock`, `stock_movements`, `warehouses`, `units` (بدون تحويلات)
+- الجداول الناقصة: `stock_adjustments`, `stock_transfers`, `internal_consumptions`, `bill_of_materials`, `manufacturing_orders`, تحويل الوحدات، أنواع المنتجات، طرق التتبع
+- الواجهة الحالية: صفحة منتجات بسيطة + صفحة إنشاء منتج + حركة مخزون فارغة
+- القائمة الجانبية: رابطان فقط (المنتجات، حركة المخزون)
 
-### التعديلات
+## خطة التنفيذ (مقسمة على مراحل)
 
-**1. تعديل `src/pages/owner/OwnerSettings.tsx`**
+### المرحلة 1: تحديث قاعدة البيانات
 
-- إضافة interface جديد:
-```typescript
-interface PaymentGatewaySettings {
-  tabby_enabled: boolean;
-  tabby_environment: 'sandbox' | 'production';
-  tabby_public_key: string;
-  tabby_secret_key: string;
-  tamara_enabled: boolean;
-  tamara_environment: 'sandbox' | 'production';
-  tamara_api_token: string;
-  tamara_notification_token: string;
-}
-```
+**تعديل جدول `units`** — إضافة:
+- `symbol` (موجود)، `allows_fractions` (boolean)، `base_unit_id` (uuid FK → units)، `conversion_rate` (numeric)
 
-- إضافة state وlogic للتحميل والحفظ بنفس نمط الإعدادات الحالية (setting_key = `payment_gateways`)
+**تعديل جدول `products`** — إضافة:
+- `product_type` (text: stock/service/manufacturing/bundle)
+- `tracking_method` (text: none/batch/serial)
+- `unit_id` (uuid FK → units)
+- `is_taxable` (boolean, default true)
+- `reorder_level` (integer)
 
-- إضافة كارد جديد يحتوي على:
-  - **تابي (Tabby)**: Switch للتفعيل، Select للبيئة، حقول Public Key و Secret Key
-  - **تمارا (Tamara)**: Switch للتفعيل، Select للبيئة، حقول API Token و Notification Token
-  - جميع حقول المفاتيح من نوع `password` لإخفاء القيم
-  - زر حفظ مشترك
+**تعديل جدول `product_categories`** — إضافة:
+- `image_url` (text)
 
-- إضافة أيقونة `CreditCard` من lucide-react
+**جدول جديد: `stock_adjustments`**
+- id, company_id, branch_id, adjustment_date, adjustment_type (increase/decrease), reason, status (draft/approved), notes, created_by, approved_by, created_at
 
-### ملاحظات تقنية
-- لا حاجة لتعديل قاعدة البيانات — جدول `owner_settings` يدعم تخزين JSON مرن
-- المفاتيح تُخزن في `setting_value` كـ JSON object
-- يمكن لاحقاً قراءة هذه الإعدادات من Edge Functions لإنشاء جلسات الدفع
+**جدول جديد: `stock_adjustment_items`**
+- id, adjustment_id, product_id, quantity, unit_cost, notes
+
+**جدول جديد: `stock_transfers`**
+- id, company_id, from_branch_id, to_branch_id, transfer_date, status (draft/sent/received), notes, created_by, received_by, created_at
+
+**جدول جديد: `stock_transfer_items`**
+- id, transfer_id, product_id, quantity_sent, quantity_received, notes
+
+**جدول جديد: `internal_consumptions`**
+- id, company_id, branch_id, consumption_date, department, reason, status, notes, created_by, created_at
+
+**جدول جديد: `internal_consumption_items`**
+- id, consumption_id, product_id, quantity, unit_cost, notes
+
+**جدول جديد: `bill_of_materials`**
+- id, company_id, product_id (المنتج النهائي), is_active, notes, created_at
+
+**جدول جديد: `bom_items`**
+- id, bom_id, product_id (مادة خام), quantity, unit_id
+
+**جدول جديد: `manufacturing_orders`**
+- id, company_id, branch_id, bom_id, product_id, quantity, status (draft/in_progress/completed/cancelled), production_cost, notes, created_by, completed_at, created_at
+
+**RLS**: جميع الجداول ستستخدم `is_company_owner(company_id)` مع Realtime على `product_stock` و `stock_movements`.
+
+### المرحلة 2: الواجهات الأمامية
+
+**1. إدارة الوحدات** — `/client/inventory/units`
+- CRUD وحدات مع دعم التحويل والكسور
+
+**2. إدارة التصنيفات** — `/client/inventory/categories`
+- شجرة تصنيفات مع إضافة/تعديل/حذف + صورة + تفعيل/تعطيل
+
+**3. تطوير المنتجات** — تحديث `CreateProduct` و إنشاء `EditProduct`
+- إضافة نوع المنتج، طريقة التتبع، ربط الوحدة من جدول الوحدات، خاضع للضريبة
+
+**4. كرت المنتج** — `/client/inventory/product/:id`
+- الرصيد بكل فرع، متوسط التكلفة، قيمة المخزون، سجل الحركات (Stock Ledger)
+
+**5. عرض المخزون (Stock Overview)** — `/client/inventory/stock`
+- جدول بجميع المنتجات مع الكميات وفلترة بالفرع/التصنيف/تحت الحد الأدنى
+
+**6. تسوية المخزون** — `/client/inventory/adjustments`
+- إنشاء تسوية (زيادة/نقص) مع السبب والفرع، تحديث `product_stock` و `stock_movements`
+
+**7. تحويل بين الفروع** — `/client/inventory/transfers`
+- إنشاء طلب تحويل (Draft → Sent → Received)، تحديث المخزون عند الاستلام
+
+**8. الاستهلاك الداخلي** — `/client/inventory/consumptions`
+- صرف منتجات لاستخدام داخلي مع القسم والسبب
+
+**9. التصنيع** — `/client/inventory/manufacturing`
+- إدارة BOM + أوامر التصنيع مع خصم المواد وإضافة المنتج النهائي
+
+**10. تقارير المخزون** — `/client/inventory/reports`
+- 7 تقارير مع فلترة بالفرع والفترة + تصدير PDF/Excel
+
+### المرحلة 3: التكامل
+
+- **القائمة الجانبية**: توسيع قسم المخزون ليشمل جميع الروابط الجديدة
+- **RBAC**: إضافة أكواد صلاحيات جديدة (VIEW_UNITS, MANAGE_UNITS, VIEW_CATEGORIES, MANAGE_ADJUSTMENTS, إلخ)
+- **Audit Log**: تسجيل جميع العمليات عبر triggers
+- **Realtime**: تفعيل `supabase_realtime` على `product_stock`
+- **i18n**: إضافة جميع النصوص في `ar.json` و `en.json`
+- **منع تعديل المعتمد**: العمليات المعتمدة (approved/completed/received) لا تقبل التعديل
+
+## ملاحظة مهمة
+هذا المديول ضخم جداً (10+ شاشة، 10+ جدول جديد، RPCs). سأبدأ بالتنفيذ على مراحل — الجداول أولاً، ثم الشاشات الأساسية (الوحدات، التصنيفات، المنتجات المطورة)، ثم العمليات (تسوية، تحويل، استهلاك، تصنيع)، وأخيراً التقارير.
 
