@@ -120,6 +120,15 @@ const OwnerSettings = () => {
     tamara_notification_token: '',
   });
 
+  const [socialMedia, setSocialMedia] = useState<SocialMediaSettings>({
+    links: [
+      { id: '1', platform: 'facebook', url: '', is_visible: true },
+      { id: '2', platform: 'youtube', url: '', is_visible: true },
+      { id: '3', platform: 'telegram', url: '', is_visible: true },
+      { id: '4', platform: 'tiktok', url: '', is_visible: true },
+    ],
+  });
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ["owner-settings"],
     queryFn: async () => {
