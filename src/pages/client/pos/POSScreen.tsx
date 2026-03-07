@@ -31,6 +31,8 @@ import {
   Percent,
   Receipt,
   Clock,
+  Ticket,
+  Printer,
 } from "lucide-react";
 
 interface CartItem {
@@ -65,6 +67,10 @@ const POSScreen = () => {
   const [openingAmount, setOpeningAmount] = useState("");
   const [activeSession, setActiveSession] = useState<any>(null);
   const [selectedBranch, setSelectedBranch] = useState<string>("");
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [closingReport, setClosingReport] = useState<any>(null);
+  const [closingReportDialog, setClosingReportDialog] = useState(false);
 
   // Fetch branches
   const { data: branches } = useQuery({
