@@ -4235,6 +4235,7 @@ export type Database = {
           reorder_level: number | null
           sale_price: number | null
           shelf_location: string | null
+          show_in_pos: boolean | null
           sku: string | null
           tax_rate: number | null
           tracking_method: string | null
@@ -4265,6 +4266,7 @@ export type Database = {
           reorder_level?: number | null
           sale_price?: number | null
           shelf_location?: string | null
+          show_in_pos?: boolean | null
           sku?: string | null
           tax_rate?: number | null
           tracking_method?: string | null
@@ -4295,6 +4297,7 @@ export type Database = {
           reorder_level?: number | null
           sale_price?: number | null
           shelf_location?: string | null
+          show_in_pos?: boolean | null
           sku?: string | null
           tax_rate?: number | null
           tracking_method?: string | null

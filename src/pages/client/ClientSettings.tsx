@@ -12,6 +12,7 @@ import TeamManagement from "@/components/client/TeamManagement";
 import CompanyLogoUpload from "@/components/client/CompanyLogoUpload";
 import PrintSettingsTab from "@/components/print/PrintSettingsTab";
 import PaymentMethodsSettings from "@/components/client/PaymentMethodsSettings";
+import BranchPaymentMethods from "@/components/client/BranchPaymentMethods";
 import RolesPermissionsManager from "@/components/client/RolesPermissionsManager";
 import BranchAccountSettings from "@/components/client/BranchAccountSettings";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -293,7 +294,10 @@ const ClientSettings = ({ tab }: ClientSettingsProps) => {
 
       {activeTab === "payment-methods" && (
         company?.id ? (
-          <PaymentMethodsSettings companyId={company.id} />
+          <div className="space-y-6">
+            <PaymentMethodsSettings companyId={company.id} />
+            <BranchPaymentMethods companyId={company.id} />
+          </div>
         ) : (
           <Card><CardContent className="py-8 text-center text-muted-foreground">{isRTL ? "لا توجد شركة مرتبطة" : "No company linked"}</CardContent></Card>
         )

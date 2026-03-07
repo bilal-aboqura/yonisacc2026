@@ -132,6 +132,20 @@ const POSScreen = () => {
     enabled: !!companyId,
   });
 
+  // Fetch branch payment methods
+  const { data: branchPaymentMethods } = useQuery({
+    queryKey: ["branch-payment-methods-pos", companyId, selectedBranch],
+    queryFn: async () => {
+      const { data } = await (supabase.from as any)("branch_payment_methods")
+        .select("*, payment_methods:payment_method_id(id, name, name_en, code, is_active)")
+        .eq("company_id", companyId!)
+        .eq("branch_id", selectedBranch)
+        .eq("is_active", true);
+      return (data || []).filter((d: any) => d.payment_methods?.is_active).map((d: any) => d.payment_methods) as any[];
+    },
+    enabled: !!companyId && !!selectedBranch,
+  });
+
   // Check active session
   const { data: session } = useQuery({
     queryKey: ["pos-session", companyId, selectedBranch],
@@ -210,8 +224,9 @@ const POSScreen = () => {
     },
   });
 
-  // Filter products
+  // Filter products - only show products with show_in_pos = true
   const filteredProducts = (products || []).filter((p: any) => {
+    if ((p as any).show_in_pos === false) return false;
     const matchSearch = !searchTerm || 
       p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.name_en?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -220,6 +235,9 @@ const POSScreen = () => {
     const matchCategory = !selectedCategory || p.category_id === selectedCategory;
     return matchSearch && matchCategory;
   });
+
+  // Available payment methods for selected branch
+  const availablePaymentMethods = branchPaymentMethods || [];
 
   // Get price based on order type
   const getProductPrice = useCallback((product: any) => {
@@ -382,14 +400,22 @@ const POSScreen = () => {
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "F1") { e.preventDefault(); if (cart.length) { setPaymentMethod("cash"); setPaymentDialog(true); } }
-      if (e.key === "F2") { e.preventDefault(); if (cart.length) { setPaymentMethod("card"); setPaymentDialog(true); } }
+      if (e.key === "F1") { 
+        e.preventDefault(); 
+        const cashMethod = availablePaymentMethods.find((m: any) => m.code === "cash");
+        if (cart.length && cashMethod) { setPaymentMethod("cash"); setPaymentDialog(true); } 
+      }
+      if (e.key === "F2") { 
+        e.preventDefault(); 
+        const cardMethod = availablePaymentMethods.find((m: any) => m.code === "card");
+        if (cart.length && cardMethod) { setPaymentMethod("card"); setPaymentDialog(true); } 
+      }
       if (e.key === "Escape") { setPaymentDialog(false); setSessionDialog(false); }
       if (e.key === "F5") { e.preventDefault(); searchRef.current?.focus(); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [cart.length]);
+  }, [cart.length, availablePaymentMethods]);
 
   const branchName = branches?.find((b: any) => b.id === selectedBranch);
 
@@ -608,24 +634,37 @@ const POSScreen = () => {
           </div>
 
           {/* Payment Buttons */}
-          <div className="p-3 border-t grid grid-cols-2 gap-2">
-            <Button
-              className="h-12 gap-2"
-              disabled={cart.length === 0}
-              onClick={() => { setPaymentMethod("cash"); setPaidAmount(""); setPaymentDialog(true); }}
-            >
-              <Banknote className="h-5 w-5" />
-              {isRTL ? "نقد (F1)" : "Cash (F1)"}
-            </Button>
-            <Button
-              variant="secondary"
-              className="h-12 gap-2"
-              disabled={cart.length === 0}
-              onClick={() => { setPaymentMethod("card"); setPaidAmount(grandTotal.toFixed(2)); setPaymentDialog(true); }}
-            >
-              <CreditCard className="h-5 w-5" />
-              {isRTL ? "بطاقة (F2)" : "Card (F2)"}
-            </Button>
+          <div className="p-3 border-t">
+            {availablePaymentMethods.length === 0 ? (
+              <div className="text-center py-3">
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                  {isRTL ? "⚠️ لا توجد طرق دفع مربوطة بهذا الفرع" : "⚠️ No payment methods linked to this branch"}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {isRTL ? "قم بربط طرق الدفع من الإعدادات" : "Link payment methods from Settings"}
+                </p>
+              </div>
+            ) : (
+              <div className={`grid gap-2 ${availablePaymentMethods.length <= 2 ? 'grid-cols-2' : availablePaymentMethods.length <= 4 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {availablePaymentMethods.map((m: any, idx: number) => (
+                  <Button
+                    key={m.id}
+                    className="h-12 gap-2"
+                    variant={idx === 0 ? "default" : "secondary"}
+                    disabled={cart.length === 0}
+                    onClick={() => {
+                      setPaymentMethod(m.code);
+                      if (m.code !== "cash") setPaidAmount(grandTotal.toFixed(2));
+                      else setPaidAmount("");
+                      setPaymentDialog(true);
+                    }}
+                  >
+                    {m.code === "cash" ? <Banknote className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
+                    {isRTL ? m.name : m.name_en || m.name}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -643,15 +682,10 @@ const POSScreen = () => {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">{isRTL ? "طريقة الدفع" : "Payment Method"}</label>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { key: "cash", label: "نقد", labelEn: "Cash" },
-                  { key: "card", label: "بطاقة", labelEn: "Card" },
-                  { key: "transfer", label: "تحويل", labelEn: "Transfer" },
-                  { key: "other", label: "أخرى", labelEn: "Other" },
-                ].map((m) => (
-                  <Button key={m.key} size="sm" variant={paymentMethod === m.key ? "default" : "outline"} onClick={() => setPaymentMethod(m.key)}>
-                    {isRTL ? m.label : m.labelEn}
+              <div className="grid grid-cols-2 gap-2">
+                {availablePaymentMethods.map((m: any) => (
+                  <Button key={m.id} size="sm" variant={paymentMethod === m.code ? "default" : "outline"} onClick={() => setPaymentMethod(m.code)}>
+                    {isRTL ? m.name : m.name_en || m.name}
                   </Button>
                 ))}
               </div>
