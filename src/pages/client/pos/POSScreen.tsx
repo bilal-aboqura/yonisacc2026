@@ -297,7 +297,13 @@ const POSScreen = () => {
 
   // Totals
   const subtotal = cart.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-  const totalDiscount = subtotal * (discountPercent / 100) + cart.reduce((s, i) => s + i.discount, 0);
+  // Coupon discount
+  const couponDiscount = appliedCoupon
+    ? appliedCoupon.discount_type === "percentage"
+      ? subtotal * (appliedCoupon.discount_value / 100)
+      : appliedCoupon.discount_value
+    : 0;
+  const totalDiscount = subtotal * (discountPercent / 100) + cart.reduce((s, i) => s + i.discount, 0) + couponDiscount;
   const totalTax = cart.reduce((s, i) => s + i.tax_amount, 0);
   const grandTotal = subtotal - totalDiscount + totalTax;
   const changeAmount = Math.max(0, (parseFloat(paidAmount) || 0) - grandTotal);
