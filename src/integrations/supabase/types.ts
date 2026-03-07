@@ -6144,6 +6144,571 @@ export type Database = {
           },
         ]
       }
+      re_account_settings: {
+        Row: {
+          bank_account_id: string | null
+          cash_account_id: string | null
+          company_id: string
+          created_at: string | null
+          id: string
+          maintenance_expense_account_id: string | null
+          rental_revenue_account_id: string | null
+          security_deposit_liability_account_id: string | null
+          tenant_receivable_account_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bank_account_id?: string | null
+          cash_account_id?: string | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          maintenance_expense_account_id?: string | null
+          rental_revenue_account_id?: string | null
+          security_deposit_liability_account_id?: string | null
+          tenant_receivable_account_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bank_account_id?: string | null
+          cash_account_id?: string | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          maintenance_expense_account_id?: string | null
+          rental_revenue_account_id?: string | null
+          security_deposit_liability_account_id?: string | null
+          tenant_receivable_account_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_account_settings_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_account_settings_cash_account_id_fkey"
+            columns: ["cash_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_account_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_account_settings_maintenance_expense_account_id_fkey"
+            columns: ["maintenance_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_account_settings_rental_revenue_account_id_fkey"
+            columns: ["rental_revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_account_settings_security_deposit_liability_account_id_fkey"
+            columns: ["security_deposit_liability_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_account_settings_tenant_receivable_account_id_fkey"
+            columns: ["tenant_receivable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      re_leases: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          end_date: string
+          id: string
+          lease_number: string
+          monthly_rent: number | null
+          notes: string | null
+          payment_frequency: string | null
+          security_deposit: number | null
+          start_date: string
+          status: string | null
+          tenant_id: string
+          unit_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          end_date: string
+          id?: string
+          lease_number: string
+          monthly_rent?: number | null
+          notes?: string | null
+          payment_frequency?: string | null
+          security_deposit?: number | null
+          start_date: string
+          status?: string | null
+          tenant_id: string
+          unit_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          end_date?: string
+          id?: string
+          lease_number?: string
+          monthly_rent?: number | null
+          notes?: string | null
+          payment_frequency?: string | null
+          security_deposit?: number | null
+          start_date?: string
+          status?: string | null
+          tenant_id?: string
+          unit_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_leases_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_leases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "re_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_leases_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "re_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      re_maintenance_requests: {
+        Row: {
+          actual_cost: number | null
+          assigned_to: string | null
+          company_id: string
+          completion_date: string | null
+          created_at: string | null
+          description: string
+          estimated_cost: number | null
+          id: string
+          notes: string | null
+          priority: string | null
+          request_date: string
+          status: string | null
+          tenant_id: string | null
+          unit_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          actual_cost?: number | null
+          assigned_to?: string | null
+          company_id: string
+          completion_date?: string | null
+          created_at?: string | null
+          description: string
+          estimated_cost?: number | null
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          request_date?: string
+          status?: string | null
+          tenant_id?: string | null
+          unit_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          actual_cost?: number | null
+          assigned_to?: string | null
+          company_id?: string
+          completion_date?: string | null
+          created_at?: string | null
+          description?: string
+          estimated_cost?: number | null
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          request_date?: string
+          status?: string | null
+          tenant_id?: string | null
+          unit_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_maintenance_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_maintenance_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "re_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_maintenance_requests_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "re_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      re_properties: {
+        Row: {
+          address: string | null
+          city: string | null
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          notes: string | null
+          property_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          notes?: string | null
+          property_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          notes?: string | null
+          property_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_properties_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      re_rent_invoices: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string
+          journal_entry_id: string | null
+          late_fee: number | null
+          lease_id: string | null
+          notes: string | null
+          paid_amount: number | null
+          payment_status: string | null
+          period_from: string | null
+          period_to: string | null
+          tenant_id: string
+          total_amount: number | null
+          unit_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          journal_entry_id?: string | null
+          late_fee?: number | null
+          lease_id?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          payment_status?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          tenant_id: string
+          total_amount?: number | null
+          unit_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          journal_entry_id?: string | null
+          late_fee?: number | null
+          lease_id?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          payment_status?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          tenant_id?: string
+          total_amount?: number | null
+          unit_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_rent_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_rent_invoices_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_rent_invoices_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
+            referencedRelation: "re_leases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_rent_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "re_tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_rent_invoices_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "re_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      re_rent_payments: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string | null
+          id: string
+          invoice_id: string
+          journal_entry_id: string | null
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          reference: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount?: number
+          company_id: string
+          created_at?: string | null
+          id?: string
+          invoice_id: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          reference?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          invoice_id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          reference?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_rent_payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_rent_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "re_rent_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_rent_payments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_rent_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "re_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      re_tenants: {
+        Row: {
+          address: string | null
+          company_id: string
+          created_at: string | null
+          email: string | null
+          id: string
+          id_number: string | null
+          name: string
+          name_en: string | null
+          notes: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          company_id: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          id_number?: string | null
+          name: string
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          company_id?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          id_number?: string | null
+          name?: string
+          name_en?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_tenants_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      re_units: {
+        Row: {
+          area_sqm: number | null
+          company_id: string
+          created_at: string | null
+          floor_number: number | null
+          id: string
+          monthly_rent: number | null
+          notes: string | null
+          property_id: string
+          status: string | null
+          unit_number: string
+          unit_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          area_sqm?: number | null
+          company_id: string
+          created_at?: string | null
+          floor_number?: number | null
+          id?: string
+          monthly_rent?: number | null
+          notes?: string | null
+          property_id: string
+          status?: string | null
+          unit_number: string
+          unit_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          area_sqm?: number | null
+          company_id?: string
+          created_at?: string | null
+          floor_number?: number | null
+          id?: string
+          monthly_rent?: number | null
+          notes?: string | null
+          property_id?: string
+          status?: string | null
+          unit_number?: string
+          unit_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_units_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_units_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "re_properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_adjustment_items: {
         Row: {
           adjustment_id: string
