@@ -621,6 +621,57 @@ const POSScreen = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Invoices Panel (overlay) */}
+        {showInvoices && (
+          <div className="absolute inset-0 top-14 z-40 bg-background/95 backdrop-blur-sm flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-bold">{isRTL ? "فواتير الجلسة" : "Session Invoices"}</h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowInvoices(false)}><X className="h-5 w-5" /></Button>
+            </div>
+            <ScrollArea className="flex-1 p-4">
+              {(sessionInvoices || []).length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">
+                  <Receipt className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p>{isRTL ? "لا توجد فواتير في هذه الجلسة" : "No invoices in this session"}</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-w-3xl mx-auto">
+                  {(sessionInvoices || []).map((inv: any) => (
+                    <Card key={inv.id} className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <p className="font-mono font-bold">{inv.transaction_number}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(inv.created_at).toLocaleTimeString()}</p>
+                        </div>
+                        <Badge variant={inv.status === "completed" ? "default" : "destructive"}>
+                          {inv.status === "completed" ? (isRTL ? "مكتملة" : "Completed") : (isRTL ? "مرتجعة" : "Refunded")}
+                        </Badge>
+                        <Badge variant="outline" className="capitalize">{inv.payment_method}</Badge>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-lg">{Math.abs(inv.total).toFixed(2)} <span className="text-xs text-muted-foreground">{isRTL ? "ر.س" : "SAR"}</span></span>
+                        <Button size="sm" variant="outline" onClick={async () => {
+                          setViewTxDetail(inv);
+                          const { data } = await supabase.from("pos_transaction_items" as any)
+                            .select("*, products:product_id(name, name_en)").eq("transaction_id", inv.id);
+                          setViewTxItems((data || []) as any[]);
+                        }}>
+                          <Eye className="h-4 w-4 me-1" />{isRTL ? "عرض" : "View"}
+                        </Button>
+                        {inv.status === "completed" && (
+                          <Button size="sm" variant="destructive" onClick={() => setReturnConfirm(inv)}>
+                            <RotateCcw className="h-4 w-4 me-1" />{isRTL ? "مرتجع" : "Refund"}
+                          </Button>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        )}
+
         {/* Products Section (Left) */}
         <div className="flex-[65] flex flex-col border-e">
           {/* Search & Categories */}
