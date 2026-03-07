@@ -78,10 +78,10 @@ const POSUsers = () => {
       const { error: memberError } = await supabase.from("company_members").insert({
         company_id: companyId,
         user_id: authData.user.id,
-        role: "user",
+        role: "client" as any,
         is_active: true,
         joined_at: new Date().toISOString(),
-      });
+      } as any);
       if (memberError) throw memberError;
 
       // Add to pos_users
