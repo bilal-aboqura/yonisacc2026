@@ -5,8 +5,6 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
-import { useAutoPartsAccess } from "@/hooks/useAutoPartsAccess";
-import { useGoldAccess } from "@/hooks/useGoldAccess";
 import { useRBAC } from "@/hooks/useRBAC";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
@@ -237,8 +235,7 @@ const goldMenuGroup: MenuItem = {
 const ClientLayout = () => {
   const { isRTL } = useLanguage();
   const { signOut, user, isLoading } = useAuth();
-  const { isAutoPartsCompany } = useAutoPartsAccess();
-  const { isGoldCompany } = useGoldAccess();
+  const { status: subStatus } = useSubscriptionGuard();
   const { status: subStatus } = useSubscriptionGuard();
   const { can } = useRBAC();
   const navigate = useNavigate();
