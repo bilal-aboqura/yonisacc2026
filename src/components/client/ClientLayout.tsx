@@ -223,9 +223,12 @@ const autoPartsMenuGroup: MenuItem = {
   label: "قطع الغيار",
   labelEn: "Auto Parts",
   children: [
+    { icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard", path: "/client/auto-parts", permission: "VIEW_AUTO_PARTS" },
     { icon: Search, label: "كتالوج القطع", labelEn: "Parts Catalog", path: "/client/auto-parts/catalog", permission: "VIEW_AUTO_PARTS" },
     { icon: Car, label: "ماركات السيارات", labelEn: "Car Brands", path: "/client/auto-parts/brands", permission: "VIEW_AUTO_PARTS" },
     { icon: Tag, label: "موديلات السيارات", labelEn: "Car Models", path: "/client/auto-parts/models", permission: "VIEW_AUTO_PARTS" },
+    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/auto-parts/reports", permission: "VIEW_AUTO_PARTS" },
+    { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/auto-parts/setup", permission: "VIEW_SETTINGS" },
   ]
 };
 
@@ -296,6 +299,7 @@ const deliveryMenuGroup: MenuItem = {
     { icon: Package, label: "طلبات التوصيل", labelEn: "Orders", path: "/client/delivery/orders", permission: "VIEW_ACCOUNTS" },
     { icon: Users, label: "السائقين", labelEn: "Drivers", path: "/client/delivery/drivers", permission: "VIEW_ACCOUNTS" },
     { icon: Building, label: "مناطق التوصيل", labelEn: "Areas", path: "/client/delivery/areas", permission: "VIEW_ACCOUNTS" },
+    { icon: Calculator, label: "تقفيل حساب السائقين", labelEn: "Driver Settlement", path: "/client/delivery/settlement", permission: "VIEW_ACCOUNTS" },
     { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/delivery/reports", permission: "VIEW_ACCOUNTS" },
     { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/delivery/setup", permission: "VIEW_SETTINGS" },
   ]
