@@ -41,6 +41,17 @@ interface ResendApiSettings {
   api_key: string;
 }
 
+interface PaymentGatewaySettings {
+  tabby_enabled: boolean;
+  tabby_environment: 'sandbox' | 'production';
+  tabby_public_key: string;
+  tabby_secret_key: string;
+  tamara_enabled: boolean;
+  tamara_environment: 'sandbox' | 'production';
+  tamara_api_token: string;
+  tamara_notification_token: string;
+}
+
 const OwnerSettings = () => {
   const { isRTL } = useLanguage();
   const queryClient = useQueryClient();
