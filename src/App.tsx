@@ -291,10 +291,20 @@ const App = () => (
 
               {/* Clinic */}
               <Route path="clinic/patients" element={<Patients />} />
+              <Route path="clinic/patients/new" element={<CreatePatient />} />
+              <Route path="clinic/patients/:id" element={<ViewPatient />} />
+              <Route path="clinic/patients/:id/edit" element={<CreatePatient />} />
               <Route path="clinic/doctors" element={<Doctors />} />
+              <Route path="clinic/doctors/new" element={<CreateDoctor />} />
+              <Route path="clinic/doctors/:id/edit" element={<CreateDoctor />} />
               <Route path="clinic/appointments" element={<ClinicAppointments />} />
+              <Route path="clinic/appointments/new" element={<CreateAppointment />} />
               <Route path="clinic/prescriptions" element={<Prescriptions />} />
+              <Route path="clinic/prescriptions/new" element={<CreatePrescription />} />
+              <Route path="clinic/prescriptions/:id" element={<ViewPrescription />} />
               <Route path="clinic/billing" element={<ClinicBilling />} />
+              <Route path="clinic/billing/new" element={<CreateClinicInvoice />} />
+              <Route path="clinic/billing/:id/pay" element={<PayClinicInvoice />} />
               <Route path="clinic/reports" element={<ClinicReports />} />
               <Route path="clinic/setup" element={<ClinicAccountSetup />} />
 
