@@ -98,12 +98,15 @@ const ClientPurchases = () => {
   const handleDelete = async () => {
     if (!deleteInvoice) return;
     try {
-      await supabase.from("invoice_items").delete().eq("invoice_id", deleteInvoice.id);
-      await supabase.from("invoice_payments").delete().eq("invoice_id", deleteInvoice.id);
-      const { error } = await supabase.from("invoices").delete().eq("id", deleteInvoice.id);
+      const { error } = await (supabase.rpc as any)("reverse_and_delete_invoice", {
+        p_invoice_id: deleteInvoice.id,
+      });
       if (error) throw error;
-      toast.success(isRTL ? "تم حذف الفاتورة" : "Invoice deleted");
+      toast.success(isRTL ? "تم حذف الفاتورة وعكس القيود المحاسبية" : "Invoice deleted and journal entries reversed");
       queryClient.invalidateQueries({ queryKey: ["purchase-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["account-balances"] });
+      queryClient.invalidateQueries({ queryKey: ["general-ledger"] });
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -211,7 +214,7 @@ const ClientPurchases = () => {
             </Tooltip>
           )}
 
-          {user?.id === OWNER_USER_ID && (
+          {can("DELETE_PURCHASES") && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
