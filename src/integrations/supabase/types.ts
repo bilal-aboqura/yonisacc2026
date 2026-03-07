@@ -3339,6 +3339,65 @@ export type Database = {
           },
         ]
       }
+      pos_coupons: {
+        Row: {
+          code: string
+          company_id: string
+          created_at: string | null
+          discount_type: string
+          discount_value: number
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          min_order_amount: number | null
+          name: string
+          name_en: string | null
+          start_date: string | null
+          used_count: number | null
+        }
+        Insert: {
+          code: string
+          company_id: string
+          created_at?: string | null
+          discount_type?: string
+          discount_value?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          min_order_amount?: number | null
+          name: string
+          name_en?: string | null
+          start_date?: string | null
+          used_count?: number | null
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          created_at?: string | null
+          discount_type?: string
+          discount_value?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          min_order_amount?: number | null
+          name?: string
+          name_en?: string | null
+          start_date?: string | null
+          used_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_coupons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_menu_items: {
         Row: {
           category_group: string | null
@@ -3479,6 +3538,52 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_promotion_products: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          product_id: string
+          promotion_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          product_id: string
+          promotion_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          product_id?: string
+          promotion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_promotion_products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_promotion_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_promotion_products_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "pos_promotions"
             referencedColumns: ["id"]
           },
         ]
@@ -3682,6 +3787,7 @@ export type Database = {
           closed_at: string | null
           closed_by: string | null
           closing_amount: number | null
+          closing_report_printed: boolean | null
           company_id: string
           expected_amount: number | null
           id: string
@@ -3689,14 +3795,20 @@ export type Database = {
           opened_at: string
           opened_by: string | null
           opening_amount: number
+          payment_summary: Json | null
           status: string
           terminal_id: string
+          total_discounts: number | null
+          total_promotions: number | null
+          total_returns: number | null
+          total_sales: number | null
         }
         Insert: {
           branch_id: string
           closed_at?: string | null
           closed_by?: string | null
           closing_amount?: number | null
+          closing_report_printed?: boolean | null
           company_id: string
           expected_amount?: number | null
           id?: string
@@ -3704,14 +3816,20 @@ export type Database = {
           opened_at?: string
           opened_by?: string | null
           opening_amount?: number
+          payment_summary?: Json | null
           status?: string
           terminal_id: string
+          total_discounts?: number | null
+          total_promotions?: number | null
+          total_returns?: number | null
+          total_sales?: number | null
         }
         Update: {
           branch_id?: string
           closed_at?: string | null
           closed_by?: string | null
           closing_amount?: number | null
+          closing_report_printed?: boolean | null
           company_id?: string
           expected_amount?: number | null
           id?: string
@@ -3719,8 +3837,13 @@ export type Database = {
           opened_at?: string
           opened_by?: string | null
           opening_amount?: number
+          payment_summary?: Json | null
           status?: string
           terminal_id?: string
+          total_discounts?: number | null
+          total_promotions?: number | null
+          total_returns?: number | null
+          total_sales?: number | null
         }
         Relationships: [
           {
@@ -4032,6 +4155,54 @@ export type Database = {
             columns: ["terminal_id"]
             isOneToOne: false
             referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_users: {
+        Row: {
+          branch_id: string
+          company_id: string
+          created_at: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          company_id: string
+          created_at?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+          role?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          company_id?: string
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_users_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_users_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

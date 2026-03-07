@@ -87,6 +87,7 @@ import POSReports from "./pages/client/pos/POSReports";
 import POSCoupons from "./pages/client/pos/POSCoupons";
 import POSUsers from "./pages/client/pos/POSUsers";
 import POSUserLogs from "./pages/client/pos/POSUserLogs";
+import POSInvoices from "./pages/client/pos/POSInvoices";
 
 // Gold & Jewelry
 import GoldItems from "./pages/client/gold/GoldItems";
@@ -235,6 +236,7 @@ const App = () => (
               <Route path="pos/reports" element={<POSReports />} />
               <Route path="pos/users" element={<POSUsers />} />
               <Route path="pos/user-logs" element={<POSUserLogs />} />
+              <Route path="pos/invoices" element={<POSInvoices />} />
 
               {/* Gold & Jewelry */}
               <Route path="gold/items" element={<GoldItems />} />

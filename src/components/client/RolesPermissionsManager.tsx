@@ -63,6 +63,7 @@ const moduleConfig: Record<string, { ar: string; en: string; icon: any; color: s
   contacts: { ar: "جهات الاتصال", en: "Contacts", icon: Contact, color: "text-pink-500" },
   reports: { ar: "التقارير", en: "Reports", icon: BarChart3, color: "text-orange-500" },
   hr: { ar: "الموارد البشرية", en: "Human Resources", icon: Users, color: "text-teal-500" },
+  pos: { ar: "نقاط البيع", en: "Point of Sale", icon: ShoppingCart, color: "text-indigo-500" },
   settings: { ar: "الإعدادات", en: "Settings", icon: Cog, color: "text-slate-500" },
   print: { ar: "الطباعة", en: "Print", icon: Printer, color: "text-gray-500" },
   auto_parts: { ar: "قطع الغيار", en: "Auto Parts", icon: Car, color: "text-red-500" },

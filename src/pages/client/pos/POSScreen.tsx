@@ -33,6 +33,9 @@ import {
   Clock,
   Ticket,
   Printer,
+  Eye,
+  RotateCcw,
+  FileText,
 } from "lucide-react";
 
 interface CartItem {
@@ -71,6 +74,10 @@ const POSScreen = () => {
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [closingReport, setClosingReport] = useState<any>(null);
   const [closingReportDialog, setClosingReportDialog] = useState(false);
+  const [showInvoices, setShowInvoices] = useState(false);
+  const [viewTxDetail, setViewTxDetail] = useState<any>(null);
+  const [viewTxItems, setViewTxItems] = useState<any[]>([]);
+  const [returnConfirm, setReturnConfirm] = useState<any>(null);
 
   // Fetch branches
   const { data: branches } = useQuery({
@@ -167,6 +174,20 @@ const POSScreen = () => {
       return data;
     },
     enabled: !!companyId && !!selectedBranch && !!user,
+  });
+
+  // Fetch session invoices
+  const { data: sessionInvoices } = useQuery({
+    queryKey: ["pos-session-invoices", companyId, selectedBranch, activeSession?.id],
+    queryFn: async () => {
+      if (!activeSession) return [];
+      const { data } = await supabase.from("pos_transactions" as any)
+        .select("*")
+        .eq("session_id", (activeSession as any).id)
+        .order("created_at", { ascending: false });
+      return (data || []) as any[];
+    },
+    enabled: !!companyId && !!activeSession,
   });
 
   useEffect(() => {
@@ -377,6 +398,75 @@ const POSScreen = () => {
         await supabase.from("pos_coupons" as any).update({ used_count: (appliedCoupon.used_count || 0) + 1 } as any).eq("id", appliedCoupon.id);
       }
 
+      // Deduct stock for each item
+      for (const item of cart) {
+        const { data: wh } = await supabase.from("warehouses")
+          .select("id").eq("branch_id", selectedBranch).limit(1).maybeSingle();
+        if (wh) {
+          const { data: currentStock } = await (supabase.from as any)("warehouse_stock")
+            .select("*").eq("warehouse_id", wh.id).eq("product_id", item.product_id).maybeSingle();
+          if (currentStock) {
+            await (supabase.from as any)("warehouse_stock").update({
+              quantity: Math.max(0, (currentStock.quantity || 0) - item.quantity)
+            }).eq("id", currentStock.id);
+          }
+          // Record stock movement
+          await supabase.from("stock_movements").insert({
+            company_id: companyId!,
+            product_id: item.product_id,
+            warehouse_id: wh.id,
+            movement_type: "pos_sale" as any,
+            quantity: -item.quantity,
+            reference_type: "pos_sale",
+            reference_id: (tx as any).id,
+            notes: `POS Sale: ${txNumber}`,
+          });
+        }
+      }
+
+      // Create journal entry for the sale
+      try {
+        const journalLines: any[] = [];
+        // Debit: Cash/Bank account (payment method account)
+        const { data: pmData } = await supabase.from("payment_methods")
+          .select("account_id").eq("company_id", companyId!).eq("code", paymentMethod).maybeSingle();
+        const cashAccountId = pmData?.account_id;
+        
+        // Get branch account settings for revenue and tax
+        const { data: branchSettings } = await supabase.from("branch_account_settings")
+          .select("*").eq("company_id", companyId!).eq("branch_id", selectedBranch).eq("module_type", "sales").maybeSingle();
+        
+        const revenueAccountId = branchSettings?.sales_revenue_account_id;
+        const taxAccountId = branchSettings?.sales_tax_account_id;
+
+        if (cashAccountId && revenueAccountId) {
+          journalLines.push({ account_id: cashAccountId, debit: grandTotal, credit: 0, description: `POS Sale ${txNumber}` });
+          journalLines.push({ account_id: revenueAccountId, debit: 0, credit: subtotal - totalDiscount, description: `POS Revenue ${txNumber}` });
+          if (taxAccountId && totalTax > 0) {
+            journalLines.push({ account_id: taxAccountId, debit: 0, credit: totalTax, description: `POS VAT ${txNumber}` });
+          }
+
+          // Get next journal number
+          const { data: settings } = await supabase.from("company_settings")
+            .select("next_journal_number, journal_prefix").eq("company_id", companyId!).maybeSingle();
+          const nextNum = settings?.next_journal_number || 1;
+          const prefix = settings?.journal_prefix || "JV";
+          const journalNumber = `${prefix}-${String(nextNum).padStart(6, "0")}`;
+
+          await supabase.rpc("post_journal_entry", {
+            p_company_id: companyId!,
+            p_created_by: user?.id || "",
+            p_description: isRTL ? `مبيعات نقاط البيع - ${txNumber}` : `POS Sale - ${txNumber}`,
+            p_entry_date: new Date().toISOString().split("T")[0],
+            p_entry_number: journalNumber,
+            p_lines: journalLines,
+            p_status: "posted",
+          });
+        }
+      } catch (journalErr) {
+        console.warn("Journal entry creation failed (non-blocking):", journalErr);
+      }
+
       return tx;
     },
     onSuccess: (tx) => {
@@ -388,6 +478,7 @@ const POSScreen = () => {
       setAppliedCoupon(null);
       setCouponCode("");
       queryClient.invalidateQueries({ queryKey: ["pos-session"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-session-invoices"] });
     },
     onError: () => {
       toast.error(isRTL ? "خطأ في إتمام العملية" : "Error completing sale");
@@ -490,10 +581,21 @@ const POSScreen = () => {
         </div>
         <div className="flex items-center gap-2">
           {activeSession && (
-            <Badge variant="outline" className="border-primary-foreground/40 text-primary-foreground">
-              <Clock className="h-3 w-3 me-1" />
-              {isRTL ? "الجلسة نشطة" : "Session Active"}
-            </Badge>
+            <>
+              <Badge variant="outline" className="border-primary-foreground/40 text-primary-foreground">
+                <Clock className="h-3 w-3 me-1" />
+                {isRTL ? "الجلسة نشطة" : "Session Active"}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary-foreground hover:bg-primary-foreground/20"
+                onClick={() => setShowInvoices(!showInvoices)}
+              >
+                <FileText className="h-4 w-4 me-1" />
+                {isRTL ? "الفواتير" : "Invoices"}
+              </Button>
+            </>
           )}
           <Select value={selectedBranch} onValueChange={setSelectedBranch}>
             <SelectTrigger className="w-[160px] bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground">
@@ -519,6 +621,57 @@ const POSScreen = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Invoices Panel (overlay) */}
+        {showInvoices && (
+          <div className="absolute inset-0 top-14 z-40 bg-background/95 backdrop-blur-sm flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-bold">{isRTL ? "فواتير الجلسة" : "Session Invoices"}</h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowInvoices(false)}><X className="h-5 w-5" /></Button>
+            </div>
+            <ScrollArea className="flex-1 p-4">
+              {(sessionInvoices || []).length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">
+                  <Receipt className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p>{isRTL ? "لا توجد فواتير في هذه الجلسة" : "No invoices in this session"}</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-w-3xl mx-auto">
+                  {(sessionInvoices || []).map((inv: any) => (
+                    <Card key={inv.id} className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <p className="font-mono font-bold">{inv.transaction_number}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(inv.created_at).toLocaleTimeString()}</p>
+                        </div>
+                        <Badge variant={inv.status === "completed" ? "default" : "destructive"}>
+                          {inv.status === "completed" ? (isRTL ? "مكتملة" : "Completed") : (isRTL ? "مرتجعة" : "Refunded")}
+                        </Badge>
+                        <Badge variant="outline" className="capitalize">{inv.payment_method}</Badge>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-lg">{Math.abs(inv.total).toFixed(2)} <span className="text-xs text-muted-foreground">{isRTL ? "ر.س" : "SAR"}</span></span>
+                        <Button size="sm" variant="outline" onClick={async () => {
+                          setViewTxDetail(inv);
+                          const { data } = await supabase.from("pos_transaction_items" as any)
+                            .select("*, products:product_id(name, name_en)").eq("transaction_id", inv.id);
+                          setViewTxItems((data || []) as any[]);
+                        }}>
+                          <Eye className="h-4 w-4 me-1" />{isRTL ? "عرض" : "View"}
+                        </Button>
+                        {inv.status === "completed" && (
+                          <Button size="sm" variant="destructive" onClick={() => setReturnConfirm(inv)}>
+                            <RotateCcw className="h-4 w-4 me-1" />{isRTL ? "مرتجع" : "Refund"}
+                          </Button>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        )}
+
         {/* Products Section (Left) */}
         <div className="flex-[65] flex flex-col border-e">
           {/* Search & Categories */}
@@ -870,6 +1023,131 @@ const POSScreen = () => {
             </Button>
             <Button onClick={() => { setClosingReportDialog(false); setActiveSession(null); navigate("/client"); }}>
               {isRTL ? "إغلاق" : "Close"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Invoice Detail Dialog */}
+      <Dialog open={!!viewTxDetail} onOpenChange={(open) => { if (!open) setViewTxDetail(null); }}>
+        <DialogContent className="sm:max-w-lg" dir={isRTL ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle>{isRTL ? "تفاصيل الفاتورة" : "Invoice Details"} - {viewTxDetail?.transaction_number}</DialogTitle>
+          </DialogHeader>
+          {viewTxDetail && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-muted rounded-lg">
+                <div><span className="text-muted-foreground">{isRTL ? "التاريخ" : "Date"}</span><p className="font-medium">{new Date(viewTxDetail.created_at).toLocaleString()}</p></div>
+                <div><span className="text-muted-foreground">{isRTL ? "طريقة الدفع" : "Payment"}</span><p className="font-medium capitalize">{viewTxDetail.payment_method}</p></div>
+              </div>
+              <div className="space-y-1">
+                {viewTxItems.map((item: any) => (
+                  <div key={item.id} className="flex justify-between p-2 rounded border">
+                    <span>{isRTL ? item.products?.name : item.products?.name_en || item.products?.name} × {item.quantity}</span>
+                    <span className="font-bold">{item.total?.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between font-bold text-lg border-t pt-2">
+                <span>{isRTL ? "الإجمالي" : "Total"}</span>
+                <span className="text-primary">{Math.abs(viewTxDetail.total).toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 me-2" />{isRTL ? "طباعة" : "Print"}</Button>
+            <Button onClick={() => setViewTxDetail(null)}>{isRTL ? "إغلاق" : "Close"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* POS Refund Confirmation Dialog */}
+      <Dialog open={!!returnConfirm} onOpenChange={(open) => { if (!open) setReturnConfirm(null); }}>
+        <DialogContent dir={isRTL ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle>{isRTL ? "تأكيد المرتجع" : "Confirm Refund"}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {isRTL
+              ? `هل تريد إرجاع الفاتورة ${returnConfirm?.transaction_number} بمبلغ ${returnConfirm?.total?.toFixed(2)} ر.س؟`
+              : `Refund invoice ${returnConfirm?.transaction_number} for ${returnConfirm?.total?.toFixed(2)} SAR?`}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReturnConfirm(null)}>{isRTL ? "إلغاء" : "Cancel"}</Button>
+            <Button variant="destructive" onClick={async () => {
+              if (!returnConfirm) return;
+              try {
+                // Create refund transaction
+                const { data: lastTx } = await supabase.from("pos_transactions" as any)
+                  .select("transaction_number").eq("company_id", companyId!)
+                  .order("created_at", { ascending: false }).limit(1).maybeSingle();
+                const lastNum = lastTx ? parseInt((lastTx as any).transaction_number?.replace("POS-", "") || "0") : 0;
+                const txNumber = `POS-${String(lastNum + 1).padStart(6, "0")}`;
+
+                await supabase.from("pos_transactions" as any).insert({
+                  company_id: companyId,
+                  branch_id: returnConfirm.branch_id,
+                  session_id: (activeSession as any)?.id || returnConfirm.session_id,
+                  terminal_id: returnConfirm.terminal_id,
+                  transaction_number: txNumber,
+                  subtotal: -returnConfirm.subtotal,
+                  discount_amount: -returnConfirm.discount_amount,
+                  tax_amount: -returnConfirm.tax_amount,
+                  total: -returnConfirm.total,
+                  payment_method: returnConfirm.payment_method,
+                  paid_amount: -returnConfirm.total,
+                  change_amount: 0,
+                  order_type: returnConfirm.order_type,
+                  created_by: user?.id,
+                  status: "refunded",
+                } as any);
+
+                // Mark original as refunded
+                await supabase.from("pos_transactions" as any)
+                  .update({ status: "refunded" } as any).eq("id", returnConfirm.id);
+
+                // Restore stock
+                const { data: items } = await supabase.from("pos_transaction_items" as any)
+                  .select("*").eq("transaction_id", returnConfirm.id);
+                if (items) {
+                  for (const item of items as any[]) {
+                    if (item.product_id) {
+                      const { data: wh } = await supabase.from("warehouses")
+                        .select("id").eq("branch_id", returnConfirm.branch_id).limit(1).maybeSingle();
+                      if (wh) {
+                        const { data: currentStock } = await (supabase.from as any)("warehouse_stock")
+                          .select("*").eq("warehouse_id", wh.id).eq("product_id", item.product_id).maybeSingle();
+                        if (currentStock) {
+                          await (supabase.from as any)("warehouse_stock").update({
+                            quantity: (currentStock.quantity || 0) + item.quantity
+                          }).eq("id", currentStock.id);
+                        }
+                        await supabase.from("stock_movements").insert({
+                          company_id: companyId!,
+                          product_id: item.product_id,
+                          warehouse_id: wh.id,
+                          movement_type: "pos_return" as any,
+                          quantity: item.quantity,
+                          reference_type: "pos_refund",
+                          reference_id: returnConfirm.id,
+                          notes: `POS Return: ${returnConfirm.transaction_number}`,
+                        });
+                      }
+                    }
+                  }
+                }
+
+                toast.success(isRTL ? `تم المرتجع - ${txNumber}` : `Refund completed - ${txNumber}`);
+                setReturnConfirm(null);
+                setShowInvoices(false);
+                queryClient.invalidateQueries({ queryKey: ["pos-session-invoices"] });
+                queryClient.invalidateQueries({ queryKey: ["pos-session"] });
+              } catch (err: any) {
+                toast.error(err?.message || "Error");
+              }
+            }}>
+              <RotateCcw className="h-4 w-4 me-2" />
+              {isRTL ? "تأكيد المرتجع" : "Confirm Refund"}
             </Button>
           </DialogFooter>
         </DialogContent>
