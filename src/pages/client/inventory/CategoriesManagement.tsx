@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, FolderTree, ChevronRight, ChevronDown, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ImageUpload from "@/components/client/ImageUpload";
 
 interface CategoryForm {
   name: string;
@@ -278,8 +279,15 @@ const CategoriesManagement = () => {
               </Select>
             </div>
             <div>
-              <Label>{isRTL ? "رابط الصورة" : "Image URL"}</Label>
-              <Input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." />
+              <Label>{isRTL ? "صورة التصنيف" : "Category Image"}</Label>
+              <div className="mt-2">
+                <ImageUpload
+                  value={form.image_url || null}
+                  onChange={(url) => setForm({ ...form, image_url: url || "" })}
+                  folder="categories"
+                  size="md"
+                />
+              </div>
             </div>
             <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
               <Switch checked={form.is_active} onCheckedChange={v => setForm({ ...form, is_active: v })} />
