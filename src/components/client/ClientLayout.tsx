@@ -108,6 +108,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: Users, label: "العملاء", labelEn: "Customers", path: "/client/customers", permission: "VIEW_CUSTOMERS" },
       { icon: FileText, label: "عرض سعر", labelEn: "Quotations", path: "/client/quotes", permission: "VIEW_QUOTES" },
       { icon: Receipt, label: "فاتورة مبيعات", labelEn: "Sales Invoice", path: "/client/sales", permission: "VIEW_SALES" },
+      { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/sales/setup", permission: "VIEW_SETTINGS" },
     ]
   },
   {
@@ -118,6 +119,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: UserPlus, label: "الموردين", labelEn: "Vendors", path: "/client/vendors", permission: "VIEW_VENDORS" },
       { icon: FileText, label: "أمر شراء", labelEn: "Purchase Order", path: "/client/purchase-orders", permission: "VIEW_PURCHASE_ORDERS" },
       { icon: Receipt, label: "فاتورة مشتريات", labelEn: "Purchase Invoice", path: "/client/purchases", permission: "VIEW_PURCHASES" },
+      { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/purchases/setup", permission: "VIEW_SETTINGS" },
     ]
   },
   {
@@ -152,6 +154,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: Wrench, label: "الاستهلاك الداخلي", labelEn: "Internal Consumption", path: "/client/inventory/consumptions", permission: "VIEW_CONSUMPTIONS" },
       { icon: Factory, label: "التصنيع", labelEn: "Manufacturing", path: "/client/inventory/manufacturing", permission: "VIEW_MANUFACTURING" },
       { icon: BarChart3, label: "تقارير المخزون", labelEn: "Inventory Reports", path: "/client/inventory/reports", permission: "VIEW_INVENTORY_REPORTS" },
+      { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/inventory/setup", permission: "VIEW_SETTINGS" },
     ]
   },
   {
@@ -170,6 +173,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: ClipboardList, label: "سجل المستخدمين", labelEn: "User Logs", path: "/client/pos/user-logs", permission: "POS_VIEW_REPORTS" },
       { icon: BarChart3, label: "تقارير POS", labelEn: "POS Reports", path: "/client/pos/reports", permission: "POS_VIEW_REPORTS" },
       { icon: Settings, label: "إعدادات POS", labelEn: "POS Settings", path: "/client/pos/settings", permission: "VIEW_POS" },
+      { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/pos/account-setup", permission: "VIEW_SETTINGS" },
     ]
   },
   {
@@ -226,6 +230,7 @@ const goldMenuGroup: MenuItem = {
     { icon: Receipt, label: "مبيعات الذهب", labelEn: "Gold Sales", path: "/client/gold/sales", permission: "VIEW_SALES" },
     { icon: TrendingUp, label: "أسعار الذهب", labelEn: "Gold Prices", path: "/client/gold/prices", permission: "VIEW_INVENTORY" },
     { icon: BarChart3, label: "تقارير الذهب", labelEn: "Gold Reports", path: "/client/gold/reports", permission: "VIEW_INVENTORY" },
+    { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/gold/setup", permission: "VIEW_SETTINGS" },
   ]
 };
 
