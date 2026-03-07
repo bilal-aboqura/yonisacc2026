@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import InvoicePaymentDialog from "@/components/client/InvoicePaymentDialog";
 import PurchaseReturnDialog from "@/components/client/PurchaseReturnDialog";
 
-const OWNER_USER_ID = "87740311-8413-47eb-b936-b4c96daecaa5";
+
 
 const statusMap = (isRTL: boolean): Record<string, { label: string; variant: any }> => ({
   draft: { label: isRTL ? "مسودة" : "Draft", variant: "secondary" },
@@ -46,7 +46,7 @@ const ClientPurchases = () => {
   const { isRTL } = useLanguage();
   const navigate = useNavigate();
   const { companyId } = useCompanyId();
-  const { user } = useAuth();
+  const { can } = useRBAC();
   const queryClient = useQueryClient();
 
   const [deleteInvoice, setDeleteInvoice] = useState<any>(null);
