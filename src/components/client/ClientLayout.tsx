@@ -312,6 +312,7 @@ const deliveryMenuGroup: MenuItem = {
   icon: Truck,
   label: "إدارة التوصيل",
   labelEn: "Delivery",
+  moduleKey: "delivery",
   children: [
     { icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard", path: "/client/delivery", permission: "VIEW_ACCOUNTS" },
     { icon: Package, label: "طلبات التوصيل", labelEn: "Orders", path: "/client/delivery/orders", permission: "VIEW_ACCOUNTS" },
