@@ -295,6 +295,7 @@ const realEstateMenuGroup: MenuItem = {
   icon: Landmark,
   label: "إدارة العقارات",
   labelEn: "Real Estate",
+  moduleKey: "realestate",
   children: [
     { icon: Building2, label: "العقارات", labelEn: "Properties", path: "/client/realestate/properties", permission: "VIEW_ACCOUNTS" },
     { icon: Home, label: "الوحدات", labelEn: "Units", path: "/client/realestate/units", permission: "VIEW_ACCOUNTS" },
