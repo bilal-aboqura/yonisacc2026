@@ -8361,6 +8361,31 @@ export type Database = {
       get_company_features: { Args: { p_company_id: string }; Returns: Json }
       get_company_permissions: { Args: { p_company_id: string }; Returns: Json }
       get_company_usage: { Args: { p_company_id: string }; Returns: Json }
+      get_enriched_audit_logs: {
+        Args: {
+          p_limit?: number
+          p_operation_filter?: string
+          p_severity_filter?: string
+          p_table_filter?: string
+        }
+        Returns: {
+          company_id: string
+          company_name: string
+          company_name_en: string
+          created_at: string
+          details: string
+          id: string
+          new_data: Json
+          old_data: Json
+          operation_type: string
+          record_id: string
+          severity: string
+          table_name: string
+          user_email: string
+          user_full_name: string
+          user_id: string
+        }[]
+      }
       get_ledger: {
         Args: {
           p_account_id: string

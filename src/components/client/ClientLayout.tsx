@@ -6,6 +6,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { useRBAC } from "@/hooks/useRBAC";
+import { useAllowedModules } from "@/hooks/useAllowedModules";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -82,6 +83,8 @@ interface MenuItem {
   path?: string;
   /** RBAC permission code required to see this item */
   permission?: string;
+  /** Module key for allowed_modules filtering */
+  moduleKey?: string;
   children?: MenuItem[];
 }
 
@@ -97,8 +100,8 @@ const baseMenuItems: MenuItem[] = [
     icon: Calculator,
     label: "المحاسبة المالية",
     labelEn: "Financial Accounting",
+    moduleKey: "accounting",
     children: [
-      { icon: ClipboardList, label: "دليل الحسابات", labelEn: "Chart of Accounts", path: "/client/accounts", permission: "VIEW_ACCOUNTS" },
       { icon: FileSpreadsheet, label: "الأرصدة الإفتتاحية", labelEn: "Opening Balances", path: "/client/accounts/opening-balances", permission: "VIEW_OPENING_BALANCES" },
       { icon: Target, label: "مراكز التكلفة", labelEn: "Cost Centers", path: "/client/cost-centers", permission: "VIEW_COST_CENTERS" },
       { icon: BookOpen, label: "قيود اليومية", labelEn: "Journal Entries", path: "/client/journal", permission: "VIEW_JOURNAL" },
@@ -110,6 +113,7 @@ const baseMenuItems: MenuItem[] = [
     icon: ShoppingCart,
     label: "المبيعات",
     labelEn: "Sales",
+    moduleKey: "sales",
     children: [
       { icon: Users, label: "العملاء", labelEn: "Customers", path: "/client/customers", permission: "VIEW_CUSTOMERS" },
       { icon: FileText, label: "عرض سعر", labelEn: "Quotations", path: "/client/quotes", permission: "VIEW_QUOTES" },
@@ -121,6 +125,7 @@ const baseMenuItems: MenuItem[] = [
     icon: Package,
     label: "المشتريات",
     labelEn: "Purchases",
+    moduleKey: "purchases",
     children: [
       { icon: UserPlus, label: "الموردين", labelEn: "Vendors", path: "/client/vendors", permission: "VIEW_VENDORS" },
       { icon: FileText, label: "أمر شراء", labelEn: "Purchase Order", path: "/client/purchase-orders", permission: "VIEW_PURCHASE_ORDERS" },
@@ -132,6 +137,7 @@ const baseMenuItems: MenuItem[] = [
     icon: UserCheck,
     label: "الموارد البشرية",
     labelEn: "Human Resources",
+    moduleKey: "hr",
     children: [
       { icon: LayoutDashboard, label: "لوحة تحكم HR", labelEn: "HR Dashboard", path: "/client/hr", permission: "VIEW_HR" },
       { icon: Users, label: "الموظفين", labelEn: "Employees", path: "/client/hr/employees", permission: "MANAGE_EMPLOYEES" },
@@ -152,6 +158,7 @@ const baseMenuItems: MenuItem[] = [
     icon: Package,
     label: "المخزون",
     labelEn: "Inventory",
+    moduleKey: "inventory",
     children: [
       { icon: Package, label: "المنتجات", labelEn: "Products", path: "/client/inventory", permission: "VIEW_INVENTORY" },
       { icon: Ruler, label: "الوحدات", labelEn: "Units", path: "/client/inventory/units", permission: "VIEW_UNITS" },
@@ -169,6 +176,7 @@ const baseMenuItems: MenuItem[] = [
     icon: Monitor,
     label: "نقاط البيع",
     labelEn: "Point of Sale",
+    moduleKey: "pos",
     children: [
       { icon: Monitor, label: "شاشة البيع", labelEn: "POS Screen", path: "/client/pos", permission: "VIEW_POS" },
       { icon: Receipt, label: "الفواتير", labelEn: "Invoices", path: "/client/pos/invoices", permission: "POS_VIEW_INVOICES" },
@@ -188,6 +196,7 @@ const baseMenuItems: MenuItem[] = [
     icon: BarChart3,
     label: "التقارير",
     labelEn: "Reports",
+    moduleKey: "reports",
     children: [
       { icon: BookOpenCheck, label: "دفتر الأستاذ", labelEn: "General Ledger", path: "/client/ledger", permission: "VIEW_LEDGER" },
       { icon: FileText, label: "ميزان المراجعة", labelEn: "Trial Balance", path: "/client/reports/trial-balance", permission: "VIEW_TRIAL_BALANCE" },
@@ -226,6 +235,7 @@ const autoPartsMenuGroup: MenuItem = {
   icon: Car,
   label: "قطع الغيار",
   labelEn: "Auto Parts",
+  moduleKey: "autoparts",
   children: [
     { icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard", path: "/client/auto-parts", permission: "VIEW_AUTO_PARTS" },
     { icon: Search, label: "كتالوج القطع", labelEn: "Parts Catalog", path: "/client/auto-parts/catalog", permission: "VIEW_AUTO_PARTS" },
@@ -240,6 +250,7 @@ const fixedAssetsMenuGroup: MenuItem = {
   icon: Building2,
   label: "الأصول الثابتة",
   labelEn: "Fixed Assets",
+  moduleKey: "assets",
   children: [
     { icon: Building2, label: "سجل الأصول", labelEn: "Asset Register", path: "/client/assets", permission: "VIEW_ACCOUNTS" },
     { icon: FolderTree, label: "تصنيفات الأصول", labelEn: "Categories", path: "/client/assets/categories", permission: "VIEW_ACCOUNTS" },
@@ -253,6 +264,7 @@ const goldMenuGroup: MenuItem = {
   icon: Gem,
   label: "الذهب والمجوهرات",
   labelEn: "Gold & Jewelry",
+  moduleKey: "gold",
   children: [
     { icon: Gem, label: "أصناف الذهب", labelEn: "Gold Items", path: "/client/gold/items", permission: "VIEW_INVENTORY" },
     { icon: ShoppingCart, label: "مشتريات الذهب", labelEn: "Gold Purchases", path: "/client/gold/purchases", permission: "VIEW_PURCHASES" },
@@ -267,6 +279,7 @@ const clinicMenuGroup: MenuItem = {
   icon: Stethoscope,
   label: "إدارة العيادة",
   labelEn: "Medical Clinic",
+  moduleKey: "clinic",
   children: [
     { icon: Users, label: "سجل المرضى", labelEn: "Patients", path: "/client/clinic/patients", permission: "VIEW_ACCOUNTS" },
     { icon: HeartPulse, label: "الأطباء", labelEn: "Doctors", path: "/client/clinic/doctors", permission: "VIEW_ACCOUNTS" },
@@ -282,6 +295,7 @@ const realEstateMenuGroup: MenuItem = {
   icon: Landmark,
   label: "إدارة العقارات",
   labelEn: "Real Estate",
+  moduleKey: "realestate",
   children: [
     { icon: Building2, label: "العقارات", labelEn: "Properties", path: "/client/realestate/properties", permission: "VIEW_ACCOUNTS" },
     { icon: Home, label: "الوحدات", labelEn: "Units", path: "/client/realestate/units", permission: "VIEW_ACCOUNTS" },
@@ -298,6 +312,7 @@ const deliveryMenuGroup: MenuItem = {
   icon: Truck,
   label: "إدارة التوصيل",
   labelEn: "Delivery",
+  moduleKey: "delivery",
   children: [
     { icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard", path: "/client/delivery", permission: "VIEW_ACCOUNTS" },
     { icon: Package, label: "طلبات التوصيل", labelEn: "Orders", path: "/client/delivery/orders", permission: "VIEW_ACCOUNTS" },
@@ -314,6 +329,7 @@ const ClientLayout = () => {
   const { signOut, user, isLoading } = useAuth();
   const { status: subStatus } = useSubscriptionGuard();
   const { can } = useRBAC();
+  const { isModuleAllowed } = useAllowedModules();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -412,6 +428,9 @@ const ClientLayout = () => {
         });
       }
     }
+
+    // Filter by allowed modules — items without moduleKey (Dashboard, Settings) always visible
+    items = items.filter(item => !item.moduleKey || isModuleAllowed(item.moduleKey));
 
     return items;
   })();
