@@ -192,6 +192,15 @@ serve(async (req) => {
 
     await admin.from('profiles').update(profileUpdate).eq('user_id', newUserId);
 
+    // 7. Store allowed_modules on the company record if provided
+    if (allowedModules && companyId) {
+      // Update company_members for the owner with allowed_modules
+      await admin.from('company_members')
+        .update({ allowed_modules: allowedModules })
+        .eq('company_id', companyId)
+        .eq('user_id', newUserId);
+    }
+
     return new Response(JSON.stringify({ 
       success: true,
       company_id: companyId, 
