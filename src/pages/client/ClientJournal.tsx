@@ -311,10 +311,11 @@ const ClientJournal = () => {
 
       {/* Entries Table */}
       <Card className="shadow-sm border-border/60 rounded-2xl overflow-hidden">
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
             {t("client.journal.entriesLog")}
+            {filtered && <Badge variant="secondary" className="ms-2 font-medium">{filtered.length}</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent>
