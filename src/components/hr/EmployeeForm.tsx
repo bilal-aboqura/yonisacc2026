@@ -262,6 +262,20 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "فترة الدوام" : "Work Shift"}</Label>
+                <Select value={form.work_shift_id} onValueChange={(v) => setForm({ ...form, work_shift_id: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{isRTL ? "-- بدون --" : "-- None --"}</SelectItem>
+                    {workShifts.map((s: any) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {isRTL ? s.name : (s.name_en || s.name)} ({s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
