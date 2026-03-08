@@ -329,6 +329,7 @@ const ClientLayout = () => {
   const { signOut, user, isLoading } = useAuth();
   const { status: subStatus } = useSubscriptionGuard();
   const { can } = useRBAC();
+  const { isModuleAllowed } = useAllowedModules();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
