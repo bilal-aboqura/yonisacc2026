@@ -283,10 +283,10 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
-                  {renderAccountSelect("حساب إيرادات المبيعات", "Sales Revenue Account", salesRevenueAccount, v => setSalesRevenueAccount(v === "none" ? "" : v), ["revenue"])}
-                  {renderAccountSelect("حساب خصم المبيعات", "Sales Discount Account", salesDiscountAccount, v => setSalesDiscountAccount(v === "none" ? "" : v), ["expense"])}
-                  {renderAccountSelect("حساب ضريبة المبيعات", "Sales Tax Account", salesTaxAccount, v => setSalesTaxAccount(v === "none" ? "" : v), ["liability"])}
-                  {renderAccountSelect("حساب الذمم المدينة", "Receivable Account", salesReceivableAccount, v => setSalesReceivableAccount(v === "none" ? "" : v), ["asset"])}
+                  {renderAccountSelect("حساب إيرادات المبيعات", "Sales Revenue Account", salesRevenueAccount, v => setSalesRevenueAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب خصم المبيعات", "Sales Discount Account", salesDiscountAccount, v => setSalesDiscountAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب ضريبة المبيعات", "Sales Tax Account", salesTaxAccount, v => setSalesTaxAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب الذمم المدينة", "Receivable Account", salesReceivableAccount, v => setSalesReceivableAccount(v === "none" ? "" : v))}
                 </div>
                 <Button onClick={() => handleSave("sales")} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
@@ -311,10 +311,10 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
-                  {renderAccountSelect("حساب مصروفات المشتريات", "Purchase Expense Account", purchaseExpenseAccount, v => setPurchaseExpenseAccount(v === "none" ? "" : v), ["expense"])}
-                  {renderAccountSelect("حساب خصم المشتريات", "Purchase Discount Account", purchaseDiscountAccount, v => setPurchaseDiscountAccount(v === "none" ? "" : v), ["revenue"])}
-                  {renderAccountSelect("حساب ضريبة المشتريات", "Purchase Tax Account", purchaseTaxAccount, v => setPurchaseTaxAccount(v === "none" ? "" : v), ["asset"])}
-                  {renderAccountSelect("حساب الذمم الدائنة", "Payable Account", purchasePayableAccount, v => setPurchasePayableAccount(v === "none" ? "" : v), ["liability"])}
+                  {renderAccountSelect("حساب مصروفات المشتريات", "Purchase Expense Account", purchaseExpenseAccount, v => setPurchaseExpenseAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب خصم المشتريات", "Purchase Discount Account", purchaseDiscountAccount, v => setPurchaseDiscountAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب ضريبة المشتريات", "Purchase Tax Account", purchaseTaxAccount, v => setPurchaseTaxAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب الذمم الدائنة", "Payable Account", purchasePayableAccount, v => setPurchasePayableAccount(v === "none" ? "" : v))}
                 </div>
                 <Button onClick={() => handleSave("purchases")} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
@@ -339,12 +339,12 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
-                  {renderAccountSelect("حساب المخزون", "Inventory Account", inventoryAccount, v => setInventoryAccount(v === "none" ? "" : v), ["asset"])}
-                  {renderAccountSelect("حساب تكلفة البضاعة المباعة", "COGS Account", cogsAccount, v => setCogsAccount(v === "none" ? "" : v), ["expense"])}
-                  {renderAccountSelect("حساب أرباح المخزون (تسوية زيادة)", "Inventory Gain Account", inventoryGainAccount, v => setInventoryGainAccount(v === "none" ? "" : v), ["revenue"])}
-                  {renderAccountSelect("حساب خسائر المخزون (تسوية نقص)", "Inventory Loss Account", inventoryLossAccount, v => setInventoryLossAccount(v === "none" ? "" : v), ["expense"])}
-                  {renderAccountSelect("حساب مصروف الاستهلاك الداخلي", "Consumption Expense Account", consumptionExpenseAccount, v => setConsumptionExpenseAccount(v === "none" ? "" : v), ["expense"])}
-                  {renderAccountSelect("حساب تحت التشغيل (WIP)", "Work in Progress Account", wipAccount, v => setWipAccount(v === "none" ? "" : v), ["asset"])}
+                  {renderAccountSelect("حساب المخزون", "Inventory Account", inventoryAccount, v => setInventoryAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب تكلفة البضاعة المباعة", "COGS Account", cogsAccount, v => setCogsAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب أرباح المخزون (تسوية زيادة)", "Inventory Gain Account", inventoryGainAccount, v => setInventoryGainAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب خسائر المخزون (تسوية نقص)", "Inventory Loss Account", inventoryLossAccount, v => setInventoryLossAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب مصروف الاستهلاك الداخلي", "Consumption Expense Account", consumptionExpenseAccount, v => setConsumptionExpenseAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب تحت التشغيل (WIP)", "Work in Progress Account", wipAccount, v => setWipAccount(v === "none" ? "" : v))}
                 </div>
                 <Button onClick={() => handleSave("inventory")} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
