@@ -89,6 +89,7 @@ const Employees = () => {
         editData={editData}
         companyId={companyId}
         departments={departments}
+        workShifts={workShifts}
         onClose={() => { setShowForm(false); setEditId(null); setEditData(null); }}
       />
     );
