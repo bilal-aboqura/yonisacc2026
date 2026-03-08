@@ -172,7 +172,7 @@ const POSIntegrations = () => {
   // Update auto accept
   const autoAcceptMutation = useMutation({
     mutationFn: async ({ id, auto_accept_orders }: { id: string; auto_accept_orders: boolean }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("pos_api_integrations")
         .update({ auto_accept_orders })
         .eq("id", id);
