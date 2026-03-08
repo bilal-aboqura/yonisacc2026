@@ -187,7 +187,7 @@ const POSIntegrations = () => {
       const updateData: any = { status };
       if (status === "accepted") updateData.accepted_at = new Date().toISOString();
       if (status === "completed") updateData.completed_at = new Date().toISOString();
-      const { error } = await supabase.from("pos_api_orders").update(updateData).eq("id", id);
+      const { error } = await (supabase as any).from("pos_api_orders").update(updateData).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
