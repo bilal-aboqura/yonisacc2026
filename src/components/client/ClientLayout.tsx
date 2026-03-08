@@ -113,6 +113,7 @@ const baseMenuItems: MenuItem[] = [
     icon: ShoppingCart,
     label: "المبيعات",
     labelEn: "Sales",
+    moduleKey: "sales",
     children: [
       { icon: Users, label: "العملاء", labelEn: "Customers", path: "/client/customers", permission: "VIEW_CUSTOMERS" },
       { icon: FileText, label: "عرض سعر", labelEn: "Quotations", path: "/client/quotes", permission: "VIEW_QUOTES" },
