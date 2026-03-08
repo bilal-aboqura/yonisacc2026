@@ -283,12 +283,12 @@ const clinicMenuGroup: MenuItem = {
   labelEn: "Medical Clinic",
   moduleKey: "clinic",
   children: [
-    { icon: Users, label: "سجل المرضى", labelEn: "Patients", path: "/client/clinic/patients", permission: "VIEW_ACCOUNTS" },
-    { icon: HeartPulse, label: "الأطباء", labelEn: "Doctors", path: "/client/clinic/doctors", permission: "VIEW_ACCOUNTS" },
-    { icon: Calendar, label: "المواعيد", labelEn: "Appointments", path: "/client/clinic/appointments", permission: "VIEW_ACCOUNTS" },
-    { icon: Pill, label: "الوصفات الطبية", labelEn: "Prescriptions", path: "/client/clinic/prescriptions", permission: "VIEW_ACCOUNTS" },
-    { icon: Receipt, label: "الفوترة", labelEn: "Billing", path: "/client/clinic/billing", permission: "VIEW_ACCOUNTS" },
-    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/clinic/reports", permission: "VIEW_ACCOUNTS" },
+    { icon: Users, label: "سجل المرضى", labelEn: "Patients", path: "/client/clinic/patients", permission: "MANAGE_PATIENTS" },
+    { icon: HeartPulse, label: "الأطباء", labelEn: "Doctors", path: "/client/clinic/doctors", permission: "MANAGE_DOCTORS" },
+    { icon: Calendar, label: "المواعيد", labelEn: "Appointments", path: "/client/clinic/appointments", permission: "MANAGE_APPOINTMENTS" },
+    { icon: Pill, label: "الوصفات الطبية", labelEn: "Prescriptions", path: "/client/clinic/prescriptions", permission: "MANAGE_PRESCRIPTIONS" },
+    { icon: Receipt, label: "الفوترة", labelEn: "Billing", path: "/client/clinic/billing", permission: "VIEW_CLINIC_BILLING" },
+    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/clinic/reports", permission: "VIEW_CLINIC_REPORTS" },
     { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/clinic/setup", permission: "VIEW_SETTINGS" },
   ]
 };
