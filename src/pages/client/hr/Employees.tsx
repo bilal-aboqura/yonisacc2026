@@ -57,6 +57,18 @@ const Employees = () => {
     enabled: !!companyId,
   });
 
+  const { data: costCenters = [] } = useQuery({
+    queryKey: ["cost-centers-active", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cost_centers").select("id, code, name, name_en")
+        .eq("company_id", companyId!).eq("is_active", true).order("code");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await (supabase as any).from("hr_employees").delete().eq("id", id);
@@ -90,6 +102,7 @@ const Employees = () => {
         companyId={companyId}
         departments={departments}
         workShifts={workShifts}
+        costCenters={costCenters}
         onClose={() => { setShowForm(false); setEditId(null); setEditData(null); }}
       />
     );

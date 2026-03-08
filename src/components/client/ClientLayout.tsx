@@ -70,6 +70,7 @@ import {
   KeyRound,
   Home,
   Truck,
+  MinusCircle,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -139,6 +140,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: Clock, label: "فترات الدوام", labelEn: "Work Shifts", path: "/client/hr/periods", permission: "VIEW_HR" },
       { icon: Clock, label: "الحضور و الانصراف", labelEn: "Attendance", path: "/client/hr/attendance", permission: "MANAGE_ATTENDANCE" },
       { icon: Banknote, label: "السلف و القروض", labelEn: "Loans & Advances", path: "/client/hr/loans", permission: "VIEW_HR" },
+      { icon: MinusCircle, label: "الخصومات", labelEn: "Deductions", path: "/client/hr/deductions", permission: "VIEW_HR" },
       { icon: DollarSign, label: "الرواتب", labelEn: "Payroll", path: "/client/hr/payroll", permission: "MANAGE_PAYROLL" },
       { icon: Award, label: "نهاية الخدمة", labelEn: "End of Service", path: "/client/hr/end-of-service", permission: "VIEW_HR" },
       { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/hr/reports", permission: "VIEW_HR" },

@@ -17,6 +17,7 @@ interface EmployeeFormProps {
   companyId: string | null;
   departments: any[];
   workShifts?: any[];
+  costCenters?: any[];
   onClose: () => void;
 }
 
@@ -78,9 +79,10 @@ const defaultForm = {
   has_iqama: false, iqama_number: "", iqama_expiry: "",
   gosi_registration_date: "", gosi_amount: 0,
   work_shift_id: "",
+  cost_center_id: "",
 };
 
-const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [], onClose }: EmployeeFormProps) => {
+const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [], costCenters = [], onClose }: EmployeeFormProps) => {
   const { isRTL } = useLanguage();
   const queryClient = useQueryClient();
 
@@ -121,6 +123,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
         gosi_registration_date: editData.gosi_registration_date || "",
         gosi_amount: editData.gosi_amount || 0,
         work_shift_id: editData.work_shift_id || "",
+        cost_center_id: editData.cost_center_id || "",
       };
     }
     return { ...defaultForm };
@@ -176,6 +179,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
         gender: form.gender || null,
         nationality: form.nationality || null,
         work_shift_id: form.work_shift_id || null,
+        cost_center_id: form.cost_center_id || null,
       };
       if (editId) {
         const { error } = await (supabase as any).from("hr_employees").update(payload).eq("id", editId);
@@ -271,6 +275,20 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
                     {workShifts.map((s: any) => (
                       <SelectItem key={s.id} value={s.id}>
                         {isRTL ? s.name : (s.name_en || s.name)} ({s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "مركز التكلفة" : "Cost Center"}</Label>
+                <Select value={form.cost_center_id} onValueChange={(v) => setForm({ ...form, cost_center_id: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{isRTL ? "-- بدون --" : "-- None --"}</SelectItem>
+                    {costCenters.map((cc: any) => (
+                      <SelectItem key={cc.id} value={cc.id}>
+                        {cc.code} - {isRTL ? cc.name : (cc.name_en || cc.name)}
                       </SelectItem>
                     ))}
                   </SelectContent>
