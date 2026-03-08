@@ -72,6 +72,7 @@ import {
   Home,
   Truck,
   MinusCircle,
+  Link2,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
