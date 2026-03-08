@@ -177,7 +177,7 @@ const OwnerSubscribers = () => {
             {isRTL ? "إدارة الشركات والصلاحيات والوحدات المتاحة" : "Manage companies, permissions & available modules"}
           </p>
         </div>
-        <Button className="gap-2" onClick={() => { resetNewSub(); setShowAddDialog(true); }}>
+        <Button className="gap-2" onClick={() => navigate("/owner/subscribers/create")}>
           <UserPlus className="h-4 w-4" />
           {isRTL ? "إضافة مشترك" : "Add Subscriber"}
         </Button>
