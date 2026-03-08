@@ -421,6 +421,7 @@ const App = () => (
               <Route path="settings/appearance" element={<ClientSettings tab="appearance" />} />
               <Route path="settings/danger" element={<ClientSettings tab="danger" />} />
               <Route path="settings/zatca" element={<ZatcaSettings />} />
+              <Route path="settings/fiscal-periods" element={<FiscalPeriods />} />
             </Route>
             
             

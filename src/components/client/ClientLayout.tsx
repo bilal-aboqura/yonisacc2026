@@ -136,7 +136,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: Users, label: "الموظفين", labelEn: "Employees", path: "/client/hr/employees", permission: "MANAGE_EMPLOYEES" },
       { icon: Building, label: "الأقسام", labelEn: "Departments", path: "/client/hr/departments", permission: "VIEW_HR" },
       { icon: Calendar, label: "الإجازات", labelEn: "Leaves", path: "/client/hr/leaves", permission: "MANAGE_LEAVES" },
-      { icon: Clock, label: "الفترات", labelEn: "Periods", path: "/client/hr/periods", permission: "VIEW_HR" },
+      { icon: Clock, label: "فترات الدوام", labelEn: "Work Shifts", path: "/client/hr/periods", permission: "VIEW_HR" },
       { icon: Clock, label: "الحضور و الانصراف", labelEn: "Attendance", path: "/client/hr/attendance", permission: "MANAGE_ATTENDANCE" },
       { icon: Banknote, label: "السلف و القروض", labelEn: "Loans & Advances", path: "/client/hr/loans", permission: "VIEW_HR" },
       { icon: DollarSign, label: "الرواتب", labelEn: "Payroll", path: "/client/hr/payroll", permission: "MANAGE_PAYROLL" },
