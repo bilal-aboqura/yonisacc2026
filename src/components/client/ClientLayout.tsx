@@ -316,12 +316,12 @@ const deliveryMenuGroup: MenuItem = {
   labelEn: "Delivery",
   moduleKey: "delivery",
   children: [
-    { icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard", path: "/client/delivery", permission: "VIEW_ACCOUNTS" },
-    { icon: Package, label: "طلبات التوصيل", labelEn: "Orders", path: "/client/delivery/orders", permission: "VIEW_ACCOUNTS" },
-    { icon: Users, label: "السائقين", labelEn: "Drivers", path: "/client/delivery/drivers", permission: "VIEW_ACCOUNTS" },
-    { icon: Building, label: "مناطق التوصيل", labelEn: "Areas", path: "/client/delivery/areas", permission: "VIEW_ACCOUNTS" },
-    { icon: Calculator, label: "تقفيل حساب السائقين", labelEn: "Driver Settlement", path: "/client/delivery/settlement", permission: "VIEW_ACCOUNTS" },
-    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/delivery/reports", permission: "VIEW_ACCOUNTS" },
+    { icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard", path: "/client/delivery", permission: "VIEW_DELIVERY" },
+    { icon: Package, label: "طلبات التوصيل", labelEn: "Orders", path: "/client/delivery/orders", permission: "MANAGE_DELIVERY_ORDERS" },
+    { icon: Users, label: "السائقين", labelEn: "Drivers", path: "/client/delivery/drivers", permission: "MANAGE_DRIVERS" },
+    { icon: Building, label: "مناطق التوصيل", labelEn: "Areas", path: "/client/delivery/areas", permission: "MANAGE_DELIVERY_AREAS" },
+    { icon: Calculator, label: "تقفيل حساب السائقين", labelEn: "Driver Settlement", path: "/client/delivery/settlement", permission: "DRIVER_SETTLEMENT" },
+    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/delivery/reports", permission: "VIEW_DELIVERY_REPORTS" },
     { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/delivery/setup", permission: "VIEW_SETTINGS" },
   ]
 };
