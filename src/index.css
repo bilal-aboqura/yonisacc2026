@@ -503,7 +503,7 @@
   }
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 8mm;
   }
   /* Force tables full width with visible borders */
   .print-layout table {
