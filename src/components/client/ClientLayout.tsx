@@ -137,6 +137,7 @@ const baseMenuItems: MenuItem[] = [
     icon: UserCheck,
     label: "الموارد البشرية",
     labelEn: "Human Resources",
+    moduleKey: "hr",
     children: [
       { icon: LayoutDashboard, label: "لوحة تحكم HR", labelEn: "HR Dashboard", path: "/client/hr", permission: "VIEW_HR" },
       { icon: Users, label: "الموظفين", labelEn: "Employees", path: "/client/hr/employees", permission: "MANAGE_EMPLOYEES" },
