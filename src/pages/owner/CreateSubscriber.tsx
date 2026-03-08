@@ -63,7 +63,11 @@ const CreateSubscriber = () => {
       const response = await supabase.functions.invoke("create-subscriber", {
         body: { ...form, allowed_modules: selectedModules },
       });
-      if (response.error) throw new Error(response.error.message || "Failed");
+      if (response.error) {
+        // Try to extract the localized error from the response data
+        const msg = response.data?.error || response.error.message || "Failed";
+        throw new Error(msg);
+      }
       if (response.data?.error) throw new Error(response.data.error);
       return response.data;
     },
