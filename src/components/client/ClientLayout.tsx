@@ -72,6 +72,7 @@ import {
   Home,
   Truck,
   MinusCircle,
+  Link2,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -191,6 +192,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: BarChart3, label: "تقارير POS", labelEn: "POS Reports", path: "/client/pos/reports", permission: "POS_VIEW_REPORTS" },
       { icon: Settings, label: "إعدادات POS", labelEn: "POS Settings", path: "/client/pos/settings", permission: "VIEW_POS" },
       { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/pos/account-setup", permission: "VIEW_SETTINGS" },
+      { icon: Link2, label: "ربط التطبيقات", labelEn: "App Integrations", path: "/client/pos/integrations", permission: "VIEW_POS" },
     ]
   },
   {

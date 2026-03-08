@@ -95,6 +95,7 @@ import POSCoupons from "./pages/client/pos/POSCoupons";
 import POSUsers from "./pages/client/pos/POSUsers";
 import POSUserLogs from "./pages/client/pos/POSUserLogs";
 import POSInvoices from "./pages/client/pos/POSInvoices";
+import POSIntegrations from "./pages/client/pos/POSIntegrations";
 
 // Fixed Assets
 import FixedAssets from "./pages/client/assets/FixedAssets";
@@ -328,6 +329,7 @@ const App = () => (
               <Route path="pos/user-logs" element={<POSUserLogs />} />
               <Route path="pos/invoices" element={<POSInvoices />} />
               <Route path="pos/account-setup" element={<POSAccountSetup />} />
+              <Route path="pos/integrations" element={<POSIntegrations />} />
 
               {/* Fixed Assets */}
               <Route path="assets" element={<FixedAssets />} />
