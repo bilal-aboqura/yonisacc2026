@@ -196,6 +196,7 @@ const baseMenuItems: MenuItem[] = [
     icon: BarChart3,
     label: "التقارير",
     labelEn: "Reports",
+    moduleKey: "reports",
     children: [
       { icon: BookOpenCheck, label: "دفتر الأستاذ", labelEn: "General Ledger", path: "/client/ledger", permission: "VIEW_LEDGER" },
       { icon: FileText, label: "ميزان المراجعة", labelEn: "Trial Balance", path: "/client/reports/trial-balance", permission: "VIEW_TRIAL_BALANCE" },
