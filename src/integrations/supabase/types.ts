@@ -2259,41 +2259,68 @@ export type Database = {
         Row: {
           closed_at: string | null
           closed_by: string | null
+          closing_journal_entry_id: string | null
           company_id: string
           created_at: string
+          created_by: string | null
           end_date: string
           id: string
           is_closed: boolean | null
+          locked_at: string | null
+          locked_by: string | null
           name: string
           name_en: string | null
+          opening_journal_entry_id: string | null
           period_type: string
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
           start_date: string
+          status: string | null
         }
         Insert: {
           closed_at?: string | null
           closed_by?: string | null
+          closing_journal_entry_id?: string | null
           company_id: string
           created_at?: string
+          created_by?: string | null
           end_date: string
           id?: string
           is_closed?: boolean | null
+          locked_at?: string | null
+          locked_by?: string | null
           name: string
           name_en?: string | null
+          opening_journal_entry_id?: string | null
           period_type?: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
           start_date: string
+          status?: string | null
         }
         Update: {
           closed_at?: string | null
           closed_by?: string | null
+          closing_journal_entry_id?: string | null
           company_id?: string
           created_at?: string
+          created_by?: string | null
           end_date?: string
           id?: string
           is_closed?: boolean | null
+          locked_at?: string | null
+          locked_by?: string | null
           name?: string
           name_en?: string | null
+          opening_journal_entry_id?: string | null
           period_type?: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
           start_date?: string
+          status?: string | null
         }
         Relationships: [
           {
@@ -2301,6 +2328,54 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_year_audit_log: {
+        Row: {
+          action: string
+          company_id: string
+          details: Json | null
+          fiscal_year_id: string
+          id: string
+          notes: string | null
+          performed_at: string | null
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          company_id: string
+          details?: Json | null
+          fiscal_year_id: string
+          id?: string
+          notes?: string | null
+          performed_at?: string | null
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          company_id?: string
+          details?: Json | null
+          fiscal_year_id?: string
+          id?: string
+          notes?: string | null
+          performed_at?: string | null
+          performed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_year_audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiscal_year_audit_log_fiscal_year_id_fkey"
+            columns: ["fiscal_year_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
             referencedColumns: ["id"]
           },
         ]
@@ -7405,6 +7480,115 @@ export type Database = {
           },
         ]
       }
+      stock_count_lines: {
+        Row: {
+          id: string
+          notes: string | null
+          physical_quantity: number | null
+          product_id: string
+          session_id: string
+          system_quantity: number | null
+          unit_cost: number | null
+          variance: number | null
+          warehouse_id: string
+        }
+        Insert: {
+          id?: string
+          notes?: string | null
+          physical_quantity?: number | null
+          product_id: string
+          session_id: string
+          system_quantity?: number | null
+          unit_cost?: number | null
+          variance?: number | null
+          warehouse_id: string
+        }
+        Update: {
+          id?: string
+          notes?: string | null
+          physical_quantity?: number | null
+          product_id?: string
+          session_id?: string
+          system_quantity?: number | null
+          unit_cost?: number | null
+          variance?: number | null
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_count_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_lines_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "stock_count_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_lines_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_count_sessions: {
+        Row: {
+          approved_at: string | null
+          company_id: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          fiscal_year_id: string
+          id: string
+          notes: string | null
+          status: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          company_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          fiscal_year_id: string
+          id?: string
+          notes?: string | null
+          status?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          fiscal_year_id?: string
+          id?: string
+          notes?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_count_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_sessions_fiscal_year_id_fkey"
+            columns: ["fiscal_year_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           company_id: string
@@ -8335,6 +8519,15 @@ export type Database = {
         Args: { p_company_id: string; p_usage_type: string }
         Returns: Json
       }
+      close_fiscal_year: {
+        Args: {
+          p_company_id: string
+          p_fiscal_year_id: string
+          p_retained_earnings_account_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       confirm_gold_purchase: { Args: { p_invoice_id: string }; Returns: Json }
       confirm_gold_sale: { Args: { p_invoice_id: string }; Returns: Json }
       create_default_chart_of_accounts: {
@@ -8493,6 +8686,10 @@ export type Database = {
         }
         Returns: Json
       }
+      pre_closing_validation: {
+        Args: { p_company_id: string; p_fiscal_year_id: string }
+        Returns: Json
+      }
       provision_tenant: {
         Args: {
           p_activity_type?: string
@@ -8507,6 +8704,15 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      reopen_fiscal_year: {
+        Args: {
+          p_company_id: string
+          p_fiscal_year_id: string
+          p_reason: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       reset_company_data: { Args: { p_company_id: string }; Returns: undefined }
       return_purchase_invoice: {
