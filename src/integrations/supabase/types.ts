@@ -5312,6 +5312,205 @@ export type Database = {
           },
         ]
       }
+      pos_api_integrations: {
+        Row: {
+          api_key: string | null
+          auto_accept_orders: boolean | null
+          branch_id: string
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          default_order_type: string | null
+          id: string
+          is_active: boolean | null
+          provider: string
+          provider_name: string | null
+          settings: Json | null
+          webhook_secret: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          auto_accept_orders?: boolean | null
+          branch_id: string
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          default_order_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider: string
+          provider_name?: string | null
+          settings?: Json | null
+          webhook_secret?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          auto_accept_orders?: boolean | null
+          branch_id?: string
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          default_order_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider?: string
+          provider_name?: string | null
+          settings?: Json | null
+          webhook_secret?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_api_integrations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_api_integrations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_api_logs: {
+        Row: {
+          created_at: string | null
+          event: string
+          id: string
+          integration_id: string | null
+          order_id: string | null
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          event: string
+          id?: string
+          integration_id?: string | null
+          order_id?: string | null
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          event?: string
+          id?: string
+          integration_id?: string | null
+          order_id?: string | null
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_api_logs_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "pos_api_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_api_logs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_api_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_api_orders: {
+        Row: {
+          accepted_at: string | null
+          company_id: string
+          completed_at: string | null
+          created_at: string | null
+          customer_address: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          delivery_fee: number | null
+          discount_amount: number | null
+          external_order_id: string | null
+          id: string
+          integration_id: string
+          items: Json
+          notes: string | null
+          order_data: Json
+          pos_transaction_id: string | null
+          provider: string
+          status: string | null
+          subtotal: number | null
+          tax_amount: number | null
+          total: number | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          company_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          customer_address?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivery_fee?: number | null
+          discount_amount?: number | null
+          external_order_id?: string | null
+          id?: string
+          integration_id: string
+          items?: Json
+          notes?: string | null
+          order_data?: Json
+          pos_transaction_id?: string | null
+          provider: string
+          status?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total?: number | null
+        }
+        Update: {
+          accepted_at?: string | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          customer_address?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivery_fee?: number | null
+          discount_amount?: number | null
+          external_order_id?: string | null
+          id?: string
+          integration_id?: string
+          items?: Json
+          notes?: string | null
+          order_data?: Json
+          pos_transaction_id?: string | null
+          provider?: string
+          status?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_api_orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_api_orders_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "pos_api_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_api_orders_pos_transaction_id_fkey"
+            columns: ["pos_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "pos_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_coupons: {
         Row: {
           code: string
