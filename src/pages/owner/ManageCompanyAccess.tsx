@@ -117,17 +117,15 @@ const ManageCompanyAccess = () => {
           .single();
         setCompany(companyData);
 
-        // Load allowed_modules from company_members (owner)
-        if (companyData?.owner_id) {
-          const { data: memberData } = await supabase
-            .from("company_members")
-            .select("allowed_modules")
-            .eq("company_id", id)
-            .eq("user_id", companyData.owner_id)
-            .maybeSingle();
-          if (memberData?.allowed_modules && Array.isArray(memberData.allowed_modules)) {
-            setSelectedModules(memberData.allowed_modules);
-          }
+        // Load allowed_modules from any company_members record
+        const { data: memberData } = await supabase
+          .from("company_members")
+          .select("allowed_modules")
+          .eq("company_id", id)
+          .limit(1)
+          .maybeSingle();
+        if (memberData?.allowed_modules && Array.isArray(memberData.allowed_modules)) {
+          setSelectedModules(memberData.allowed_modules);
         }
 
         // Override data
@@ -189,12 +187,30 @@ const ManageCompanyAccess = () => {
     if (!id || !company?.owner_id) return;
     setSavingModules(true);
     try {
-      // Update ALL company_members for this company (not just owner)
-      const { error } = await supabase
+      // Update ALL company_members for this company
+      const { data: updated, error } = await supabase
         .from("company_members")
         .update({ allowed_modules: selectedModules })
-        .eq("company_id", id);
+        .eq("company_id", id)
+        .select("id");
       if (error) throw error;
+      const count = updated?.length ?? 0;
+      if (error) throw error;
+
+      // If no records existed, create one for the owner
+      if (!count || count === 0) {
+        const { error: insertError } = await supabase
+          .from("company_members")
+          .insert({
+            company_id: id,
+            user_id: company.owner_id,
+            role: "owner" as any,
+            allowed_modules: selectedModules,
+            is_active: true,
+          });
+        if (insertError) throw insertError;
+      }
+
       toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تحديث الوحدات المتاحة" : "Available modules updated" });
     } catch (e: any) {
       toast({ title: isRTL ? "خطأ" : "Error", description: e.message, variant: "destructive" });
