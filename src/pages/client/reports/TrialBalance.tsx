@@ -313,7 +313,8 @@ const TrialBalance = () => {
         <CardHeader>
           <CardTitle>{isRTL ? "ميزان المراجعة" : "Trial Balance"}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
+          <div className="border border-border/50 rounded-lg overflow-hidden m-4">
           <Table>
             <TableHeader>
               <TableRow>
@@ -370,6 +371,7 @@ const TrialBalance = () => {
               </TableRow>
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
