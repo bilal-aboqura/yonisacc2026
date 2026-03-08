@@ -3732,6 +3732,56 @@ export type Database = {
           },
         ]
       }
+      hr_work_shifts: {
+        Row: {
+          break_minutes: number | null
+          company_id: string
+          created_at: string | null
+          end_time: string
+          id: string
+          is_active: boolean | null
+          name: string
+          name_en: string | null
+          notes: string | null
+          start_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          break_minutes?: number | null
+          company_id: string
+          created_at?: string | null
+          end_time: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_en?: string | null
+          notes?: string | null
+          start_time: string
+          updated_at?: string | null
+        }
+        Update: {
+          break_minutes?: number | null
+          company_id?: string
+          created_at?: string | null
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_en?: string | null
+          notes?: string | null
+          start_time?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_work_shifts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_consumption_items: {
         Row: {
           consumption_id: string
