@@ -87,8 +87,8 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
 
   const fetchBranchSettings = async (branchId: string) => {
     // Reset all
-    setSalesRevenueAccount(""); setSalesDiscountAccount(""); setSalesTaxAccount(""); setSalesReceivableAccount("");
-    setPurchaseExpenseAccount(""); setPurchaseDiscountAccount(""); setPurchaseTaxAccount(""); setPurchasePayableAccount("");
+    setSalesRevenueAccount(""); setSalesDiscountAccount(""); setSalesTaxAccount("");
+    setPurchaseExpenseAccount(""); setPurchaseDiscountAccount(""); setPurchaseTaxAccount("");
     setInventoryAccount(""); setCogsAccount(""); setInventoryGainAccount(""); setInventoryLossAccount("");
     setConsumptionExpenseAccount(""); setWipAccount("");
 
