@@ -64,50 +64,6 @@ const OwnerSubscribers = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [restoreCompany, setRestoreCompany] = useState<any>(null);
   const [restorePassword, setRestorePassword] = useState("");
-  const [showAddDialog, setShowAddDialog] = useState(false); // kept for legacy reference
-  const [showNewPassword, setShowNewPassword] = useState(false);
-
-  const { data: plans } = useQuery({
-    queryKey: ["subscription-plans-list"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("subscription_plans")
-        .select("id, name_ar, name_en, price, duration_months")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-      return data || [];
-    },
-  });
-
-  const resetNewSub = () => {
-    setNewSub({
-      email: "", password: "", company_name: "", company_name_en: "",
-      full_name: "", phone: "", plan_id: "", activity_type: "",
-      tax_number: "", commercial_register: "", address: "",
-    });
-    setShowNewPassword(false);
-  };
-
-  const createSubscriberMutation = useMutation({
-    mutationFn: async () => {
-      const response = await supabase.functions.invoke("create-subscriber", { body: newSub });
-      if (response.error) throw new Error(response.error.message || "Failed");
-      if (response.data?.error) throw new Error(response.data.error);
-      return response.data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["owner-subscribers"] });
-      toast({
-        title: isRTL ? "تم إنشاء المشترك" : "Subscriber Created",
-        description: isRTL ? `تم إنشاء حساب ${data.email} بنجاح` : `Account ${data.email} created successfully`,
-      });
-      setShowAddDialog(false);
-      resetNewSub();
-    },
-    onError: (error: Error) => {
-      toast({ title: isRTL ? "خطأ" : "Error", description: error.message, variant: "destructive" });
-    },
-  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["owner-subscribers", search, page, showArchived],
