@@ -177,7 +177,6 @@ import HRReports from "./pages/client/hr/HRReports";
 import HRAccountSetup from "./pages/client/hr/HRAccountSetup";
 import PenaltyRules from "./pages/client/hr/PenaltyRules";
 import Deductions from "./pages/client/hr/Deductions";
-import FiscalPeriods from "./pages/client/FiscalPeriods";
 import FiscalYearManagement from "./pages/client/FiscalYearManagement";
 import SalesAccountSetup from "./pages/client/setup/SalesAccountSetup";
 import PurchasesAccountSetup from "./pages/client/setup/PurchasesAccountSetup";
