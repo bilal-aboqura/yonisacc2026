@@ -69,8 +69,6 @@ export const PrintDialog: React.FC<PrintDialogProps> = (props) => {
           className="bg-white shadow-lg print:shadow-none print-wrapper"
           style={{
             width: "210mm",
-            minHeight: "297mm",
-            padding: "12mm 15mm",
             boxSizing: "border-box",
           }}
         >
