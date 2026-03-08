@@ -233,17 +233,19 @@ const CategoriesManagement = () => {
 
       <Card>
         <CardContent className="p-0">
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {isRTL ? "جاري التحميل..." : "Loading..."}
-            </div>
-          ) : rootCategories.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {isRTL ? "لا توجد تصنيفات بعد" : "No categories yet"}
-            </div>
-          ) : (
-            rootCategories.map((cat: any) => renderCategory(cat))
-          )}
+          <div className="overflow-auto rounded-lg border border-border/50">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {isRTL ? "جاري التحميل..." : "Loading..."}
+              </div>
+            ) : rootCategories.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {isRTL ? "لا توجد تصنيفات بعد" : "No categories yet"}
+              </div>
+            ) : (
+              rootCategories.map((cat: any) => renderCategory(cat))
+            )}
+          </div>
         </CardContent>
       </Card>
 

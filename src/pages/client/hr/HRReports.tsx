@@ -284,24 +284,25 @@ const HRReports = () => {
                     <p className="text-xl font-bold text-amber-600">{loans.reduce((s: number, l: any) => s + (l.remaining || 0), 0).toLocaleString()}</p>
                   </CardContent></Card>
                 </div>
+                <div className="overflow-auto rounded-lg border border-border/50">
                 <Table>
-                  <TableHeader><TableRow>
-                    <TableHead>{isRTL ? "الموظف" : "Employee"}</TableHead>
-                    <TableHead>{isRTL ? "النوع" : "Type"}</TableHead>
-                    <TableHead>{isRTL ? "المبلغ" : "Amount"}</TableHead>
-                    <TableHead>{isRTL ? "المسدد" : "Paid"}</TableHead>
-                    <TableHead>{isRTL ? "المتبقي" : "Remaining"}</TableHead>
-                    <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
+                  <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                    <TableHead className="border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                    <TableHead className="border-b border-border/50">{isRTL ? "النوع" : "Type"}</TableHead>
+                    <TableHead className="border-b border-border/50">{isRTL ? "المبلغ" : "Amount"}</TableHead>
+                    <TableHead className="border-b border-border/50">{isRTL ? "المسدد" : "Paid"}</TableHead>
+                    <TableHead className="border-b border-border/50">{isRTL ? "المتبقي" : "Remaining"}</TableHead>
+                    <TableHead className="border-b border-border/50">{isRTL ? "الحالة" : "Status"}</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
-                    {loans.map((l: any) => (
-                      <TableRow key={l.id}>
-                        <TableCell className="font-medium">{l.hr_employees ? (isRTL ? l.hr_employees.name : (l.hr_employees.name_en || l.hr_employees.name)) : "—"}</TableCell>
-                        <TableCell>{l.loan_type === "advance" ? (isRTL ? "سلفة" : "Advance") : (isRTL ? "قرض" : "Loan")}</TableCell>
-                        <TableCell>{(l.amount || 0).toLocaleString()}</TableCell>
-                        <TableCell className="text-emerald-600">{(l.total_paid || 0).toLocaleString()}</TableCell>
-                        <TableCell className="text-amber-600">{(l.remaining || 0).toLocaleString()}</TableCell>
-                        <TableCell>{l.status === "active" ? (isRTL ? "نشطة" : "Active") : (isRTL ? "مسددة" : "Paid")}</TableCell>
+                    {loans.map((l: any, idx: number) => (
+                      <TableRow key={l.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                        <TableCell className="font-medium border-b border-border/30">{l.hr_employees ? (isRTL ? l.hr_employees.name : (l.hr_employees.name_en || l.hr_employees.name)) : "—"}</TableCell>
+                        <TableCell className="border-b border-border/30">{l.loan_type === "advance" ? (isRTL ? "سلفة" : "Advance") : (isRTL ? "قرض" : "Loan")}</TableCell>
+                        <TableCell className="tabular-nums border-b border-border/30">{(l.amount || 0).toLocaleString()}</TableCell>
+                        <TableCell className="text-emerald-600 tabular-nums border-b border-border/30">{(l.total_paid || 0).toLocaleString()}</TableCell>
+                        <TableCell className="text-amber-600 tabular-nums border-b border-border/30">{(l.remaining || 0).toLocaleString()}</TableCell>
+                        <TableCell className="border-b border-border/30">{l.status === "active" ? (isRTL ? "نشطة" : "Active") : (isRTL ? "مسددة" : "Paid")}</TableCell>
                       </TableRow>
                     ))}
                     {loans.length === 0 && (
@@ -309,6 +310,7 @@ const HRReports = () => {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               </>}
             </CardContent>
           </Card>
