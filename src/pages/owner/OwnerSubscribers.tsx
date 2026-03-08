@@ -64,12 +64,7 @@ const OwnerSubscribers = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [restoreCompany, setRestoreCompany] = useState<any>(null);
   const [restorePassword, setRestorePassword] = useState("");
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newSub, setNewSub] = useState({
-    email: "", password: "", company_name: "", company_name_en: "",
-    full_name: "", phone: "", plan_id: "", activity_type: "",
-    tax_number: "", commercial_register: "", address: "",
-  });
+  const [showAddDialog, setShowAddDialog] = useState(false); // kept for legacy reference
   const [showNewPassword, setShowNewPassword] = useState(false);
 
   const { data: plans } = useQuery({
