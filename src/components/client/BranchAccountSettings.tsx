@@ -104,12 +104,10 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
           setSalesRevenueAccount(row.sales_revenue_account_id || "");
           setSalesDiscountAccount(row.sales_discount_account_id || "");
           setSalesTaxAccount(row.sales_tax_account_id || "");
-          setSalesReceivableAccount(row.sales_receivable_account_id || "");
         } else if (row.module_type === "purchases") {
           setPurchaseExpenseAccount(row.purchase_expense_account_id || "");
           setPurchaseDiscountAccount(row.purchase_discount_account_id || "");
           setPurchaseTaxAccount(row.purchase_tax_account_id || "");
-          setPurchasePayableAccount(row.purchase_payable_account_id || "");
         } else if (row.module_type === "inventory") {
           setInventoryAccount(row.inventory_account_id || "");
           setCogsAccount(row.cogs_account_id || "");
