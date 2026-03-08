@@ -147,10 +147,10 @@ const OperationsLog = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((entry) => {
+            {data.map((entry, idx) => {
               const source = getEntrySource(entry);
               return (
-                <TableRow key={entry.id}>
+                <TableRow key={entry.id} className={idx % 2 === 1 ? "bg-muted/30" : ""}>
                   <TableCell className="font-mono font-medium text-primary">{entry.entry_number}</TableCell>
                   <TableCell className="text-muted-foreground">{entry.entry_date}</TableCell>
                   <TableCell>
