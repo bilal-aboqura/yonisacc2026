@@ -158,6 +158,7 @@ const baseMenuItems: MenuItem[] = [
     icon: Package,
     label: "المخزون",
     labelEn: "Inventory",
+    moduleKey: "inventory",
     children: [
       { icon: Package, label: "المنتجات", labelEn: "Products", path: "/client/inventory", permission: "VIEW_INVENTORY" },
       { icon: Ruler, label: "الوحدات", labelEn: "Units", path: "/client/inventory/units", permission: "VIEW_UNITS" },
