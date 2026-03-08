@@ -46,7 +46,6 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
   const [purchaseExpenseAccount, setPurchaseExpenseAccount] = useState<string>("");
   const [purchaseDiscountAccount, setPurchaseDiscountAccount] = useState<string>("");
   const [purchaseTaxAccount, setPurchaseTaxAccount] = useState<string>("");
-  const [purchasePayableAccount, setPurchasePayableAccount] = useState<string>("");
 
   // Inventory settings (module_type = 'inventory')
   const [inventoryAccount, setInventoryAccount] = useState<string>("");
