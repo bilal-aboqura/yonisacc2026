@@ -299,13 +299,13 @@ const realEstateMenuGroup: MenuItem = {
   labelEn: "Real Estate",
   moduleKey: "realestate",
   children: [
-    { icon: Building2, label: "العقارات", labelEn: "Properties", path: "/client/realestate/properties", permission: "VIEW_ACCOUNTS" },
-    { icon: Home, label: "الوحدات", labelEn: "Units", path: "/client/realestate/units", permission: "VIEW_ACCOUNTS" },
-    { icon: Users, label: "المستأجرين", labelEn: "Tenants", path: "/client/realestate/tenants", permission: "VIEW_ACCOUNTS" },
-    { icon: FileText, label: "عقود الإيجار", labelEn: "Leases", path: "/client/realestate/leases", permission: "VIEW_ACCOUNTS" },
-    { icon: Receipt, label: "فواتير الإيجار", labelEn: "Rent Invoices", path: "/client/realestate/invoices", permission: "VIEW_ACCOUNTS" },
-    { icon: Wrench, label: "طلبات الصيانة", labelEn: "Maintenance", path: "/client/realestate/maintenance", permission: "VIEW_ACCOUNTS" },
-    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/realestate/reports", permission: "VIEW_ACCOUNTS" },
+    { icon: Building2, label: "العقارات", labelEn: "Properties", path: "/client/realestate/properties", permission: "MANAGE_PROPERTIES" },
+    { icon: Home, label: "الوحدات", labelEn: "Units", path: "/client/realestate/units", permission: "MANAGE_PROPERTIES" },
+    { icon: Users, label: "المستأجرين", labelEn: "Tenants", path: "/client/realestate/tenants", permission: "MANAGE_TENANTS" },
+    { icon: FileText, label: "عقود الإيجار", labelEn: "Leases", path: "/client/realestate/leases", permission: "MANAGE_LEASES" },
+    { icon: Receipt, label: "فواتير الإيجار", labelEn: "Rent Invoices", path: "/client/realestate/invoices", permission: "MANAGE_RENT_INVOICES" },
+    { icon: Wrench, label: "طلبات الصيانة", labelEn: "Maintenance", path: "/client/realestate/maintenance", permission: "MANAGE_MAINTENANCE" },
+    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/realestate/reports", permission: "VIEW_REALESTATE_REPORTS" },
     { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/realestate/setup", permission: "VIEW_SETTINGS" },
   ]
 };
