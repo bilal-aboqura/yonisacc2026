@@ -115,15 +115,7 @@ const AccountRow = memo(({
       {/* Action Buttons */}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={(e) => onBalance(account, e)}
-          title={isRTL ? "الرصيد الافتتاحي" : "Opening Balance"}
-        >
-          <DollarSign className="h-4 w-4 text-green-600" />
-        </Button>
-        <Button
+
           variant="ghost"
           size="icon"
           className="h-7 w-7"
