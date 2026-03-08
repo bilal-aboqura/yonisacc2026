@@ -371,6 +371,7 @@ const TrialBalance = () => {
               </TableRow>
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
