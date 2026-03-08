@@ -175,6 +175,7 @@ import Payroll from "./pages/client/hr/Payroll";
 import EndOfService from "./pages/client/hr/EndOfService";
 import HRReports from "./pages/client/hr/HRReports";
 import HRAccountSetup from "./pages/client/hr/HRAccountSetup";
+import FiscalPeriods from "./pages/client/FiscalPeriods";
 import SalesAccountSetup from "./pages/client/setup/SalesAccountSetup";
 import PurchasesAccountSetup from "./pages/client/setup/PurchasesAccountSetup";
 import InventoryAccountSetup from "./pages/client/setup/InventoryAccountSetup";
