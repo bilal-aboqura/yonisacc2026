@@ -429,6 +429,20 @@ const ClientJournal = () => {
                     </TableRow>
                   ))}
                 </TableBody>
+                <TableFooter>
+                  <TableRow className="bg-muted/50 font-semibold">
+                    <TableCell colSpan={3} className="text-sm">{isRTL ? "الإجمالي" : "Total"}</TableCell>
+                    <TableCell className="text-end tabular-nums">
+                      {formatNumber(filtered.reduce((s, e) => s + (e.total_debit || 0), 0))}
+                      <span className="text-xs text-muted-foreground ms-1">{currency}</span>
+                    </TableCell>
+                    <TableCell className="text-end tabular-nums">
+                      {formatNumber(filtered.reduce((s, e) => s + (e.total_credit || 0), 0))}
+                      <span className="text-xs text-muted-foreground ms-1">{currency}</span>
+                    </TableCell>
+                    <TableCell colSpan={2} />
+                  </TableRow>
+                </TableFooter>
               </Table>
             </TooltipProvider>
           )}
