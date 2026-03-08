@@ -1,76 +1,55 @@
 
+# خطة نظام نقاط البيع الشامل (POS)
 
-# إصلاح الشاشات المخفية والصلاحيات الناقصة
+## الحالة: ✅ تم تنفيذ المراحل 1-10
 
-## المشكلات المكتشفة
+### ما تم إنجازه:
 
-### 1. شاشات مسجلة في الراوتر لكنها مخفية من القائمة الجانبية
-| الشاشة | المسار | السبب |
-|--------|--------|-------|
-| **دليل الحسابات** (Chart of Accounts) | `/client/accounts` | غير مضافة في قائمة المحاسبة |
-| **جهات الاتصال** (Contacts) | `/client/contacts` | غير مضافة في أي قائمة |
+**المرحلة 1: قاعدة البيانات** ✅
+- 11 جدول جديد: pos_terminals, pos_sessions, pos_transactions, pos_transaction_items, pos_tables, pos_reservations, pos_menus, pos_menu_items, pos_promotions, pos_sales_targets, pos_activity_log
+- RLS على جميع الجداول
+- صلاحيات RBAC: 8 feature flags جديدة
 
-### 2. مديولات بدون صلاحيات في `rbac_permissions`
-هذه المديولات موجودة في القائمة الجانبية لكن **لا توجد لها أي صلاحيات** في جدول `rbac_permissions`، مما يجعل تبويب الصلاحيات في لوحة الملاك فارغاً لها:
-- **clinic** (العيادة)
-- **realestate** (العقارات)
-- **delivery** (التوصيل)
-- **assets** (الأصول الثابتة)
+**المرحلة 2: شاشة POS الرئيسية** ✅
+- شاشة ملء الشاشة مع شبكة منتجات + سلة مشتريات
+- بحث سريع وباركود + تصفية بالتصنيف
+- نوع الطلب (محلي/سفري/توصيل)
+- أزرار دفع متعددة (نقد/بطاقة)
+- اختصارات لوحة مفاتيح (F1/F2/F5/Esc)
+- فتح/إغلاق الصندوق مع المبلغ
 
-هذه المديولات تستخدم حالياً صلاحيات عامة مثل `VIEW_ACCOUNTS` بدلاً من صلاحيات خاصة بها.
+**المرحلة 3: إدارة الطاولات** ✅
+- عرض تفاعلي مع ألوان حسب الحالة
+- CRUD للطاولات مع الشكل والسعة والطابق
 
----
+**المرحلة 4: الإعدادات والمنيو** ✅
+- إدارة نقاط البيع (Terminals) مع النوع (تجزئة/مطعم)
+- إدارة المنيو المخصص لكل فرع
 
-## الحل
+**المرحلة 5: العروض والأهداف** ✅
+- إنشاء عروض (نسبة/مبلغ/اشتر X واحصل Y)
+- أهداف مبيعات مع شريط التقدم
 
-### ملف 1: `src/components/client/ClientLayout.tsx`
-- إضافة **دليل الحسابات** (`/client/accounts`, permission: `VIEW_ACCOUNTS`) في مجموعة المحاسبة
-- إضافة **جهات الاتصال** (`/client/contacts`, permission: `VIEW_CONTACTS`) كعنصر مستقل أو ضمن الإعدادات
+**المرحلة 6: التقارير** ✅
+- بطاقات ملخص (إجمالي/عدد/متوسط)
+- رسم بياني يومي + توزيع طرق الدفع
+- جدول العمليات
 
-### ملف 2: Migration — إضافة صلاحيات المديولات الناقصة
-```sql
-INSERT INTO rbac_permissions (code, module, description, description_ar) VALUES
--- Assets
-('VIEW_ASSETS', 'assets', 'View Fixed Assets', 'عرض الأصول الثابتة'),
-('MANAGE_ASSETS', 'assets', 'Manage Fixed Assets', 'إدارة الأصول الثابتة'),
-('RUN_DEPRECIATION', 'assets', 'Run Depreciation', 'تشغيل الإهلاك'),
--- Clinic
-('VIEW_CLINIC', 'clinic', 'View Clinic', 'عرض العيادة'),
-('MANAGE_PATIENTS', 'clinic', 'Manage Patients', 'إدارة المرضى'),
-('MANAGE_DOCTORS', 'clinic', 'Manage Doctors', 'إدارة الأطباء'),
-('MANAGE_APPOINTMENTS', 'clinic', 'Manage Appointments', 'إدارة المواعيد'),
-('MANAGE_PRESCRIPTIONS', 'clinic', 'Manage Prescriptions', 'إدارة الوصفات'),
-('VIEW_CLINIC_BILLING', 'clinic', 'View Clinic Billing', 'عرض فوترة العيادة'),
-('VIEW_CLINIC_REPORTS', 'clinic', 'View Clinic Reports', 'عرض تقارير العيادة'),
--- Real Estate
-('VIEW_REALESTATE', 'realestate', 'View Real Estate', 'عرض العقارات'),
-('MANAGE_PROPERTIES', 'realestate', 'Manage Properties', 'إدارة العقارات'),
-('MANAGE_TENANTS', 'realestate', 'Manage Tenants', 'إدارة المستأجرين'),
-('MANAGE_LEASES', 'realestate', 'Manage Leases', 'إدارة عقود الإيجار'),
-('MANAGE_RENT_INVOICES', 'realestate', 'Manage Rent Invoices', 'إدارة فواتير الإيجار'),
-('VIEW_REALESTATE_REPORTS', 'realestate', 'View Real Estate Reports', 'عرض تقارير العقارات'),
--- Delivery
-('VIEW_DELIVERY', 'delivery', 'View Delivery', 'عرض التوصيل'),
-('MANAGE_DELIVERY_ORDERS', 'delivery', 'Manage Delivery Orders', 'إدارة طلبات التوصيل'),
-('MANAGE_DRIVERS', 'delivery', 'Manage Drivers', 'إدارة السائقين'),
-('MANAGE_DELIVERY_AREAS', 'delivery', 'Manage Delivery Areas', 'إدارة مناطق التوصيل'),
-('DRIVER_SETTLEMENT', 'delivery', 'Driver Settlement', 'تقفيل حساب السائقين'),
-('VIEW_DELIVERY_REPORTS', 'delivery', 'View Delivery Reports', 'عرض تقارير التوصيل');
-```
+**المرحلة 7-8: التكامل** ✅
+- 7 مسارات POS في App.tsx
+- قسم "نقاط البيع" في القائمة الجانبية
+- سجل نشاط المستخدمين
 
-### ملف 3: `src/components/client/ClientLayout.tsx` — تحديث permission codes
-تحديث مجموعات القوائم (assets, clinic, realestate, delivery) لاستخدام أكواد الصلاحيات الجديدة بدلاً من `VIEW_ACCOUNTS`.
+**المرحلة 9: الكوبونات والعروض المتقدمة** ✅
+- جدول pos_coupons مع RLS
+- شاشة إدارة كوبونات (CRUD) مع inline form
+- تطبيق الكوبون في شاشة البيع مع التحقق (الفترة، الاستخدام، الحد الأدنى)
+- ربط العروض بمنتجات محددة عبر جدول pos_promotion_products
+- تحويل شاشة العروض من Dialog إلى inline مع product checkboxes
 
-### ملف 4: تحديث `moduleLabels` في `ManageCompanyAccess.tsx`
-إضافة المديولات الناقصة في قاموس التسميات:
-- `assets`, `clinic`, `realestate`, `delivery`
-
----
-
-## ملخص التغييرات
-| الملف | نوع التغيير |
-|-------|------------|
-| `ClientLayout.tsx` | إضافة شاشتين + تحديث permission codes |
-| Migration SQL | إضافة ~22 صلاحية جديدة |
-| `ManageCompanyAccess.tsx` | إضافة 4 مديولات في moduleLabels |
-
+**المرحلة 10: مستخدمو POS وتقارير الصندوق** ✅
+- جدول pos_users مع أدوار (كاشير/مدير فرع) وربط بالفرع
+- شاشة إدارة مستخدمي POS (إنشاء بإيميل+باسورد+فرع+دور)
+- تقرير إغلاق الصندوق (مبيعات/مرتجعات/خصومات/طرق دفع/رصيد إغلاق) مع طباعة
+- شاشة سجل المستخدمين (تاريخ الجلسات مع فلترة)
+- أعمدة تقارير في pos_sessions (total_sales, total_returns, payment_summary, etc.)

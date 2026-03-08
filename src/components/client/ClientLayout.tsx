@@ -102,6 +102,7 @@ const baseMenuItems: MenuItem[] = [
     labelEn: "Financial Accounting",
     moduleKey: "accounting",
     children: [
+      { icon: BookOpenCheck, label: "دليل الحسابات", labelEn: "Chart of Accounts", path: "/client/accounts", permission: "VIEW_ACCOUNTS" },
       { icon: FileSpreadsheet, label: "الأرصدة الإفتتاحية", labelEn: "Opening Balances", path: "/client/accounts/opening-balances", permission: "VIEW_OPENING_BALANCES" },
       { icon: Target, label: "مراكز التكلفة", labelEn: "Cost Centers", path: "/client/cost-centers", permission: "VIEW_COST_CENTERS" },
       { icon: BookOpen, label: "قيود اليومية", labelEn: "Journal Entries", path: "/client/journal", permission: "VIEW_JOURNAL" },
@@ -227,6 +228,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: Palette, label: "المظهر", labelEn: "Appearance", path: "/client/settings/appearance", permission: "VIEW_SETTINGS" },
       { icon: Receipt, label: "الفوترة الإلكترونية", labelEn: "E-Invoicing (ZATCA)", path: "/client/settings/zatca", permission: "VIEW_SETTINGS" },
       { icon: Clock, label: "الفترات المالية", labelEn: "Fiscal Periods", path: "/client/settings/fiscal-periods", permission: "VIEW_SETTINGS" },
+      { icon: Users, label: "جهات الاتصال", labelEn: "Contacts", path: "/client/contacts", permission: "VIEW_CONTACTS" },
     ]
   },
 ];
@@ -252,10 +254,10 @@ const fixedAssetsMenuGroup: MenuItem = {
   labelEn: "Fixed Assets",
   moduleKey: "assets",
   children: [
-    { icon: Building2, label: "سجل الأصول", labelEn: "Asset Register", path: "/client/assets", permission: "VIEW_ACCOUNTS" },
-    { icon: FolderTree, label: "تصنيفات الأصول", labelEn: "Categories", path: "/client/assets/categories", permission: "VIEW_ACCOUNTS" },
-    { icon: Calculator, label: "تشغيل الإهلاك", labelEn: "Run Depreciation", path: "/client/assets/depreciation", permission: "VIEW_ACCOUNTS" },
-    { icon: BarChart3, label: "تقارير الأصول", labelEn: "Asset Reports", path: "/client/assets/reports", permission: "VIEW_ACCOUNTS" },
+    { icon: Building2, label: "سجل الأصول", labelEn: "Asset Register", path: "/client/assets", permission: "VIEW_ASSETS" },
+    { icon: FolderTree, label: "تصنيفات الأصول", labelEn: "Categories", path: "/client/assets/categories", permission: "MANAGE_ASSETS" },
+    { icon: Calculator, label: "تشغيل الإهلاك", labelEn: "Run Depreciation", path: "/client/assets/depreciation", permission: "RUN_DEPRECIATION" },
+    { icon: BarChart3, label: "تقارير الأصول", labelEn: "Asset Reports", path: "/client/assets/reports", permission: "VIEW_ASSET_REPORTS" },
     { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/assets/setup", permission: "VIEW_SETTINGS" },
   ]
 };
@@ -281,12 +283,12 @@ const clinicMenuGroup: MenuItem = {
   labelEn: "Medical Clinic",
   moduleKey: "clinic",
   children: [
-    { icon: Users, label: "سجل المرضى", labelEn: "Patients", path: "/client/clinic/patients", permission: "VIEW_ACCOUNTS" },
-    { icon: HeartPulse, label: "الأطباء", labelEn: "Doctors", path: "/client/clinic/doctors", permission: "VIEW_ACCOUNTS" },
-    { icon: Calendar, label: "المواعيد", labelEn: "Appointments", path: "/client/clinic/appointments", permission: "VIEW_ACCOUNTS" },
-    { icon: Pill, label: "الوصفات الطبية", labelEn: "Prescriptions", path: "/client/clinic/prescriptions", permission: "VIEW_ACCOUNTS" },
-    { icon: Receipt, label: "الفوترة", labelEn: "Billing", path: "/client/clinic/billing", permission: "VIEW_ACCOUNTS" },
-    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/clinic/reports", permission: "VIEW_ACCOUNTS" },
+    { icon: Users, label: "سجل المرضى", labelEn: "Patients", path: "/client/clinic/patients", permission: "MANAGE_PATIENTS" },
+    { icon: HeartPulse, label: "الأطباء", labelEn: "Doctors", path: "/client/clinic/doctors", permission: "MANAGE_DOCTORS" },
+    { icon: Calendar, label: "المواعيد", labelEn: "Appointments", path: "/client/clinic/appointments", permission: "MANAGE_APPOINTMENTS" },
+    { icon: Pill, label: "الوصفات الطبية", labelEn: "Prescriptions", path: "/client/clinic/prescriptions", permission: "MANAGE_PRESCRIPTIONS" },
+    { icon: Receipt, label: "الفوترة", labelEn: "Billing", path: "/client/clinic/billing", permission: "VIEW_CLINIC_BILLING" },
+    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/clinic/reports", permission: "VIEW_CLINIC_REPORTS" },
     { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/clinic/setup", permission: "VIEW_SETTINGS" },
   ]
 };
@@ -297,13 +299,13 @@ const realEstateMenuGroup: MenuItem = {
   labelEn: "Real Estate",
   moduleKey: "realestate",
   children: [
-    { icon: Building2, label: "العقارات", labelEn: "Properties", path: "/client/realestate/properties", permission: "VIEW_ACCOUNTS" },
-    { icon: Home, label: "الوحدات", labelEn: "Units", path: "/client/realestate/units", permission: "VIEW_ACCOUNTS" },
-    { icon: Users, label: "المستأجرين", labelEn: "Tenants", path: "/client/realestate/tenants", permission: "VIEW_ACCOUNTS" },
-    { icon: FileText, label: "عقود الإيجار", labelEn: "Leases", path: "/client/realestate/leases", permission: "VIEW_ACCOUNTS" },
-    { icon: Receipt, label: "فواتير الإيجار", labelEn: "Rent Invoices", path: "/client/realestate/invoices", permission: "VIEW_ACCOUNTS" },
-    { icon: Wrench, label: "طلبات الصيانة", labelEn: "Maintenance", path: "/client/realestate/maintenance", permission: "VIEW_ACCOUNTS" },
-    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/realestate/reports", permission: "VIEW_ACCOUNTS" },
+    { icon: Building2, label: "العقارات", labelEn: "Properties", path: "/client/realestate/properties", permission: "MANAGE_PROPERTIES" },
+    { icon: Home, label: "الوحدات", labelEn: "Units", path: "/client/realestate/units", permission: "MANAGE_PROPERTIES" },
+    { icon: Users, label: "المستأجرين", labelEn: "Tenants", path: "/client/realestate/tenants", permission: "MANAGE_TENANTS" },
+    { icon: FileText, label: "عقود الإيجار", labelEn: "Leases", path: "/client/realestate/leases", permission: "MANAGE_LEASES" },
+    { icon: Receipt, label: "فواتير الإيجار", labelEn: "Rent Invoices", path: "/client/realestate/invoices", permission: "MANAGE_RENT_INVOICES" },
+    { icon: Wrench, label: "طلبات الصيانة", labelEn: "Maintenance", path: "/client/realestate/maintenance", permission: "MANAGE_MAINTENANCE" },
+    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/realestate/reports", permission: "VIEW_REALESTATE_REPORTS" },
     { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/realestate/setup", permission: "VIEW_SETTINGS" },
   ]
 };
@@ -314,12 +316,12 @@ const deliveryMenuGroup: MenuItem = {
   labelEn: "Delivery",
   moduleKey: "delivery",
   children: [
-    { icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard", path: "/client/delivery", permission: "VIEW_ACCOUNTS" },
-    { icon: Package, label: "طلبات التوصيل", labelEn: "Orders", path: "/client/delivery/orders", permission: "VIEW_ACCOUNTS" },
-    { icon: Users, label: "السائقين", labelEn: "Drivers", path: "/client/delivery/drivers", permission: "VIEW_ACCOUNTS" },
-    { icon: Building, label: "مناطق التوصيل", labelEn: "Areas", path: "/client/delivery/areas", permission: "VIEW_ACCOUNTS" },
-    { icon: Calculator, label: "تقفيل حساب السائقين", labelEn: "Driver Settlement", path: "/client/delivery/settlement", permission: "VIEW_ACCOUNTS" },
-    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/delivery/reports", permission: "VIEW_ACCOUNTS" },
+    { icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard", path: "/client/delivery", permission: "VIEW_DELIVERY" },
+    { icon: Package, label: "طلبات التوصيل", labelEn: "Orders", path: "/client/delivery/orders", permission: "MANAGE_DELIVERY_ORDERS" },
+    { icon: Users, label: "السائقين", labelEn: "Drivers", path: "/client/delivery/drivers", permission: "MANAGE_DRIVERS" },
+    { icon: Building, label: "مناطق التوصيل", labelEn: "Areas", path: "/client/delivery/areas", permission: "MANAGE_DELIVERY_AREAS" },
+    { icon: Calculator, label: "تقفيل حساب السائقين", labelEn: "Driver Settlement", path: "/client/delivery/settlement", permission: "DRIVER_SETTLEMENT" },
+    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/delivery/reports", permission: "VIEW_DELIVERY_REPORTS" },
     { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/delivery/setup", permission: "VIEW_SETTINGS" },
   ]
 };

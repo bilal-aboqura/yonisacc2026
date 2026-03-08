@@ -41,6 +41,12 @@ const moduleLabels: Record<string, { ar: string; en: string }> = {
   settings: { ar: "الإعدادات", en: "Settings" },
   print: { ar: "الطباعة", en: "Print" },
   auto_parts: { ar: "قطع الغيار", en: "Auto Parts" },
+  gold: { ar: "الذهب والمجوهرات", en: "Gold & Jewelry" },
+  pos: { ar: "نقاط البيع", en: "POS" },
+  clinic: { ar: "العيادة", en: "Clinic" },
+  realestate: { ar: "العقارات", en: "Real Estate" },
+  delivery: { ar: "التوصيل", en: "Delivery" },
+  assets: { ar: "الأصول الثابتة", en: "Fixed Assets" },
 };
 
 /**
