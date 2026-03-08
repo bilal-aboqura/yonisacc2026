@@ -404,11 +404,21 @@ const GeneralLedger = () => {
       {/* Ledger Table */}
       {selectedAccount && (
         <Card className="shadow-sm border-border/60 rounded-2xl overflow-hidden">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <BookOpenCheck className="h-5 w-5" />
               {isRTL ? "كشف حساب" : "Account Statement"}
             </CardTitle>
+            {ledgerLines.length > 0 && (
+              <ReportActions
+                printSettings={printSettings}
+                company={companyInfo}
+                document={printDoc}
+                isRTL={isRTL}
+                onExportExcel={handleExportExcel}
+                canExport={canExport}
+              />
+            )}
           </CardHeader>
           <CardContent className="p-0">
             <div className="border border-border/50 rounded-lg overflow-hidden m-4">

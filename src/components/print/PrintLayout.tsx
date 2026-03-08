@@ -231,6 +231,7 @@ function PrintTable({ table, style, pc, isRTL }: {
       width: "100%",
       borderCollapse: "collapse",
       marginBottom: "12px",
+      border: style === "minimal" ? `1px solid #d1d5db` : borderStyle,
     }}>
       <thead>
         <tr>
