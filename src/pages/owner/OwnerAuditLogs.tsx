@@ -30,12 +30,14 @@ import {
   Info,
   AlertCircle,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  User,
+  Building2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 
-interface AuditLog {
+interface EnrichedAuditLog {
   id: string;
   company_id: string | null;
   user_id: string;
@@ -47,6 +49,10 @@ interface AuditLog {
   severity: string;
   details: string | null;
   created_at: string;
+  user_email: string | null;
+  user_full_name: string | null;
+  company_name: string | null;
+  company_name_en: string | null;
 }
 
 const OwnerAuditLogs = () => {
@@ -59,29 +65,17 @@ const OwnerAuditLogs = () => {
   const { data: auditLogs, isLoading, refetch } = useQuery({
     queryKey: ["audit-logs", operationFilter, severityFilter, tableFilter],
     queryFn: async () => {
-      let query = supabase
-        .from("audit_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
-
-      if (operationFilter !== "all") {
-        query = query.eq("operation_type", operationFilter);
-      }
-      if (severityFilter !== "all") {
-        query = query.eq("severity", severityFilter);
-      }
-      if (tableFilter !== "all") {
-        query = query.eq("table_name", tableFilter);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await supabase.rpc("get_enriched_audit_logs", {
+        p_operation_filter: operationFilter === "all" ? null : operationFilter,
+        p_severity_filter: severityFilter === "all" ? null : severityFilter,
+        p_table_filter: tableFilter === "all" ? null : tableFilter,
+        p_limit: 500,
+      });
       if (error) throw error;
-      return data as AuditLog[];
+      return data as unknown as EnrichedAuditLog[];
     },
   });
 
-  // Get unique table names for filter
   const { data: tableNames } = useQuery({
     queryKey: ["audit-log-tables"],
     queryFn: async () => {
@@ -99,7 +93,10 @@ const OwnerAuditLogs = () => {
     searchTerm
       ? log.table_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.operation_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.details?.toLowerCase().includes(searchTerm.toLowerCase())
+        log.details?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.company_name_en?.toLowerCase().includes(searchTerm.toLowerCase())
       : true
   );
 
@@ -151,7 +148,7 @@ const OwnerAuditLogs = () => {
     if (!filteredLogs) return;
     
     const csvContent = [
-      ["ID", "Timestamp", "Operation", "Table", "Severity", "User ID", "Company ID", "Record ID", "Details"].join(","),
+      ["ID", "Timestamp", "Operation", "Table", "Severity", "User Email", "User Name", "Company", "Record ID", "Details"].join(","),
       ...filteredLogs.map((log) =>
         [
           log.id,
@@ -159,8 +156,9 @@ const OwnerAuditLogs = () => {
           log.operation_type,
           log.table_name,
           log.severity,
-          log.user_id,
-          log.company_id || "",
+          log.user_email || "",
+          log.user_full_name || "",
+          log.company_name || "",
           log.record_id || "",
           `"${log.details?.replace(/"/g, '""') || ""}"`,
         ].join(",")
@@ -209,7 +207,7 @@ const OwnerAuditLogs = () => {
             <div className="relative flex-1">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={isRTL ? "البحث في السجلات..." : "Search logs..."}
+                placeholder={isRTL ? "البحث بالإيميل، الشركة، الجدول..." : "Search by email, company, table..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="ps-10"
@@ -320,12 +318,21 @@ const OwnerAuditLogs = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{isRTL ? "التاريخ" : "Timestamp"}</TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-1">
+                        <User className="h-3.5 w-3.5" />
+                        {isRTL ? "المستخدم" : "User"}
+                      </div>
+                    </TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-1">
+                        <Building2 className="h-3.5 w-3.5" />
+                        {isRTL ? "الشركة" : "Company"}
+                      </div>
+                    </TableHead>
                     <TableHead>{isRTL ? "العملية" : "Operation"}</TableHead>
                     <TableHead>{isRTL ? "الجدول" : "Table"}</TableHead>
                     <TableHead>{isRTL ? "الخطورة" : "Severity"}</TableHead>
-                    <TableHead className="hidden lg:table-cell">
-                      {isRTL ? "معرف المستخدم" : "User ID"}
-                    </TableHead>
                     <TableHead className="hidden md:table-cell">
                       {isRTL ? "التفاصيل" : "Details"}
                     </TableHead>
@@ -334,10 +341,33 @@ const OwnerAuditLogs = () => {
                 <TableBody>
                   {filteredLogs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className="whitespace-nowrap text-xs">
                         {format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss", {
                           locale: isRTL ? ar : enUS,
                         })}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium truncate max-w-[180px]">
+                            {log.user_email || (
+                              <span className="text-muted-foreground italic">
+                                {isRTL ? "نظام" : "System"}
+                              </span>
+                            )}
+                          </span>
+                          {log.user_full_name && (
+                            <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">
+                              {log.user_full_name}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs font-medium truncate max-w-[150px] block">
+                          {(isRTL ? log.company_name : log.company_name_en || log.company_name) || (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </span>
                       </TableCell>
                       <TableCell>{getOperationBadge(log.operation_type)}</TableCell>
                       <TableCell>
@@ -346,13 +376,8 @@ const OwnerAuditLogs = () => {
                         </code>
                       </TableCell>
                       <TableCell>{getSeverityBadge(log.severity)}</TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <code className="text-xs">
-                          {log.user_id.substring(0, 8)}...
-                        </code>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell max-w-xs truncate">
-                        {log.details || "-"}
+                      <TableCell className="hidden md:table-cell max-w-xs truncate text-xs">
+                        {log.details || "—"}
                       </TableCell>
                     </TableRow>
                   ))}
