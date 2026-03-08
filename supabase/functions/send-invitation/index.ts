@@ -25,7 +25,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify the calling user
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -42,8 +41,7 @@ serve(async (req) => {
 
     const userId = claimsData.claims.sub;
 
-    // Parse request
-    const { email, role, companyId } = await req.json();
+    const { email, role, companyId, allowedModules } = await req.json();
 
     if (!email || !role || !companyId) {
       return new Response(
@@ -52,7 +50,6 @@ serve(async (req) => {
       );
     }
 
-    // Use service role for admin operations
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verify user owns this company
@@ -113,14 +110,13 @@ serve(async (req) => {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    // Hash the token for storage using SHA-256
     const encoder = new TextEncoder();
     const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(rawToken));
     const tokenHash = Array.from(new Uint8Array(hashBuffer))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    // Save invitation
+    // Save invitation with allowed_modules
     const { error: insertError } = await adminClient.from("invitations").insert({
       company_id: companyId,
       email,
@@ -129,6 +125,7 @@ serve(async (req) => {
       invited_by: userId,
       status: "pending",
       expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      allowed_modules: allowedModules || null,
     });
 
     if (insertError) {
@@ -139,7 +136,7 @@ serve(async (req) => {
       );
     }
 
-    // Get Resend API key from owner_settings
+    // Get Resend API key
     const { data: resendSetting } = await adminClient
       .from("owner_settings")
       .select("setting_value")
@@ -149,7 +146,6 @@ serve(async (req) => {
     const resendApiKey = (resendSetting?.setting_value as any)?.api_key;
 
     if (!resendApiKey) {
-      // Still save invitation but notify that email wasn't sent
       return new Response(
         JSON.stringify({
           success: true,
@@ -161,7 +157,6 @@ serve(async (req) => {
       );
     }
 
-    // Get inviter name
     const { data: inviterProfile } = await adminClient
       .from("profiles")
       .select("full_name")
@@ -172,7 +167,6 @@ serve(async (req) => {
     const companyName = company.name_en || company.name;
     const acceptUrl = `${req.headers.get("origin") || "https://yonisacc2026.lovable.app"}/invite/accept?token=${rawToken}`;
 
-    // Send email via Resend
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -189,14 +183,12 @@ serve(async (req) => {
               <h1 style="color: #1a1a1a; margin-bottom: 5px;">Costamine</h1>
               <p style="color: #666;">Accounting & ERP Platform</p>
             </div>
-            
             <div style="background: #f8f9fa; border-radius: 12px; padding: 30px; margin-bottom: 20px;">
               <h2 style="color: #1a1a1a; margin-top: 0;">You're Invited! 🎉</h2>
               <p style="color: #333; font-size: 16px;">
                 <strong>${inviterName}</strong> has invited you to join 
                 <strong>${companyName}</strong> as <strong>${role}</strong>.
               </p>
-              
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${acceptUrl}" 
                    style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; 
@@ -205,12 +197,8 @@ serve(async (req) => {
                   Accept Invitation
                 </a>
               </div>
-              
-              <p style="color: #666; font-size: 14px;">
-                This invitation will expire in 48 hours.
-              </p>
+              <p style="color: #666; font-size: 14px;">This invitation will expire in 48 hours.</p>
             </div>
-            
             <p style="color: #999; font-size: 12px; text-align: center;">
               If you didn't expect this invitation, you can safely ignore this email.
             </p>
@@ -222,11 +210,7 @@ serve(async (req) => {
     const emailSent = emailResponse.ok;
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        emailSent,
-        inviteLink: acceptUrl,
-      }),
+      JSON.stringify({ success: true, emailSent, inviteLink: acceptUrl }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
