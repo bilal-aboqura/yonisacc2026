@@ -576,33 +576,33 @@ const Payroll = () => {
               <p>{isRTL ? "لا توجد مسيرات رواتب" : "No payroll runs yet"}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">{isRTL ? "رقم المسير" : "Run #"}</TableHead>
-                    <TableHead className="font-semibold">{isRTL ? "الفترة" : "Period"}</TableHead>
-                    <TableHead className="font-semibold">{isRTL ? "تاريخ التشغيل" : "Run Date"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "الأساسي" : "Basic"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "البدلات" : "Allowances"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "الاستقطاعات" : "Deductions"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "الصافي" : "Net"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "الحالة" : "Status"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "إجراءات" : "Actions"}</TableHead>
+                  <TableRow className="bg-muted/60 dark:bg-muted/30">
+                    <TableHead className="font-semibold border-b border-border/50">{isRTL ? "رقم المسير" : "Run #"}</TableHead>
+                    <TableHead className="font-semibold border-b border-border/50">{isRTL ? "الفترة" : "Period"}</TableHead>
+                    <TableHead className="font-semibold border-b border-border/50">{isRTL ? "تاريخ التشغيل" : "Run Date"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "الأساسي" : "Basic"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "البدلات" : "Allowances"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "الاستقطاعات" : "Deductions"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "الصافي" : "Net"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "الحالة" : "Status"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "إجراءات" : "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {payrollRuns.map((run: any, idx: number) => (
-                    <TableRow key={run.id} className={`cursor-pointer hover:bg-muted/40 transition ${idx % 2 === 0 ? "" : "bg-muted/20"}`}>
-                      <TableCell className="font-mono text-sm">{run.run_number}</TableCell>
-                      <TableCell className="font-medium">{monthName(run.period_month)} {run.period_year}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{run.run_date || "—"}</TableCell>
-                      <TableCell className="text-end tabular-nums">{formatNum(run.total_basic || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums text-emerald-600">{formatNum(run.total_allowances || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums text-destructive">{formatNum(run.total_deductions || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums font-bold">{formatNum(run.total_net || 0)}</TableCell>
-                      <TableCell className="text-center">{statusBadge(run.status)}</TableCell>
-                      <TableCell>
+                    <TableRow key={run.id} className={`cursor-pointer transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="font-mono text-sm border-b border-border/30">{run.run_number}</TableCell>
+                      <TableCell className="font-medium border-b border-border/30">{monthName(run.period_month)} {run.period_year}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground border-b border-border/30">{run.run_date || "—"}</TableCell>
+                      <TableCell className="text-end tabular-nums border-b border-border/30">{formatNum(run.total_basic || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums text-emerald-600 border-b border-border/30">{formatNum(run.total_allowances || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums text-destructive border-b border-border/30">{formatNum(run.total_deductions || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums font-bold border-b border-border/30">{formatNum(run.total_net || 0)}</TableCell>
+                      <TableCell className="text-center border-b border-border/30">{statusBadge(run.status)}</TableCell>
+                      <TableCell className="border-b border-border/30">
                         <div className="flex justify-center gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8" title={isRTL ? "عرض" : "View"} onClick={() => setViewRun(run)}>
                             <Eye className="h-4 w-4" />
