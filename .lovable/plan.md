@@ -1,85 +1,61 @@
 
-# خطة نظام نقاط البيع الشامل (POS)
 
-## الحالة: ✅ تم تنفيذ المراحل 1-10
+# إصلاح عرض الطباعة — الجداول لا تملأ عرض الصفحة
 
-### ما تم إنجازه:
+## المشكلة
+عند الطباعة، المحتوى (الجدول والبيانات) لا يملأ عرض الصفحة بالكامل ويظهر مضغوطاً. السبب تراكم هوامش متعددة:
+- `@page margin: 12mm 10mm` (هوامش الصفحة)
+- `PrintDialog` wrapper بـ `padding: 12mm 15mm` 
+- `PrintLayout` بـ `maxWidth: 210mm` + padding من الإعدادات
+- CSS `.print-layout` يحاول `padding: 0` لكن inline styles تتغلب عليه
 
-**المرحلة 1: قاعدة البيانات** ✅
-- 11 جدول جديد: pos_terminals, pos_sessions, pos_transactions, pos_transaction_items, pos_tables, pos_reservations, pos_menus, pos_menu_items, pos_promotions, pos_sales_targets, pos_activity_log
-- RLS على جميع الجداول
-- صلاحيات RBAC: 8 feature flags جديدة
+## الحل
 
-**المرحلة 2: شاشة POS الرئيسية** ✅
-- شاشة ملء الشاشة مع شبكة منتجات + سلة مشتريات
-- بحث سريع وباركود + تصفية بالتصنيف
-- نوع الطلب (محلي/سفري/توصيل)
-- أزرار دفع متعددة (نقد/بطاقة)
-- اختصارات لوحة مفاتيح (F1/F2/F5/Esc)
-- فتح/إغلاق الصندوق مع المبلغ
+### 1. تعديل `src/index.css` — قسم `@media print`
+- إضافة `!important` على `.print-layout` لإلغاء الـ inline padding/maxWidth
+- جعل `.print-layout` يأخذ `width: 100% !important` بدلاً من `210mm`
+- إزالة الـ padding الإضافي من wrapper في وضع الطباعة
+- إضافة حدود واضحة للجداول في الطباعة
 
-**المرحلة 3: إدارة الطاولات** ✅
-- عرض تفاعلي مع ألوان حسب الحالة
-- CRUD للطاولات مع الشكل والسعة والطابق
+```css
+.print-layout {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: auto;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: white !important;
+}
 
-**المرحلة 4: الإعدادات والمنيو** ✅
-- إدارة نقاط البيع (Terminals) مع النوع (تجزئة/مطعم)
-- إدارة المنيو المخصص لكل فرع
+/* Force table full width with visible borders */
+.print-layout table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+.print-layout table th,
+.print-layout table td {
+  border: 1px solid #374151 !important;
+}
+```
 
-**المرحلة 5: العروض والأهداف** ✅
-- إنشاء عروض (نسبة/مبلغ/اشتر X واحصل Y)
-- أهداف مبيعات مع شريط التقدم
+### 2. تعديل `src/components/print/PrintDialog.tsx`
+- إزالة `width: "210mm"` و `padding: "12mm 15mm"` من wrapper في وضع الطباعة عبر إضافة class `print:!w-full print:!p-0 print:!min-h-0`
 
-**المرحلة 6: التقارير** ✅
-- بطاقات ملخص (إجمالي/عدد/متوسط)
-- رسم بياني يومي + توزيع طرق الدفع
-- جدول العمليات
+### 3. تعديل `src/components/print/PrintLayout.tsx`
+- إزالة `maxWidth: "210mm"` واستبداله بـ `width: "100%"`
+- ضمان الجداول تأخذ عرض كامل
 
-**المرحلة 7-8: التكامل** ✅
-- 7 مسارات POS في App.tsx
-- قسم "نقاط البيع" في القائمة الجانبية
-- سجل نشاط المستخدمين
+### 4. تعديل `src/components/print/VoucherLayout.tsx`
+- نفس التعديل: إزالة `maxWidth` واستبداله بـ `width: "100%"`
 
-**المرحلة 9: الكوبونات والعروض المتقدمة** ✅
-- جدول pos_coupons مع RLS
-- شاشة إدارة كوبونات (CRUD) مع inline form
-- تطبيق الكوبون في شاشة البيع مع التحقق (الفترة، الاستخدام، الحد الأدنى)
-- ربط العروض بمنتجات محددة عبر جدول pos_promotion_products
-- تحويل شاشة العروض من Dialog إلى inline مع product checkboxes
+## الملفات المتأثرة
+| الملف | التعديل |
+|-------|---------|
+| `src/index.css` | تحسين CSS الطباعة |
+| `src/components/print/PrintDialog.tsx` | إزالة أبعاد ثابتة في الطباعة |
+| `src/components/print/PrintLayout.tsx` | `width: 100%` بدل `maxWidth` |
+| `src/components/print/VoucherLayout.tsx` | `width: 100%` بدل `maxWidth` |
 
-**المرحلة 10: مستخدمو POS وتقارير الصندوق** ✅
-- جدول pos_users مع أدوار (كاشير/مدير فرع) وربط بالفرع
-- شاشة إدارة مستخدمي POS (إنشاء بإيميل+باسورد+فرع+دور)
-- تقرير إغلاق الصندوق (مبيعات/مرتجعات/خصومات/طرق دفع/رصيد إغلاق) مع طباعة
-- شاشة سجل المستخدمين (تاريخ الجلسات مع فلترة)
-- أعمدة تقارير في pos_sessions (total_sales, total_returns, payment_summary, etc.)
-
----
-
-# نظام إدارة السنوات المالية الشامل
-
-## الحالة: ✅ تم تنفيذ المراحل 1-4
-
-### ما تم إنجازه:
-
-**المرحلة 1: البنية التحتية** ✅
-- تطوير جدول fiscal_periods بأعمدة: status, locked_by, locked_at, closing_journal_entry_id, opening_journal_entry_id, created_by, reopen_reason, reopened_at, reopened_by
-- جدول fiscal_year_audit_log مع RLS
-- جداول stock_count_sessions و stock_count_lines مع RLS
-- 3 RPCs: pre_closing_validation, close_fiscal_year, reopen_fiscal_year
-
-**المرحلة 2: واجهة إدارة السنوات المالية** ✅
-- صفحة FiscalYearManagement.tsx مع 5 تبويبات (السنوات | التحقق | الجرد | التقرير | التدقيق)
-- بطاقات إحصائية (مفتوحة/مقفلة مؤقتاً/مقفلة نهائياً)
-- إجراءات: قفل مؤقت ← إقفال نهائي ← إعادة فتح
-
-**المرحلة 3: RPCs للعمليات الذرية** ✅
-- pre_closing_validation: فحص قيود مسودة، فواتير مسودة، حركات معلقة، فترات HR
-- close_fiscal_year: إقفال حسابات الدخل → أرباح مبقاة → أرصدة افتتاحية
-- reopen_fiscal_year: حذف قيود الإقفال وإعادة الفتح مع سجل تدقيق
-
-**المرحلة 4: التقارير وسجل التدقيق** ✅
-- PreClosingValidation.tsx: فحوصات تلقائية مع ✅/❌
-- StockCountSession.tsx: جلسات جرد مع إدخال كميات فعلية
-- YearClosingReport.tsx: ملخص الدخل + الميزانية العمومية
-- FiscalAuditLog.tsx: سجل كل العمليات على السنوات المالية
