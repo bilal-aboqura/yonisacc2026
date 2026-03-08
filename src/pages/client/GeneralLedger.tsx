@@ -264,7 +264,7 @@ const GeneralLedger = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {selectedAccount && ledgerLines.length > 0 && (
+          {selectedAccount && (
             <ReportActions
               printSettings={printSettings}
               company={companyInfo}
@@ -409,7 +409,7 @@ const GeneralLedger = () => {
               <BookOpenCheck className="h-5 w-5" />
               {isRTL ? "كشف حساب" : "Account Statement"}
             </CardTitle>
-            {ledgerLines.length > 0 && (
+            {(
               <ReportActions
                 printSettings={printSettings}
                 company={companyInfo}
