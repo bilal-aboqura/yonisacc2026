@@ -280,7 +280,6 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
                   {renderAccountSelect("حساب إيرادات المبيعات", "Sales Revenue Account", salesRevenueAccount, v => setSalesRevenueAccount(v === "none" ? "" : v))}
                   {renderAccountSelect("حساب خصم المبيعات", "Sales Discount Account", salesDiscountAccount, v => setSalesDiscountAccount(v === "none" ? "" : v))}
                   {renderAccountSelect("حساب ضريبة المبيعات", "Sales Tax Account", salesTaxAccount, v => setSalesTaxAccount(v === "none" ? "" : v))}
-                  {renderAccountSelect("حساب الذمم المدينة", "Receivable Account", salesReceivableAccount, v => setSalesReceivableAccount(v === "none" ? "" : v))}
                 </div>
                 <Button onClick={() => handleSave("sales")} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
