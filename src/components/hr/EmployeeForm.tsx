@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,6 +28,12 @@ const defaultForm = {
   job_title: "", job_title_en: "",
   basic_salary: 0, housing_allowance: 0, transport_allowance: 0, other_allowance: 0,
   bank_name: "", bank_iban: "", department_id: "", status: "active",
+  gender: "", nationality: "",
+  health_card_number: "", health_card_expiry: "",
+  passport_number: "", passport_expiry: "",
+  border_number: "", visa_expiry: "",
+  has_iqama: false, iqama_number: "", iqama_expiry: "",
+  gosi_registration_date: "", gosi_amount: 0,
 };
 
 const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: EmployeeFormProps) => {
@@ -56,12 +63,34 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
         bank_iban: editData.bank_iban || "",
         department_id: editData.department_id || "",
         status: editData.status || "active",
+        gender: editData.gender || "",
+        nationality: editData.nationality || "",
+        health_card_number: editData.health_card_number || "",
+        health_card_expiry: editData.health_card_expiry || "",
+        passport_number: editData.passport_number || "",
+        passport_expiry: editData.passport_expiry || "",
+        border_number: editData.border_number || "",
+        visa_expiry: editData.visa_expiry || "",
+        has_iqama: editData.has_iqama || false,
+        iqama_number: editData.iqama_number || "",
+        iqama_expiry: editData.iqama_expiry || "",
+        gosi_registration_date: editData.gosi_registration_date || "",
+        gosi_amount: editData.gosi_amount || 0,
       };
     }
     return { ...defaultForm };
   });
 
-  // Auto-calculate contract_end_date when start_date and duration change
+  const isSaudi = form.nationality === "saudi";
+
+  // Auto-calculate GOSI for Saudi employees: (basic + housing) * 9.75%
+  const gosiAmount = useMemo(() => {
+    if (isSaudi) {
+      return Math.round(((form.basic_salary || 0) + (form.housing_allowance || 0)) * 0.0975 * 100) / 100;
+    }
+    return 0;
+  }, [isSaudi, form.basic_salary, form.housing_allowance]);
+
   const handleStartDateChange = (val: string) => {
     const updated = { ...form, start_date: val };
     if (val && form.contract_duration_months > 0) {
@@ -91,6 +120,16 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
         start_date: form.start_date || null,
         contract_end_date: form.contract_end_date || null,
         contract_duration_months: form.contract_duration_months || null,
+        health_card_expiry: form.health_card_expiry || null,
+        passport_expiry: form.passport_expiry || null,
+        visa_expiry: form.visa_expiry || null,
+        iqama_number: form.has_iqama ? form.iqama_number : null,
+        iqama_expiry: form.has_iqama ? (form.iqama_expiry || null) : null,
+        national_id: form.has_iqama ? form.national_id : (form.national_id || null),
+        gosi_registration_date: form.gosi_registration_date || null,
+        gosi_amount: isSaudi ? gosiAmount : 0,
+        gender: form.gender || null,
+        nationality: form.nationality || null,
       };
       if (editId) {
         const { error } = await (supabase as any).from("hr_employees").update(payload).eq("id", editId);
@@ -107,6 +146,8 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
     },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const canSave = form.name && form.employee_number && (!form.has_iqama || (form.iqama_number && form.iqama_expiry));
 
   return (
     <div className="space-y-6">
@@ -140,7 +181,26 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
               </div>
               <div className="space-y-2"><Label>{isRTL ? "الاسم بالعربي" : "Name (AR)"}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div className="space-y-2"><Label>{isRTL ? "الاسم بالإنجليزي" : "Name (EN)"}</Label><Input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "رقم الهوية" : "National ID"}</Label><Input value={form.national_id} onChange={(e) => setForm({ ...form, national_id: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "الجنس" : "Gender"}</Label>
+                <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">{isRTL ? "ذكر" : "Male"}</SelectItem>
+                    <SelectItem value="female">{isRTL ? "أنثى" : "Female"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "الجنسية" : "Nationality"}</Label>
+                <Select value={form.nationality} onValueChange={(v) => setForm({ ...form, nationality: v })}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="saudi">{isRTL ? "سعودي" : "Saudi"}</SelectItem>
+                    <SelectItem value="non-saudi">{isRTL ? "غير سعودي" : "Non-Saudi"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2"><Label>{isRTL ? "الجوال" : "Phone"}</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               <div className="space-y-2"><Label>{isRTL ? "البريد" : "Email"}</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
               <div className="space-y-2"><Label>{isRTL ? "المسمى الوظيفي" : "Job Title"}</Label><Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} /></div>
@@ -155,6 +215,47 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </div>
+
+          {/* Documents & IDs */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-primary">{isRTL ? "الوثائق والهويات" : "Documents & IDs"}</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>{isRTL ? "رقم الكرت الصحي" : "Health Card #"}</Label><Input value={form.health_card_number} onChange={(e) => setForm({ ...form, health_card_number: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "تاريخ انتهاء الكرت الصحي" : "Health Card Expiry"}</Label><Input type="date" value={form.health_card_expiry} onChange={(e) => setForm({ ...form, health_card_expiry: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "رقم جواز السفر" : "Passport #"}</Label><Input value={form.passport_number} onChange={(e) => setForm({ ...form, passport_number: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "تاريخ انتهاء جواز السفر" : "Passport Expiry"}</Label><Input type="date" value={form.passport_expiry} onChange={(e) => setForm({ ...form, passport_expiry: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "رقم الحدود" : "Border #"}</Label><Input value={form.border_number} onChange={(e) => setForm({ ...form, border_number: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "تاريخ انتهاء تأشيرة الدخول" : "Visa Expiry"}</Label><Input type="date" value={form.visa_expiry} onChange={(e) => setForm({ ...form, visa_expiry: e.target.value })} /></div>
+
+              <div className="md:col-span-2 flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
+                <Checkbox
+                  id="has_iqama"
+                  checked={form.has_iqama}
+                  onCheckedChange={(checked) => setForm({ ...form, has_iqama: !!checked })}
+                />
+                <Label htmlFor="has_iqama" className="cursor-pointer font-medium">
+                  {isRTL ? "تم إصدار الإقامة" : "Iqama Issued"}
+                </Label>
+              </div>
+
+              {form.has_iqama && (
+                <>
+                  <div className="space-y-2">
+                    <Label>{isRTL ? "رقم الهوية / الإقامة" : "ID / Iqama #"} <span className="text-destructive">*</span></Label>
+                    <Input value={form.national_id} onChange={(e) => setForm({ ...form, national_id: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{isRTL ? "تاريخ انتهاء الهوية" : "ID Expiry"} <span className="text-destructive">*</span></Label>
+                    <Input type="date" value={form.iqama_expiry} onChange={(e) => setForm({ ...form, iqama_expiry: e.target.value })} />
+                  </div>
+                </>
+              )}
+
+              {!form.has_iqama && (
+                <div className="space-y-2"><Label>{isRTL ? "رقم الهوية" : "National ID"}</Label><Input value={form.national_id} onChange={(e) => setForm({ ...form, national_id: e.target.value })} /></div>
+              )}
             </div>
           </div>
 
@@ -181,6 +282,33 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
             </div>
           </div>
 
+          {/* GOSI / Social Insurance */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-primary">{isRTL ? "التأمينات الاجتماعية" : "Social Insurance (GOSI)"}</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{isRTL ? "تاريخ التسجيل بالتأمينات" : "GOSI Registration Date"}</Label>
+                <Input type="date" value={form.gosi_registration_date} onChange={(e) => setForm({ ...form, gosi_registration_date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "مبلغ التأمينات (تلقائي)" : "GOSI Amount (auto)"}</Label>
+                <Input type="number" value={gosiAmount} readOnly className="bg-muted" />
+                {isSaudi && (
+                  <p className="text-xs text-muted-foreground">
+                    {isRTL
+                      ? `(${form.basic_salary} + ${form.housing_allowance}) × 9.75% = ${gosiAmount}`
+                      : `(${form.basic_salary} + ${form.housing_allowance}) × 9.75% = ${gosiAmount}`}
+                  </p>
+                )}
+                {!isSaudi && (
+                  <p className="text-xs text-muted-foreground">
+                    {isRTL ? "التأمينات الاجتماعية تُحسب فقط للسعوديين" : "GOSI applies to Saudi nationals only"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Salary */}
           <div>
             <h3 className="text-lg font-semibold mb-3 text-primary">{isRTL ? "الراتب والبدلات" : "Salary & Allowances"}</h3>
@@ -203,7 +331,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>{isRTL ? "إلغاء" : "Cancel"}</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name || !form.employee_number}>
+            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !canSave}>
               {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
               {isRTL ? "حفظ" : "Save"}
             </Button>
