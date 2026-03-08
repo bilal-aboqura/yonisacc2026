@@ -3346,6 +3346,8 @@ export type Database = {
           bank_name: string | null
           basic_salary: number
           company_id: string
+          contract_duration_months: number | null
+          contract_end_date: string | null
           created_at: string | null
           department_id: string | null
           email: string | null
@@ -3360,6 +3362,7 @@ export type Database = {
           national_id: string | null
           other_allowance: number | null
           phone: string | null
+          start_date: string | null
           status: string | null
           termination_date: string | null
           termination_reason: string | null
@@ -3372,6 +3375,8 @@ export type Database = {
           bank_name?: string | null
           basic_salary?: number
           company_id: string
+          contract_duration_months?: number | null
+          contract_end_date?: string | null
           created_at?: string | null
           department_id?: string | null
           email?: string | null
@@ -3386,6 +3391,7 @@ export type Database = {
           national_id?: string | null
           other_allowance?: number | null
           phone?: string | null
+          start_date?: string | null
           status?: string | null
           termination_date?: string | null
           termination_reason?: string | null
@@ -3398,6 +3404,8 @@ export type Database = {
           bank_name?: string | null
           basic_salary?: number
           company_id?: string
+          contract_duration_months?: number | null
+          contract_end_date?: string | null
           created_at?: string | null
           department_id?: string | null
           email?: string | null
@@ -3412,6 +3420,7 @@ export type Database = {
           national_id?: string | null
           other_allowance?: number | null
           phone?: string | null
+          start_date?: string | null
           status?: string | null
           termination_date?: string | null
           termination_reason?: string | null
