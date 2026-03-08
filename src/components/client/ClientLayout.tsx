@@ -279,6 +279,7 @@ const clinicMenuGroup: MenuItem = {
   icon: Stethoscope,
   label: "إدارة العيادة",
   labelEn: "Medical Clinic",
+  moduleKey: "clinic",
   children: [
     { icon: Users, label: "سجل المرضى", labelEn: "Patients", path: "/client/clinic/patients", permission: "VIEW_ACCOUNTS" },
     { icon: HeartPulse, label: "الأطباء", labelEn: "Doctors", path: "/client/clinic/doctors", permission: "VIEW_ACCOUNTS" },
