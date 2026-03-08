@@ -125,6 +125,7 @@ const baseMenuItems: MenuItem[] = [
     icon: Package,
     label: "المشتريات",
     labelEn: "Purchases",
+    moduleKey: "purchases",
     children: [
       { icon: UserPlus, label: "الموردين", labelEn: "Vendors", path: "/client/vendors", permission: "VIEW_VENDORS" },
       { icon: FileText, label: "أمر شراء", labelEn: "Purchase Order", path: "/client/purchase-orders", permission: "VIEW_PURCHASE_ORDERS" },
