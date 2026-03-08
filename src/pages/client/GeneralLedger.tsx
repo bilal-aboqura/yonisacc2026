@@ -264,7 +264,7 @@ const GeneralLedger = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {selectedAccount && ledgerLines.length > 0 && (
+          {selectedAccount && (
             <ReportActions
               printSettings={printSettings}
               company={companyInfo}
