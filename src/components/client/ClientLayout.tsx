@@ -6,6 +6,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { useRBAC } from "@/hooks/useRBAC";
+import { useAllowedModules } from "@/hooks/useAllowedModules";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
