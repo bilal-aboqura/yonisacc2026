@@ -53,3 +53,33 @@
 - تقرير إغلاق الصندوق (مبيعات/مرتجعات/خصومات/طرق دفع/رصيد إغلاق) مع طباعة
 - شاشة سجل المستخدمين (تاريخ الجلسات مع فلترة)
 - أعمدة تقارير في pos_sessions (total_sales, total_returns, payment_summary, etc.)
+
+---
+
+# نظام إدارة السنوات المالية الشامل
+
+## الحالة: ✅ تم تنفيذ المراحل 1-4
+
+### ما تم إنجازه:
+
+**المرحلة 1: البنية التحتية** ✅
+- تطوير جدول fiscal_periods بأعمدة: status, locked_by, locked_at, closing_journal_entry_id, opening_journal_entry_id, created_by, reopen_reason, reopened_at, reopened_by
+- جدول fiscal_year_audit_log مع RLS
+- جداول stock_count_sessions و stock_count_lines مع RLS
+- 3 RPCs: pre_closing_validation, close_fiscal_year, reopen_fiscal_year
+
+**المرحلة 2: واجهة إدارة السنوات المالية** ✅
+- صفحة FiscalYearManagement.tsx مع 5 تبويبات (السنوات | التحقق | الجرد | التقرير | التدقيق)
+- بطاقات إحصائية (مفتوحة/مقفلة مؤقتاً/مقفلة نهائياً)
+- إجراءات: قفل مؤقت ← إقفال نهائي ← إعادة فتح
+
+**المرحلة 3: RPCs للعمليات الذرية** ✅
+- pre_closing_validation: فحص قيود مسودة، فواتير مسودة، حركات معلقة، فترات HR
+- close_fiscal_year: إقفال حسابات الدخل → أرباح مبقاة → أرصدة افتتاحية
+- reopen_fiscal_year: حذف قيود الإقفال وإعادة الفتح مع سجل تدقيق
+
+**المرحلة 4: التقارير وسجل التدقيق** ✅
+- PreClosingValidation.tsx: فحوصات تلقائية مع ✅/❌
+- StockCountSession.tsx: جلسات جرد مع إدخال كميات فعلية
+- YearClosingReport.tsx: ملخص الدخل + الميزانية العمومية
+- FiscalAuditLog.tsx: سجل كل العمليات على السنوات المالية
