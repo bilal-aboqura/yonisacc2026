@@ -160,26 +160,28 @@ const Attendance = () => {
         <CardContent>
           {isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
           records.length === 0 ? <div className="text-center py-12 text-muted-foreground">{isRTL ? "لا توجد سجلات" : "No records"}</div> :
-          <Table>
-            <TableHeader><TableRow>
-              <TableHead>{isRTL ? "الموظف" : "Employee"}</TableHead>
-              <TableHead>{isRTL ? "الدخول" : "Check In"}</TableHead>
-              <TableHead>{isRTL ? "الخروج" : "Check Out"}</TableHead>
-              <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-              <TableHead>{isRTL ? "ملاحظات" : "Notes"}</TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {records.map((r: any) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.hr_employees ? (isRTL ? r.hr_employees.name : (r.hr_employees.name_en || r.hr_employees.name)) : "—"}</TableCell>
-                  <TableCell>{r.check_in || "—"}</TableCell>
-                  <TableCell>{r.check_out || "—"}</TableCell>
-                  <TableCell><Badge className={statusColors[r.status] || ""}>{statusLabel(r.status)}</Badge></TableCell>
-                  <TableCell>{r.notes || "—"}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>}
+          <div className="overflow-auto rounded-lg border border-border/50">
+            <Table>
+              <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                <TableHead className="border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "الدخول" : "Check In"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "الخروج" : "Check Out"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "الحالة" : "Status"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "ملاحظات" : "Notes"}</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {records.map((r: any, idx: number) => (
+                  <TableRow key={r.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                    <TableCell className="font-medium border-b border-border/30">{r.hr_employees ? (isRTL ? r.hr_employees.name : (r.hr_employees.name_en || r.hr_employees.name)) : "—"}</TableCell>
+                    <TableCell className="border-b border-border/30">{r.check_in || "—"}</TableCell>
+                    <TableCell className="border-b border-border/30">{r.check_out || "—"}</TableCell>
+                    <TableCell className="border-b border-border/30"><Badge className={statusColors[r.status] || ""}>{statusLabel(r.status)}</Badge></TableCell>
+                    <TableCell className="border-b border-border/30">{r.notes || "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>}
         </CardContent>
       </Card>
     </div>

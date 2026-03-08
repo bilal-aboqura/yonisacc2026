@@ -124,45 +124,45 @@ const Employees = () => {
           ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">{isRTL ? "لا يوجد موظفين" : "No employees"}</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
-                <TableHeader><TableRow>
-                  <TableHead>{isRTL ? "رقم" : "#"}</TableHead>
-                  <TableHead>{isRTL ? "الاسم" : "Name"}</TableHead>
-                  <TableHead>{isRTL ? "القسم" : "Department"}</TableHead>
-                  <TableHead>{isRTL ? "المسمى" : "Title"}</TableHead>
-                  <TableHead>{isRTL ? "انتهاء العقد" : "Contract End"}</TableHead>
-                  <TableHead>{isRTL ? "الراتب الإجمالي" : "Total Salary"}</TableHead>
-                  <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-                  <TableHead>{isRTL ? "إجراءات" : "Actions"}</TableHead>
+                <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                  <TableHead className="border-b border-border/50">{isRTL ? "رقم" : "#"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الاسم" : "Name"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "القسم" : "Department"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "المسمى" : "Title"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "انتهاء العقد" : "Contract End"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الراتب الإجمالي" : "Total Salary"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الحالة" : "Status"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "إجراءات" : "Actions"}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {filtered.map((emp: any) => {
+                  {filtered.map((emp: any, idx: number) => {
                     const isExpiringSoon = emp.contract_end_date &&
                       new Date(emp.contract_end_date) <= new Date(Date.now() + 30 * 86400000) &&
                       new Date(emp.contract_end_date) >= new Date();
                     const isExpired = emp.contract_end_date && new Date(emp.contract_end_date) < new Date();
 
                     return (
-                      <TableRow key={emp.id}>
-                        <TableCell className="font-mono">{emp.employee_number}</TableCell>
-                        <TableCell className="font-medium">{isRTL ? emp.name : (emp.name_en || emp.name)}</TableCell>
-                        <TableCell>{emp.hr_departments ? (isRTL ? emp.hr_departments.name : (emp.hr_departments.name_en || emp.hr_departments.name)) : "—"}</TableCell>
-                        <TableCell>{isRTL ? emp.job_title : (emp.job_title_en || emp.job_title) || "—"}</TableCell>
-                        <TableCell>
+                      <TableRow key={emp.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                        <TableCell className="font-mono border-b border-border/30">{emp.employee_number}</TableCell>
+                        <TableCell className="font-medium border-b border-border/30">{isRTL ? emp.name : (emp.name_en || emp.name)}</TableCell>
+                        <TableCell className="border-b border-border/30">{emp.hr_departments ? (isRTL ? emp.hr_departments.name : (emp.hr_departments.name_en || emp.hr_departments.name)) : "—"}</TableCell>
+                        <TableCell className="border-b border-border/30">{isRTL ? emp.job_title : (emp.job_title_en || emp.job_title) || "—"}</TableCell>
+                        <TableCell className="border-b border-border/30">
                           {emp.contract_end_date ? (
                             <span className={isExpired ? "text-destructive font-medium" : isExpiringSoon ? "text-orange-500 font-medium" : ""}>
                               {emp.contract_end_date}
                             </span>
                           ) : "—"}
                         </TableCell>
-                        <TableCell>{totalSalary(emp).toLocaleString()}</TableCell>
-                        <TableCell>
+                        <TableCell className="border-b border-border/30 tabular-nums">{totalSalary(emp).toLocaleString()}</TableCell>
+                        <TableCell className="border-b border-border/30">
                           <Badge variant={emp.status === "active" ? "default" : "destructive"}>
                             {emp.status === "active" ? (isRTL ? "نشط" : "Active") : (isRTL ? "منتهي" : "Terminated")}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="border-b border-border/30">
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(emp)}><Pencil className="h-4 w-4" /></Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(emp.id)}><Trash2 className="h-4 w-4" /></Button>

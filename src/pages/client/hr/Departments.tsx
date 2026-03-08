@@ -119,33 +119,35 @@ const Departments = () => {
         <CardContent>
           {isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
           departments.length === 0 ? <div className="text-center py-12 text-muted-foreground">{isRTL ? "لا يوجد أقسام" : "No departments"}</div> :
-          <Table>
-            <TableHeader><TableRow>
-              <TableHead>{isRTL ? "القسم" : "Department"}</TableHead>
-              <TableHead>{isRTL ? "المدير" : "Manager"}</TableHead>
-              <TableHead>{isRTL ? "عدد الموظفين" : "Employees"}</TableHead>
-              <TableHead>{isRTL ? "إجراءات" : "Actions"}</TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {departments.map((d: any) => (
-                <TableRow key={d.id}>
-                  <TableCell className="font-medium">{isRTL ? d.name : (d.name_en || d.name)}</TableCell>
-                  <TableCell>{d.manager_name || "—"}</TableCell>
-                  <TableCell>{(empCounts as any)[d.id] || 0}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                        setEditId(d.id);
-                        setForm({ name: d.name, name_en: d.name_en || "", manager_name: d.manager_name || "" });
-                        setShowForm(true);
-                      }}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(d.id)}><Trash2 className="h-4 w-4" /></Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>}
+          <div className="overflow-auto rounded-lg border border-border/50">
+            <Table>
+              <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                <TableHead className="border-b border-border/50">{isRTL ? "القسم" : "Department"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "المدير" : "Manager"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "عدد الموظفين" : "Employees"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "إجراءات" : "Actions"}</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {departments.map((d: any, idx: number) => (
+                  <TableRow key={d.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                    <TableCell className="font-medium border-b border-border/30">{isRTL ? d.name : (d.name_en || d.name)}</TableCell>
+                    <TableCell className="border-b border-border/30">{d.manager_name || "—"}</TableCell>
+                    <TableCell className="border-b border-border/30">{(empCounts as any)[d.id] || 0}</TableCell>
+                    <TableCell className="border-b border-border/30">
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                          setEditId(d.id);
+                          setForm({ name: d.name, name_en: d.name_en || "", manager_name: d.manager_name || "" });
+                          setShowForm(true);
+                        }}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(d.id)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>}
         </CardContent>
       </Card>
     </div>

@@ -140,36 +140,38 @@ const Periods = () => {
         <CardContent>
           {isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
           periods.length === 0 ? <div className="text-center py-12 text-muted-foreground">{isRTL ? "لا توجد فترات حالياً" : "No periods yet"}</div> :
-          <Table>
-            <TableHeader><TableRow>
-              <TableHead>{isRTL ? "الفترة" : "Period"}</TableHead>
-              <TableHead>{isRTL ? "النوع" : "Type"}</TableHead>
-              <TableHead>{isRTL ? "من" : "From"}</TableHead>
-              <TableHead>{isRTL ? "إلى" : "To"}</TableHead>
-              <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-              <TableHead>{isRTL ? "إجراءات" : "Actions"}</TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {periods.map((p: any) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">{isRTL ? p.name : (p.name_en || p.name)}</TableCell>
-                  <TableCell>{periodTypeLabel(p.period_type)}</TableCell>
-                  <TableCell>{p.start_date}</TableCell>
-                  <TableCell>{p.end_date}</TableCell>
-                  <TableCell>
-                    <Badge variant={p.is_closed ? "secondary" : "default"}>
-                      {p.is_closed ? (isRTL ? "مقفلة" : "Closed") : (isRTL ? "مفتوحة" : "Open")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleCloseMutation.mutate({ id: p.id, is_closed: !p.is_closed })}>
-                      {p.is_closed ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>}
+          <div className="overflow-auto rounded-lg border border-border/50">
+            <Table>
+              <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                <TableHead className="border-b border-border/50">{isRTL ? "الفترة" : "Period"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "النوع" : "Type"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "من" : "From"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "إلى" : "To"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "الحالة" : "Status"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "إجراءات" : "Actions"}</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {periods.map((p: any, idx: number) => (
+                  <TableRow key={p.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                    <TableCell className="font-medium border-b border-border/30">{isRTL ? p.name : (p.name_en || p.name)}</TableCell>
+                    <TableCell className="border-b border-border/30">{periodTypeLabel(p.period_type)}</TableCell>
+                    <TableCell className="border-b border-border/30">{p.start_date}</TableCell>
+                    <TableCell className="border-b border-border/30">{p.end_date}</TableCell>
+                    <TableCell className="border-b border-border/30">
+                      <Badge variant={p.is_closed ? "secondary" : "default"}>
+                        {p.is_closed ? (isRTL ? "مقفلة" : "Closed") : (isRTL ? "مفتوحة" : "Open")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="border-b border-border/30">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleCloseMutation.mutate({ id: p.id, is_closed: !p.is_closed })}>
+                        {p.is_closed ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>}
         </CardContent>
       </Card>
     </div>

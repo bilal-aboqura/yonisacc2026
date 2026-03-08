@@ -167,78 +167,80 @@ const UnitsManagement = () => {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{isRTL ? "الاسم" : "Name"}</TableHead>
-                <TableHead>{isRTL ? "الاسم بالإنجليزية" : "English Name"}</TableHead>
-                <TableHead>{isRTL ? "الاختصار" : "Symbol"}</TableHead>
-                <TableHead className="text-center">{isRTL ? "كسور" : "Fractions"}</TableHead>
-                <TableHead>{isRTL ? "الوحدة الأساسية" : "Base Unit"}</TableHead>
-                <TableHead className="text-end">{isRTL ? "معدل التحويل" : "Conversion Rate"}</TableHead>
-                {canManage && <TableHead className="text-center">{isRTL ? "الإجراءات" : "Actions"}</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                  </TableCell>
+          <div className="overflow-auto rounded-lg border border-border/50">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/60 dark:bg-muted/30">
+                  <TableHead className="border-b border-border/50">{isRTL ? "الاسم" : "Name"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الاسم بالإنجليزية" : "English Name"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الاختصار" : "Symbol"}</TableHead>
+                  <TableHead className="text-center border-b border-border/50">{isRTL ? "كسور" : "Fractions"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الوحدة الأساسية" : "Base Unit"}</TableHead>
+                  <TableHead className="text-end border-b border-border/50">{isRTL ? "معدل التحويل" : "Conversion Rate"}</TableHead>
+                  {canManage && <TableHead className="text-center border-b border-border/50">{isRTL ? "الإجراءات" : "Actions"}</TableHead>}
                 </TableRow>
-              ) : units.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12">
-                    <Ruler className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground font-medium">
-                      {isRTL ? "لا توجد وحدات بعد" : "No units yet"}
-                    </p>
-                    {canManage && (
-                      <Button className="mt-3 gap-2" size="sm" onClick={openCreate}>
-                        <Plus className="h-4 w-4" />
-                        {isRTL ? "إضافة وحدة" : "Add Unit"}
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                units.map((unit: any) => (
-                  <TableRow key={unit.id}>
-                    <TableCell className="font-medium">{unit.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{unit.name_en || "-"}</TableCell>
-                    <TableCell>
-                      {unit.symbol ? (
-                        <Badge variant="secondary" className="font-mono">{unit.symbol}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
-                    <TableCell className="text-center">
-                      {unit.allows_fractions ? (
-                        <Badge variant="default">{isRTL ? "نعم" : "Yes"}</Badge>
-                      ) : (
-                        <Badge variant="outline">{isRTL ? "لا" : "No"}</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{getBaseUnitName(unit.base_unit_id)}</TableCell>
-                    <TableCell className="text-end tabular-nums font-medium">{unit.conversion_rate || 1}</TableCell>
-                    {canManage && (
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(unit)} title={isRTL ? "تعديل" : "Edit"}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(unit.id)} title={isRTL ? "حذف" : "Delete"}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    )}
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : units.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12">
+                      <Ruler className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                      <p className="text-muted-foreground font-medium">
+                        {isRTL ? "لا توجد وحدات بعد" : "No units yet"}
+                      </p>
+                      {canManage && (
+                        <Button className="mt-3 gap-2" size="sm" onClick={openCreate}>
+                          <Plus className="h-4 w-4" />
+                          {isRTL ? "إضافة وحدة" : "Add Unit"}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  units.map((unit: any, idx: number) => (
+                    <TableRow key={unit.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="font-medium border-b border-border/30">{unit.name}</TableCell>
+                      <TableCell className="text-muted-foreground border-b border-border/30">{unit.name_en || "-"}</TableCell>
+                      <TableCell className="border-b border-border/30">
+                        {unit.symbol ? (
+                          <Badge variant="secondary" className="font-mono">{unit.symbol}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center border-b border-border/30">
+                        {unit.allows_fractions ? (
+                          <Badge variant="default">{isRTL ? "نعم" : "Yes"}</Badge>
+                        ) : (
+                          <Badge variant="outline">{isRTL ? "لا" : "No"}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground border-b border-border/30">{getBaseUnitName(unit.base_unit_id)}</TableCell>
+                      <TableCell className="text-end tabular-nums font-medium border-b border-border/30">{unit.conversion_rate || 1}</TableCell>
+                      {canManage && (
+                        <TableCell className="border-b border-border/30">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(unit)} title={isRTL ? "تعديل" : "Edit"}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(unit.id)} title={isRTL ? "حذف" : "Delete"}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
           {!isLoading && units.length > 0 && (
             <div className="px-4 py-3 border-t text-sm text-muted-foreground">
               {isRTL ? `إجمالي الوحدات: ${units.length}` : `Total units: ${units.length}`}
