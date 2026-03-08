@@ -19,6 +19,48 @@ interface EmployeeFormProps {
   onClose: () => void;
 }
 
+const NATIONALITIES = [
+  { code: "SA", ar: "سعودي", en: "Saudi" },
+  { code: "AE", ar: "إماراتي", en: "Emirati" },
+  { code: "BH", ar: "بحريني", en: "Bahraini" },
+  { code: "KW", ar: "كويتي", en: "Kuwaiti" },
+  { code: "OM", ar: "عماني", en: "Omani" },
+  { code: "QA", ar: "قطري", en: "Qatari" },
+  { code: "YE", ar: "يمني", en: "Yemeni" },
+  { code: "IQ", ar: "عراقي", en: "Iraqi" },
+  { code: "JO", ar: "أردني", en: "Jordanian" },
+  { code: "SY", ar: "سوري", en: "Syrian" },
+  { code: "LB", ar: "لبناني", en: "Lebanese" },
+  { code: "PS", ar: "فلسطيني", en: "Palestinian" },
+  { code: "EG", ar: "مصري", en: "Egyptian" },
+  { code: "SD", ar: "سوداني", en: "Sudanese" },
+  { code: "LY", ar: "ليبي", en: "Libyan" },
+  { code: "TN", ar: "تونسي", en: "Tunisian" },
+  { code: "DZ", ar: "جزائري", en: "Algerian" },
+  { code: "MA", ar: "مغربي", en: "Moroccan" },
+  { code: "MR", ar: "موريتاني", en: "Mauritanian" },
+  { code: "PK", ar: "باكستاني", en: "Pakistani" },
+  { code: "IN", ar: "هندي", en: "Indian" },
+  { code: "BD", ar: "بنغلاديشي", en: "Bangladeshi" },
+  { code: "LK", ar: "سريلانكي", en: "Sri Lankan" },
+  { code: "NP", ar: "نيبالي", en: "Nepali" },
+  { code: "PH", ar: "فلبيني", en: "Filipino" },
+  { code: "ID", ar: "إندونيسي", en: "Indonesian" },
+  { code: "ET", ar: "إثيوبي", en: "Ethiopian" },
+  { code: "ER", ar: "إريتري", en: "Eritrean" },
+  { code: "NG", ar: "نيجيري", en: "Nigerian" },
+  { code: "KE", ar: "كيني", en: "Kenyan" },
+  { code: "GH", ar: "غاني", en: "Ghanaian" },
+  { code: "TR", ar: "تركي", en: "Turkish" },
+  { code: "AF", ar: "أفغاني", en: "Afghan" },
+  { code: "MM", ar: "ميانماري", en: "Myanmar" },
+  { code: "US", ar: "أمريكي", en: "American" },
+  { code: "GB", ar: "بريطاني", en: "British" },
+  { code: "FR", ar: "فرنسي", en: "French" },
+  { code: "DE", ar: "ألماني", en: "German" },
+  { code: "OTHER", ar: "أخرى", en: "Other" },
+];
+
 const defaultForm = {
   employee_number: "", name: "", name_en: "", national_id: "", phone: "", email: "",
   hire_date: new Date().toISOString().split("T")[0],
@@ -81,7 +123,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
     return { ...defaultForm };
   });
 
-  const isSaudi = form.nationality === "saudi";
+  const isSaudi = form.nationality === "SA";
 
   // Auto-calculate GOSI for Saudi employees: (basic + housing) * 9.75%
   const gosiAmount = useMemo(() => {
@@ -195,9 +237,10 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
                 <Label>{isRTL ? "الجنسية" : "Nationality"}</Label>
                 <Select value={form.nationality} onValueChange={(v) => setForm({ ...form, nationality: v })}>
                   <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="saudi">{isRTL ? "سعودي" : "Saudi"}</SelectItem>
-                    <SelectItem value="non-saudi">{isRTL ? "غير سعودي" : "Non-Saudi"}</SelectItem>
+                  <SelectContent className="max-h-60">
+                    {NATIONALITIES.map((n) => (
+                      <SelectItem key={n.code} value={n.code}>{isRTL ? n.ar : n.en}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
