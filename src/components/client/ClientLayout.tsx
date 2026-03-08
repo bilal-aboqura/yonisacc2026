@@ -214,6 +214,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: CreditCard, label: "طرق الدفع", labelEn: "Payment Methods", path: "/client/settings/payment-methods", permission: "VIEW_SETTINGS" },
       { icon: Palette, label: "المظهر", labelEn: "Appearance", path: "/client/settings/appearance", permission: "VIEW_SETTINGS" },
       { icon: Receipt, label: "الفوترة الإلكترونية", labelEn: "E-Invoicing (ZATCA)", path: "/client/settings/zatca", permission: "VIEW_SETTINGS" },
+      { icon: Clock, label: "الفترات المالية", labelEn: "Fiscal Periods", path: "/client/settings/fiscal-periods", permission: "VIEW_SETTINGS" },
     ]
   },
 ];
