@@ -198,6 +198,7 @@ import OwnerLandingContent from "./pages/owner/OwnerLandingContent";
 import OwnerAuditLogs from "./pages/owner/OwnerAuditLogs";
 import OwnerActivities from "./pages/owner/OwnerActivities";
 import ManageCompanyAccess from "./pages/owner/ManageCompanyAccess";
+import CreateSubscriber from "./pages/owner/CreateSubscriber";
 import SubscriptionExpired from "./pages/SubscriptionExpired";
 import AcceptInvitation from "./pages/AcceptInvitation";
 
@@ -433,6 +434,7 @@ const App = () => (
             <Route path="/owner" element={<OwnerLayout />}>
               <Route index element={<OwnerDashboard />} />
               <Route path="subscribers" element={<OwnerSubscribers />} />
+              <Route path="subscribers/create" element={<CreateSubscriber />} />
               <Route path="subscribers/:id/access" element={<ManageCompanyAccess />} />
               <Route path="subscriptions" element={<OwnerSubscriptions />} />
               <Route path="plans" element={<OwnerPlans />} />

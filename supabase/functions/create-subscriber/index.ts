@@ -78,6 +78,7 @@ serve(async (req) => {
     const taxNumber = (body.tax_number || '').trim() || null;
     const commercialRegister = (body.commercial_register || '').trim() || null;
     const address = (body.address || '').trim() || null;
+    const allowedModules = body.allowed_modules || null;
 
     // 3. Validate
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -190,6 +191,15 @@ serve(async (req) => {
     if (normalizedPhone) profileUpdate.phone_number = normalizedPhone;
 
     await admin.from('profiles').update(profileUpdate).eq('user_id', newUserId);
+
+    // 7. Store allowed_modules on the company record if provided
+    if (allowedModules && companyId) {
+      // Update company_members for the owner with allowed_modules
+      await admin.from('company_members')
+        .update({ allowed_modules: allowedModules })
+        .eq('company_id', companyId)
+        .eq('user_id', newUserId);
+    }
 
     return new Response(JSON.stringify({ 
       success: true,
