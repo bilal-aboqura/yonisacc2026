@@ -198,6 +198,7 @@ import OwnerLandingContent from "./pages/owner/OwnerLandingContent";
 import OwnerAuditLogs from "./pages/owner/OwnerAuditLogs";
 import OwnerActivities from "./pages/owner/OwnerActivities";
 import ManageCompanyAccess from "./pages/owner/ManageCompanyAccess";
+import CreateSubscriber from "./pages/owner/CreateSubscriber";
 import SubscriptionExpired from "./pages/SubscriptionExpired";
 import AcceptInvitation from "./pages/AcceptInvitation";
 
