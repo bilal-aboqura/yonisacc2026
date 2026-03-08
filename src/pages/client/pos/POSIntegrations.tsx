@@ -199,7 +199,7 @@ const POSIntegrations = () => {
   // Save Foodics settings
   const saveFoodicsMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("pos_api_integrations")
         .update({
           settings: {
