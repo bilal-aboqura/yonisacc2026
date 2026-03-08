@@ -148,7 +148,7 @@ const POSIntegrations = () => {
   // Toggle integration
   const toggleMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("pos_api_integrations")
         .update({ is_active })
         .eq("id", id);
