@@ -3381,6 +3381,7 @@ export type Database = {
           transport_allowance: number | null
           updated_at: string | null
           visa_expiry: string | null
+          work_shift_id: string | null
         }
         Insert: {
           account_id?: string | null
@@ -3423,6 +3424,7 @@ export type Database = {
           transport_allowance?: number | null
           updated_at?: string | null
           visa_expiry?: string | null
+          work_shift_id?: string | null
         }
         Update: {
           account_id?: string | null
@@ -3465,6 +3467,7 @@ export type Database = {
           transport_allowance?: number | null
           updated_at?: string | null
           visa_expiry?: string | null
+          work_shift_id?: string | null
         }
         Relationships: [
           {
@@ -3486,6 +3489,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "hr_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_employees_work_shift_id_fkey"
+            columns: ["work_shift_id"]
+            isOneToOne: false
+            referencedRelation: "hr_work_shifts"
             referencedColumns: ["id"]
           },
         ]
@@ -3725,6 +3735,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "hr_payroll_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_penalty_rules: {
+        Row: {
+          category: string
+          company_id: string
+          created_at: string | null
+          fifth_offense: string | null
+          first_offense: string
+          fourth_offense: string | null
+          id: string
+          is_active: boolean | null
+          second_offense: string
+          sort_order: number | null
+          third_offense: string
+          updated_at: string | null
+          violation_code: string
+          violation_name: string
+          violation_name_en: string | null
+        }
+        Insert: {
+          category?: string
+          company_id: string
+          created_at?: string | null
+          fifth_offense?: string | null
+          first_offense?: string
+          fourth_offense?: string | null
+          id?: string
+          is_active?: boolean | null
+          second_offense?: string
+          sort_order?: number | null
+          third_offense?: string
+          updated_at?: string | null
+          violation_code: string
+          violation_name: string
+          violation_name_en?: string | null
+        }
+        Update: {
+          category?: string
+          company_id?: string
+          created_at?: string | null
+          fifth_offense?: string | null
+          first_offense?: string
+          fourth_offense?: string | null
+          id?: string
+          is_active?: boolean | null
+          second_offense?: string
+          sort_order?: number | null
+          third_offense?: string
+          updated_at?: string | null
+          violation_code?: string
+          violation_name?: string
+          violation_name_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_penalty_rules_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
