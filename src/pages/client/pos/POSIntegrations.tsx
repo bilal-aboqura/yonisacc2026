@@ -91,7 +91,7 @@ const POSIntegrations = () => {
   const { data: orders = [], isLoading: loadingOrders } = useQuery({
     queryKey: ["pos-api-orders", companyId, statusFilter],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any)
         .from("pos_api_orders")
         .select("*")
         .eq("company_id", companyId!)
