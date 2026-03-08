@@ -41,13 +41,11 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
   const [salesRevenueAccount, setSalesRevenueAccount] = useState<string>("");
   const [salesDiscountAccount, setSalesDiscountAccount] = useState<string>("");
   const [salesTaxAccount, setSalesTaxAccount] = useState<string>("");
-  const [salesReceivableAccount, setSalesReceivableAccount] = useState<string>("");
 
   // Purchase settings
   const [purchaseExpenseAccount, setPurchaseExpenseAccount] = useState<string>("");
   const [purchaseDiscountAccount, setPurchaseDiscountAccount] = useState<string>("");
   const [purchaseTaxAccount, setPurchaseTaxAccount] = useState<string>("");
-  const [purchasePayableAccount, setPurchasePayableAccount] = useState<string>("");
 
   // Inventory settings (module_type = 'inventory')
   const [inventoryAccount, setInventoryAccount] = useState<string>("");
@@ -89,8 +87,8 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
 
   const fetchBranchSettings = async (branchId: string) => {
     // Reset all
-    setSalesRevenueAccount(""); setSalesDiscountAccount(""); setSalesTaxAccount(""); setSalesReceivableAccount("");
-    setPurchaseExpenseAccount(""); setPurchaseDiscountAccount(""); setPurchaseTaxAccount(""); setPurchasePayableAccount("");
+    setSalesRevenueAccount(""); setSalesDiscountAccount(""); setSalesTaxAccount("");
+    setPurchaseExpenseAccount(""); setPurchaseDiscountAccount(""); setPurchaseTaxAccount("");
     setInventoryAccount(""); setCogsAccount(""); setInventoryGainAccount(""); setInventoryLossAccount("");
     setConsumptionExpenseAccount(""); setWipAccount("");
 
@@ -106,12 +104,10 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
           setSalesRevenueAccount(row.sales_revenue_account_id || "");
           setSalesDiscountAccount(row.sales_discount_account_id || "");
           setSalesTaxAccount(row.sales_tax_account_id || "");
-          setSalesReceivableAccount(row.sales_receivable_account_id || "");
         } else if (row.module_type === "purchases") {
           setPurchaseExpenseAccount(row.purchase_expense_account_id || "");
           setPurchaseDiscountAccount(row.purchase_discount_account_id || "");
           setPurchaseTaxAccount(row.purchase_tax_account_id || "");
-          setPurchasePayableAccount(row.purchase_payable_account_id || "");
         } else if (row.module_type === "inventory") {
           setInventoryAccount(row.inventory_account_id || "");
           setCogsAccount(row.cogs_account_id || "");
@@ -140,12 +136,10 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
         payload.sales_revenue_account_id = salesRevenueAccount || null;
         payload.sales_discount_account_id = salesDiscountAccount || null;
         payload.sales_tax_account_id = salesTaxAccount || null;
-        payload.sales_receivable_account_id = salesReceivableAccount || null;
       } else if (moduleType === "purchases") {
         payload.purchase_expense_account_id = purchaseExpenseAccount || null;
         payload.purchase_discount_account_id = purchaseDiscountAccount || null;
         payload.purchase_tax_account_id = purchaseTaxAccount || null;
-        payload.purchase_payable_account_id = purchasePayableAccount || null;
       } else if (moduleType === "inventory") {
         payload.inventory_account_id = inventoryAccount || null;
         payload.cogs_account_id = cogsAccount || null;
@@ -286,7 +280,6 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
                   {renderAccountSelect("حساب إيرادات المبيعات", "Sales Revenue Account", salesRevenueAccount, v => setSalesRevenueAccount(v === "none" ? "" : v))}
                   {renderAccountSelect("حساب خصم المبيعات", "Sales Discount Account", salesDiscountAccount, v => setSalesDiscountAccount(v === "none" ? "" : v))}
                   {renderAccountSelect("حساب ضريبة المبيعات", "Sales Tax Account", salesTaxAccount, v => setSalesTaxAccount(v === "none" ? "" : v))}
-                  {renderAccountSelect("حساب الذمم المدينة", "Receivable Account", salesReceivableAccount, v => setSalesReceivableAccount(v === "none" ? "" : v))}
                 </div>
                 <Button onClick={() => handleSave("sales")} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
@@ -314,7 +307,6 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
                   {renderAccountSelect("حساب مصروفات المشتريات", "Purchase Expense Account", purchaseExpenseAccount, v => setPurchaseExpenseAccount(v === "none" ? "" : v))}
                   {renderAccountSelect("حساب خصم المشتريات", "Purchase Discount Account", purchaseDiscountAccount, v => setPurchaseDiscountAccount(v === "none" ? "" : v))}
                   {renderAccountSelect("حساب ضريبة المشتريات", "Purchase Tax Account", purchaseTaxAccount, v => setPurchaseTaxAccount(v === "none" ? "" : v))}
-                  {renderAccountSelect("حساب الذمم الدائنة", "Payable Account", purchasePayableAccount, v => setPurchasePayableAccount(v === "none" ? "" : v))}
                 </div>
                 <Button onClick={() => handleSave("purchases")} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
