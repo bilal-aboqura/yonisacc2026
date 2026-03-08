@@ -102,6 +102,7 @@ const baseMenuItems: MenuItem[] = [
     labelEn: "Financial Accounting",
     moduleKey: "accounting",
     children: [
+      { icon: BookOpenCheck, label: "دليل الحسابات", labelEn: "Chart of Accounts", path: "/client/accounts", permission: "VIEW_ACCOUNTS" },
       { icon: FileSpreadsheet, label: "الأرصدة الإفتتاحية", labelEn: "Opening Balances", path: "/client/accounts/opening-balances", permission: "VIEW_OPENING_BALANCES" },
       { icon: Target, label: "مراكز التكلفة", labelEn: "Cost Centers", path: "/client/cost-centers", permission: "VIEW_COST_CENTERS" },
       { icon: BookOpen, label: "قيود اليومية", labelEn: "Journal Entries", path: "/client/journal", permission: "VIEW_JOURNAL" },
