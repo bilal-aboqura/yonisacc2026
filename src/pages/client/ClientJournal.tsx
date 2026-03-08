@@ -10,6 +10,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -310,10 +311,11 @@ const ClientJournal = () => {
 
       {/* Entries Table */}
       <Card className="shadow-sm border-border/60 rounded-2xl overflow-hidden">
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
             {t("client.journal.entriesLog")}
+            {filtered && <Badge variant="secondary" className="ms-2 font-medium">{filtered.length}</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -350,8 +352,8 @@ const ClientJournal = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((entry) => (
-                    <TableRow key={entry.id} className="group">
+                  {filtered.map((entry, idx) => (
+                    <TableRow key={entry.id} className={`group ${idx % 2 === 1 ? "bg-muted/30" : ""}`}>
                       <TableCell className="font-mono font-medium text-primary">{entry.entry_number}</TableCell>
                       <TableCell className="text-muted-foreground">{entry.entry_date}</TableCell>
                       <TableCell className="max-w-[250px] truncate">{entry.description || "-"}</TableCell>
@@ -427,6 +429,20 @@ const ClientJournal = () => {
                     </TableRow>
                   ))}
                 </TableBody>
+                <TableFooter>
+                  <TableRow className="bg-muted/50 font-semibold">
+                    <TableCell colSpan={3} className="text-sm">{isRTL ? "الإجمالي" : "Total"}</TableCell>
+                    <TableCell className="text-end tabular-nums">
+                      {formatNumber(filtered.reduce((s, e) => s + (e.total_debit || 0), 0))}
+                      <span className="text-xs text-muted-foreground ms-1">{currency}</span>
+                    </TableCell>
+                    <TableCell className="text-end tabular-nums">
+                      {formatNumber(filtered.reduce((s, e) => s + (e.total_credit || 0), 0))}
+                      <span className="text-xs text-muted-foreground ms-1">{currency}</span>
+                    </TableCell>
+                    <TableCell colSpan={2} />
+                  </TableRow>
+                </TableFooter>
               </Table>
             </TooltipProvider>
           )}

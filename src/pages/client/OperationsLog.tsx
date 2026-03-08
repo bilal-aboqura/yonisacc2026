@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -147,10 +147,10 @@ const OperationsLog = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((entry) => {
+            {data.map((entry, idx) => {
               const source = getEntrySource(entry);
               return (
-                <TableRow key={entry.id}>
+                <TableRow key={entry.id} className={idx % 2 === 1 ? "bg-muted/30" : ""}>
                   <TableCell className="font-mono font-medium text-primary">{entry.entry_number}</TableCell>
                   <TableCell className="text-muted-foreground">{entry.entry_date}</TableCell>
                   <TableCell>
@@ -185,6 +185,20 @@ const OperationsLog = () => {
               );
             })}
           </TableBody>
+          <TableFooter>
+            <TableRow className="bg-muted/50 font-semibold">
+              <TableCell colSpan={4} className="text-sm">{isRTL ? "الإجمالي" : "Total"}</TableCell>
+              <TableCell className="text-end tabular-nums">
+                {formatNumber(data.reduce((s, e) => s + (e.total_debit || 0), 0))}
+                <span className="text-xs text-muted-foreground ms-1">{currency}</span>
+              </TableCell>
+              <TableCell className="text-end tabular-nums">
+                {formatNumber(data.reduce((s, e) => s + (e.total_credit || 0), 0))}
+                <span className="text-xs text-muted-foreground ms-1">{currency}</span>
+              </TableCell>
+              <TableCell colSpan={2} />
+            </TableRow>
+          </TableFooter>
         </Table>
       </TooltipProvider>
     );
