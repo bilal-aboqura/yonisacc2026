@@ -112,7 +112,7 @@ const POSIntegrations = () => {
     queryFn: async () => {
       const integrationIds = integrations.map((i: any) => i.id);
       if (integrationIds.length === 0) return [];
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("pos_api_logs")
         .select("*")
         .in("integration_id", integrationIds)
