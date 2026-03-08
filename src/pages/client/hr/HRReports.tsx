@@ -145,35 +145,37 @@ const HRReports = () => {
             </CardHeader>
             <CardContent>
               {loadingAtt ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
+              <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
-                <TableHeader><TableRow>
-                  <TableHead>{isRTL ? "رقم" : "#"}</TableHead>
-                  <TableHead>{isRTL ? "الموظف" : "Employee"}</TableHead>
-                  <TableHead>{isRTL ? "القسم" : "Dept"}</TableHead>
-                  <TableHead>{isRTL ? "حضور" : "Present"}</TableHead>
-                  <TableHead>{isRTL ? "غياب" : "Absent"}</TableHead>
-                  <TableHead>{isRTL ? "تأخر" : "Late"}</TableHead>
-                  <TableHead>{isRTL ? "إجازة" : "Leave"}</TableHead>
-                  <TableHead>{isRTL ? "الإجمالي" : "Total"}</TableHead>
+                <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                  <TableHead className="border-b border-border/50">{isRTL ? "رقم" : "#"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "القسم" : "Dept"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "حضور" : "Present"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "غياب" : "Absent"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "تأخر" : "Late"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "إجازة" : "Leave"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الإجمالي" : "Total"}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {attSummary.filter(e => e.total > 0).map((e) => (
-                    <TableRow key={e.id}>
-                      <TableCell className="font-mono">{e.number}</TableCell>
-                      <TableCell className="font-medium">{e.name}</TableCell>
-                      <TableCell>{e.dept}</TableCell>
-                      <TableCell className="text-emerald-600 font-bold">{e.present}</TableCell>
-                      <TableCell className="text-red-600 font-bold">{e.absent}</TableCell>
-                      <TableCell className="text-amber-600">{e.late}</TableCell>
-                      <TableCell className="text-blue-600">{e.leave}</TableCell>
-                      <TableCell>{e.total}</TableCell>
+                  {attSummary.filter(e => e.total > 0).map((e, idx) => (
+                    <TableRow key={e.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="font-mono border-b border-border/30">{e.number}</TableCell>
+                      <TableCell className="font-medium border-b border-border/30">{e.name}</TableCell>
+                      <TableCell className="border-b border-border/30">{e.dept}</TableCell>
+                      <TableCell className="text-emerald-600 font-bold border-b border-border/30">{e.present}</TableCell>
+                      <TableCell className="text-red-600 font-bold border-b border-border/30">{e.absent}</TableCell>
+                      <TableCell className="text-amber-600 border-b border-border/30">{e.late}</TableCell>
+                      <TableCell className="text-blue-600 border-b border-border/30">{e.leave}</TableCell>
+                      <TableCell className="border-b border-border/30">{e.total}</TableCell>
                     </TableRow>
                   ))}
                   {attSummary.filter(e => e.total > 0).length === 0 && (
                     <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{isRTL ? "لا توجد بيانات" : "No data"}</TableCell></TableRow>
                   )}
                 </TableBody>
-              </Table>}
+              </Table>
+              </div>}
             </CardContent>
           </Card>
         </TabsContent>
