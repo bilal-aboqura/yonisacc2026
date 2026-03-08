@@ -468,14 +468,24 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 210mm;
-    min-height: 297mm;
-    margin: 0;
-    padding: 0;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: auto;
+    margin: 0 !important;
+    padding: 0 !important;
     background: white !important;
     color: #1a1a1a !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  /* Force wrapper to fill page */
+  .print-wrapper {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
   }
   .print\:hidden {
     display: none !important;
@@ -492,7 +502,16 @@
   }
   @page {
     size: A4 portrait;
-    margin: 12mm 10mm;
+    margin: 10mm;
+  }
+  /* Force tables full width with visible borders */
+  .print-layout table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  .print-layout table th,
+  .print-layout table td {
+    border: 1px solid #374151 !important;
   }
   /* Table pagination */
   table {
