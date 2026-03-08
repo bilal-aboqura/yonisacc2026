@@ -483,7 +483,6 @@
     width: 100% !important;
     max-width: none !important;
     min-height: auto !important;
-    height: auto !important;
     padding: 0 !important;
     margin: 0 !important;
     box-shadow: none !important;
@@ -503,7 +502,7 @@
   }
   @page {
     size: A4 portrait;
-    margin: 8mm;
+    margin: 10mm;
   }
   /* Force tables full width with visible borders */
   .print-layout table {
