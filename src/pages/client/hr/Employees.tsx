@@ -46,6 +46,17 @@ const Employees = () => {
     enabled: !!companyId,
   });
 
+  const { data: workShifts = [] } = useQuery({
+    queryKey: ["hr-work-shifts", companyId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hr_work_shifts").select("*").eq("company_id", companyId).eq("is_active", true).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await (supabase as any).from("hr_employees").delete().eq("id", id);
