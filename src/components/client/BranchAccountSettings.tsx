@@ -41,7 +41,6 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
   const [salesRevenueAccount, setSalesRevenueAccount] = useState<string>("");
   const [salesDiscountAccount, setSalesDiscountAccount] = useState<string>("");
   const [salesTaxAccount, setSalesTaxAccount] = useState<string>("");
-  const [salesReceivableAccount, setSalesReceivableAccount] = useState<string>("");
 
   // Purchase settings
   const [purchaseExpenseAccount, setPurchaseExpenseAccount] = useState<string>("");
