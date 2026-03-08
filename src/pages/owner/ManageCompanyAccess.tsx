@@ -6,14 +6,35 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import {
   Loader2, ShieldCheck, Settings2, ArrowLeft, ArrowRight, Building2, Save,
-  Package, Shield, Gauge,
-  FileText, Users, BarChart3, Car, Calculator,
+  Package, Shield, Gauge, Blocks, Check, X,
+  FileText, Users, BarChart3, Car, Calculator, Landmark, CreditCard,
+  ShoppingCart, Warehouse, Heart, Building, Truck, Gem, Monitor, HardDrive,
 } from "lucide-react";
+
+// ─── Module definitions ───────────────────────────────────────────────────
+const ALL_MODULES = [
+  { key: "accounting", labelAr: "المحاسبة", labelEn: "Accounting", icon: Calculator, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
+  { key: "sales", labelAr: "المبيعات", labelEn: "Sales", icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+  { key: "purchases", labelAr: "المشتريات", labelEn: "Purchases", icon: ShoppingCart, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/30" },
+  { key: "inventory", labelAr: "المخزون", labelEn: "Inventory", icon: Warehouse, color: "text-indigo-600", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
+  { key: "hr", labelAr: "الموارد البشرية", labelEn: "HR", icon: Users, color: "text-pink-600", bg: "bg-pink-50 dark:bg-pink-950/30" },
+  { key: "treasury", labelAr: "الخزينة", labelEn: "Treasury", icon: Landmark, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" },
+  { key: "reports", labelAr: "التقارير", labelEn: "Reports", icon: BarChart3, color: "text-cyan-600", bg: "bg-cyan-50 dark:bg-cyan-950/30" },
+  { key: "pos", labelAr: "نقاط البيع", labelEn: "POS", icon: Monitor, color: "text-violet-600", bg: "bg-violet-50 dark:bg-violet-950/30" },
+  { key: "gold", labelAr: "الذهب والمجوهرات", labelEn: "Gold & Jewelry", icon: Gem, color: "text-yellow-600", bg: "bg-yellow-50 dark:bg-yellow-950/30" },
+  { key: "autoparts", labelAr: "قطع السيارات", labelEn: "Auto Parts", icon: Car, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" },
+  { key: "clinic", labelAr: "العيادة", labelEn: "Clinic", icon: Heart, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/30" },
+  { key: "realestate", labelAr: "العقارات", labelEn: "Real Estate", icon: Building, color: "text-teal-600", bg: "bg-teal-50 dark:bg-teal-950/30" },
+  { key: "delivery", labelAr: "التوصيل", labelEn: "Delivery", icon: Truck, color: "text-sky-600", bg: "bg-sky-50 dark:bg-sky-950/30" },
+  { key: "assets", labelAr: "الأصول الثابتة", labelEn: "Fixed Assets", icon: HardDrive, color: "text-slate-600", bg: "bg-slate-50 dark:bg-slate-950/30" },
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────
 interface OverrideData {
@@ -59,11 +80,6 @@ const moduleLabels: Record<string, { ar: string; en: string }> = {
   pos: { ar: "نقاط البيع", en: "POS" },
 };
 
-const screenModuleIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  settings: Settings2, sales: FileText, inventory: Package,
-  accounting: Calculator, hr: Users, reports: BarChart3, auto_parts: Car, gold: Package,
-};
-
 // ─── Component ────────────────────────────────────────────────────────────
 const ManageCompanyAccess = () => {
   const { id } = useParams<{ id: string }>();
@@ -74,11 +90,15 @@ const ManageCompanyAccess = () => {
   const [company, setCompany] = useState<any>(null);
   const [planFeatures, setPlanFeatures] = useState<any>(null);
 
-  // Tab 1: Override data (limits only)
+  // Tab 1: Modules
+  const [selectedModules, setSelectedModules] = useState<string[]>(ALL_MODULES.map(m => m.key));
+  const [savingModules, setSavingModules] = useState(false);
+
+  // Tab 2: Limits
   const [data, setData] = useState<OverrideData>(defaultOverride);
   const [savingOverride, setSavingOverride] = useState(false);
 
-  // Tab 2: Permission bounds
+  // Tab 3: Permissions
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
   const [planId, setPlanId] = useState<string | null>(null);
@@ -92,10 +112,23 @@ const ManageCompanyAccess = () => {
         // Company info
         const { data: companyData } = await supabase
           .from("companies")
-          .select("id, name, name_en, email, activity_type")
+          .select("id, name, name_en, email, activity_type, owner_id")
           .eq("id", id)
           .single();
         setCompany(companyData);
+
+        // Load allowed_modules from company_members (owner)
+        if (companyData?.owner_id) {
+          const { data: memberData } = await supabase
+            .from("company_members")
+            .select("allowed_modules")
+            .eq("company_id", id)
+            .eq("user_id", companyData.owner_id)
+            .maybeSingle();
+          if (memberData?.allowed_modules && Array.isArray(memberData.allowed_modules)) {
+            setSelectedModules(memberData.allowed_modules);
+          }
+        }
 
         // Override data
         const { data: override } = await supabase
@@ -150,6 +183,26 @@ const ManageCompanyAccess = () => {
     };
     load();
   }, [id]);
+
+  // ─── Save: Modules ────────────────────────────────────────────────
+  const handleSaveModules = async () => {
+    if (!id || !company?.owner_id) return;
+    setSavingModules(true);
+    try {
+      // Update all company_members for this company
+      const { error } = await supabase
+        .from("company_members")
+        .update({ allowed_modules: selectedModules })
+        .eq("company_id", id)
+        .eq("user_id", company.owner_id);
+      if (error) throw error;
+      toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تحديث الوحدات المتاحة" : "Available modules updated" });
+    } catch (e: any) {
+      toast({ title: isRTL ? "خطأ" : "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingModules(false);
+    }
+  };
 
   // ─── Save: Limits ──────────────────────────────────────────────────
   const handleSaveOverride = async () => {
@@ -213,10 +266,24 @@ const ManageCompanyAccess = () => {
     return groups;
   }, [permissions]);
 
+  const toggleModule = (key: string) => {
+    setSelectedModules(prev => prev.includes(key) ? prev.filter(m => m !== key) : [...prev, key]);
+  };
+
   const togglePermission = (permId: string) => {
     setBlockedIds(prev => {
       const next = new Set(prev);
       if (next.has(permId)) next.delete(permId); else next.add(permId);
+      return next;
+    });
+  };
+
+  const toggleModulePerms = (module: string) => {
+    const perms = groupedPerms[module] || [];
+    const allBlocked = perms.every(p => blockedIds.has(p.id));
+    setBlockedIds(prev => {
+      const next = new Set(prev);
+      perms.forEach(p => { allBlocked ? next.delete(p.id) : next.add(p.id); });
       return next;
     });
   };
@@ -237,8 +304,11 @@ const ManageCompanyAccess = () => {
     );
   }
 
+  const activeCount = selectedModules.length;
+  const totalCount = ALL_MODULES.length;
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/owner/subscribers")}>
@@ -262,8 +332,12 @@ const ManageCompanyAccess = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="limits" className="w-full">
-        <TabsList className="w-full grid grid-cols-2 mb-4">
+      <Tabs defaultValue="modules" className="w-full">
+        <TabsList className="w-full grid grid-cols-3 mb-4">
+          <TabsTrigger value="modules" className="gap-1.5 text-xs sm:text-sm">
+            <Blocks className="h-3.5 w-3.5 hidden sm:block" />
+            {isRTL ? "الوحدات" : "Modules"}
+          </TabsTrigger>
           <TabsTrigger value="limits" className="gap-1.5 text-xs sm:text-sm">
             <Gauge className="h-3.5 w-3.5 hidden sm:block" />
             {isRTL ? "الحدود" : "Limits"}
@@ -274,9 +348,100 @@ const ManageCompanyAccess = () => {
           </TabsTrigger>
         </TabsList>
 
+        {/* ─── Tab: Modules ──────────────────────────────────────── */}
+        <TabsContent value="modules" className="space-y-4">
+          {/* Summary bar */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-sm font-semibold px-3 py-1">
+                      {activeCount}/{totalCount}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {isRTL ? "وحدة مفعّلة" : "modules active"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedModules(ALL_MODULES.map(m => m.key))}
+                    disabled={activeCount === totalCount}
+                    className="gap-1.5"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    {isRTL ? "تحديد الكل" : "Select All"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedModules([])}
+                    disabled={activeCount === 0}
+                    className="gap-1.5"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    {isRTL ? "إلغاء الكل" : "Deselect All"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Module grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {ALL_MODULES.map((mod) => {
+              const Icon = mod.icon;
+              const isActive = selectedModules.includes(mod.key);
+              return (
+                <Card
+                  key={mod.key}
+                  className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
+                    isActive
+                      ? "border-primary/40 shadow-sm"
+                      : "opacity-50 border-muted"
+                  }`}
+                  onClick={() => toggleModule(mod.key)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg ${mod.bg} flex items-center justify-center`}>
+                          <Icon className={`h-5 w-5 ${mod.color}`} />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {isRTL ? mod.labelAr : mod.labelEn}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isRTL ? mod.labelEn : mod.labelAr}
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={isActive}
+                        onCheckedChange={() => toggleModule(mod.key)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={handleSaveModules} disabled={savingModules} className="gap-2">
+              {savingModules ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {isRTL ? "حفظ الوحدات" : "Save Modules"}
+            </Button>
+          </div>
+        </TabsContent>
+
         {/* ─── Tab: Limits ─────────────────────────────────────────── */}
         <TabsContent value="limits" className="space-y-4">
-          {/* Custom Override Toggle */}
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -300,7 +465,6 @@ const ManageCompanyAccess = () => {
                 </Badge>
               )}
 
-              {/* Limits */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -345,10 +509,12 @@ const ManageCompanyAccess = () => {
           </div>
         </TabsContent>
 
-        {/* ─── Tab: Permissions (Table) ──────────────────────────────── */}
+        {/* ─── Tab: Permissions ──────────────────────────────────── */}
         <TabsContent value="permissions" className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {isRTL ? "حدد السقف الأعلى للصلاحيات المتاحة لهذه الباقة (الصلاحيات المحظورة لن تكون متاحة حتى لو أضافها مدير الشركة)" : "Set the maximum permissions available (blocked permissions won't be available even if assigned by company admin)"}
+            {isRTL
+              ? "حدد السقف الأعلى للصلاحيات المتاحة لهذه الباقة (الصلاحيات المحظورة لن تكون متاحة حتى لو أضافها مدير الشركة)"
+              : "Set the maximum permissions available (blocked permissions won't be available even if assigned by company admin)"}
           </p>
 
           {!planId && (
@@ -360,80 +526,72 @@ const ManageCompanyAccess = () => {
           )}
 
           {planId && (
-            <Card>
-              <CardContent className="p-0">
-                <div className="relative w-full overflow-auto">
-                  <table className="w-full caption-bottom text-sm">
-                    <thead className="[&_tr]:border-b [&_tr]:bg-muted/60 dark:[&_tr]:bg-muted/30">
-                      <tr className="border-b">
-                        <th className="h-12 px-4 text-start align-middle font-semibold text-muted-foreground whitespace-nowrap">
-                          {isRTL ? "الوحدة" : "Module"}
-                        </th>
-                        <th className="h-12 px-4 text-start align-middle font-semibold text-muted-foreground whitespace-nowrap">
-                          {isRTL ? "الصلاحية" : "Permission"}
-                        </th>
-                        <th className="h-12 px-4 text-start align-middle font-semibold text-muted-foreground whitespace-nowrap">
-                          {isRTL ? "الكود" : "Code"}
-                        </th>
-                        <th className="h-12 px-4 text-center align-middle font-semibold text-muted-foreground whitespace-nowrap">
-                          {isRTL ? "مسموح" : "Allowed"}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="[&_tr:last-child]:border-0">
-                      {Object.entries(groupedPerms).map(([module, perms]) => {
-                        const label = moduleLabels[module] || { ar: module, en: module };
-                        return perms.map((perm, idx) => {
+            <div className="space-y-3">
+              {Object.entries(groupedPerms).map(([module, perms]) => {
+                const label = moduleLabels[module] || { ar: module, en: module };
+                const allowedCount = perms.filter(p => !blockedIds.has(p.id)).length;
+                const allAllowed = allowedCount === perms.length;
+                const noneAllowed = allowedCount === 0;
+
+                return (
+                  <Card key={module}>
+                    <CardHeader className="p-4 pb-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-sm font-semibold">
+                            {isRTL ? label.ar : label.en}
+                          </CardTitle>
+                          <Badge variant={noneAllowed ? "destructive" : allAllowed ? "default" : "secondary"} className="text-xs">
+                            {allowedCount}/{perms.length}
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7"
+                          onClick={() => toggleModulePerms(module)}
+                        >
+                          {allAllowed
+                            ? (isRTL ? "حظر الكل" : "Block All")
+                            : (isRTL ? "سماح الكل" : "Allow All")}
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {perms.map(perm => {
                           const isAllowed = !blockedIds.has(perm.id);
                           return (
-                            <tr
+                            <div
                               key={perm.id}
-                              className={`border-b transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${
-                                !isAllowed ? "bg-destructive/5" : ""
+                              className={`flex items-center justify-between p-2.5 rounded-lg border transition-colors ${
+                                isAllowed
+                                  ? "border-border hover:border-primary/30"
+                                  : "border-destructive/20 bg-destructive/5"
                               }`}
                             >
-                              {idx === 0 && (
-                                <td
-                                  rowSpan={perms.length}
-                                  className="px-4 py-3.5 align-middle font-medium border-e"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    {(() => {
-                                      const Icon = screenModuleIcons[module] || Shield;
-                                      return <Icon className="h-4 w-4 text-muted-foreground" />;
-                                    })()}
-                                    <span>{isRTL ? label.ar : label.en}</span>
-                                  </div>
-                                  <Badge variant="secondary" className="mt-1 text-xs">
-                                    {perms.filter(p => !blockedIds.has(p.id)).length}/{perms.length}
-                                  </Badge>
-                                </td>
-                              )}
-                              <td className="px-4 py-3.5 align-middle">
-                                <span className="text-sm">
+                              <div className="flex-1 min-w-0 me-3">
+                                <p className="text-xs font-medium truncate">
                                   {isRTL ? (perm.description_ar || perm.description) : perm.description}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3.5 align-middle">
-                                <code className="text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
+                                </p>
+                                <code className="text-[10px] text-muted-foreground font-mono">
                                   {perm.code}
                                 </code>
-                              </td>
-                              <td className="px-4 py-3.5 align-middle text-center">
-                                <Switch
-                                  checked={isAllowed}
-                                  onCheckedChange={() => togglePermission(perm.id)}
-                                />
-                              </td>
-                            </tr>
+                              </div>
+                              <Switch
+                                checked={isAllowed}
+                                onCheckedChange={() => togglePermission(perm.id)}
+                                className="shrink-0"
+                              />
+                            </div>
                           );
-                        });
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           )}
 
           {planId && (
