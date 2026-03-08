@@ -225,22 +225,23 @@ const HRReports = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{isRTL ? "تقرير الرواتب" : "Payroll Report"}</CardTitle></CardHeader>
             <CardContent>
               {loadingPayroll ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
+              <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
-                <TableHeader><TableRow>
-                  <TableHead>{isRTL ? "الفترة" : "Period"}</TableHead>
-                  <TableHead>{isRTL ? "الأساسي" : "Basic"}</TableHead>
-                  <TableHead>{isRTL ? "البدلات" : "Allowances"}</TableHead>
-                  <TableHead>{isRTL ? "الاستقطاعات" : "Deductions"}</TableHead>
-                  <TableHead>{isRTL ? "الصافي" : "Net"}</TableHead>
+                <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                  <TableHead className="border-b border-border/50">{isRTL ? "الفترة" : "Period"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الأساسي" : "Basic"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "البدلات" : "Allowances"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الاستقطاعات" : "Deductions"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الصافي" : "Net"}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {payrollRuns.map((r: any) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.period_month}/{r.period_year}</TableCell>
-                      <TableCell>{(r.total_basic || 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-emerald-600">{(r.total_allowances || 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-destructive">{(r.total_deductions || 0).toLocaleString()}</TableCell>
-                      <TableCell className="font-bold">{(r.total_net || 0).toLocaleString()}</TableCell>
+                  {payrollRuns.map((r: any, idx: number) => (
+                    <TableRow key={r.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="font-medium border-b border-border/30">{r.period_month}/{r.period_year}</TableCell>
+                      <TableCell className="tabular-nums border-b border-border/30">{(r.total_basic || 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-emerald-600 tabular-nums border-b border-border/30">{(r.total_allowances || 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-destructive tabular-nums border-b border-border/30">{(r.total_deductions || 0).toLocaleString()}</TableCell>
+                      <TableCell className="font-bold tabular-nums border-b border-border/30">{(r.total_net || 0).toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                   {payrollRuns.length === 0 && (
@@ -249,14 +250,15 @@ const HRReports = () => {
                   {payrollRuns.length > 0 && (
                     <TableRow className="bg-muted/50 font-bold">
                       <TableCell>{isRTL ? "الإجمالي" : "Total"}</TableCell>
-                      <TableCell>{payrollRuns.reduce((s: number, r: any) => s + (r.total_basic || 0), 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-emerald-600">{payrollRuns.reduce((s: number, r: any) => s + (r.total_allowances || 0), 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-destructive">{payrollRuns.reduce((s: number, r: any) => s + (r.total_deductions || 0), 0).toLocaleString()}</TableCell>
-                      <TableCell>{payrollRuns.reduce((s: number, r: any) => s + (r.total_net || 0), 0).toLocaleString()}</TableCell>
+                      <TableCell className="tabular-nums">{payrollRuns.reduce((s: number, r: any) => s + (r.total_basic || 0), 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-emerald-600 tabular-nums">{payrollRuns.reduce((s: number, r: any) => s + (r.total_allowances || 0), 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-destructive tabular-nums">{payrollRuns.reduce((s: number, r: any) => s + (r.total_deductions || 0), 0).toLocaleString()}</TableCell>
+                      <TableCell className="tabular-nums">{payrollRuns.reduce((s: number, r: any) => s + (r.total_net || 0), 0).toLocaleString()}</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
-              </Table>}
+              </Table>
+              </div>}
             </CardContent>
           </Card>
         </TabsContent>
