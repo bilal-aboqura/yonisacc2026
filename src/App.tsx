@@ -202,7 +202,14 @@ import CreateSubscriber from "./pages/owner/CreateSubscriber";
 import SubscriptionExpired from "./pages/SubscriptionExpired";
 import AcceptInvitation from "./pages/AcceptInvitation";
 
+import { useAutoLogout } from "@/hooks/useAutoLogout";
+
 const queryClient = new QueryClient();
+
+const AutoLogoutWrapper = ({ children }: { children: React.ReactNode }) => {
+  useAutoLogout();
+  return <>{children}</>;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -211,6 +218,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AutoLogoutWrapper>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
@@ -450,6 +458,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </AutoLogoutWrapper>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
