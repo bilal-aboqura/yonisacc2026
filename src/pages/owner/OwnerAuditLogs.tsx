@@ -65,7 +65,7 @@ const OwnerAuditLogs = () => {
   const { data: auditLogs, isLoading, refetch } = useQuery({
     queryKey: ["audit-logs", operationFilter, severityFilter, tableFilter],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_enriched_audit_logs", {
+      const { data, error } = await (supabase.rpc as any)("get_enriched_audit_logs", {
         p_operation_filter: operationFilter === "all" ? null : operationFilter,
         p_severity_filter: severityFilter === "all" ? null : severityFilter,
         p_table_filter: tableFilter === "all" ? null : tableFilter,
