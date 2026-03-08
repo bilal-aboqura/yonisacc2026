@@ -497,6 +497,7 @@ const GeneralLedger = () => {
                 </Table>
               </TooltipProvider>
             )}
+            </div>
           </CardContent>
         </Card>
       )}
