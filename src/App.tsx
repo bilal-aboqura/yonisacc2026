@@ -178,6 +178,7 @@ import HRAccountSetup from "./pages/client/hr/HRAccountSetup";
 import PenaltyRules from "./pages/client/hr/PenaltyRules";
 import Deductions from "./pages/client/hr/Deductions";
 import FiscalPeriods from "./pages/client/FiscalPeriods";
+import FiscalYearManagement from "./pages/client/FiscalYearManagement";
 import SalesAccountSetup from "./pages/client/setup/SalesAccountSetup";
 import PurchasesAccountSetup from "./pages/client/setup/PurchasesAccountSetup";
 import InventoryAccountSetup from "./pages/client/setup/InventoryAccountSetup";
@@ -435,6 +436,7 @@ const App = () => (
               <Route path="settings/danger" element={<ClientSettings tab="danger" />} />
               <Route path="settings/zatca" element={<ZatcaSettings />} />
               <Route path="settings/fiscal-periods" element={<FiscalPeriods />} />
+              <Route path="fiscal-year-management" element={<FiscalYearManagement />} />
             </Route>
             
             

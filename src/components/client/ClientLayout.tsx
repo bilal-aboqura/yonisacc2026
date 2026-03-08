@@ -228,6 +228,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: Palette, label: "المظهر", labelEn: "Appearance", path: "/client/settings/appearance", permission: "VIEW_SETTINGS" },
       { icon: Receipt, label: "الفوترة الإلكترونية", labelEn: "E-Invoicing (ZATCA)", path: "/client/settings/zatca", permission: "VIEW_SETTINGS" },
       { icon: Clock, label: "الفترات المالية", labelEn: "Fiscal Periods", path: "/client/settings/fiscal-periods", permission: "VIEW_SETTINGS" },
+      { icon: Calendar, label: "إدارة السنوات المالية", labelEn: "Fiscal Year Management", path: "/client/fiscal-year-management", permission: "VIEW_SETTINGS" },
       
     ]
   },
