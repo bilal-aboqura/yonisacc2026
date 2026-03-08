@@ -338,34 +338,34 @@ const Payroll = () => {
 
         <Card>
           <CardContent className="pt-6">
-            <div className="overflow-x-auto">
+             <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">{isRTL ? "الموظف" : "Employee"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "أساسي" : "Basic"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "سكن" : "Housing"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "نقل" : "Transport"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "أخرى" : "Other"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "خصم غياب" : "Absence"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "خصم سلف" : "Loan"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "صافي" : "Net"}</TableHead>
+                  <TableRow className="bg-muted/60 dark:bg-muted/30">
+                    <TableHead className="font-semibold border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "أساسي" : "Basic"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "سكن" : "Housing"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "نقل" : "Transport"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "أخرى" : "Other"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "خصم غياب" : "Absence"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "خصم سلف" : "Loan"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "صافي" : "Net"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {editItems.map((item: any, idx: number) => (
-                    <TableRow key={item.id} className={idx % 2 === 0 ? "" : "bg-muted/30"}>
-                      <TableCell className="font-medium whitespace-nowrap">
+                    <TableRow key={item.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="font-medium whitespace-nowrap border-b border-border/30">
                         <span className="text-xs text-muted-foreground me-2">{item.hr_employees?.employee_number}</span>
                         {item.hr_employees ? (isRTL ? item.hr_employees.name : (item.hr_employees.name_en || item.hr_employees.name)) : "—"}
                       </TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.basic_salary || 0} onChange={(e) => updateEditItem(idx, "basic_salary", +e.target.value)} /></TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.housing_allowance || 0} onChange={(e) => updateEditItem(idx, "housing_allowance", +e.target.value)} /></TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.transport_allowance || 0} onChange={(e) => updateEditItem(idx, "transport_allowance", +e.target.value)} /></TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.other_allowance || 0} onChange={(e) => updateEditItem(idx, "other_allowance", +e.target.value)} /></TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.absence_deduction || 0} onChange={(e) => updateEditItem(idx, "absence_deduction", +e.target.value)} /></TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.loan_deduction || 0} onChange={(e) => updateEditItem(idx, "loan_deduction", +e.target.value)} /></TableCell>
-                      <TableCell className="font-bold tabular-nums text-center text-primary">{formatNum(getItemNet(item))}</TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.basic_salary || 0} onChange={(e) => updateEditItem(idx, "basic_salary", +e.target.value)} /></TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.housing_allowance || 0} onChange={(e) => updateEditItem(idx, "housing_allowance", +e.target.value)} /></TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.transport_allowance || 0} onChange={(e) => updateEditItem(idx, "transport_allowance", +e.target.value)} /></TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.other_allowance || 0} onChange={(e) => updateEditItem(idx, "other_allowance", +e.target.value)} /></TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.absence_deduction || 0} onChange={(e) => updateEditItem(idx, "absence_deduction", +e.target.value)} /></TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.loan_deduction || 0} onChange={(e) => updateEditItem(idx, "loan_deduction", +e.target.value)} /></TableCell>
+                      <TableCell className="font-bold tabular-nums text-center text-primary border-b border-border/30">{formatNum(getItemNet(item))}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
