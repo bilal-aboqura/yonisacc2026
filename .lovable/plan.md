@@ -1,85 +1,129 @@
 
-# خطة نظام نقاط البيع الشامل (POS)
 
-## الحالة: ✅ تم تنفيذ المراحل 1-10
+# خطة نظام ربط طلبات التطبيقات (API Integration) مع نقاط البيع
 
-### ما تم إنجازه:
-
-**المرحلة 1: قاعدة البيانات** ✅
-- 11 جدول جديد: pos_terminals, pos_sessions, pos_transactions, pos_transaction_items, pos_tables, pos_reservations, pos_menus, pos_menu_items, pos_promotions, pos_sales_targets, pos_activity_log
-- RLS على جميع الجداول
-- صلاحيات RBAC: 8 feature flags جديدة
-
-**المرحلة 2: شاشة POS الرئيسية** ✅
-- شاشة ملء الشاشة مع شبكة منتجات + سلة مشتريات
-- بحث سريع وباركود + تصفية بالتصنيف
-- نوع الطلب (محلي/سفري/توصيل)
-- أزرار دفع متعددة (نقد/بطاقة)
-- اختصارات لوحة مفاتيح (F1/F2/F5/Esc)
-- فتح/إغلاق الصندوق مع المبلغ
-
-**المرحلة 3: إدارة الطاولات** ✅
-- عرض تفاعلي مع ألوان حسب الحالة
-- CRUD للطاولات مع الشكل والسعة والطابق
-
-**المرحلة 4: الإعدادات والمنيو** ✅
-- إدارة نقاط البيع (Terminals) مع النوع (تجزئة/مطعم)
-- إدارة المنيو المخصص لكل فرع
-
-**المرحلة 5: العروض والأهداف** ✅
-- إنشاء عروض (نسبة/مبلغ/اشتر X واحصل Y)
-- أهداف مبيعات مع شريط التقدم
-
-**المرحلة 6: التقارير** ✅
-- بطاقات ملخص (إجمالي/عدد/متوسط)
-- رسم بياني يومي + توزيع طرق الدفع
-- جدول العمليات
-
-**المرحلة 7-8: التكامل** ✅
-- 7 مسارات POS في App.tsx
-- قسم "نقاط البيع" في القائمة الجانبية
-- سجل نشاط المستخدمين
-
-**المرحلة 9: الكوبونات والعروض المتقدمة** ✅
-- جدول pos_coupons مع RLS
-- شاشة إدارة كوبونات (CRUD) مع inline form
-- تطبيق الكوبون في شاشة البيع مع التحقق (الفترة، الاستخدام، الحد الأدنى)
-- ربط العروض بمنتجات محددة عبر جدول pos_promotion_products
-- تحويل شاشة العروض من Dialog إلى inline مع product checkboxes
-
-**المرحلة 10: مستخدمو POS وتقارير الصندوق** ✅
-- جدول pos_users مع أدوار (كاشير/مدير فرع) وربط بالفرع
-- شاشة إدارة مستخدمي POS (إنشاء بإيميل+باسورد+فرع+دور)
-- تقرير إغلاق الصندوق (مبيعات/مرتجعات/خصومات/طرق دفع/رصيد إغلاق) مع طباعة
-- شاشة سجل المستخدمين (تاريخ الجلسات مع فلترة)
-- أعمدة تقارير في pos_sessions (total_sales, total_returns, payment_summary, etc.)
+## الفكرة
+إنشاء نظام يسمح بربط تطبيقات التوصيل الخارجية (فودكس، هنقرستيشن، جاهز، مرسول، إلخ) مع مديول نقاط البيع عبر API، بحيث تُنشأ الطلبات تلقائياً في النظام عند استلامها من التطبيق الخارجي.
 
 ---
 
-# نظام إدارة السنوات المالية الشامل
+## المرحلة 1 — البنية التحتية
 
-## الحالة: ✅ تم تنفيذ المراحل 1-4
+### Migration: جداول التكامل
+```sql
+-- تطبيقات الربط المعرّفة
+CREATE TABLE pos_api_integrations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id),
+  branch_id UUID NOT NULL REFERENCES branches(id),
+  provider TEXT NOT NULL, -- 'foodics', 'hungerstation', 'jahez', 'marsool', 'custom'
+  provider_name TEXT,     -- اسم مخصص
+  api_key UUID DEFAULT gen_random_uuid(), -- مفتاح API للاستقبال
+  webhook_secret TEXT,
+  is_active BOOLEAN DEFAULT true,
+  auto_accept_orders BOOLEAN DEFAULT false,
+  default_order_type TEXT DEFAULT 'delivery',
+  settings JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID
+);
 
-### ما تم إنجازه:
+-- طلبات واردة من التطبيقات
+CREATE TABLE pos_api_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id),
+  integration_id UUID NOT NULL REFERENCES pos_api_integrations(id),
+  external_order_id TEXT,    -- رقم الطلب في التطبيق الخارجي
+  provider TEXT NOT NULL,
+  status TEXT DEFAULT 'pending', -- pending, accepted, preparing, ready, completed, rejected, cancelled
+  order_data JSONB NOT NULL,     -- البيانات الخام
+  customer_name TEXT,
+  customer_phone TEXT,
+  customer_address TEXT,
+  items JSONB NOT NULL DEFAULT '[]',
+  subtotal NUMERIC DEFAULT 0,
+  tax_amount NUMERIC DEFAULT 0,
+  delivery_fee NUMERIC DEFAULT 0,
+  discount_amount NUMERIC DEFAULT 0,
+  total NUMERIC DEFAULT 0,
+  pos_transaction_id UUID REFERENCES pos_transactions(id), -- ربط بفاتورة POS
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  accepted_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ
+);
 
-**المرحلة 1: البنية التحتية** ✅
-- تطوير جدول fiscal_periods بأعمدة: status, locked_by, locked_at, closing_journal_entry_id, opening_journal_entry_id, created_by, reopen_reason, reopened_at, reopened_by
-- جدول fiscal_year_audit_log مع RLS
-- جداول stock_count_sessions و stock_count_lines مع RLS
-- 3 RPCs: pre_closing_validation, close_fiscal_year, reopen_fiscal_year
+-- سجل أحداث الربط
+CREATE TABLE pos_api_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  integration_id UUID REFERENCES pos_api_integrations(id),
+  order_id UUID REFERENCES pos_api_orders(id),
+  event TEXT NOT NULL, -- order_received, order_accepted, order_rejected, sync_error, webhook_received
+  payload JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
 
-**المرحلة 2: واجهة إدارة السنوات المالية** ✅
-- صفحة FiscalYearManagement.tsx مع 5 تبويبات (السنوات | التحقق | الجرد | التقرير | التدقيق)
-- بطاقات إحصائية (مفتوحة/مقفلة مؤقتاً/مقفلة نهائياً)
-- إجراءات: قفل مؤقت ← إقفال نهائي ← إعادة فتح
+### Edge Function: `pos-api-webhook`
+- استقبال طلبات من التطبيقات الخارجية عبر Webhook
+- التحقق من `api_key` في الـ Header
+- تحويل بيانات الطلب إلى الشكل الموحد وحفظه في `pos_api_orders`
+- إذا `auto_accept_orders = true`، إنشاء `pos_transaction` تلقائياً
+- دعم صيغة Foodics webhook + صيغة عامة (Generic)
 
-**المرحلة 3: RPCs للعمليات الذرية** ✅
-- pre_closing_validation: فحص قيود مسودة، فواتير مسودة، حركات معلقة، فترات HR
-- close_fiscal_year: إقفال حسابات الدخل → أرباح مبقاة → أرصدة افتتاحية
-- reopen_fiscal_year: حذف قيود الإقفال وإعادة الفتح مع سجل تدقيق
+---
 
-**المرحلة 4: التقارير وسجل التدقيق** ✅
-- PreClosingValidation.tsx: فحوصات تلقائية مع ✅/❌
-- StockCountSession.tsx: جلسات جرد مع إدخال كميات فعلية
-- YearClosingReport.tsx: ملخص الدخل + الميزانية العمومية
-- FiscalAuditLog.tsx: سجل كل العمليات على السنوات المالية
+## المرحلة 2 — واجهة إدارة التكاملات
+
+### ملف: `src/pages/client/pos/POSIntegrations.tsx`
+صفحة رئيسية بتبويبين:
+
+**تبويب التكاملات:**
+- إضافة تكامل جديد (اختيار المزود: فودكس / هنقرستيشن / جاهز / مرسول / مخصص)
+- ربط بفرع محدد
+- إظهار مفتاح API و Webhook URL للنسخ
+- تفعيل/تعطيل + حذف
+- إعدادات: قبول تلقائي، نوع الطلب الافتراضي
+
+**تبويب الطلبات الواردة:**
+- جدول بالطلبات المستلمة (رقم خارجي، المزود، الحالة، المبلغ، التاريخ)
+- إجراءات: قبول / رفض / عرض التفاصيل
+- عند القبول → إنشاء فاتورة POS تلقائياً
+- فلترة حسب الحالة والتاريخ والمزود
+
+**تبويب السجل:**
+- عرض جميع أحداث الربط والأخطاء
+
+---
+
+## المرحلة 3 — ربط فودكس (Foodics)
+
+### تكامل خاص بفودكس:
+- صفحة إعداد فودكس تطلب: Business ID + API Token
+- Edge Function `pos-foodics-sync` لمزامنة الطلبات
+- تحويل بيانات طلبات فودكس إلى الشكل الموحد:
+  - ربط المنتجات بالـ SKU
+  - تحويل طرق الدفع
+  - حساب الضريبة
+- إمكانية مزامنة يدوية (Pull) أو تلقائية (Webhook)
+
+---
+
+## ملخص الملفات
+
+| الملف | العملية |
+|-------|---------|
+| Migration (3 جداول) | إنشاء |
+| `supabase/functions/pos-api-webhook/index.ts` | إنشاء |
+| `supabase/functions/pos-foodics-sync/index.ts` | إنشاء |
+| `src/pages/client/pos/POSIntegrations.tsx` | إنشاء |
+| `src/App.tsx` | إضافة مسار |
+| `src/components/client/ClientLayout.tsx` | إضافة رابط في قائمة POS |
+
+---
+
+## ملاحظة أمنية
+- مفتاح API يُولّد تلقائياً لكل تكامل ويُستخدم للتحقق من الطلبات الواردة
+- Webhook URL فريد لكل تكامل
+- سجل كامل لكل الأحداث والأخطاء
+
