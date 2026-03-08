@@ -17,6 +17,7 @@ interface EmployeeFormProps {
   companyId: string | null;
   departments: any[];
   workShifts?: any[];
+  costCenters?: any[];
   onClose: () => void;
 }
 
