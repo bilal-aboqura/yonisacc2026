@@ -329,6 +329,7 @@ const App = () => (
               <Route path="pos/user-logs" element={<POSUserLogs />} />
               <Route path="pos/invoices" element={<POSInvoices />} />
               <Route path="pos/account-setup" element={<POSAccountSetup />} />
+              <Route path="pos/integrations" element={<POSIntegrations />} />
 
               {/* Fixed Assets */}
               <Route path="assets" element={<FixedAssets />} />
