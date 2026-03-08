@@ -409,7 +409,7 @@ const GeneralLedger = () => {
               <BookOpenCheck className="h-5 w-5" />
               {isRTL ? "كشف حساب" : "Account Statement"}
             </CardTitle>
-            {ledgerLines.length > 0 && (
+            {(
               <ReportActions
                 printSettings={printSettings}
                 company={companyInfo}
