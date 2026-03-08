@@ -79,6 +79,7 @@ const defaultForm = {
   has_iqama: false, iqama_number: "", iqama_expiry: "",
   gosi_registration_date: "", gosi_amount: 0,
   work_shift_id: "",
+  cost_center_id: "",
 };
 
 const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [], onClose }: EmployeeFormProps) => {
