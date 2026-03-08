@@ -188,11 +188,13 @@ const ManageCompanyAccess = () => {
     setSavingModules(true);
     try {
       // Update ALL company_members for this company
-      const { count, error } = await supabase
+      const { data: updated, error } = await supabase
         .from("company_members")
         .update({ allowed_modules: selectedModules })
         .eq("company_id", id)
-        .select("id", { count: "exact", head: true });
+        .select("id");
+      if (error) throw error;
+      const count = updated?.length ?? 0;
       if (error) throw error;
 
       // If no records existed, create one for the owner
