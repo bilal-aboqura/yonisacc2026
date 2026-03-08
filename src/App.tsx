@@ -434,6 +434,7 @@ const App = () => (
             <Route path="/owner" element={<OwnerLayout />}>
               <Route index element={<OwnerDashboard />} />
               <Route path="subscribers" element={<OwnerSubscribers />} />
+              <Route path="subscribers/create" element={<CreateSubscriber />} />
               <Route path="subscribers/:id/access" element={<ManageCompanyAccess />} />
               <Route path="subscriptions" element={<OwnerSubscriptions />} />
               <Route path="plans" element={<OwnerPlans />} />
