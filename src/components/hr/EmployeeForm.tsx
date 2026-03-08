@@ -81,7 +81,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
     return { ...defaultForm };
   });
 
-  const isSaudi = form.nationality === "saudi";
+  const isSaudi = form.nationality === "SA";
 
   // Auto-calculate GOSI for Saudi employees: (basic + housing) * 9.75%
   const gosiAmount = useMemo(() => {
