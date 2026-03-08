@@ -145,35 +145,37 @@ const HRReports = () => {
             </CardHeader>
             <CardContent>
               {loadingAtt ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
+              <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
-                <TableHeader><TableRow>
-                  <TableHead>{isRTL ? "رقم" : "#"}</TableHead>
-                  <TableHead>{isRTL ? "الموظف" : "Employee"}</TableHead>
-                  <TableHead>{isRTL ? "القسم" : "Dept"}</TableHead>
-                  <TableHead>{isRTL ? "حضور" : "Present"}</TableHead>
-                  <TableHead>{isRTL ? "غياب" : "Absent"}</TableHead>
-                  <TableHead>{isRTL ? "تأخر" : "Late"}</TableHead>
-                  <TableHead>{isRTL ? "إجازة" : "Leave"}</TableHead>
-                  <TableHead>{isRTL ? "الإجمالي" : "Total"}</TableHead>
+                <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                  <TableHead className="border-b border-border/50">{isRTL ? "رقم" : "#"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "القسم" : "Dept"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "حضور" : "Present"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "غياب" : "Absent"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "تأخر" : "Late"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "إجازة" : "Leave"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الإجمالي" : "Total"}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {attSummary.filter(e => e.total > 0).map((e) => (
-                    <TableRow key={e.id}>
-                      <TableCell className="font-mono">{e.number}</TableCell>
-                      <TableCell className="font-medium">{e.name}</TableCell>
-                      <TableCell>{e.dept}</TableCell>
-                      <TableCell className="text-emerald-600 font-bold">{e.present}</TableCell>
-                      <TableCell className="text-red-600 font-bold">{e.absent}</TableCell>
-                      <TableCell className="text-amber-600">{e.late}</TableCell>
-                      <TableCell className="text-blue-600">{e.leave}</TableCell>
-                      <TableCell>{e.total}</TableCell>
+                  {attSummary.filter(e => e.total > 0).map((e, idx) => (
+                    <TableRow key={e.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="font-mono border-b border-border/30">{e.number}</TableCell>
+                      <TableCell className="font-medium border-b border-border/30">{e.name}</TableCell>
+                      <TableCell className="border-b border-border/30">{e.dept}</TableCell>
+                      <TableCell className="text-emerald-600 font-bold border-b border-border/30">{e.present}</TableCell>
+                      <TableCell className="text-red-600 font-bold border-b border-border/30">{e.absent}</TableCell>
+                      <TableCell className="text-amber-600 border-b border-border/30">{e.late}</TableCell>
+                      <TableCell className="text-blue-600 border-b border-border/30">{e.leave}</TableCell>
+                      <TableCell className="border-b border-border/30">{e.total}</TableCell>
                     </TableRow>
                   ))}
                   {attSummary.filter(e => e.total > 0).length === 0 && (
                     <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{isRTL ? "لا توجد بيانات" : "No data"}</TableCell></TableRow>
                   )}
                 </TableBody>
-              </Table>}
+              </Table>
+              </div>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -184,33 +186,35 @@ const HRReports = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{isRTL ? "تقرير الإجازات" : "Leaves Report"}</CardTitle></CardHeader>
             <CardContent>
               {loadingLeaves ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
+              <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
-                <TableHeader><TableRow>
-                  <TableHead>{isRTL ? "رقم" : "#"}</TableHead>
-                  <TableHead>{isRTL ? "الموظف" : "Employee"}</TableHead>
-                  <TableHead>{isRTL ? "سنوية" : "Annual"}</TableHead>
-                  <TableHead>{isRTL ? "مرضية" : "Sick"}</TableHead>
-                  <TableHead>{isRTL ? "بدون راتب" : "Unpaid"}</TableHead>
-                  <TableHead>{isRTL ? "اضطرارية" : "Emergency"}</TableHead>
-                  <TableHead>{isRTL ? "الإجمالي" : "Total"}</TableHead>
+                <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                  <TableHead className="border-b border-border/50">{isRTL ? "رقم" : "#"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "سنوية" : "Annual"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "مرضية" : "Sick"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "بدون راتب" : "Unpaid"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "اضطرارية" : "Emergency"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الإجمالي" : "Total"}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {Object.entries(leaveSummary).map(([id, s]) => (
-                    <TableRow key={id}>
-                      <TableCell className="font-mono">{s.number}</TableCell>
-                      <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>{s.annual}</TableCell>
-                      <TableCell>{s.sick}</TableCell>
-                      <TableCell>{s.unpaid}</TableCell>
-                      <TableCell>{s.emergency}</TableCell>
-                      <TableCell className="font-bold">{s.total}</TableCell>
+                  {Object.entries(leaveSummary).map(([id, s], idx) => (
+                    <TableRow key={id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="font-mono border-b border-border/30">{s.number}</TableCell>
+                      <TableCell className="font-medium border-b border-border/30">{s.name}</TableCell>
+                      <TableCell className="border-b border-border/30">{s.annual}</TableCell>
+                      <TableCell className="border-b border-border/30">{s.sick}</TableCell>
+                      <TableCell className="border-b border-border/30">{s.unpaid}</TableCell>
+                      <TableCell className="border-b border-border/30">{s.emergency}</TableCell>
+                      <TableCell className="font-bold border-b border-border/30">{s.total}</TableCell>
                     </TableRow>
                   ))}
                   {Object.keys(leaveSummary).length === 0 && (
                     <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{isRTL ? "لا توجد بيانات" : "No data"}</TableCell></TableRow>
                   )}
                 </TableBody>
-              </Table>}
+              </Table>
+              </div>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -221,22 +225,23 @@ const HRReports = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{isRTL ? "تقرير الرواتب" : "Payroll Report"}</CardTitle></CardHeader>
             <CardContent>
               {loadingPayroll ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
+              <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
-                <TableHeader><TableRow>
-                  <TableHead>{isRTL ? "الفترة" : "Period"}</TableHead>
-                  <TableHead>{isRTL ? "الأساسي" : "Basic"}</TableHead>
-                  <TableHead>{isRTL ? "البدلات" : "Allowances"}</TableHead>
-                  <TableHead>{isRTL ? "الاستقطاعات" : "Deductions"}</TableHead>
-                  <TableHead>{isRTL ? "الصافي" : "Net"}</TableHead>
+                <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                  <TableHead className="border-b border-border/50">{isRTL ? "الفترة" : "Period"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الأساسي" : "Basic"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "البدلات" : "Allowances"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الاستقطاعات" : "Deductions"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الصافي" : "Net"}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {payrollRuns.map((r: any) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.period_month}/{r.period_year}</TableCell>
-                      <TableCell>{(r.total_basic || 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-emerald-600">{(r.total_allowances || 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-destructive">{(r.total_deductions || 0).toLocaleString()}</TableCell>
-                      <TableCell className="font-bold">{(r.total_net || 0).toLocaleString()}</TableCell>
+                  {payrollRuns.map((r: any, idx: number) => (
+                    <TableRow key={r.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="font-medium border-b border-border/30">{r.period_month}/{r.period_year}</TableCell>
+                      <TableCell className="tabular-nums border-b border-border/30">{(r.total_basic || 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-emerald-600 tabular-nums border-b border-border/30">{(r.total_allowances || 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-destructive tabular-nums border-b border-border/30">{(r.total_deductions || 0).toLocaleString()}</TableCell>
+                      <TableCell className="font-bold tabular-nums border-b border-border/30">{(r.total_net || 0).toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                   {payrollRuns.length === 0 && (
@@ -245,14 +250,15 @@ const HRReports = () => {
                   {payrollRuns.length > 0 && (
                     <TableRow className="bg-muted/50 font-bold">
                       <TableCell>{isRTL ? "الإجمالي" : "Total"}</TableCell>
-                      <TableCell>{payrollRuns.reduce((s: number, r: any) => s + (r.total_basic || 0), 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-emerald-600">{payrollRuns.reduce((s: number, r: any) => s + (r.total_allowances || 0), 0).toLocaleString()}</TableCell>
-                      <TableCell className="text-destructive">{payrollRuns.reduce((s: number, r: any) => s + (r.total_deductions || 0), 0).toLocaleString()}</TableCell>
-                      <TableCell>{payrollRuns.reduce((s: number, r: any) => s + (r.total_net || 0), 0).toLocaleString()}</TableCell>
+                      <TableCell className="tabular-nums">{payrollRuns.reduce((s: number, r: any) => s + (r.total_basic || 0), 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-emerald-600 tabular-nums">{payrollRuns.reduce((s: number, r: any) => s + (r.total_allowances || 0), 0).toLocaleString()}</TableCell>
+                      <TableCell className="text-destructive tabular-nums">{payrollRuns.reduce((s: number, r: any) => s + (r.total_deductions || 0), 0).toLocaleString()}</TableCell>
+                      <TableCell className="tabular-nums">{payrollRuns.reduce((s: number, r: any) => s + (r.total_net || 0), 0).toLocaleString()}</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
-              </Table>}
+              </Table>
+              </div>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -278,24 +284,25 @@ const HRReports = () => {
                     <p className="text-xl font-bold text-amber-600">{loans.reduce((s: number, l: any) => s + (l.remaining || 0), 0).toLocaleString()}</p>
                   </CardContent></Card>
                 </div>
+                <div className="overflow-auto rounded-lg border border-border/50">
                 <Table>
-                  <TableHeader><TableRow>
-                    <TableHead>{isRTL ? "الموظف" : "Employee"}</TableHead>
-                    <TableHead>{isRTL ? "النوع" : "Type"}</TableHead>
-                    <TableHead>{isRTL ? "المبلغ" : "Amount"}</TableHead>
-                    <TableHead>{isRTL ? "المسدد" : "Paid"}</TableHead>
-                    <TableHead>{isRTL ? "المتبقي" : "Remaining"}</TableHead>
-                    <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
+                  <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                    <TableHead className="border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                    <TableHead className="border-b border-border/50">{isRTL ? "النوع" : "Type"}</TableHead>
+                    <TableHead className="border-b border-border/50">{isRTL ? "المبلغ" : "Amount"}</TableHead>
+                    <TableHead className="border-b border-border/50">{isRTL ? "المسدد" : "Paid"}</TableHead>
+                    <TableHead className="border-b border-border/50">{isRTL ? "المتبقي" : "Remaining"}</TableHead>
+                    <TableHead className="border-b border-border/50">{isRTL ? "الحالة" : "Status"}</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
-                    {loans.map((l: any) => (
-                      <TableRow key={l.id}>
-                        <TableCell className="font-medium">{l.hr_employees ? (isRTL ? l.hr_employees.name : (l.hr_employees.name_en || l.hr_employees.name)) : "—"}</TableCell>
-                        <TableCell>{l.loan_type === "advance" ? (isRTL ? "سلفة" : "Advance") : (isRTL ? "قرض" : "Loan")}</TableCell>
-                        <TableCell>{(l.amount || 0).toLocaleString()}</TableCell>
-                        <TableCell className="text-emerald-600">{(l.total_paid || 0).toLocaleString()}</TableCell>
-                        <TableCell className="text-amber-600">{(l.remaining || 0).toLocaleString()}</TableCell>
-                        <TableCell>{l.status === "active" ? (isRTL ? "نشطة" : "Active") : (isRTL ? "مسددة" : "Paid")}</TableCell>
+                    {loans.map((l: any, idx: number) => (
+                      <TableRow key={l.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                        <TableCell className="font-medium border-b border-border/30">{l.hr_employees ? (isRTL ? l.hr_employees.name : (l.hr_employees.name_en || l.hr_employees.name)) : "—"}</TableCell>
+                        <TableCell className="border-b border-border/30">{l.loan_type === "advance" ? (isRTL ? "سلفة" : "Advance") : (isRTL ? "قرض" : "Loan")}</TableCell>
+                        <TableCell className="tabular-nums border-b border-border/30">{(l.amount || 0).toLocaleString()}</TableCell>
+                        <TableCell className="text-emerald-600 tabular-nums border-b border-border/30">{(l.total_paid || 0).toLocaleString()}</TableCell>
+                        <TableCell className="text-amber-600 tabular-nums border-b border-border/30">{(l.remaining || 0).toLocaleString()}</TableCell>
+                        <TableCell className="border-b border-border/30">{l.status === "active" ? (isRTL ? "نشطة" : "Active") : (isRTL ? "مسددة" : "Paid")}</TableCell>
                       </TableRow>
                     ))}
                     {loans.length === 0 && (
@@ -303,6 +310,7 @@ const HRReports = () => {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               </>}
             </CardContent>
           </Card>

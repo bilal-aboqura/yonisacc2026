@@ -338,34 +338,34 @@ const Payroll = () => {
 
         <Card>
           <CardContent className="pt-6">
-            <div className="overflow-x-auto">
+             <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">{isRTL ? "الموظف" : "Employee"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "أساسي" : "Basic"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "سكن" : "Housing"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "نقل" : "Transport"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "أخرى" : "Other"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "خصم غياب" : "Absence"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "خصم سلف" : "Loan"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "صافي" : "Net"}</TableHead>
+                  <TableRow className="bg-muted/60 dark:bg-muted/30">
+                    <TableHead className="font-semibold border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "أساسي" : "Basic"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "سكن" : "Housing"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "نقل" : "Transport"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "أخرى" : "Other"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "خصم غياب" : "Absence"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "خصم سلف" : "Loan"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "صافي" : "Net"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {editItems.map((item: any, idx: number) => (
-                    <TableRow key={item.id} className={idx % 2 === 0 ? "" : "bg-muted/30"}>
-                      <TableCell className="font-medium whitespace-nowrap">
+                    <TableRow key={item.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="font-medium whitespace-nowrap border-b border-border/30">
                         <span className="text-xs text-muted-foreground me-2">{item.hr_employees?.employee_number}</span>
                         {item.hr_employees ? (isRTL ? item.hr_employees.name : (item.hr_employees.name_en || item.hr_employees.name)) : "—"}
                       </TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.basic_salary || 0} onChange={(e) => updateEditItem(idx, "basic_salary", +e.target.value)} /></TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.housing_allowance || 0} onChange={(e) => updateEditItem(idx, "housing_allowance", +e.target.value)} /></TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.transport_allowance || 0} onChange={(e) => updateEditItem(idx, "transport_allowance", +e.target.value)} /></TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.other_allowance || 0} onChange={(e) => updateEditItem(idx, "other_allowance", +e.target.value)} /></TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.absence_deduction || 0} onChange={(e) => updateEditItem(idx, "absence_deduction", +e.target.value)} /></TableCell>
-                      <TableCell><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.loan_deduction || 0} onChange={(e) => updateEditItem(idx, "loan_deduction", +e.target.value)} /></TableCell>
-                      <TableCell className="font-bold tabular-nums text-center text-primary">{formatNum(getItemNet(item))}</TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.basic_salary || 0} onChange={(e) => updateEditItem(idx, "basic_salary", +e.target.value)} /></TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.housing_allowance || 0} onChange={(e) => updateEditItem(idx, "housing_allowance", +e.target.value)} /></TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.transport_allowance || 0} onChange={(e) => updateEditItem(idx, "transport_allowance", +e.target.value)} /></TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.other_allowance || 0} onChange={(e) => updateEditItem(idx, "other_allowance", +e.target.value)} /></TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.absence_deduction || 0} onChange={(e) => updateEditItem(idx, "absence_deduction", +e.target.value)} /></TableCell>
+                      <TableCell className="border-b border-border/30"><Input type="number" className="h-8 w-24 text-center tabular-nums" value={item.loan_deduction || 0} onChange={(e) => updateEditItem(idx, "loan_deduction", +e.target.value)} /></TableCell>
+                      <TableCell className="font-bold tabular-nums text-center text-primary border-b border-border/30">{formatNum(getItemNet(item))}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -447,40 +447,40 @@ const Payroll = () => {
             <CardTitle className="text-base">{isRTL ? "تفاصيل الموظفين" : "Employee Details"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+             <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">#</TableHead>
-                    <TableHead className="font-semibold">{isRTL ? "الموظف" : "Employee"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "أساسي" : "Basic"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "سكن" : "Housing"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "نقل" : "Transport"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "أخرى" : "Other"}</TableHead>
-                    <TableHead className="text-end font-semibold text-destructive">{isRTL ? "خصم غياب" : "Absence"}</TableHead>
-                    <TableHead className="text-end font-semibold text-destructive">{isRTL ? "خصم سلف" : "Loan"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "إجمالي الاستقطاعات" : "Total Ded."}</TableHead>
-                    <TableHead className="text-end font-semibold text-primary">{isRTL ? "الصافي" : "Net"}</TableHead>
+                  <TableRow className="bg-muted/60 dark:bg-muted/30">
+                    <TableHead className="font-semibold border-b border-border/50">#</TableHead>
+                    <TableHead className="font-semibold border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "أساسي" : "Basic"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "سكن" : "Housing"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "نقل" : "Transport"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "أخرى" : "Other"}</TableHead>
+                    <TableHead className="text-end font-semibold text-destructive border-b border-border/50">{isRTL ? "خصم غياب" : "Absence"}</TableHead>
+                    <TableHead className="text-end font-semibold text-destructive border-b border-border/50">{isRTL ? "خصم سلف" : "Loan"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "إجمالي الاستقطاعات" : "Total Ded."}</TableHead>
+                    <TableHead className="text-end font-semibold text-primary border-b border-border/50">{isRTL ? "الصافي" : "Net"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {payrollItems.map((item: any, idx: number) => (
-                    <TableRow key={item.id} className={idx % 2 === 0 ? "" : "bg-muted/30"}>
-                      <TableCell className="text-muted-foreground tabular-nums">{idx + 1}</TableCell>
-                      <TableCell className="font-medium whitespace-nowrap">
+                    <TableRow key={item.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="text-muted-foreground tabular-nums border-b border-border/30">{idx + 1}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap border-b border-border/30">
                         <div>
                           <span>{item.hr_employees ? (isRTL ? item.hr_employees.name : (item.hr_employees.name_en || item.hr_employees.name)) : "—"}</span>
                           <span className="block text-xs text-muted-foreground">{item.hr_employees?.employee_number}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-end tabular-nums">{formatNum(item.basic_salary || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums">{formatNum(item.housing_allowance || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums">{formatNum(item.transport_allowance || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums">{formatNum(item.other_allowance || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums text-destructive">{formatNum(item.absence_deduction || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums text-destructive">{formatNum(item.loan_deduction || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums text-destructive font-medium">{formatNum(item.total_deductions || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums font-bold text-primary">{formatNum(item.net_salary || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums border-b border-border/30">{formatNum(item.basic_salary || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums border-b border-border/30">{formatNum(item.housing_allowance || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums border-b border-border/30">{formatNum(item.transport_allowance || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums border-b border-border/30">{formatNum(item.other_allowance || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums text-destructive border-b border-border/30">{formatNum(item.absence_deduction || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums text-destructive border-b border-border/30">{formatNum(item.loan_deduction || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums text-destructive font-medium border-b border-border/30">{formatNum(item.total_deductions || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums font-bold text-primary border-b border-border/30">{formatNum(item.net_salary || 0)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -576,33 +576,33 @@ const Payroll = () => {
               <p>{isRTL ? "لا توجد مسيرات رواتب" : "No payroll runs yet"}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">{isRTL ? "رقم المسير" : "Run #"}</TableHead>
-                    <TableHead className="font-semibold">{isRTL ? "الفترة" : "Period"}</TableHead>
-                    <TableHead className="font-semibold">{isRTL ? "تاريخ التشغيل" : "Run Date"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "الأساسي" : "Basic"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "البدلات" : "Allowances"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "الاستقطاعات" : "Deductions"}</TableHead>
-                    <TableHead className="text-end font-semibold">{isRTL ? "الصافي" : "Net"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "الحالة" : "Status"}</TableHead>
-                    <TableHead className="text-center font-semibold">{isRTL ? "إجراءات" : "Actions"}</TableHead>
+                  <TableRow className="bg-muted/60 dark:bg-muted/30">
+                    <TableHead className="font-semibold border-b border-border/50">{isRTL ? "رقم المسير" : "Run #"}</TableHead>
+                    <TableHead className="font-semibold border-b border-border/50">{isRTL ? "الفترة" : "Period"}</TableHead>
+                    <TableHead className="font-semibold border-b border-border/50">{isRTL ? "تاريخ التشغيل" : "Run Date"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "الأساسي" : "Basic"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "البدلات" : "Allowances"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "الاستقطاعات" : "Deductions"}</TableHead>
+                    <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "الصافي" : "Net"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "الحالة" : "Status"}</TableHead>
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "إجراءات" : "Actions"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {payrollRuns.map((run: any, idx: number) => (
-                    <TableRow key={run.id} className={`cursor-pointer hover:bg-muted/40 transition ${idx % 2 === 0 ? "" : "bg-muted/20"}`}>
-                      <TableCell className="font-mono text-sm">{run.run_number}</TableCell>
-                      <TableCell className="font-medium">{monthName(run.period_month)} {run.period_year}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{run.run_date || "—"}</TableCell>
-                      <TableCell className="text-end tabular-nums">{formatNum(run.total_basic || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums text-emerald-600">{formatNum(run.total_allowances || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums text-destructive">{formatNum(run.total_deductions || 0)}</TableCell>
-                      <TableCell className="text-end tabular-nums font-bold">{formatNum(run.total_net || 0)}</TableCell>
-                      <TableCell className="text-center">{statusBadge(run.status)}</TableCell>
-                      <TableCell>
+                    <TableRow key={run.id} className={`cursor-pointer transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="font-mono text-sm border-b border-border/30">{run.run_number}</TableCell>
+                      <TableCell className="font-medium border-b border-border/30">{monthName(run.period_month)} {run.period_year}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground border-b border-border/30">{run.run_date || "—"}</TableCell>
+                      <TableCell className="text-end tabular-nums border-b border-border/30">{formatNum(run.total_basic || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums text-emerald-600 border-b border-border/30">{formatNum(run.total_allowances || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums text-destructive border-b border-border/30">{formatNum(run.total_deductions || 0)}</TableCell>
+                      <TableCell className="text-end tabular-nums font-bold border-b border-border/30">{formatNum(run.total_net || 0)}</TableCell>
+                      <TableCell className="text-center border-b border-border/30">{statusBadge(run.status)}</TableCell>
+                      <TableCell className="border-b border-border/30">
                         <div className="flex justify-center gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8" title={isRTL ? "عرض" : "View"} onClick={() => setViewRun(run)}>
                             <Eye className="h-4 w-4" />

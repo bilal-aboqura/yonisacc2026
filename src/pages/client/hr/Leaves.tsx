@@ -173,37 +173,39 @@ const Leaves = () => {
         <CardContent>
           {isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
           leaves.length === 0 ? <div className="text-center py-12 text-muted-foreground">{isRTL ? "لا توجد إجازات" : "No leaves"}</div> :
-          <Table>
-            <TableHeader><TableRow>
-              <TableHead>{isRTL ? "الموظف" : "Employee"}</TableHead>
-              <TableHead>{isRTL ? "النوع" : "Type"}</TableHead>
-              <TableHead>{isRTL ? "من" : "From"}</TableHead>
-              <TableHead>{isRTL ? "إلى" : "To"}</TableHead>
-              <TableHead>{isRTL ? "الأيام" : "Days"}</TableHead>
-              <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
-              <TableHead>{isRTL ? "إجراءات" : "Actions"}</TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {leaves.map((l: any) => (
-                <TableRow key={l.id}>
-                  <TableCell className="font-medium">{l.hr_employees ? (isRTL ? l.hr_employees.name : (l.hr_employees.name_en || l.hr_employees.name)) : "—"}</TableCell>
-                  <TableCell>{leaveLabel(l.leave_type)}</TableCell>
-                  <TableCell>{l.start_date}</TableCell>
-                  <TableCell>{l.end_date}</TableCell>
-                  <TableCell>{l.days_count}</TableCell>
-                  <TableCell>{statusBadge(l.status)}</TableCell>
-                  <TableCell>
-                    {l.status === "pending" && (
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" onClick={() => updateStatus.mutate({ id: l.id, status: "approved" })}><CheckCircle className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => updateStatus.mutate({ id: l.id, status: "rejected" })}><XCircle className="h-4 w-4" /></Button>
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>}
+          <div className="overflow-auto rounded-lg border border-border/50">
+            <Table>
+              <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                <TableHead className="border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "النوع" : "Type"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "من" : "From"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "إلى" : "To"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "الأيام" : "Days"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "الحالة" : "Status"}</TableHead>
+                <TableHead className="border-b border-border/50">{isRTL ? "إجراءات" : "Actions"}</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {leaves.map((l: any, idx: number) => (
+                  <TableRow key={l.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                    <TableCell className="font-medium border-b border-border/30">{l.hr_employees ? (isRTL ? l.hr_employees.name : (l.hr_employees.name_en || l.hr_employees.name)) : "—"}</TableCell>
+                    <TableCell className="border-b border-border/30">{leaveLabel(l.leave_type)}</TableCell>
+                    <TableCell className="border-b border-border/30">{l.start_date}</TableCell>
+                    <TableCell className="border-b border-border/30">{l.end_date}</TableCell>
+                    <TableCell className="border-b border-border/30">{l.days_count}</TableCell>
+                    <TableCell className="border-b border-border/30">{statusBadge(l.status)}</TableCell>
+                    <TableCell className="border-b border-border/30">
+                      {l.status === "pending" && (
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" onClick={() => updateStatus.mutate({ id: l.id, status: "approved" })}><CheckCircle className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => updateStatus.mutate({ id: l.id, status: "rejected" })}><XCircle className="h-4 w-4" /></Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>}
         </CardContent>
       </Card>
     </div>
