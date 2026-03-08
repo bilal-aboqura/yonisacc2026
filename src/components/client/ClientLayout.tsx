@@ -70,6 +70,7 @@ import {
   KeyRound,
   Home,
   Truck,
+  MinusCircle,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
