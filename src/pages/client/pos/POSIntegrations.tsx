@@ -126,7 +126,7 @@ const POSIntegrations = () => {
   // Add integration
   const addMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("pos_api_integrations").insert({
+      const { error } = await (supabase as any).from("pos_api_integrations").insert({
         company_id: companyId!,
         branch_id: newBranchId,
         provider: newProvider,
