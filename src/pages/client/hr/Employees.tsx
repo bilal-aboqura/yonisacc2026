@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Users, Pencil, Trash2, Loader2, Search, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import EmployeeForm from "@/components/hr/EmployeeForm";
 
 const Employees = () => {
   const { isRTL } = useLanguage();
@@ -20,12 +21,7 @@ const Employees = () => {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState({
-    employee_number: "", name: "", name_en: "", national_id: "", phone: "", email: "",
-    hire_date: new Date().toISOString().split("T")[0], job_title: "", job_title_en: "",
-    basic_salary: 0, housing_allowance: 0, transport_allowance: 0, other_allowance: 0,
-    bank_name: "", bank_iban: "", department_id: "", status: "active",
-  });
+  const [editData, setEditData] = useState<any>(null);
 
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["hr-employees", companyId],
@@ -50,26 +46,6 @@ const Employees = () => {
     enabled: !!companyId,
   });
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const payload = { ...form, company_id: companyId, department_id: form.department_id || null };
-      if (editId) {
-        const { error } = await (supabase as any).from("hr_employees").update(payload).eq("id", editId);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase as any).from("hr_employees").insert(payload);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
-      setShowForm(false);
-      resetForm();
-      toast.success(isRTL ? "تم الحفظ" : "Saved");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await (supabase as any).from("hr_employees").delete().eq("id", id);
@@ -81,27 +57,9 @@ const Employees = () => {
     },
   });
 
-  const resetForm = () => {
-    setEditId(null);
-    setForm({
-      employee_number: "", name: "", name_en: "", national_id: "", phone: "", email: "",
-      hire_date: new Date().toISOString().split("T")[0], job_title: "", job_title_en: "",
-      basic_salary: 0, housing_allowance: 0, transport_allowance: 0, other_allowance: 0,
-      bank_name: "", bank_iban: "", department_id: "", status: "active",
-    });
-  };
-
   const openEdit = (emp: any) => {
     setEditId(emp.id);
-    setForm({
-      employee_number: emp.employee_number, name: emp.name, name_en: emp.name_en || "",
-      national_id: emp.national_id || "", phone: emp.phone || "", email: emp.email || "",
-      hire_date: emp.hire_date, job_title: emp.job_title || "", job_title_en: emp.job_title_en || "",
-      basic_salary: emp.basic_salary, housing_allowance: emp.housing_allowance || 0,
-      transport_allowance: emp.transport_allowance || 0, other_allowance: emp.other_allowance || 0,
-      bank_name: emp.bank_name || "", bank_iban: emp.bank_iban || "",
-      department_id: emp.department_id || "", status: emp.status || "active",
-    });
+    setEditData(emp);
     setShowForm(true);
   };
 
@@ -115,67 +73,13 @@ const Employees = () => {
 
   if (showForm) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => { setShowForm(false); resetForm(); }}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-bold">
-            {editId ? (isRTL ? "تعديل موظف" : "Edit Employee") : (isRTL ? "إضافة موظف" : "Add Employee")}
-          </h1>
-        </div>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{isRTL ? "رقم الموظف" : "Employee #"}</Label>
-                <Input value={form.employee_number} onChange={(e) => setForm({ ...form, employee_number: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>{isRTL ? "القسم" : "Department"}</Label>
-                <Select value={form.department_id} onValueChange={(v) => setForm({ ...form, department_id: v })}>
-                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
-                  <SelectContent>
-                    {departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{isRTL ? d.name : (d.name_en || d.name)}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2"><Label>{isRTL ? "الاسم بالعربي" : "Name (AR)"}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "الاسم بالإنجليزي" : "Name (EN)"}</Label><Input value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "رقم الهوية" : "National ID"}</Label><Input value={form.national_id} onChange={(e) => setForm({ ...form, national_id: e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "الجوال" : "Phone"}</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "البريد" : "Email"}</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "تاريخ التعيين" : "Hire Date"}</Label><Input type="date" value={form.hire_date} onChange={(e) => setForm({ ...form, hire_date: e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "المسمى الوظيفي" : "Job Title"}</Label><Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "المسمى بالإنجليزي" : "Job Title (EN)"}</Label><Input value={form.job_title_en} onChange={(e) => setForm({ ...form, job_title_en: e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "الراتب الأساسي" : "Basic Salary"}</Label><Input type="number" value={form.basic_salary} onChange={(e) => setForm({ ...form, basic_salary: +e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "بدل سكن" : "Housing"}</Label><Input type="number" value={form.housing_allowance} onChange={(e) => setForm({ ...form, housing_allowance: +e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "بدل نقل" : "Transport"}</Label><Input type="number" value={form.transport_allowance} onChange={(e) => setForm({ ...form, transport_allowance: +e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "بدلات أخرى" : "Other"}</Label><Input type="number" value={form.other_allowance} onChange={(e) => setForm({ ...form, other_allowance: +e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "البنك" : "Bank"}</Label><Input value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "آيبان" : "IBAN"}</Label><Input value={form.bank_iban} onChange={(e) => setForm({ ...form, bank_iban: e.target.value })} /></div>
-              <div className="space-y-2">
-                <Label>{isRTL ? "الحالة" : "Status"}</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">{isRTL ? "نشط" : "Active"}</SelectItem>
-                    <SelectItem value="terminated">{isRTL ? "منتهي" : "Terminated"}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <Button variant="outline" onClick={() => { setShowForm(false); resetForm(); }}>{isRTL ? "إلغاء" : "Cancel"}</Button>
-              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name || !form.employee_number}>
-                {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
-                {isRTL ? "حفظ" : "Save"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <EmployeeForm
+        editId={editId}
+        editData={editData}
+        companyId={companyId}
+        departments={departments}
+        onClose={() => { setShowForm(false); setEditId(null); setEditData(null); }}
+      />
     );
   }
 
@@ -183,7 +87,7 @@ const Employees = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{isRTL ? "الموظفين" : "Employees"}</h1>
-        <Button onClick={() => { resetForm(); setShowForm(true); }}>
+        <Button onClick={() => { setEditId(null); setEditData(null); setShowForm(true); }}>
           <Plus className="h-4 w-4 me-2" />{isRTL ? "إضافة موظف" : "Add Employee"}
         </Button>
       </div>
@@ -227,31 +131,46 @@ const Employees = () => {
                   <TableHead>{isRTL ? "الاسم" : "Name"}</TableHead>
                   <TableHead>{isRTL ? "القسم" : "Department"}</TableHead>
                   <TableHead>{isRTL ? "المسمى" : "Title"}</TableHead>
+                  <TableHead>{isRTL ? "انتهاء العقد" : "Contract End"}</TableHead>
                   <TableHead>{isRTL ? "الراتب الإجمالي" : "Total Salary"}</TableHead>
                   <TableHead>{isRTL ? "الحالة" : "Status"}</TableHead>
                   <TableHead>{isRTL ? "إجراءات" : "Actions"}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {filtered.map((emp: any) => (
-                    <TableRow key={emp.id}>
-                      <TableCell className="font-mono">{emp.employee_number}</TableCell>
-                      <TableCell className="font-medium">{isRTL ? emp.name : (emp.name_en || emp.name)}</TableCell>
-                      <TableCell>{emp.hr_departments ? (isRTL ? emp.hr_departments.name : (emp.hr_departments.name_en || emp.hr_departments.name)) : "—"}</TableCell>
-                      <TableCell>{isRTL ? emp.job_title : (emp.job_title_en || emp.job_title) || "—"}</TableCell>
-                      <TableCell>{totalSalary(emp).toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge variant={emp.status === "active" ? "default" : "destructive"}>
-                          {emp.status === "active" ? (isRTL ? "نشط" : "Active") : (isRTL ? "منتهي" : "Terminated")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(emp)}><Pencil className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(emp.id)}><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filtered.map((emp: any) => {
+                    const isExpiringSoon = emp.contract_end_date &&
+                      new Date(emp.contract_end_date) <= new Date(Date.now() + 30 * 86400000) &&
+                      new Date(emp.contract_end_date) >= new Date();
+                    const isExpired = emp.contract_end_date && new Date(emp.contract_end_date) < new Date();
+
+                    return (
+                      <TableRow key={emp.id}>
+                        <TableCell className="font-mono">{emp.employee_number}</TableCell>
+                        <TableCell className="font-medium">{isRTL ? emp.name : (emp.name_en || emp.name)}</TableCell>
+                        <TableCell>{emp.hr_departments ? (isRTL ? emp.hr_departments.name : (emp.hr_departments.name_en || emp.hr_departments.name)) : "—"}</TableCell>
+                        <TableCell>{isRTL ? emp.job_title : (emp.job_title_en || emp.job_title) || "—"}</TableCell>
+                        <TableCell>
+                          {emp.contract_end_date ? (
+                            <span className={isExpired ? "text-destructive font-medium" : isExpiringSoon ? "text-orange-500 font-medium" : ""}>
+                              {emp.contract_end_date}
+                            </span>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell>{totalSalary(emp).toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Badge variant={emp.status === "active" ? "default" : "destructive"}>
+                            {emp.status === "active" ? (isRTL ? "نشط" : "Active") : (isRTL ? "منتهي" : "Terminated")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(emp)}><Pencil className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteMutation.mutate(emp.id)}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
