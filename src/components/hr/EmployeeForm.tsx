@@ -120,6 +120,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
         iqama_expiry: editData.iqama_expiry || "",
         gosi_registration_date: editData.gosi_registration_date || "",
         gosi_amount: editData.gosi_amount || 0,
+        work_shift_id: editData.work_shift_id || "",
       };
     }
     return { ...defaultForm };
