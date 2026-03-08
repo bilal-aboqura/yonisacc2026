@@ -3345,6 +3345,7 @@ export type Database = {
           bank_iban: string | null
           bank_name: string | null
           basic_salary: number
+          border_number: string | null
           company_id: string
           contract_duration_months: number | null
           contract_end_date: string | null
@@ -3352,15 +3353,26 @@ export type Database = {
           department_id: string | null
           email: string | null
           employee_number: string
+          gender: string | null
+          gosi_amount: number | null
+          gosi_registration_date: string | null
+          has_iqama: boolean | null
+          health_card_expiry: string | null
+          health_card_number: string | null
           hire_date: string
           housing_allowance: number | null
           id: string
+          iqama_expiry: string | null
+          iqama_number: string | null
           job_title: string | null
           job_title_en: string | null
           name: string
           name_en: string | null
           national_id: string | null
+          nationality: string | null
           other_allowance: number | null
+          passport_expiry: string | null
+          passport_number: string | null
           phone: string | null
           start_date: string | null
           status: string | null
@@ -3368,12 +3380,14 @@ export type Database = {
           termination_reason: string | null
           transport_allowance: number | null
           updated_at: string | null
+          visa_expiry: string | null
         }
         Insert: {
           account_id?: string | null
           bank_iban?: string | null
           bank_name?: string | null
           basic_salary?: number
+          border_number?: string | null
           company_id: string
           contract_duration_months?: number | null
           contract_end_date?: string | null
@@ -3381,15 +3395,26 @@ export type Database = {
           department_id?: string | null
           email?: string | null
           employee_number: string
+          gender?: string | null
+          gosi_amount?: number | null
+          gosi_registration_date?: string | null
+          has_iqama?: boolean | null
+          health_card_expiry?: string | null
+          health_card_number?: string | null
           hire_date?: string
           housing_allowance?: number | null
           id?: string
+          iqama_expiry?: string | null
+          iqama_number?: string | null
           job_title?: string | null
           job_title_en?: string | null
           name: string
           name_en?: string | null
           national_id?: string | null
+          nationality?: string | null
           other_allowance?: number | null
+          passport_expiry?: string | null
+          passport_number?: string | null
           phone?: string | null
           start_date?: string | null
           status?: string | null
@@ -3397,12 +3422,14 @@ export type Database = {
           termination_reason?: string | null
           transport_allowance?: number | null
           updated_at?: string | null
+          visa_expiry?: string | null
         }
         Update: {
           account_id?: string | null
           bank_iban?: string | null
           bank_name?: string | null
           basic_salary?: number
+          border_number?: string | null
           company_id?: string
           contract_duration_months?: number | null
           contract_end_date?: string | null
@@ -3410,15 +3437,26 @@ export type Database = {
           department_id?: string | null
           email?: string | null
           employee_number?: string
+          gender?: string | null
+          gosi_amount?: number | null
+          gosi_registration_date?: string | null
+          has_iqama?: boolean | null
+          health_card_expiry?: string | null
+          health_card_number?: string | null
           hire_date?: string
           housing_allowance?: number | null
           id?: string
+          iqama_expiry?: string | null
+          iqama_number?: string | null
           job_title?: string | null
           job_title_en?: string | null
           name?: string
           name_en?: string | null
           national_id?: string | null
+          nationality?: string | null
           other_allowance?: number | null
+          passport_expiry?: string | null
+          passport_number?: string | null
           phone?: string | null
           start_date?: string | null
           status?: string | null
@@ -3426,6 +3464,7 @@ export type Database = {
           termination_reason?: string | null
           transport_allowance?: number | null
           updated_at?: string | null
+          visa_expiry?: string | null
         }
         Relationships: [
           {
