@@ -77,7 +77,7 @@ const POSIntegrations = () => {
   const { data: integrations = [], isLoading: loadingIntegrations } = useQuery({
     queryKey: ["pos-integrations", companyId],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("pos_api_integrations")
         .select("*, branches(name, name_en)")
         .eq("company_id", companyId!)
