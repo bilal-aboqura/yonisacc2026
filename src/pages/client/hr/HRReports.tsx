@@ -186,33 +186,35 @@ const HRReports = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{isRTL ? "تقرير الإجازات" : "Leaves Report"}</CardTitle></CardHeader>
             <CardContent>
               {loadingLeaves ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
+              <div className="overflow-auto rounded-lg border border-border/50">
               <Table>
-                <TableHeader><TableRow>
-                  <TableHead>{isRTL ? "رقم" : "#"}</TableHead>
-                  <TableHead>{isRTL ? "الموظف" : "Employee"}</TableHead>
-                  <TableHead>{isRTL ? "سنوية" : "Annual"}</TableHead>
-                  <TableHead>{isRTL ? "مرضية" : "Sick"}</TableHead>
-                  <TableHead>{isRTL ? "بدون راتب" : "Unpaid"}</TableHead>
-                  <TableHead>{isRTL ? "اضطرارية" : "Emergency"}</TableHead>
-                  <TableHead>{isRTL ? "الإجمالي" : "Total"}</TableHead>
+                <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                  <TableHead className="border-b border-border/50">{isRTL ? "رقم" : "#"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "سنوية" : "Annual"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "مرضية" : "Sick"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "بدون راتب" : "Unpaid"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "اضطرارية" : "Emergency"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الإجمالي" : "Total"}</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {Object.entries(leaveSummary).map(([id, s]) => (
-                    <TableRow key={id}>
-                      <TableCell className="font-mono">{s.number}</TableCell>
-                      <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>{s.annual}</TableCell>
-                      <TableCell>{s.sick}</TableCell>
-                      <TableCell>{s.unpaid}</TableCell>
-                      <TableCell>{s.emergency}</TableCell>
-                      <TableCell className="font-bold">{s.total}</TableCell>
+                  {Object.entries(leaveSummary).map(([id, s], idx) => (
+                    <TableRow key={id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      <TableCell className="font-mono border-b border-border/30">{s.number}</TableCell>
+                      <TableCell className="font-medium border-b border-border/30">{s.name}</TableCell>
+                      <TableCell className="border-b border-border/30">{s.annual}</TableCell>
+                      <TableCell className="border-b border-border/30">{s.sick}</TableCell>
+                      <TableCell className="border-b border-border/30">{s.unpaid}</TableCell>
+                      <TableCell className="border-b border-border/30">{s.emergency}</TableCell>
+                      <TableCell className="font-bold border-b border-border/30">{s.total}</TableCell>
                     </TableRow>
                   ))}
                   {Object.keys(leaveSummary).length === 0 && (
                     <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{isRTL ? "لا توجد بيانات" : "No data"}</TableCell></TableRow>
                   )}
                 </TableBody>
-              </Table>}
+              </Table>
+              </div>}
             </CardContent>
           </Card>
         </TabsContent>
