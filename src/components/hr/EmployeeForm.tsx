@@ -195,9 +195,10 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
                 <Label>{isRTL ? "الجنسية" : "Nationality"}</Label>
                 <Select value={form.nationality} onValueChange={(v) => setForm({ ...form, nationality: v })}>
                   <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="saudi">{isRTL ? "سعودي" : "Saudi"}</SelectItem>
-                    <SelectItem value="non-saudi">{isRTL ? "غير سعودي" : "Non-Saudi"}</SelectItem>
+                  <SelectContent className="max-h-60">
+                    {NATIONALITIES.map((n) => (
+                      <SelectItem key={n.code} value={n.code}>{isRTL ? n.ar : n.en}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
