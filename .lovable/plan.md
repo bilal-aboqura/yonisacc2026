@@ -1,55 +1,53 @@
 
-# خطة نظام نقاط البيع الشامل (POS)
 
-## الحالة: ✅ تم تنفيذ المراحل 1-10
+# خطة: إخفاء الوحدات المعطّلة عن المشترك
 
-### ما تم إنجازه:
+## المشكلة
+عند إلغاء تفعيل وحدة من المالك، لا تختفي من القائمة الجانبية للمشترك لسببين:
+1. **الحفظ يحدّث فقط سجل المالك** في `company_members` (فلتر `eq("user_id", owner_id)`) بدلاً من جميع أعضاء الشركة.
+2. **`ClientLayout.tsx` لا يقرأ `allowed_modules` أصلاً** — يعرض جميع الوحدات دائماً.
 
-**المرحلة 1: قاعدة البيانات** ✅
-- 11 جدول جديد: pos_terminals, pos_sessions, pos_transactions, pos_transaction_items, pos_tables, pos_reservations, pos_menus, pos_menu_items, pos_promotions, pos_sales_targets, pos_activity_log
-- RLS على جميع الجداول
-- صلاحيات RBAC: 8 feature flags جديدة
+## الحل
 
-**المرحلة 2: شاشة POS الرئيسية** ✅
-- شاشة ملء الشاشة مع شبكة منتجات + سلة مشتريات
-- بحث سريع وباركود + تصفية بالتصنيف
-- نوع الطلب (محلي/سفري/توصيل)
-- أزرار دفع متعددة (نقد/بطاقة)
-- اختصارات لوحة مفاتيح (F1/F2/F5/Esc)
-- فتح/إغلاق الصندوق مع المبلغ
+### 1. تحديث حفظ الوحدات (ManageCompanyAccess.tsx)
+- عند الحفظ، تحديث **جميع** أعضاء الشركة (`company_members`) وليس المالك فقط.
+- إزالة فلتر `.eq("user_id", company.owner_id)` واستبداله بـ `.eq("company_id", id)` فقط.
 
-**المرحلة 3: إدارة الطاولات** ✅
-- عرض تفاعلي مع ألوان حسب الحالة
-- CRUD للطاولات مع الشكل والسعة والطابق
+### 2. إنشاء hook جديد: `useAllowedModules`
+- يجلب `allowed_modules` من `company_members` للمستخدم الحالي والشركة الحالية.
+- يُرجع قائمة الوحدات المسموحة و دالة `isModuleAllowed(key)`.
 
-**المرحلة 4: الإعدادات والمنيو** ✅
-- إدارة نقاط البيع (Terminals) مع النوع (تجزئة/مطعم)
-- إدارة المنيو المخصص لكل فرع
+### 3. تعديل ClientLayout.tsx
+- استدعاء `useAllowedModules` hook.
+- إضافة خطوة فلترة بعد `filterByPermission` لإزالة الوحدات غير المسموحة.
+- ربط كل مجموعة قائمة (autoparts, gold, clinic, etc.) بمفتاح module واضح لتسهيل الفلترة.
+- إضافة خاصية `moduleKey` لكل مجموعة قائمة في `MenuItem` interface.
 
-**المرحلة 5: العروض والأهداف** ✅
-- إنشاء عروض (نسبة/مبلغ/اشتر X واحصل Y)
-- أهداف مبيعات مع شريط التقدم
+### 4. تعيين moduleKey لكل مجموعة
 
-**المرحلة 6: التقارير** ✅
-- بطاقات ملخص (إجمالي/عدد/متوسط)
-- رسم بياني يومي + توزيع طرق الدفع
-- جدول العمليات
+```text
+baseMenuItems:
+  - Dashboard        → (always visible)
+  - المحاسبة المالية  → "accounting"
+  - المبيعات          → "sales"  
+  - المشتريات         → "purchases"
+  - الموارد البشرية   → "hr"
+  - المخزون           → "inventory"
+  - نقاط البيع        → "pos"
+  - التقارير          → "reports"
+  - الإعدادات         → (always visible)
 
-**المرحلة 7-8: التكامل** ✅
-- 7 مسارات POS في App.tsx
-- قسم "نقاط البيع" في القائمة الجانبية
-- سجل نشاط المستخدمين
+Separate groups:
+  - autoPartsMenuGroup   → "autoparts"
+  - fixedAssetsMenuGroup → "assets"
+  - goldMenuGroup        → "gold"
+  - clinicMenuGroup      → "clinic"
+  - realEstateMenuGroup  → "realestate"
+  - deliveryMenuGroup    → "delivery"
+```
 
-**المرحلة 9: الكوبونات والعروض المتقدمة** ✅
-- جدول pos_coupons مع RLS
-- شاشة إدارة كوبونات (CRUD) مع inline form
-- تطبيق الكوبون في شاشة البيع مع التحقق (الفترة، الاستخدام، الحد الأدنى)
-- ربط العروض بمنتجات محددة عبر جدول pos_promotion_products
-- تحويل شاشة العروض من Dialog إلى inline مع product checkboxes
+### الملفات المتأثرة
+- `src/hooks/useAllowedModules.ts` — ملف جديد
+- `src/components/client/ClientLayout.tsx` — فلترة القائمة
+- `src/pages/owner/ManageCompanyAccess.tsx` — تحديث جميع الأعضاء
 
-**المرحلة 10: مستخدمو POS وتقارير الصندوق** ✅
-- جدول pos_users مع أدوار (كاشير/مدير فرع) وربط بالفرع
-- شاشة إدارة مستخدمي POS (إنشاء بإيميل+باسورد+فرع+دور)
-- تقرير إغلاق الصندوق (مبيعات/مرتجعات/خصومات/طرق دفع/رصيد إغلاق) مع طباعة
-- شاشة سجل المستخدمين (تاريخ الجلسات مع فلترة)
-- أعمدة تقارير في pos_sessions (total_sales, total_returns, payment_summary, etc.)
