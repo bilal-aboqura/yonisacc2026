@@ -250,6 +250,7 @@ const fixedAssetsMenuGroup: MenuItem = {
   icon: Building2,
   label: "الأصول الثابتة",
   labelEn: "Fixed Assets",
+  moduleKey: "assets",
   children: [
     { icon: Building2, label: "سجل الأصول", labelEn: "Asset Register", path: "/client/assets", permission: "VIEW_ACCOUNTS" },
     { icon: FolderTree, label: "تصنيفات الأصول", labelEn: "Categories", path: "/client/assets/categories", permission: "VIEW_ACCOUNTS" },
