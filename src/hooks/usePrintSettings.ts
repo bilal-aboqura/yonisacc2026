@@ -25,7 +25,7 @@ export function usePrintSettings(companyId: string | null | undefined) {
       } as PrintSettings;
     },
     enabled: !!companyId,
-    staleTime: 30 * 1000, // 30s - ensures quick reactivity when settings change
+    staleTime: 0,
   });
 
   const saveMutation = useMutation({

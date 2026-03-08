@@ -79,9 +79,14 @@ const PrintSettingsTab = ({ companyId }: PrintSettingsTabProps) => {
     setLocal((prev) => ({ ...prev, [key]: value }));
   };
 
+  const queryClient = useQueryClient();
+
   const handleSave = () => {
     save(local, {
-      onSuccess: () => toast.success(isRTL ? "تم حفظ إعدادات الطباعة" : "Print settings saved"),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["print-settings"] });
+        toast.success(isRTL ? "تم حفظ إعدادات الطباعة" : "Print settings saved");
+      },
       onError: () => toast.error(isRTL ? "فشل في الحفظ" : "Failed to save"),
     });
   };
