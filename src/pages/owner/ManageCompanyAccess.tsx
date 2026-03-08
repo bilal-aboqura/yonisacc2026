@@ -117,17 +117,15 @@ const ManageCompanyAccess = () => {
           .single();
         setCompany(companyData);
 
-        // Load allowed_modules from company_members (owner)
-        if (companyData?.owner_id) {
-          const { data: memberData } = await supabase
-            .from("company_members")
-            .select("allowed_modules")
-            .eq("company_id", id)
-            .eq("user_id", companyData.owner_id)
-            .maybeSingle();
-          if (memberData?.allowed_modules && Array.isArray(memberData.allowed_modules)) {
-            setSelectedModules(memberData.allowed_modules);
-          }
+        // Load allowed_modules from any company_members record
+        const { data: memberData } = await supabase
+          .from("company_members")
+          .select("allowed_modules")
+          .eq("company_id", id)
+          .limit(1)
+          .maybeSingle();
+        if (memberData?.allowed_modules && Array.isArray(memberData.allowed_modules)) {
+          setSelectedModules(memberData.allowed_modules);
         }
 
         // Override data
