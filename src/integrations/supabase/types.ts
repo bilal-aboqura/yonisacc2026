@@ -3301,6 +3301,89 @@ export type Database = {
           },
         ]
       }
+      hr_deductions: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string | null
+          deduction_date: string
+          deduction_type: string
+          description: string | null
+          description_en: string | null
+          employee_id: string
+          id: string
+          is_applied: boolean | null
+          notes: string | null
+          occurrence_number: number | null
+          payroll_run_id: string | null
+          penalty_rule_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number
+          company_id: string
+          created_at?: string | null
+          deduction_date?: string
+          deduction_type?: string
+          description?: string | null
+          description_en?: string | null
+          employee_id: string
+          id?: string
+          is_applied?: boolean | null
+          notes?: string | null
+          occurrence_number?: number | null
+          payroll_run_id?: string | null
+          penalty_rule_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string | null
+          deduction_date?: string
+          deduction_type?: string
+          description?: string | null
+          description_en?: string | null
+          employee_id?: string
+          id?: string
+          is_applied?: boolean | null
+          notes?: string | null
+          occurrence_number?: number | null
+          payroll_run_id?: string | null
+          penalty_rule_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_deductions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_deductions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_deductions_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "hr_payroll_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_deductions_penalty_rule_id_fkey"
+            columns: ["penalty_rule_id"]
+            isOneToOne: false
+            referencedRelation: "hr_penalty_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_departments: {
         Row: {
           company_id: string
@@ -3349,6 +3432,7 @@ export type Database = {
           company_id: string
           contract_duration_months: number | null
           contract_end_date: string | null
+          cost_center_id: string | null
           created_at: string | null
           department_id: string | null
           email: string | null
@@ -3392,6 +3476,7 @@ export type Database = {
           company_id: string
           contract_duration_months?: number | null
           contract_end_date?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
           department_id?: string | null
           email?: string | null
@@ -3435,6 +3520,7 @@ export type Database = {
           company_id?: string
           contract_duration_months?: number | null
           contract_end_date?: string | null
+          cost_center_id?: string | null
           created_at?: string | null
           department_id?: string | null
           email?: string | null
@@ -3482,6 +3568,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_employees_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
             referencedColumns: ["id"]
           },
           {
