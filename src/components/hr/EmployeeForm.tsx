@@ -80,7 +80,7 @@ const defaultForm = {
   work_shift_id: "",
 };
 
-const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: EmployeeFormProps) => {
+const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [], onClose }: EmployeeFormProps) => {
   const { isRTL } = useLanguage();
   const queryClient = useQueryClient();
 
