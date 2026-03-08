@@ -136,12 +136,10 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
         payload.sales_revenue_account_id = salesRevenueAccount || null;
         payload.sales_discount_account_id = salesDiscountAccount || null;
         payload.sales_tax_account_id = salesTaxAccount || null;
-        payload.sales_receivable_account_id = salesReceivableAccount || null;
       } else if (moduleType === "purchases") {
         payload.purchase_expense_account_id = purchaseExpenseAccount || null;
         payload.purchase_discount_account_id = purchaseDiscountAccount || null;
         payload.purchase_tax_account_id = purchaseTaxAccount || null;
-        payload.purchase_payable_account_id = purchasePayableAccount || null;
       } else if (moduleType === "inventory") {
         payload.inventory_account_id = inventoryAccount || null;
         payload.cogs_account_id = cogsAccount || null;
