@@ -235,6 +235,7 @@ const autoPartsMenuGroup: MenuItem = {
   icon: Car,
   label: "قطع الغيار",
   labelEn: "Auto Parts",
+  moduleKey: "autoparts",
   children: [
     { icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard", path: "/client/auto-parts", permission: "VIEW_AUTO_PARTS" },
     { icon: Search, label: "كتالوج القطع", labelEn: "Parts Catalog", path: "/client/auto-parts/catalog", permission: "VIEW_AUTO_PARTS" },
