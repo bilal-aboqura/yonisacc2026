@@ -78,6 +78,7 @@ serve(async (req) => {
     const taxNumber = (body.tax_number || '').trim() || null;
     const commercialRegister = (body.commercial_register || '').trim() || null;
     const address = (body.address || '').trim() || null;
+    const allowedModules = body.allowed_modules || null;
 
     // 3. Validate
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
