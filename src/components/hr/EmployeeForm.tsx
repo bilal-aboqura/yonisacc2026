@@ -179,6 +179,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
         gender: form.gender || null,
         nationality: form.nationality || null,
         work_shift_id: form.work_shift_id || null,
+        cost_center_id: form.cost_center_id || null,
       };
       if (editId) {
         const { error } = await (supabase as any).from("hr_employees").update(payload).eq("id", editId);
