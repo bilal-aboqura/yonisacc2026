@@ -311,10 +311,10 @@ const BranchAccountSettings = ({ companyId }: BranchAccountSettingsProps) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
-                  {renderAccountSelect("حساب مصروفات المشتريات", "Purchase Expense Account", purchaseExpenseAccount, v => setPurchaseExpenseAccount(v === "none" ? "" : v), ["expense"])}
-                  {renderAccountSelect("حساب خصم المشتريات", "Purchase Discount Account", purchaseDiscountAccount, v => setPurchaseDiscountAccount(v === "none" ? "" : v), ["revenue"])}
-                  {renderAccountSelect("حساب ضريبة المشتريات", "Purchase Tax Account", purchaseTaxAccount, v => setPurchaseTaxAccount(v === "none" ? "" : v), ["asset"])}
-                  {renderAccountSelect("حساب الذمم الدائنة", "Payable Account", purchasePayableAccount, v => setPurchasePayableAccount(v === "none" ? "" : v), ["liability"])}
+                  {renderAccountSelect("حساب مصروفات المشتريات", "Purchase Expense Account", purchaseExpenseAccount, v => setPurchaseExpenseAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب خصم المشتريات", "Purchase Discount Account", purchaseDiscountAccount, v => setPurchaseDiscountAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب ضريبة المشتريات", "Purchase Tax Account", purchaseTaxAccount, v => setPurchaseTaxAccount(v === "none" ? "" : v))}
+                  {renderAccountSelect("حساب الذمم الدائنة", "Payable Account", purchasePayableAccount, v => setPurchasePayableAccount(v === "none" ? "" : v))}
                 </div>
                 <Button onClick={() => handleSave("purchases")} disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
