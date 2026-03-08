@@ -1363,6 +1363,7 @@ export type Database = {
       }
       company_members: {
         Row: {
+          allowed_modules: string[] | null
           company_id: string
           created_at: string | null
           id: string
@@ -1374,6 +1375,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          allowed_modules?: string[] | null
           company_id: string
           created_at?: string | null
           id?: string
@@ -1385,6 +1387,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          allowed_modules?: string[] | null
           company_id?: string
           created_at?: string | null
           id?: string
@@ -4049,6 +4052,7 @@ export type Database = {
       invitations: {
         Row: {
           accepted_at: string | null
+          allowed_modules: string[] | null
           company_id: string
           created_at: string | null
           email: string
@@ -4061,6 +4065,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          allowed_modules?: string[] | null
           company_id: string
           created_at?: string | null
           email: string
@@ -4073,6 +4078,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          allowed_modules?: string[] | null
           company_id?: string
           created_at?: string | null
           email?: string
