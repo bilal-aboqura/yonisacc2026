@@ -77,6 +77,7 @@ const defaultForm = {
   border_number: "", visa_expiry: "",
   has_iqama: false, iqama_number: "", iqama_expiry: "",
   gosi_registration_date: "", gosi_amount: 0,
+  work_shift_id: "",
 };
 
 const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: EmployeeFormProps) => {
