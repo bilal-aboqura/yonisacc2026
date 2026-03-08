@@ -16,6 +16,7 @@ interface EmployeeFormProps {
   editData: any;
   companyId: string | null;
   departments: any[];
+  workShifts?: any[];
   onClose: () => void;
 }
 

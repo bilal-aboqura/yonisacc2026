@@ -142,6 +142,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: DollarSign, label: "الرواتب", labelEn: "Payroll", path: "/client/hr/payroll", permission: "MANAGE_PAYROLL" },
       { icon: Award, label: "نهاية الخدمة", labelEn: "End of Service", path: "/client/hr/end-of-service", permission: "VIEW_HR" },
       { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/hr/reports", permission: "VIEW_HR" },
+      { icon: Shield, label: "تجهيز الخصومات", labelEn: "Penalty Rules", path: "/client/hr/penalty-rules", permission: "VIEW_HR" },
       { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/hr/setup", permission: "VIEW_HR" },
     ]
   },
