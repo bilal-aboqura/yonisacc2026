@@ -16,6 +16,7 @@ interface EmployeeFormProps {
   editData: any;
   companyId: string | null;
   departments: any[];
+  workShifts?: any[];
   onClose: () => void;
 }
 
@@ -76,9 +77,10 @@ const defaultForm = {
   border_number: "", visa_expiry: "",
   has_iqama: false, iqama_number: "", iqama_expiry: "",
   gosi_registration_date: "", gosi_amount: 0,
+  work_shift_id: "",
 };
 
-const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: EmployeeFormProps) => {
+const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [], onClose }: EmployeeFormProps) => {
   const { isRTL } = useLanguage();
   const queryClient = useQueryClient();
 
@@ -118,6 +120,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
         iqama_expiry: editData.iqama_expiry || "",
         gosi_registration_date: editData.gosi_registration_date || "",
         gosi_amount: editData.gosi_amount || 0,
+        work_shift_id: editData.work_shift_id || "",
       };
     }
     return { ...defaultForm };
@@ -172,6 +175,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
         gosi_amount: isSaudi ? gosiAmount : 0,
         gender: form.gender || null,
         nationality: form.nationality || null,
+        work_shift_id: form.work_shift_id || null,
       };
       if (editId) {
         const { error } = await (supabase as any).from("hr_employees").update(payload).eq("id", editId);
@@ -255,6 +259,20 @@ const EmployeeForm = ({ editId, editData, companyId, departments, onClose }: Emp
                   <SelectContent>
                     <SelectItem value="active">{isRTL ? "نشط" : "Active"}</SelectItem>
                     <SelectItem value="terminated">{isRTL ? "منتهي" : "Terminated"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "فترة الدوام" : "Work Shift"}</Label>
+                <Select value={form.work_shift_id} onValueChange={(v) => setForm({ ...form, work_shift_id: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{isRTL ? "-- بدون --" : "-- None --"}</SelectItem>
+                    {workShifts.map((s: any) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {isRTL ? s.name : (s.name_en || s.name)} ({s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
