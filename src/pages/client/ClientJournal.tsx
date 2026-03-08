@@ -352,8 +352,8 @@ const ClientJournal = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((entry) => (
-                    <TableRow key={entry.id} className="group">
+                  {filtered.map((entry, idx) => (
+                    <TableRow key={entry.id} className={`group ${idx % 2 === 1 ? "bg-muted/30" : ""}`}>
                       <TableCell className="font-mono font-medium text-primary">{entry.entry_number}</TableCell>
                       <TableCell className="text-muted-foreground">{entry.entry_date}</TableCell>
                       <TableCell className="max-w-[250px] truncate">{entry.description || "-"}</TableCell>
