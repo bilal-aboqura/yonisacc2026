@@ -189,12 +189,11 @@ const ManageCompanyAccess = () => {
     if (!id || !company?.owner_id) return;
     setSavingModules(true);
     try {
-      // Update all company_members for this company
+      // Update ALL company_members for this company (not just owner)
       const { error } = await supabase
         .from("company_members")
         .update({ allowed_modules: selectedModules })
-        .eq("company_id", id)
-        .eq("user_id", company.owner_id);
+        .eq("company_id", id);
       if (error) throw error;
       toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تحديث الوحدات المتاحة" : "Available modules updated" });
     } catch (e: any) {
