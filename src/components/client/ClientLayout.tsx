@@ -176,6 +176,7 @@ const baseMenuItems: MenuItem[] = [
     icon: Monitor,
     label: "نقاط البيع",
     labelEn: "Point of Sale",
+    moduleKey: "pos",
     children: [
       { icon: Monitor, label: "شاشة البيع", labelEn: "POS Screen", path: "/client/pos", permission: "VIEW_POS" },
       { icon: Receipt, label: "الفواتير", labelEn: "Invoices", path: "/client/pos/invoices", permission: "POS_VIEW_INVOICES" },
