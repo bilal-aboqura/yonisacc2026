@@ -264,6 +264,7 @@ const goldMenuGroup: MenuItem = {
   icon: Gem,
   label: "الذهب والمجوهرات",
   labelEn: "Gold & Jewelry",
+  moduleKey: "gold",
   children: [
     { icon: Gem, label: "أصناف الذهب", labelEn: "Gold Items", path: "/client/gold/items", permission: "VIEW_INVENTORY" },
     { icon: ShoppingCart, label: "مشتريات الذهب", labelEn: "Gold Purchases", path: "/client/gold/purchases", permission: "VIEW_PURCHASES" },
