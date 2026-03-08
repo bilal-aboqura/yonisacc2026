@@ -83,6 +83,8 @@ interface MenuItem {
   path?: string;
   /** RBAC permission code required to see this item */
   permission?: string;
+  /** Module key for allowed_modules filtering */
+  moduleKey?: string;
   children?: MenuItem[];
 }
 
