@@ -1,23 +1,30 @@
 
 
-# إصلاح خطأ RLS عند حفظ الوحدات
-
-## المشكلة
-عند محاولة إدخال سجل جديد في `company_members`، سياسة RLS تتحقق من `is_company_owner(company_id)` — أي أن `auth.uid()` يجب أن يكون مالك الشركة نفسها. لكن مستخدم لوحة الملاك (owner portal) هو **مالك المنصة** وليس مالك شركة المشترك، لذلك الإدراج يُرفض.
+# إضافة تسجيل خروج تلقائي بعد 15 دقيقة من عدم النشاط
 
 ## الحل
-إضافة سياسة RLS جديدة تسمح لمستخدمي دور `owner` (مالك المنصة) بإدارة سجلات `company_members`:
+إنشاء hook جديد `useAutoLogout` يراقب نشاط المستخدم (حركة الماوس، النقر، لوحة المفاتيح، التمرير) ويقوم بتسجيل الخروج تلقائياً بعد 15 دقيقة من عدم وجود أي نشاط.
 
-### 1. Migration — إضافة سياسة RLS
-```sql
-CREATE POLICY "Platform owner can manage all members"
-ON public.company_members
-FOR ALL
-TO authenticated
-USING (public.has_role(auth.uid(), 'owner'))
-WITH CHECK (public.has_role(auth.uid(), 'owner'));
+## الملفات
+
+### 1. إنشاء `src/hooks/useAutoLogout.ts`
+- يستمع لأحداث: `mousemove`, `mousedown`, `keydown`, `scroll`, `touchstart`
+- عند كل حدث يُعيد ضبط مؤقت 15 دقيقة
+- عند انتهاء المؤقت → يستدعي `signOut()` من `AuthContext`
+- يعمل فقط عندما يكون المستخدم مسجل الدخول (`user !== null`)
+- ينظف الأحداث والمؤقت عند `unmount`
+
+### 2. تعديل `src/App.tsx`
+- إضافة مكوّن داخلي `AutoLogoutWrapper` يستدعي `useAutoLogout()` داخل `AuthProvider` و `BrowserRouter`
+- يلف محتوى `Routes` بهذا المكوّن
+
+## التفاصيل التقنية
+```text
+useAutoLogout:
+  - TIMEOUT = 15 * 60 * 1000 (15 دقيقة)
+  - events: mousemove, mousedown, keydown, scroll, touchstart
+  - على كل event → clearTimeout + setTimeout(signOut, TIMEOUT)
+  - cleanup: remove listeners + clearTimeout
+  - يعرض toast تحذيري قبل الخروج
 ```
-
-### 2. لا تغييرات في الكود
-الكود الحالي في `ManageCompanyAccess.tsx` صحيح — المشكلة فقط في صلاحيات قاعدة البيانات.
 
