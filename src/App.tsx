@@ -277,6 +277,7 @@ const App = () => (
               <Route path="hr/payroll" element={<Payroll />} />
               <Route path="hr/end-of-service" element={<EndOfService />} />
               <Route path="hr/reports" element={<HRReports />} />
+              <Route path="hr/penalty-rules" element={<PenaltyRules />} />
               <Route path="hr/setup" element={<HRAccountSetup />} />
               
               {/* Auto Parts */}
