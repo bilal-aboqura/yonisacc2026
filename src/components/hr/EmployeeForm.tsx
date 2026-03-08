@@ -280,6 +280,20 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "مركز التكلفة" : "Cost Center"}</Label>
+                <Select value={form.cost_center_id} onValueChange={(v) => setForm({ ...form, cost_center_id: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر" : "Select"} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{isRTL ? "-- بدون --" : "-- None --"}</SelectItem>
+                    {costCenters.map((cc: any) => (
+                      <SelectItem key={cc.id} value={cc.id}>
+                        {cc.code} - {isRTL ? cc.name : (cc.name_en || cc.name)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
