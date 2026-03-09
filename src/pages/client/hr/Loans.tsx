@@ -366,8 +366,8 @@ const Loans = () => {
             <AlertDialogTitle>{isRTL ? "تأكيد الحذف" : "Confirm Delete"}</AlertDialogTitle>
             <AlertDialogDescription>
               {isRTL
-                ? `هل أنت متأكد من حذف سلفة الموظف "${deleteLoan ? getEmployeeName(deleteLoan) : ""}"؟ لا يمكن التراجع عن هذا الإجراء.`
-                : `Are you sure you want to delete the loan for "${deleteLoan ? getEmployeeName(deleteLoan) : ""}"? This action cannot be undone.`}
+                ? `هل أنت متأكد من حذف سلفة الموظف "${deleteLoan ? getEmployeeName(deleteLoan) : ""}"؟ سيتم حذف القيد المحاسبي المرتبط أيضاً. لا يمكن التراجع عن هذا الإجراء.`
+                : `Are you sure you want to delete the loan for "${deleteLoan ? getEmployeeName(deleteLoan) : ""}"? The related journal entry will also be deleted. This action cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
