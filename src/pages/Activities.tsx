@@ -121,7 +121,6 @@ const Activities = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {verticals?.map((vertical) => {
                 const IconComp = iconMap[vertical.icon] || Store;
-                const isComingSoon = vertical.status === "coming_soon";
                 const name = isRTL ? vertical.name_ar : vertical.name_en;
                 const description = isRTL ? vertical.description_ar : vertical.description_en;
                 const features = isRTL ? vertical.features_ar : vertical.features_en;
@@ -130,21 +129,8 @@ const Activities = () => {
                 return (
                   <Card 
                     key={vertical.id} 
-                    className={cn(
-                      "group relative overflow-hidden transition-all duration-300 hover:shadow-xl border-2",
-                      isComingSoon ? "opacity-80 hover:opacity-100" : "hover:border-primary"
-                    )}
+                    className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl border-2 hover:border-primary"
                   >
-                    {/* Status Badge */}
-                    {isComingSoon && (
-                      <div className="absolute top-4 end-4 z-10">
-                        <Badge variant="secondary" className="gap-1 bg-amber-500/10 text-amber-600 border-amber-500/20">
-                          <Clock className="h-3 w-3" />
-                          {isRTL ? "قريباً" : "Coming Soon"}
-                        </Badge>
-                      </div>
-                    )}
-
                     <CardHeader className="pb-4">
                       {/* Icon */}
                       <div className={cn(
@@ -179,21 +165,7 @@ const Activities = () => {
                       </ul>
                     </CardContent>
 
-                    <CardFooter className="pt-4">
-                      {isComingSoon ? (
-                        <Button disabled className="w-full gap-2" variant="secondary">
-                          <Clock className="h-4 w-4" />
-                          {isRTL ? "تحت التطوير" : "Under Development"}
-                        </Button>
-                      ) : (
-                        <Link to={`/register-company?activity=${encodeURIComponent(vertical.name_en)}`} className="w-full">
-                          <Button className="w-full gap-2 gradient-primary text-white">
-                            {isRTL ? "اشترك الآن" : "Subscribe Now"}
-                            <ArrowIcon className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      )}
-                    </CardFooter>
+                    <CardFooter className="pt-4" />
                   </Card>
                 );
               })}
