@@ -3899,6 +3899,7 @@ export type Database = {
           employee_id: string
           housing_allowance: number | null
           id: string
+          is_approved: boolean | null
           loan_deduction: number | null
           net_salary: number | null
           other_allowance: number | null
@@ -3915,6 +3916,7 @@ export type Database = {
           employee_id: string
           housing_allowance?: number | null
           id?: string
+          is_approved?: boolean | null
           loan_deduction?: number | null
           net_salary?: number | null
           other_allowance?: number | null
@@ -3931,6 +3933,7 @@ export type Database = {
           employee_id?: string
           housing_allowance?: number | null
           id?: string
+          is_approved?: boolean | null
           loan_deduction?: number | null
           net_salary?: number | null
           other_allowance?: number | null
