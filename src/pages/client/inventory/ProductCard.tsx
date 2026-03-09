@@ -51,7 +51,7 @@ const ProductCard = () => {
 
   const { data: movements = [] } = useQuery({
     queryKey: ["product-movements", id],
-    queryFn: async () => { const { data, error } = await supabase.from("stock_movements").select("*, warehouses(name, name_en, branch_id)").eq("product_id", id!).order("movement_date", { ascending: false }).limit(200); if (error) throw error; return data || []; },
+    queryFn: async () => { const { data, error } = await supabase.from("stock_movements").select("*, warehouses!stock_movements_warehouse_id_fkey(name, name_en, branch_id)").eq("product_id", id!).order("movement_date", { ascending: false }).limit(200); if (error) throw error; return data || []; },
     enabled: !!id,
   });
 
