@@ -87,7 +87,7 @@ const getDocConfig = (type: string, isRTL: boolean) => {
       titleAr: "فاتورة مشتريات", titleEn: "Purchase Invoice",
       sellerAr: "معلومات المورد", sellerEn: "Vendor Info",
       buyerAr: "معلومات المشتري", buyerEn: "Buyer Info",
-      showQR: true, isQuote: false,
+      showQR: false, isQuote: false,
     },
     purchase_order: {
       titleAr: "أمر شراء", titleEn: "Purchase Order",
