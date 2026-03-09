@@ -334,13 +334,19 @@ const Payroll = () => {
         }
       }
     },
-    onSuccess: () => {
+    onSuccess: async (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["hr-payroll-runs"] });
       queryClient.invalidateQueries({ queryKey: ["hr-loans"] });
       queryClient.invalidateQueries({ queryKey: ["hr-payroll-items"] });
       setConfirmAction(null);
       setSelectedItems(new Set());
-      toast.success(isRTL ? "تم اعتماد المسير وإنشاء قيود الاستحقاق لكل موظف" : "Payroll approved & accrual entries created per employee");
+      // Refresh viewRun status
+      if (viewRun && variables.run.id === viewRun.id) {
+        const { data: updatedRun } = await (supabase as any)
+          .from("hr_payroll_runs").select("*").eq("id", viewRun.id).maybeSingle();
+        if (updatedRun) setViewRun(updatedRun);
+      }
+      toast.success(isRTL ? "تم اعتماد الموظفين المحددين وإنشاء قيود الاستحقاق" : "Selected employees approved & accrual entries created");
     },
     onError: (e: any) => { setConfirmAction(null); toast.error(e.message); },
   });
