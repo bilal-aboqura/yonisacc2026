@@ -265,10 +265,12 @@ const OwnerPlans = () => {
           { key: "price", header: isRTL ? "السعر" : "Price", numeric: true, render: (p: Plan) => (
             <div>
               <span className="font-semibold">{p.price}</span>
-              <span className="text-muted-foreground text-sm ms-1">SAR</span>
-              <p className="text-xs text-muted-foreground">
-                {p.duration_months} {isRTL ? "شهر" : (p.duration_months === 1 ? "month" : "months")}
-              </p>
+              <span className="text-muted-foreground text-sm ms-1">SAR/{isRTL ? "شهري" : "mo"}</span>
+              {p.yearly_price > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {p.yearly_price} SAR/{isRTL ? "سنوي" : "yr"}
+                </p>
+              )}
             </div>
           )},
           { key: "modules", header: isRTL ? "الوحدات" : "Modules", render: (p: Plan) => {
