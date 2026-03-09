@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -32,6 +33,7 @@ const Payroll = () => {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [confirmAction, setConfirmAction] = useState<{ type: "approve" | "cancel"; run: any } | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   // Queries
   const { data: payrollRuns = [], isLoading } = useQuery({
@@ -142,9 +144,9 @@ const Payroll = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Approve (Post) payroll — journal entry date = last day of payroll month
+  // Approve (Post) payroll — supports partial approval (selected employees)
   const approvePayrollMutation = useMutation({
-    mutationFn: async (run: any) => {
+    mutationFn: async ({ run, selectedIds }: { run: any; selectedIds: string[] }) => {
       // Fetch HR account settings
       const { data: hrSettings } = await (supabase as any)
         .from("hr_account_settings").select("*")
@@ -158,6 +160,23 @@ const Payroll = () => {
         throw new Error(isRTL ? "يجب تجهيز حساب البنك أو الصندوق في إعدادات الموارد البشرية" : "Bank or cash account must be configured in HR settings");
       }
 
+      // Fetch all items for the run
+      const { data: allItems } = await (supabase as any)
+        .from("hr_payroll_items").select("*, hr_employees(account_id)")
+        .eq("payroll_run_id", run.id);
+
+      // Filter to selected items only
+      const items = (allItems || []).filter((i: any) => selectedIds.includes(i.id));
+      if (items.length === 0) throw new Error(isRTL ? "لم يتم تحديد أي موظف" : "No employees selected");
+
+      // Calculate totals from selected items
+      const totalBasic = items.reduce((s: number, i: any) => s + (i.basic_salary || 0), 0);
+      const totalHousing = items.reduce((s: number, i: any) => s + (i.housing_allowance || 0), 0);
+      const totalTransport = items.reduce((s: number, i: any) => s + (i.transport_allowance || 0), 0);
+      const totalOther = items.reduce((s: number, i: any) => s + (i.other_allowance || 0), 0);
+      const totalNet = items.reduce((s: number, i: any) => s + (i.net_salary || 0), 0);
+      const totalGross = totalBasic + totalHousing + totalTransport + totalOther;
+
       const { data: settings } = await (supabase as any)
         .from("company_settings").select("journal_prefix, next_journal_number")
         .eq("company_id", companyId).maybeSingle();
@@ -166,9 +185,11 @@ const Payroll = () => {
       const nextNum = settings?.next_journal_number || 1;
       const entryNumber = `${prefix}${String(nextNum).padStart(6, "0")}`;
 
-      const totalGross = run.total_basic + run.total_allowances;
       const entryDate = getLastDayOfMonth(run.period_year, run.period_month);
-      const desc = isRTL ? `رواتب شهر ${run.period_month}/${run.period_year}` : `Payroll ${run.period_month}/${run.period_year}`;
+      const isPartial = items.length < (allItems || []).length;
+      const desc = isRTL
+        ? `رواتب شهر ${run.period_month}/${run.period_year}${isPartial ? ` (${items.length} موظف)` : ""}`
+        : `Payroll ${run.period_month}/${run.period_year}${isPartial ? ` (${items.length} employees)` : ""}`;
 
       const { data: je, error: jeError } = await (supabase as any)
         .from("journal_entries").insert({
@@ -179,17 +200,10 @@ const Payroll = () => {
         }).select().single();
       if (jeError) throw jeError;
 
-      // Build debit lines for salary & allowances from HR settings
+      // Build journal entry lines
       const jeLines: any[] = [];
 
-      // Basic salary debit
-      jeLines.push({ entry_id: je.id, account_id: hrSettings.salary_expense_account_id, debit: run.total_basic, credit: 0, description: isRTL ? "الراتب الأساسي" : "Basic salary" });
-
-      // Allowance debits (use specific account if configured, otherwise lump into salary)
-      const { data: items } = await (supabase as any).from("hr_payroll_items").select("*, hr_employees(account_id)").eq("payroll_run_id", run.id);
-      const totalHousing = (items || []).reduce((s: number, i: any) => s + (i.housing_allowance || 0), 0);
-      const totalTransport = (items || []).reduce((s: number, i: any) => s + (i.transport_allowance || 0), 0);
-      const totalOther = (items || []).reduce((s: number, i: any) => s + (i.other_allowance || 0), 0);
+      jeLines.push({ entry_id: je.id, account_id: hrSettings.salary_expense_account_id, debit: totalBasic, credit: 0, description: isRTL ? "الراتب الأساسي" : "Basic salary" });
 
       if (totalHousing > 0) {
         jeLines.push({ entry_id: je.id, account_id: hrSettings.housing_expense_account_id || hrSettings.salary_expense_account_id, debit: totalHousing, credit: 0, description: isRTL ? "بدل سكن" : "Housing allowance" });
@@ -202,28 +216,28 @@ const Payroll = () => {
       }
 
       // Credit: cash/bank for net salary
-      jeLines.push({ entry_id: je.id, account_id: paymentAccountId, debit: 0, credit: run.total_net, description: desc });
+      jeLines.push({ entry_id: je.id, account_id: paymentAccountId, debit: 0, credit: totalNet, description: desc });
 
-      // Credit: loan deductions per employee (using each employee's linked account)
-      let totalLoanDeductions = 0;
-      for (const item of (items || [])) {
+      // Credit: loan deductions per employee
+      for (const item of items) {
         if (item.loan_deduction > 0) {
           const empAccountId = item.hr_employees?.account_id;
           if (empAccountId) {
             jeLines.push({ entry_id: je.id, account_id: empAccountId, debit: 0, credit: item.loan_deduction, description: isRTL ? "استقطاع سلفة" : "Loan deduction" });
-            totalLoanDeductions += item.loan_deduction;
           }
         }
       }
 
-      // If there are absence deductions not covered by loan deductions, they reduce net (already in cash credit)
-
       await (supabase as any).from("journal_entry_lines").insert(jeLines);
       await (supabase as any).from("company_settings").update({ next_journal_number: nextNum + 1 }).eq("company_id", companyId);
-      await (supabase as any).from("hr_payroll_runs").update({ status: "posted", journal_entry_id: je.id }).eq("id", run.id);
 
-      // Update loans
-      for (const item of (items || [])) {
+      // If all employees selected, mark entire run as posted
+      if (!isPartial) {
+        await (supabase as any).from("hr_payroll_runs").update({ status: "posted", journal_entry_id: je.id }).eq("id", run.id);
+      }
+
+      // Update loans for selected employees
+      for (const item of items) {
         if (item.loan_deduction > 0) {
           const { data: empLoans } = await (supabase as any).from("hr_loans")
             .select("id, remaining, total_paid").eq("employee_id", item.employee_id).eq("status", "active");
@@ -241,7 +255,9 @@ const Payroll = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-payroll-runs"] });
       queryClient.invalidateQueries({ queryKey: ["hr-loans"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-payroll-items"] });
       setConfirmAction(null);
+      setSelectedItems(new Set());
       toast.success(isRTL ? "تم اعتماد المسير وإنشاء القيد المحاسبي" : "Payroll approved & journal entry created");
     },
     onError: (e: any) => { setConfirmAction(null); toast.error(e.message); },
@@ -418,11 +434,26 @@ const Payroll = () => {
 
   // ===== VIEW DETAILS =====
   if (viewRun) {
+    const allSelected = payrollItems.length > 0 && payrollItems.every((i: any) => selectedItems.has(i.id));
+    const someSelected = selectedItems.size > 0;
+    const toggleSelectAll = () => {
+      if (allSelected) {
+        setSelectedItems(new Set());
+      } else {
+        setSelectedItems(new Set(payrollItems.map((i: any) => i.id)));
+      }
+    };
+    const toggleItem = (id: string) => {
+      const next = new Set(selectedItems);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      setSelectedItems(next);
+    };
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setViewRun(null)}>
+            <Button variant="ghost" size="icon" onClick={() => { setViewRun(null); setSelectedItems(new Set()); }}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -437,8 +468,16 @@ const Payroll = () => {
                 <Button variant="outline" size="sm" onClick={() => openEdit(viewRun)}>
                   <Pencil className="h-4 w-4 me-1" />{isRTL ? "تعديل" : "Edit"}
                 </Button>
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setConfirmAction({ type: "approve", run: viewRun })}>
-                  <CheckCircle className="h-4 w-4 me-1" />{isRTL ? "اعتماد" : "Approve"}
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  disabled={!someSelected}
+                  onClick={() => setConfirmAction({ type: "approve", run: viewRun })}
+                >
+                  <CheckCircle className="h-4 w-4 me-1" />
+                  {isRTL
+                    ? `اعتماد${someSelected ? ` (${selectedItems.size})` : ""}`
+                    : `Approve${someSelected ? ` (${selectedItems.size})` : ""}`}
                 </Button>
                 <Button variant="destructive" size="sm" onClick={() => setConfirmAction({ type: "cancel", run: viewRun })}>
                   <XCircle className="h-4 w-4 me-1" />{isRTL ? "إلغاء" : "Cancel"}
@@ -474,6 +513,24 @@ const Payroll = () => {
           </div>
         )}
 
+        {viewRun.status === "draft" && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-muted/50 border text-sm">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={toggleSelectAll}
+              id="select-all"
+            />
+            <label htmlFor="select-all" className="cursor-pointer font-medium">
+              {isRTL ? `تحديد الكل (${payrollItems.length})` : `Select All (${payrollItems.length})`}
+            </label>
+            {someSelected && !allSelected && (
+              <span className="text-muted-foreground">
+                — {isRTL ? `${selectedItems.size} محدد` : `${selectedItems.size} selected`}
+              </span>
+            )}
+          </div>
+        )}
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">{isRTL ? "تفاصيل الموظفين" : "Employee Details"}</CardTitle>
@@ -483,6 +540,9 @@ const Payroll = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/60 dark:bg-muted/30">
+                    {viewRun.status === "draft" && (
+                      <TableHead className="w-10 border-b border-border/50"></TableHead>
+                    )}
                     <TableHead className="font-semibold border-b border-border/50">#</TableHead>
                     <TableHead className="font-semibold border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
                     <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "أساسي" : "Basic"}</TableHead>
@@ -497,7 +557,15 @@ const Payroll = () => {
                 </TableHeader>
                 <TableBody>
                   {payrollItems.map((item: any, idx: number) => (
-                    <TableRow key={item.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                    <TableRow key={item.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${selectedItems.has(item.id) ? "bg-primary/[0.06]" : idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      {viewRun.status === "draft" && (
+                        <TableCell className="border-b border-border/30">
+                          <Checkbox
+                            checked={selectedItems.has(item.id)}
+                            onCheckedChange={() => toggleItem(item.id)}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="text-muted-foreground tabular-nums border-b border-border/30">{idx + 1}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap border-b border-border/30">
                         <div>
@@ -518,6 +586,7 @@ const Payroll = () => {
                 </TableBody>
                 <tfoot>
                   <TableRow className="bg-muted/70 font-bold border-t-2">
+                    {viewRun.status === "draft" && <TableCell></TableCell>}
                     <TableCell colSpan={2}>{isRTL ? "الإجمالي" : "Total"}</TableCell>
                     <TableCell className="text-end tabular-nums">{formatNum(viewRun.total_basic || 0)}</TableCell>
                     <TableCell colSpan={3}></TableCell>
@@ -644,7 +713,7 @@ const Payroll = () => {
                               <Button variant="ghost" size="icon" className="h-8 w-8" title={isRTL ? "تعديل" : "Edit"} onClick={() => openEdit(run)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600" title={isRTL ? "اعتماد" : "Approve"} onClick={() => setConfirmAction({ type: "approve", run })}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600" title={isRTL ? "اعتماد (افتح للتحديد)" : "Approve (open to select)"} onClick={() => setViewRun(run)}>
                                 <CheckCircle className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title={isRTL ? "إلغاء" : "Cancel"} onClick={() => setConfirmAction({ type: "cancel", run })}>
@@ -675,8 +744,8 @@ const Payroll = () => {
             <AlertDialogDescription>
               {confirmAction?.type === "approve"
                 ? (isRTL
-                  ? `سيتم إنشاء قيد محاسبي بتاريخ ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""} وترحيل المسير. لا يمكن التراجع.`
-                  : `A journal entry dated ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""} will be created. This cannot be undone.`)
+                  ? `سيتم اعتماد ${selectedItems.size} موظف وإنشاء قيد محاسبي بتاريخ ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""}. لا يمكن التراجع.`
+                  : `${selectedItems.size} employee(s) will be approved and a journal entry dated ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""} will be created. This cannot be undone.`)
                 : (isRTL ? "سيتم حذف المسير وجميع بياناته نهائياً. لا يمكن التراجع." : "The payroll run and all its data will be permanently deleted. This cannot be undone.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -685,8 +754,11 @@ const Payroll = () => {
             <AlertDialogAction
               className={confirmAction?.type === "cancel" ? "bg-destructive hover:bg-destructive/90" : "bg-emerald-600 hover:bg-emerald-700"}
               onClick={() => {
-                if (confirmAction?.type === "approve") approvePayrollMutation.mutate(confirmAction.run);
-                else if (confirmAction?.type === "cancel") cancelPayrollMutation.mutate(confirmAction.run);
+                if (confirmAction?.type === "approve") {
+                  approvePayrollMutation.mutate({ run: confirmAction.run, selectedIds: Array.from(selectedItems) });
+                } else if (confirmAction?.type === "cancel") {
+                  cancelPayrollMutation.mutate(confirmAction.run);
+                }
               }}
               disabled={approvePayrollMutation.isPending || cancelPayrollMutation.isPending}
             >
