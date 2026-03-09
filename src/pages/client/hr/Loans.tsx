@@ -373,7 +373,7 @@ const Loans = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>{isRTL ? "إلغاء" : "Cancel"}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteLoan && deleteMutation.mutate(deleteLoan.id)}
+              onClick={() => deleteLoan && deleteMutation.mutate(deleteLoan)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
