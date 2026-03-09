@@ -6,9 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Navbar } from "@/components/landing/Navbar";
 import { NizamFooter } from "@/components/landing/NizamFooter";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Check, ArrowRight, ArrowLeft, Sparkles,
   Gem, Car, ShoppingCart, Scissors,
