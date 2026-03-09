@@ -26,11 +26,8 @@ interface HRSettings {
   salary_payable_account_id: string | null;
   social_insurance_expense_account_id: string | null;
   social_insurance_payable_account_id: string | null;
-  employee_advances_account_id: string | null;
-  loan_receivable_account_id: string | null;
   eos_expense_account_id: string | null;
   eos_provision_account_id: string | null;
-  penalties_revenue_account_id: string | null;
   rewards_expense_account_id: string | null;
   bank_account_id: string | null;
   cash_account_id: string | null;
