@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, Download, AlertTriangle, Package, Layers } from "lucide-react";
+import { BarChart3, Download, AlertTriangle, Package, Layers, Search, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
@@ -22,6 +22,7 @@ const InventoryReports = () => {
   const [branchFilter, setBranchFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [productSearch, setProductSearch] = useState("");
 
   const { data: branches = [] } = useQuery({
     queryKey: ["branches", companyId],
@@ -32,7 +33,7 @@ const InventoryReports = () => {
   const { data: movements = [], isLoading: movementsLoading } = useQuery({
     queryKey: ["stock_movements_report", companyId, branchFilter, dateFrom, dateTo],
     queryFn: async () => {
-      let q = supabase.from("stock_movements").select("*, products(name, name_en), warehouses(name, name_en, branch_id)").eq("company_id", companyId!).order("movement_date", { ascending: false }).limit(500);
+      let q = supabase.from("stock_movements").select("*, products(name, name_en, sku), warehouses(name, name_en, branch_id)").eq("company_id", companyId!).order("movement_date", { ascending: true }).limit(1000);
       if (dateFrom) q = q.gte("movement_date", dateFrom);
       if (dateTo) q = q.lte("movement_date", dateTo);
       const { data, error } = await q;
@@ -54,6 +55,63 @@ const InventoryReports = () => {
   });
 
   const inboundTypes = ["purchase", "adjustment_in", "transfer_in", "manufacturing_in"];
+
+  // Compute ledger with running balance & weighted avg cost per product
+  const movementLedger = useMemo(() => {
+    const sorted = [...movements].sort((a: any, b: any) => new Date(a.movement_date).getTime() - new Date(b.movement_date).getTime() || a.id.localeCompare(b.id));
+
+    const balances: Record<string, { qty: number; avgCost: number }> = {};
+
+    return sorted.map((m: any) => {
+      const pid = m.product_id;
+      if (!balances[pid]) balances[pid] = { qty: 0, avgCost: 0 };
+
+      const qty = m.quantity || 0;
+      const unitCost = m.unit_cost || 0;
+      const isInbound = inboundTypes.includes(m.movement_type);
+      const prev = balances[pid];
+
+      if (isInbound && qty > 0 && unitCost > 0) {
+        const newQty = prev.qty + qty;
+        const newAvg = newQty > 0 ? (prev.qty * prev.avgCost + qty * unitCost) / newQty : unitCost;
+        balances[pid] = { qty: newQty, avgCost: newAvg };
+      } else {
+        balances[pid] = { qty: prev.qty + qty, avgCost: prev.avgCost };
+      }
+
+      const bal = balances[pid];
+      return {
+        ...m,
+        inQty: qty > 0 ? qty : 0,
+        outQty: qty < 0 ? Math.abs(qty) : 0,
+        runningBalance: bal.qty,
+        movingAvgCost: bal.avgCost,
+        lineValue: bal.qty * bal.avgCost,
+      };
+    });
+  }, [movements]);
+
+  // Filter by product search
+  const filteredLedger = useMemo(() => {
+    if (!productSearch.trim()) return movementLedger;
+    const term = productSearch.toLowerCase();
+    return movementLedger.filter((m: any) => {
+      const name = (m.products?.name || "").toLowerCase();
+      const nameEn = (m.products?.name_en || "").toLowerCase();
+      const sku = (m.products?.sku || "").toLowerCase();
+      return name.includes(term) || nameEn.includes(term) || sku.includes(term);
+    });
+  }, [movementLedger, productSearch]);
+
+  // Display in descending order (newest first)
+  const displayLedger = useMemo(() => [...filteredLedger].reverse(), [filteredLedger]);
+
+  // Summary cards
+  const movementSummary = useMemo(() => {
+    const totalIn = filteredLedger.reduce((s: number, m: any) => s + m.inQty, 0);
+    const totalOut = filteredLedger.reduce((s: number, m: any) => s + m.outQty, 0);
+    return { totalIn, totalOut, net: totalIn - totalOut, count: filteredLedger.length };
+  }, [filteredLedger]);
 
   const belowReorderProducts = useMemo(() => {
     return products.filter((p: any) => {
@@ -77,7 +135,6 @@ const InventoryReports = () => {
     return { items, grandTotal };
   }, [products, branchFilter]);
 
-  // Category summary
   const categorySummary = useMemo(() => {
     const map: Record<string, { name: string; count: number; qty: number; value: number }> = {};
     products.forEach((p: any) => {
@@ -113,6 +170,7 @@ const InventoryReports = () => {
   };
 
   const formatDate = (d: string) => d ? new Date(d).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-";
+  const fmtNum = (n: number, decimals = 2) => n.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
   return (
     <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
@@ -150,45 +208,85 @@ const InventoryReports = () => {
 
         {/* Movements Tab */}
         <TabsContent value="movements" className="space-y-4">
-          <div className="flex justify-end">
-            <Button variant="outline" size="sm" onClick={() => exportToExcel(movements.map((m: any) => ({ Date: m.movement_date, Type: m.movement_type, Product: m.products?.name, Qty: m.quantity, Cost: m.unit_cost })), "stock-movements")} className="gap-1"><Download className="h-4 w-4" />{isRTL ? "تصدير Excel" : "Export Excel"}</Button>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { icon: TrendingUp, label: isRTL ? "إجمالي الوارد" : "Total Inbound", value: movementSummary.totalIn, color: "text-emerald-600 dark:text-emerald-400" },
+              { icon: TrendingDown, label: isRTL ? "إجمالي الصادر" : "Total Outbound", value: movementSummary.totalOut, color: "text-destructive" },
+              { icon: Activity, label: isRTL ? "صافي الحركة" : "Net Movement", value: movementSummary.net, color: "text-primary" },
+              { icon: BarChart3, label: isRTL ? "عدد الحركات" : "Movements", value: movementSummary.count, color: "text-muted-foreground" },
+            ].map(({ icon: Icon, label, value, color }, i) => (
+              <Card key={i}>
+                <CardContent className="p-3 flex items-center gap-3">
+                  <div className="rounded-lg p-2 bg-muted"><Icon className={cn("h-4 w-4", color)} /></div>
+                  <div><p className="text-xs text-muted-foreground">{label}</p><p className={cn("text-lg font-bold tabular-nums", color)}>{value}</p></div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
+
+          <div className={cn("flex flex-wrap gap-3 items-center justify-between", isRTL && "flex-row-reverse")}>
+            <div className="relative w-[260px]">
+              <Search className={cn("absolute top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground", isRTL ? "right-3" : "left-3")} />
+              <Input placeholder={isRTL ? "بحث بالمنتج أو SKU..." : "Search product or SKU..."} value={productSearch} onChange={e => setProductSearch(e.target.value)} className={cn(isRTL ? "pr-9" : "pl-9")} />
+            </div>
+            <Button variant="outline" size="sm" onClick={() => exportToExcel(displayLedger.map((m: any) => ({
+              [isRTL ? "التاريخ" : "Date"]: m.movement_date,
+              [isRTL ? "النوع" : "Type"]: movementTypeLabel(m.movement_type),
+              [isRTL ? "المنتج" : "Product"]: m.products ? (isRTL ? m.products.name : m.products.name_en || m.products.name) : "-",
+              [isRTL ? "وارد" : "In"]: m.inQty || "",
+              [isRTL ? "صادر" : "Out"]: m.outQty || "",
+              [isRTL ? "الرصيد" : "Balance"]: m.runningBalance,
+              [isRTL ? "تكلفة الوحدة" : "Unit Cost"]: m.unit_cost || 0,
+              [isRTL ? "متوسط التكلفة" : "Avg Cost"]: Number(m.movingAvgCost.toFixed(2)),
+              [isRTL ? "القيمة" : "Value"]: Number(m.lineValue.toFixed(2)),
+            })), "stock-movements-ledger")} className="gap-1"><Download className="h-4 w-4" />{isRTL ? "تصدير Excel" : "Export Excel"}</Button>
+          </div>
+
           <Card>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader><TableRow>
-                  <TableHead>{isRTL ? "التاريخ" : "Date"}</TableHead>
-                  <TableHead>{isRTL ? "النوع" : "Type"}</TableHead>
-                  <TableHead>{isRTL ? "المنتج" : "Product"}</TableHead>
-                  <TableHead className="text-end">{isRTL ? "الكمية" : "Qty"}</TableHead>
-                  <TableHead className="text-end">{isRTL ? "التكلفة" : "Cost"}</TableHead>
-                  <TableHead>{isRTL ? "ملاحظات" : "Notes"}</TableHead>
-                </TableRow></TableHeader>
-                <TableBody>
-                  {movementsLoading ? (
-                    Array.from({ length: 5 }).map((_, i) => <TableRow key={i}>{Array.from({ length: 6 }).map((_, j) => <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>)}</TableRow>)
-                  ) : movements.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-12"><BarChart3 className="h-10 w-10 mx-auto text-muted-foreground mb-3" /><p className="text-muted-foreground font-medium">{isRTL ? "لا توجد حركات" : "No movements"}</p></TableCell></TableRow>
-                  ) : movements.map((m: any) => {
-                    const isInbound = inboundTypes.includes(m.movement_type);
-                    return (
-                      <TableRow key={m.id}>
-                        <TableCell className="text-muted-foreground">{formatDate(m.movement_date)}</TableCell>
-                        <TableCell>
-                          <Badge variant={isInbound ? "default" : "destructive"} className="font-normal">
-                            {movementTypeLabel(m.movement_type)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">{m.products ? (isRTL ? m.products.name : m.products.name_en || m.products.name) : "-"}</TableCell>
-                        <TableCell className={cn("text-end tabular-nums font-medium", m.quantity > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>{m.quantity > 0 ? `+${m.quantity}` : m.quantity}</TableCell>
-                        <TableCell className="text-end tabular-nums text-muted-foreground">{m.unit_cost || "-"}</TableCell>
-                        <TableCell className="max-w-[200px] truncate text-muted-foreground">{m.notes || "-"}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-              {!movementsLoading && movements.length > 0 && <div className="px-4 py-3 border-t text-sm text-muted-foreground">{isRTL ? `${movements.length} حركة` : `${movements.length} movements`}</div>}
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader><TableRow>
+                    <TableHead>{isRTL ? "التاريخ" : "Date"}</TableHead>
+                    <TableHead>{isRTL ? "النوع" : "Type"}</TableHead>
+                    <TableHead>{isRTL ? "المنتج" : "Product"}</TableHead>
+                    <TableHead className="text-center">{isRTL ? "وارد" : "In"}</TableHead>
+                    <TableHead className="text-center">{isRTL ? "صادر" : "Out"}</TableHead>
+                    <TableHead className="text-center">{isRTL ? "الرصيد" : "Balance"}</TableHead>
+                    <TableHead className="text-end">{isRTL ? "تكلفة الوحدة" : "Unit Cost"}</TableHead>
+                    <TableHead className="text-end">{isRTL ? "متوسط التكلفة" : "Avg Cost"}</TableHead>
+                    <TableHead className="text-end">{isRTL ? "القيمة" : "Value"}</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {movementsLoading ? (
+                      Array.from({ length: 5 }).map((_, i) => <TableRow key={i}>{Array.from({ length: 9 }).map((_, j) => <TableCell key={j}><Skeleton className="h-5 w-full" /></TableCell>)}</TableRow>)
+                    ) : displayLedger.length === 0 ? (
+                      <TableRow><TableCell colSpan={9} className="text-center py-12"><BarChart3 className="h-10 w-10 mx-auto text-muted-foreground mb-3" /><p className="text-muted-foreground font-medium">{isRTL ? "لا توجد حركات" : "No movements"}</p></TableCell></TableRow>
+                    ) : displayLedger.map((m: any) => {
+                      const isInbound = inboundTypes.includes(m.movement_type);
+                      return (
+                        <TableRow key={m.id}>
+                          <TableCell className="text-muted-foreground whitespace-nowrap">{formatDate(m.movement_date)}</TableCell>
+                          <TableCell>
+                            <Badge variant={isInbound ? "default" : "destructive"} className="font-normal">
+                              {movementTypeLabel(m.movement_type)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">{m.products ? (isRTL ? m.products.name : m.products.name_en || m.products.name) : "-"}</TableCell>
+                          <TableCell className="text-center tabular-nums text-emerald-600 dark:text-emerald-400 font-medium">{m.inQty > 0 ? m.inQty : ""}</TableCell>
+                          <TableCell className="text-center tabular-nums text-destructive font-medium">{m.outQty > 0 ? m.outQty : ""}</TableCell>
+                          <TableCell className="text-center tabular-nums font-semibold">{m.runningBalance}</TableCell>
+                          <TableCell className="text-end tabular-nums text-muted-foreground">{m.unit_cost ? fmtNum(m.unit_cost) : "-"}</TableCell>
+                          <TableCell className="text-end tabular-nums text-muted-foreground">{fmtNum(m.movingAvgCost)}</TableCell>
+                          <TableCell className="text-end tabular-nums font-medium">{fmtNum(m.lineValue)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              {!movementsLoading && displayLedger.length > 0 && <div className="px-4 py-3 border-t text-sm text-muted-foreground">{isRTL ? `${displayLedger.length} حركة` : `${displayLedger.length} movements`}</div>}
             </CardContent>
           </Card>
         </TabsContent>
