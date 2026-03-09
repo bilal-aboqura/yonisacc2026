@@ -212,7 +212,9 @@ const OwnerPlans = () => {
     setFormData({
       name_ar: plan.name_ar, name_en: plan.name_en,
       description_ar: plan.description_ar || "", description_en: plan.description_en || "",
-      price: plan.price, duration_months: plan.duration_months,
+      price: plan.price, yearly_price: plan.yearly_price || plan.price * 10,
+      yearly_discount_months: plan.yearly_discount_months ?? 2,
+      duration_months: plan.duration_months,
       max_invoices: plan.max_invoices?.toString() || "", max_entries: plan.max_entries?.toString() || "",
       max_users: plan.max_users?.toString() || "", max_branches: plan.max_branches?.toString() || "",
       max_sales_invoices: plan.max_sales_invoices?.toString() || "",
