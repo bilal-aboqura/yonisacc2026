@@ -174,11 +174,14 @@ const ProductCard = () => {
       { header: isRTL ? "وارد" : "In", key: "in", format: "number" as const },
       { header: isRTL ? "صادر" : "Out", key: "out", format: "number" as const },
       { header: isRTL ? "الرصيد" : "Balance", key: "balance", format: "number" as const },
+      { header: isRTL ? "تكلفة الوحدة" : "Unit Cost", key: "unitCost", format: "number" as const },
+      { header: isRTL ? "متوسط التكلفة" : "Avg Cost", key: "avgCost", format: "number" as const },
+      { header: isRTL ? "القيمة" : "Value", key: "value", format: "number" as const },
       { header: isRTL ? "المرجع" : "Reference", key: "ref", format: "text" as const },
     ];
     const rows = ledger.map((m: any) => {
       const qty = m.quantity || 0;
-      return { date: m.movement_date, type: movementTypeLabel(m.movement_type), in: qty > 0 ? qty : 0, out: qty < 0 ? Math.abs(qty) : 0, balance: m.balance, ref: m.reference_type || "-" };
+      return { date: m.movement_date, type: movementTypeLabel(m.movement_type), in: qty > 0 ? qty : 0, out: qty < 0 ? Math.abs(qty) : 0, balance: m.balance, unitCost: m.unit_cost || 0, avgCost: Number(m.avgCostAtMove.toFixed(2)), value: Number(m.lineValue.toFixed(2)), ref: m.reference_type || "-" };
     });
     exportToExcel({ filename: `product-ledger-${product.sku || id}`, columns, rows, title: isRTL ? product.name : (product as any).name_en || product.name, subtitle: isRTL ? "سجل حركات المنتج" : "Product Stock Ledger" });
     toast.success(isRTL ? "تم التصدير" : "Exported");
