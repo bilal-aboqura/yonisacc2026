@@ -226,6 +226,22 @@ const EditAccount = () => {
         setOpeningBalance(accountData.balance || 0);
         setIsActive(accountData.is_active ?? true);
         setIsSystemAccount(accountData.is_system || false);
+
+        // Check if account has transactions (journal entry lines)
+        const { count: jelCount } = await supabase
+          .from("journal_entry_lines")
+          .select("id", { count: "exact", head: true })
+          .eq("account_id", id as string);
+        
+        // Check if account has children
+        const { count: childCount } = await supabase
+          .from("accounts")
+          .select("id", { count: "exact", head: true })
+          .eq("parent_id", id as string)
+          .eq("company_id", companyData.id);
+
+        setHasTransactions((jelCount || 0) > 0);
+        setHasChildren((childCount || 0) > 0);
       }
     } catch (error: any) {
       console.error("Error fetching data:", error);
