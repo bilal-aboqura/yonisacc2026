@@ -836,14 +836,15 @@ const Payroll = () => {
                 </TableBody>
                 <tfoot>
                   <TableRow className="bg-muted/70 font-bold border-t-2">
-                    {isDraft && <TableCell></TableCell>}
+                    {canApprove && <TableCell></TableCell>}
                     <TableCell colSpan={2}>{isRTL ? "الإجمالي" : "Total"}</TableCell>
                     <TableCell className="text-end tabular-nums">{formatNum(viewRun.total_basic || 0)}</TableCell>
                     <TableCell colSpan={3}></TableCell>
                     <TableCell colSpan={2}></TableCell>
                     <TableCell className="text-end tabular-nums text-destructive">{formatNum(viewRun.total_deductions || 0)}</TableCell>
                     <TableCell className="text-end tabular-nums text-primary">{formatNum(viewRun.total_net || 0)}</TableCell>
-                    {isPosted && (
+                    <TableCell></TableCell>
+                    {(isPosted || isPartiallyPosted) && (
                       <>
                         <TableCell className="text-end tabular-nums text-emerald-600">
                           {formatNum(payrollItems.reduce((s: number, i: any) => s + (i.paid_amount || 0), 0))}
