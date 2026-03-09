@@ -180,7 +180,7 @@ const CreatePurchaseInvoice = () => {
           }
         }
       } else {
-        // Generate invoice number from settings
+        // Generate invoice number - check both settings and existing invoices to avoid duplicates
         const { data: settings } = await supabase
           .from("company_settings")
           .select("purchase_prefix, next_purchase_number")
@@ -188,7 +188,28 @@ const CreatePurchaseInvoice = () => {
           .maybeSingle();
 
         const prefix = settings?.purchase_prefix || "PUR-";
-        const nextNum = settings?.next_purchase_number || 1;
+        const settingsNum = settings?.next_purchase_number || 1;
+
+        // Also check the max existing invoice number to prevent duplicates
+        const { data: existingInvoices } = await supabase
+          .from("invoices")
+          .select("invoice_number")
+          .eq("company_id", resolvedId)
+          .eq("type", "purchase")
+          .like("invoice_number", `${prefix}%`)
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        let maxExisting = 0;
+        if (existingInvoices) {
+          for (const inv of existingInvoices) {
+            const numStr = inv.invoice_number.replace(prefix, "").replace(/^0+/, "");
+            const num = parseInt(numStr, 10);
+            if (!isNaN(num) && num > maxExisting) maxExisting = num;
+          }
+        }
+
+        const nextNum = Math.max(settingsNum, maxExisting + 1);
         setInvoiceNumber(`${prefix}${String(nextNum).padStart(6, "0")}`);
       }
 
