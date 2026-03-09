@@ -306,8 +306,20 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "الحساب بدليل الحسابات" : "Chart of Accounts"}</Label>
+                <AccountCombobox
+                  accounts={accounts}
+                  value={form.account_id || null}
+                  onChange={(v) => setForm({ ...form, account_id: v || "" })}
+                  isRTL={isRTL}
+                  placeholder={isRTL ? "ربط الموظف بحساب" : "Link to account"}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {isRTL ? "يُستخدم للسلف والقروض والجزاءات" : "Used for advances, loans & penalties"}
+                </p>
+              </div>
             </div>
-          </div>
 
           {/* Documents & IDs */}
           <div>
