@@ -131,7 +131,6 @@ const baseMenuItems: MenuItem[] = [
       { icon: UserPlus, label: "الموردين", labelEn: "Vendors", path: "/client/vendors", permission: "VIEW_VENDORS" },
       { icon: FileText, label: "أمر شراء", labelEn: "Purchase Order", path: "/client/purchase-orders", permission: "VIEW_PURCHASE_ORDERS" },
       { icon: Receipt, label: "فاتورة مشتريات", labelEn: "Purchase Invoice", path: "/client/purchases", permission: "VIEW_PURCHASES" },
-      { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/purchases/setup", permission: "VIEW_SETTINGS" },
     ]
   },
   {
