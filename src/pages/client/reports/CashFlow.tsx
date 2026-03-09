@@ -205,9 +205,6 @@ const CashFlow = () => {
     );
   }
 
-  const op = report?.operating || [];
-  const inv = report?.investing || [];
-  const fin = report?.financing || [];
 
   const sections = [
     {
