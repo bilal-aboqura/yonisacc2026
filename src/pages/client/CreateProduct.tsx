@@ -207,6 +207,7 @@ const CreateProduct = () => {
         description: description.trim() || null,
         is_service: isService,
         is_active: isActive,
+        tax_inclusive: taxInclusive,
         image_url: imageUrl,
         oem_number: isAutoPartsCompany ? (oemNumber.trim() || null) : null,
         shelf_location: isAutoPartsCompany ? (shelfLocation.trim() || null) : null,
