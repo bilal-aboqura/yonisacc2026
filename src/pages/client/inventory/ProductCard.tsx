@@ -318,7 +318,23 @@ const ProductCard = () => {
                     <TableCell className="text-center tabular-nums text-emerald-600 dark:text-emerald-400 font-medium">{qty > 0 ? qty : ""}</TableCell>
                     <TableCell className="text-center tabular-nums text-destructive font-medium">{qty < 0 ? Math.abs(qty) : ""}</TableCell>
                     <TableCell className="text-center tabular-nums font-semibold">{m.balance}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{m.reference_type || "-"}</TableCell>
+                    <TableCell className="text-xs">
+                      {m.reference_type ? (
+                        <div className="space-y-0.5">
+                          <span className="text-muted-foreground">{referenceLabel(m.reference_type)}</span>
+                          {(() => {
+                            const docNum = extractDocNumber(m.notes);
+                            const link = getDocumentLink(m.reference_type, m.reference_id);
+                            if (docNum && link) {
+                              return <Button variant="link" size="sm" className="h-auto p-0 text-xs font-medium" onClick={() => navigate(link)}>{docNum}</Button>;
+                            }
+                            if (docNum) return <span className="block font-medium">{docNum}</span>;
+                            if (link) return <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => navigate(link)}>{isRTL ? "عرض" : "View"}</Button>;
+                            return null;
+                          })()}
+                        </div>
+                      ) : "-"}
+                    </TableCell>
                   </TableRow>
                 );
               })}
