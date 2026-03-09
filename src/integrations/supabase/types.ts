@@ -3390,11 +3390,16 @@ export type Database = {
           description_en: string | null
           employee_id: string
           id: string
+          installment_number: number | null
           is_applied: boolean | null
+          journal_entry_id: string | null
           notes: string | null
           occurrence_number: number | null
           payroll_run_id: string | null
           penalty_rule_id: string | null
+          target_month: number | null
+          target_year: number | null
+          total_installments: number | null
           updated_at: string | null
         }
         Insert: {
@@ -3407,11 +3412,16 @@ export type Database = {
           description_en?: string | null
           employee_id: string
           id?: string
+          installment_number?: number | null
           is_applied?: boolean | null
+          journal_entry_id?: string | null
           notes?: string | null
           occurrence_number?: number | null
           payroll_run_id?: string | null
           penalty_rule_id?: string | null
+          target_month?: number | null
+          target_year?: number | null
+          total_installments?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -3424,11 +3434,16 @@ export type Database = {
           description_en?: string | null
           employee_id?: string
           id?: string
+          installment_number?: number | null
           is_applied?: boolean | null
+          journal_entry_id?: string | null
           notes?: string | null
           occurrence_number?: number | null
           payroll_run_id?: string | null
           penalty_rule_id?: string | null
+          target_month?: number | null
+          target_year?: number | null
+          total_installments?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -3444,6 +3459,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_deductions_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
           {
