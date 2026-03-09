@@ -137,6 +137,11 @@ const Activities = () => {
                 const features = isRTL ? vertical.features_ar : vertical.features_en;
                 const price = isYearly ? vertical.yearly_price : vertical.monthly_price;
 
+                const monthlyPrice = vertical.monthly_price;
+                const yearlyPrice = vertical.yearly_price;
+                const originalYearly = monthlyPrice * 12;
+                const savings = originalYearly - yearlyPrice;
+
                 return (
                   <Card 
                     key={vertical.id} 
@@ -157,12 +162,32 @@ const Activities = () => {
                     <CardContent className="pb-4">
                       {/* Price */}
                       <div className="mb-6">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-3xl font-bold">{price}</span>
-                          <span className="text-muted-foreground text-sm">
-                            {isRTL ? "ر.س" : "SAR"} / {isYearly ? (isRTL ? "سنة" : "year") : (isRTL ? "شهر" : "month")}
-                          </span>
-                        </div>
+                        {isYearly ? (
+                          <div className="space-y-1">
+                            <span className="text-sm text-muted-foreground line-through">
+                              {originalYearly} {isRTL ? "ر.س" : "SAR"}
+                            </span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-3xl font-bold">{yearlyPrice}</span>
+                              <span className="text-muted-foreground text-sm">
+                                {isRTL ? "ر.س" : "SAR"} / {isRTL ? "سنة" : "year"}
+                              </span>
+                            </div>
+                            {savings > 0 && (
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                                <Sparkles className="w-3 h-3" />
+                                {isRTL ? `توفير ${savings} ر.س` : `Save ${savings} SAR`}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-bold">{monthlyPrice}</span>
+                            <span className="text-muted-foreground text-sm">
+                              {isRTL ? "ر.س" : "SAR"} / {isRTL ? "شهر" : "month"}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Features */}
