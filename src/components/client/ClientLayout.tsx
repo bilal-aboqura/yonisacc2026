@@ -438,6 +438,16 @@ const ClientLayout = () => {
       }
     }
 
+    // Fuel Station module
+    {
+      const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
+      if (reportsIdx !== -1) {
+        items.splice(reportsIdx, 0, fuelStationMenuGroup);
+      } else {
+        items.push(fuelStationMenuGroup);
+      }
+    }
+
     const isTestOwner = user?.id === "87740311-8413-47eb-b936-b4c96daecaa5";
     if (isTestOwner) {
       const settingsGroup = items.find(i => i.labelEn === "Settings");

@@ -153,6 +153,23 @@ import DeliveryReports from "./pages/client/delivery/DeliveryReports";
 import DeliveryAccountSetup from "./pages/client/delivery/DeliveryAccountSetup";
 import DriverSettlement from "./pages/client/delivery/DriverSettlement";
 
+// Fuel Station
+import FuelDashboard from "./pages/client/fuel/FuelDashboard";
+import FuelCustomers from "./pages/client/fuel/FuelCustomers";
+import CreateFuelCustomer from "./pages/client/fuel/CreateFuelCustomer";
+import FuelCustomerStatement from "./pages/client/fuel/FuelCustomerStatement";
+import FuelWallets from "./pages/client/fuel/FuelWallets";
+import RechargeWallet from "./pages/client/fuel/RechargeWallet";
+import FuelPumps from "./pages/client/fuel/FuelPumps";
+import CreateFuelPump from "./pages/client/fuel/CreateFuelPump";
+import FuelTanks from "./pages/client/fuel/FuelTanks";
+import CreateFuelTank from "./pages/client/fuel/CreateFuelTank";
+import RefillTank from "./pages/client/fuel/RefillTank";
+import FuelPOS from "./pages/client/fuel/FuelPOS";
+import FuelPrices from "./pages/client/fuel/FuelPrices";
+import FuelReports from "./pages/client/fuel/FuelReports";
+import FuelAccountSetup from "./pages/client/fuel/FuelAccountSetup";
+
 // Gold & Jewelry
 import GoldItems from "./pages/client/gold/GoldItems";
 import CreateGoldItem from "./pages/client/gold/CreateGoldItem";
