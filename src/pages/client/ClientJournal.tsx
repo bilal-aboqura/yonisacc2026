@@ -339,6 +339,7 @@ const ClientJournal = () => {
             </div>
           ) : (
             <TooltipProvider delayDuration={200}>
+              <div className="border border-border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -444,6 +445,7 @@ const ClientJournal = () => {
                   </TableRow>
                 </TableFooter>
               </Table>
+              </div>
             </TooltipProvider>
           )}
         </CardContent>
