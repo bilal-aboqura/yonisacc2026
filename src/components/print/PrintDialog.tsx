@@ -47,7 +47,7 @@ export const PrintDialog: React.FC<PrintDialogProps> = (props) => {
   const isVoucher = docType === "receipt" || docType === "payment";
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background/95 overflow-auto">
+    <div className="fixed inset-0 z-[100] bg-background/95 overflow-auto print-overlay-root">
       {/* Toolbar - hidden on print */}
       <div className="sticky top-0 z-10 bg-background border-b p-3 flex items-center justify-between print:hidden">
         <div className="flex items-center gap-2">

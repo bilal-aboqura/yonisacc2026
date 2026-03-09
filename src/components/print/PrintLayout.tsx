@@ -225,11 +225,18 @@ function PrintTable({ table, style, pc, isRTL }: {
     style === "modern" ? "1px solid #e5e7eb" :
     "none";
 
+  const isWide = table.headers.length > 6;
+  const cellFontSize = isWide ? "9px" : (style === "minimal" ? "10px" : "12px");
+  const headerFontSize = isWide ? "9px" : (style === "minimal" ? "10px" : "11px");
+  const cellPadding = isWide ? "2px 3px" : (style === "minimal" ? "3px 6px" : "6px 10px");
+  const headerPadding = isWide ? "3px 4px" : (style === "minimal" ? "4px 6px" : "8px 10px");
+
   return (
-    <table style={{
+    <table className={isWide ? "wide-table" : ""} style={{
       width: "100%",
       borderCollapse: "collapse",
       marginBottom: "12px",
+      tableLayout: "fixed",
       border: style === "minimal" ? `1px solid #d1d5db` : borderStyle,
     }}>
       <thead>
