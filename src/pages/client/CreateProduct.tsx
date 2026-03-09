@@ -526,6 +526,22 @@ const CreateProduct = () => {
             </div>
           </div>
 
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+            <Checkbox
+              id="tax_inclusive"
+              checked={taxInclusive}
+              onCheckedChange={(checked) => setTaxInclusive(checked === true)}
+            />
+            <label htmlFor="tax_inclusive" className="text-sm font-medium cursor-pointer select-none">
+              السعر شامل الضريبة
+            </label>
+            {taxInclusive && salePrice > 0 && taxRate > 0 && (
+              <span className="text-xs text-muted-foreground mr-auto">
+                السعر بدون ضريبة: {(salePrice / (1 + taxRate / 100)).toFixed(2)} ر.س
+              </span>
+            )}
+          </div>
+
           {salePrice > 0 && purchasePrice > 0 && (
             <div className="p-4 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">
