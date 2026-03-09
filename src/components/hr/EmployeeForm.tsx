@@ -135,6 +135,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
         gosi_amount: editData.gosi_amount || 0,
         work_shift_id: editData.work_shift_id || "",
         cost_center_id: editData.cost_center_id || "",
+        account_id: editData.account_id || "",
       };
     }
     return { ...defaultForm };
