@@ -862,7 +862,7 @@ const Payroll = () => {
         </Card>
 
         {/* Payment section for posted runs */}
-        {isPosted && unpaidItems.length > 0 && (
+        {(isPosted || isPartiallyPosted) && unpaidItems.length > 0 && (
           <Card className="border-primary/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
