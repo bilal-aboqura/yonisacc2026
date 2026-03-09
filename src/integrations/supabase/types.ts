@@ -8109,6 +8109,8 @@ export type Database = {
           price: number
           sort_order: number | null
           updated_at: string
+          yearly_discount_months: number | null
+          yearly_price: number | null
         }
         Insert: {
           allowed_modules?: string[] | null
@@ -8140,6 +8142,8 @@ export type Database = {
           price?: number
           sort_order?: number | null
           updated_at?: string
+          yearly_discount_months?: number | null
+          yearly_price?: number | null
         }
         Update: {
           allowed_modules?: string[] | null
@@ -8171,6 +8175,8 @@ export type Database = {
           price?: number
           sort_order?: number | null
           updated_at?: string
+          yearly_discount_months?: number | null
+          yearly_price?: number | null
         }
         Relationships: []
       }
