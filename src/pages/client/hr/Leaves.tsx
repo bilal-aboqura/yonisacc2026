@@ -130,11 +130,12 @@ const Leaves = () => {
     return f ? (isRTL ? f.ar : f.en) : t;
   };
 
-  const updateDays = (start: string, end: string) => {
-    if (start && end) {
-      const diff = Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86400000) + 1;
-      setForm((f) => ({ ...f, start_date: start, end_date: end, days_count: Math.max(1, diff) }));
-    }
+  const calcDays = (start: string, end: string) => {
+    if (!start || !end) return 1;
+    const [sy, sm, sd] = start.split("-").map(Number);
+    const [ey, em, ed] = end.split("-").map(Number);
+    const diff = Math.ceil((new Date(ey, em - 1, ed).getTime() - new Date(sy, sm - 1, sd).getTime()) / 86400000) + 1;
+    return Math.max(1, diff);
   };
 
   const getBalance = (leaveType: string) => {
