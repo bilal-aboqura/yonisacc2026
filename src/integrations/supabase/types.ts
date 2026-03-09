@@ -8080,6 +8080,7 @@ export type Database = {
       }
       subscription_plans: {
         Row: {
+          allowed_modules: string[] | null
           created_at: string
           description_ar: string | null
           description_en: string | null
@@ -8110,6 +8111,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allowed_modules?: string[] | null
           created_at?: string
           description_ar?: string | null
           description_en?: string | null
@@ -8140,6 +8142,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allowed_modules?: string[] | null
           created_at?: string
           description_ar?: string | null
           description_en?: string | null
