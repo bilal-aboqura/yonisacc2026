@@ -419,12 +419,13 @@ const Payroll = () => {
 
   // Payment mutation - disburse salaries
   const paymentMutation = useMutation({
-    mutationFn: async ({ run, selectedPayrollItemIds, methodId, date }: { run: any; selectedPayrollItemIds: string[]; methodId: string; date: string }) => {
-      // Get payment method account
-      const method = activePaymentMethods.find((m: any) => m.id === methodId);
-      if (!method || !method.account_id) {
+    mutationFn: async ({ run, selectedPayrollItemIds, methodId, date, amounts }: { run: any; selectedPayrollItemIds: string[]; methodId: string; date: string; amounts: Record<string, number> }) => {
+      // Get payment account from merged options
+      const selectedOption = mergedPaymentOptions.find((o) => o.id === methodId);
+      if (!selectedOption || !selectedOption.account_id) {
         throw new Error(isRTL ? "طريقة الدفع غير مرتبطة بحساب" : "Payment method not linked to an account");
       }
+      const payAccountId = selectedOption.account_id;
 
       // Get items with employee info
       const items = payrollItems.filter((i: any) => selectedPayrollItemIds.includes(i.id));
@@ -436,33 +437,48 @@ const Payroll = () => {
         throw new Error(isRTL ? "بعض الموظفين غير مرتبطين بحساب محاسبي" : "Some employees are not linked to an account");
       }
 
-      // Calculate amounts (remaining = net - paid)
-      const paymentAmounts: { item: any; amount: number }[] = [];
+      // Calculate amounts using custom per-employee amounts
+      const payAmounts: { item: any; amount: number }[] = [];
       let totalPayment = 0;
       for (const item of items) {
-        const remaining = (item.net_salary || 0) - (item.paid_amount || 0);
-        if (remaining <= 0) continue;
-        paymentAmounts.push({ item, amount: remaining });
-        totalPayment += remaining;
+        const maxRemaining = (item.net_salary || 0) - (item.paid_amount || 0);
+        if (maxRemaining <= 0) continue;
+        const customAmount = amounts[item.id] !== undefined ? amounts[item.id] : maxRemaining;
+        const finalAmount = Math.min(Math.max(0, customAmount), maxRemaining);
+        if (finalAmount <= 0) continue;
+        payAmounts.push({ item, amount: finalAmount });
+        totalPayment += finalAmount;
       }
 
-      if (totalPayment <= 0) throw new Error(isRTL ? "لا يوجد مبلغ متبقي للتسليم" : "No remaining amount to pay");
+      if (totalPayment <= 0) throw new Error(isRTL ? "لا يوجد مبلغ للتسليم" : "No amount to pay");
 
-      // Get journal number
+      // Get journal number — fix duplicate key
       const { data: settings } = await (supabase as any)
         .from("company_settings").select("journal_prefix, next_journal_number")
         .eq("company_id", companyId).maybeSingle();
 
       const prefix = settings?.journal_prefix || "JE-";
-      const nextNum = settings?.next_journal_number || 1;
+      let settingsNext = settings?.next_journal_number || 1;
+
+      const { data: allEntries } = await (supabase as any)
+        .from("journal_entries").select("entry_number")
+        .eq("company_id", companyId).like("entry_number", `${prefix}%`)
+        .order("created_at", { ascending: false }).limit(1);
+
+      let maxExistingNum = 0;
+      if (allEntries && allEntries.length > 0) {
+        const parsed = parseInt(allEntries[0].entry_number.replace(prefix, ""), 10);
+        if (!isNaN(parsed)) maxExistingNum = parsed;
+      }
+      let nextNum = Math.max(settingsNext, maxExistingNum + 1);
       const entryNumber = `${prefix}${String(nextNum).padStart(6, "0")}`;
 
-      const methodName = isRTL ? (method as any).name : ((method as any).name_en || (method as any).name);
+      const methodLabel = selectedOption.label;
       const desc = isRTL
-        ? `تسليم رواتب شهر ${run.period_month}/${run.period_year} - ${methodName}`
-        : `Salary payment ${run.period_month}/${run.period_year} - ${methodName}`;
+        ? `تسليم رواتب شهر ${run.period_month}/${run.period_year} - ${methodLabel}`
+        : `Salary payment ${run.period_month}/${run.period_year} - ${methodLabel}`;
 
-      // Create journal entry: Dr Employee accounts, Cr Payment method account
+      // Create journal entry: Dr Employee accounts, Cr Payment account
       const { data: je, error: jeError } = await (supabase as any)
         .from("journal_entries").insert({
           company_id: companyId, entry_number: entryNumber,
@@ -473,50 +489,37 @@ const Payroll = () => {
       if (jeError) throw jeError;
 
       const jeLines: any[] = [];
-
-      // Debit: each employee account (clearing the liability)
-      for (const { item, amount } of paymentAmounts) {
+      for (const { item, amount } of payAmounts) {
         const empName = isRTL ? item.hr_employees?.name : (item.hr_employees?.name_en || item.hr_employees?.name);
         jeLines.push({
-          entry_id: je.id,
-          account_id: item.hr_employees.account_id,
+          entry_id: je.id, account_id: item.hr_employees.account_id,
           debit: amount, credit: 0,
           description: isRTL ? `تسليم راتب ${empName}` : `Salary payment - ${empName}`,
         });
       }
-
-      // Credit: payment method account
-      jeLines.push({
-        entry_id: je.id,
-        account_id: method.account_id,
-        debit: 0, credit: totalPayment,
-        description: desc,
-      });
+      jeLines.push({ entry_id: je.id, account_id: payAccountId, debit: 0, credit: totalPayment, description: desc });
 
       await (supabase as any).from("journal_entry_lines").insert(jeLines);
       await (supabase as any).from("company_settings").update({ next_journal_number: nextNum + 1 }).eq("company_id", companyId);
 
-      // Create payment record
+      // Create payment record — use a real payment_method_id if available, else null
+      const realMethodId = methodId.startsWith("pm-") ? methodId.replace("pm-", "") : null;
       const { data: payment, error: payError } = await (supabase as any)
         .from("hr_payroll_payments").insert({
           payroll_run_id: run.id, company_id: companyId,
-          payment_date: date, payment_method_id: methodId,
+          payment_date: date, payment_method_id: realMethodId,
           journal_entry_id: je.id, total_amount: totalPayment,
           created_by: user?.id,
         }).select().single();
       if (payError) throw payError;
 
-      // Create payment items and update paid_amount
-      const payItems = paymentAmounts.map(({ item, amount }) => ({
-        payment_id: payment.id,
-        payroll_item_id: item.id,
-        employee_id: item.employee_id,
-        amount,
+      const payItems = payAmounts.map(({ item, amount }) => ({
+        payment_id: payment.id, payroll_item_id: item.id,
+        employee_id: item.employee_id, amount,
       }));
       await (supabase as any).from("hr_payroll_payment_items").insert(payItems);
 
-      // Update paid_amount on payroll items
-      for (const { item, amount } of paymentAmounts) {
+      for (const { item, amount } of payAmounts) {
         const newPaid = (item.paid_amount || 0) + amount;
         await (supabase as any).from("hr_payroll_items").update({ paid_amount: newPaid }).eq("id", item.id);
       }
@@ -527,6 +530,7 @@ const Payroll = () => {
       queryClient.invalidateQueries({ queryKey: ["hr-payroll-payment-items"] });
       setPaymentSelectedItems(new Set());
       setPaymentMethodId("");
+      setPaymentAmounts({});
       toast.success(isRTL ? "تم تسليم الرواتب وإنشاء القيد المحاسبي" : "Salaries paid & journal entry created");
     },
     onError: (e: any) => toast.error(e.message),
