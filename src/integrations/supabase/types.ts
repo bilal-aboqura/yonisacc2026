@@ -9066,6 +9066,7 @@ export type Database = {
         Args: { p_company_id: string; p_usage_type: string }
         Returns: undefined
       }
+      is_company_member: { Args: { _company_id: string }; Returns: boolean }
       is_company_owner: { Args: { _company_id: string }; Returns: boolean }
       log_access_denied: {
         Args: {
