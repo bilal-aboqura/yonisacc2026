@@ -733,15 +733,22 @@ const Payroll = () => {
         {isPosted && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300 text-sm">
             <CheckCircle className="h-4 w-4" />
-            <span>{isRTL ? `تم اعتماد المسير وإنشاء قيود الاستحقاق` : `Payroll approved - accrual entries created`}</span>
+            <span>{isRTL ? `تم اعتماد المسير بالكامل وإنشاء قيود الاستحقاق` : `Payroll fully approved - all accrual entries created`}</span>
           </div>
         )}
 
-        {isDraft && (
+        {isPartiallyPosted && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-300 text-sm">
+            <CheckCircle className="h-4 w-4" />
+            <span>{isRTL ? `تم اعتماد بعض الموظفين — يمكنك اعتماد المتبقين` : `Some employees approved — you can approve the rest`}</span>
+          </div>
+        )}
+
+        {canApprove && unapprovedItems.length > 0 && (
           <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-muted/50 border text-sm">
             <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} id="select-all" />
             <label htmlFor="select-all" className="cursor-pointer font-medium">
-              {isRTL ? `تحديد الكل (${payrollItems.length})` : `Select All (${payrollItems.length})`}
+              {isRTL ? `تحديد الكل (${unapprovedItems.length} غير معتمد)` : `Select All (${unapprovedItems.length} unapproved)`}
             </label>
             {someSelected && !allSelected && (
               <span className="text-muted-foreground">— {isRTL ? `${selectedItems.size} محدد` : `${selectedItems.size} selected`}</span>
