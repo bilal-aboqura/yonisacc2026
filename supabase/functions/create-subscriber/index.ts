@@ -194,11 +194,28 @@ serve(async (req) => {
 
     // 7. Store allowed_modules on the company record if provided
     if (allowedModules && companyId) {
-      // Update company_members for the owner with allowed_modules
-      await admin.from('company_members')
-        .update({ allowed_modules: allowedModules })
+      // Upsert company_members for the owner with allowed_modules
+      const { data: existingMember } = await admin.from('company_members')
+        .select('id')
         .eq('company_id', companyId)
-        .eq('user_id', newUserId);
+        .eq('user_id', newUserId)
+        .maybeSingle();
+
+      if (existingMember) {
+        await admin.from('company_members')
+          .update({ allowed_modules: allowedModules })
+          .eq('id', existingMember.id);
+      } else {
+        await admin.from('company_members')
+          .insert({
+            company_id: companyId,
+            user_id: newUserId,
+            role: 'owner',
+            is_active: true,
+            joined_at: new Date().toISOString(),
+            allowed_modules: allowedModules,
+          });
+      }
     }
 
     return new Response(JSON.stringify({ 
