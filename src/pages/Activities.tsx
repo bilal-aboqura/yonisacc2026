@@ -9,8 +9,7 @@ import { NizamFooter } from "@/components/landing/NizamFooter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Check, ArrowRight, ArrowLeft } from "lucide-react";
+import { Check, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import {
   Gem, Car, ShoppingCart, Scissors, Sparkles,
   Stethoscope, Pill, Building2, UtensilsCrossed, Store
