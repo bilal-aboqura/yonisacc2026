@@ -445,6 +445,7 @@ const ClientJournal = () => {
                   </TableRow>
                 </TableFooter>
               </Table>
+              </div>
             </TooltipProvider>
           )}
         </CardContent>

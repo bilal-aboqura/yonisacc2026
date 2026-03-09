@@ -201,6 +201,7 @@ const OperationsLog = () => {
             </TableRow>
           </TableFooter>
         </Table>
+        </div>
       </TooltipProvider>
     );
   };
