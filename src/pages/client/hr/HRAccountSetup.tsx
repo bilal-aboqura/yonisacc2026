@@ -75,14 +75,6 @@ const sections: { titleAr: string; titleEn: string; fields: SettingField[] }[] =
     ],
   },
   {
-    titleAr: "السلف والقروض",
-    titleEn: "Advances & Loans",
-    fields: [
-      { key: "employee_advances_account_id", labelAr: "حساب سلف الموظفين", labelEn: "Employee Advances Account" },
-      { key: "loan_receivable_account_id", labelAr: "حساب القروض المستحقة", labelEn: "Loan Receivable Account" },
-    ],
-  },
-  {
     titleAr: "نهاية الخدمة",
     titleEn: "End of Service",
     fields: [
@@ -91,10 +83,9 @@ const sections: { titleAr: string; titleEn: string; fields: SettingField[] }[] =
     ],
   },
   {
-    titleAr: "الجزاءات والمكافآت",
-    titleEn: "Penalties & Rewards",
+    titleAr: "المكافآت",
+    titleEn: "Rewards",
     fields: [
-      { key: "penalties_revenue_account_id", labelAr: "حساب إيرادات الجزاءات", labelEn: "Penalties Revenue Account" },
       { key: "rewards_expense_account_id", labelAr: "حساب مصروف المكافآت", labelEn: "Rewards Expense Account" },
     ],
   },
