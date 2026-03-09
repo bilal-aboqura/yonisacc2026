@@ -456,15 +456,15 @@
 
 /* Print Engine Styles - A4 Portrait Professional Layout */
 @media print {
-  /* Hide everything except the print wrapper overlay */
-  body > *:not(.print-overlay-root) {
+  /* Hide app shell but keep print overlay visible */
+  body > * > *:not(.print-overlay-root) {
     display: none !important;
   }
-  /* The fixed overlay container of PrintDialog */
   .print-overlay-root {
     display: block !important;
     position: static !important;
     background: white !important;
+    overflow: visible !important;
   }
   .print-overlay-root > .print\:hidden {
     display: none !important;
