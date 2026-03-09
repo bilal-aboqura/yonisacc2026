@@ -717,18 +717,43 @@ const Payroll = () => {
     const allPaymentSelected = unpaidItems.length > 0 && unpaidItems.every((i: any) => paymentSelectedItems.has(i.id));
     const somePaymentSelected = paymentSelectedItems.size > 0;
     const togglePaymentSelectAll = () => {
-      if (allPaymentSelected) setPaymentSelectedItems(new Set());
-      else setPaymentSelectedItems(new Set(unpaidItems.map((i: any) => i.id)));
+      if (allPaymentSelected) {
+        setPaymentSelectedItems(new Set());
+      } else {
+        const newSet = new Set(unpaidItems.map((i: any) => i.id));
+        setPaymentSelectedItems(newSet);
+        // Auto-fill amounts for newly selected items
+        const newAmounts = { ...paymentAmounts };
+        unpaidItems.forEach((i: any) => {
+          if (newAmounts[i.id] === undefined) newAmounts[i.id] = (i.net_salary || 0) - (i.paid_amount || 0);
+        });
+        setPaymentAmounts(newAmounts);
+      }
     };
     const togglePaymentItem = (id: string) => {
       const next = new Set(paymentSelectedItems);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+        const newAmounts = { ...paymentAmounts };
+        delete newAmounts[id];
+        setPaymentAmounts(newAmounts);
+      } else {
+        next.add(id);
+        const item = unpaidItems.find((i: any) => i.id === id);
+        if (item && paymentAmounts[id] === undefined) {
+          setPaymentAmounts({ ...paymentAmounts, [id]: (item.net_salary || 0) - (item.paid_amount || 0) });
+        }
+      }
       setPaymentSelectedItems(next);
     };
 
-    const totalRemainingSelected = payrollItems
+    const totalPaymentSelected = payrollItems
       .filter((i: any) => paymentSelectedItems.has(i.id))
-      .reduce((sum: number, i: any) => sum + Math.max(0, (i.net_salary || 0) - (i.paid_amount || 0)), 0);
+      .reduce((sum: number, i: any) => {
+        const maxRemaining = Math.max(0, (i.net_salary || 0) - (i.paid_amount || 0));
+        const customAmt = paymentAmounts[i.id] !== undefined ? paymentAmounts[i.id] : maxRemaining;
+        return sum + Math.min(Math.max(0, customAmt), maxRemaining);
+      }, 0);
 
     return (
       <div className="space-y-6">
