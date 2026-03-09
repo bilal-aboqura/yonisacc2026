@@ -327,6 +327,24 @@ const deliveryMenuGroup: MenuItem = {
   ]
 };
 
+const fuelStationMenuGroup: MenuItem = {
+  icon: Fuel,
+  label: "محطات الوقود",
+  labelEn: "Fuel Station",
+  moduleKey: "fuelstation",
+  children: [
+    { icon: LayoutDashboard, label: "لوحة التحكم", labelEn: "Dashboard", path: "/client/fuel", permission: "VIEW_FUEL_STATION" },
+    { icon: Users, label: "العملاء", labelEn: "Customers", path: "/client/fuel/customers", permission: "VIEW_FUEL_STATION" },
+    { icon: Wallet, label: "المحافظ", labelEn: "Wallets", path: "/client/fuel/wallets", permission: "VIEW_FUEL_STATION" },
+    { icon: Gauge, label: "المضخات", labelEn: "Pumps", path: "/client/fuel/pumps", permission: "VIEW_FUEL_STATION" },
+    { icon: Warehouse, label: "الخزانات", labelEn: "Tanks", path: "/client/fuel/tanks", permission: "VIEW_FUEL_STATION" },
+    { icon: Monitor, label: "نقطة البيع", labelEn: "Fuel POS", path: "/client/fuel/pos", permission: "VIEW_FUEL_STATION" },
+    { icon: DollarSign, label: "الأسعار", labelEn: "Prices", path: "/client/fuel/prices", permission: "VIEW_FUEL_STATION" },
+    { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/fuel/reports", permission: "VIEW_FUEL_STATION" },
+    { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/fuel/setup", permission: "VIEW_SETTINGS" },
+  ]
+};
+
 const ClientLayout = () => {
   const { isRTL } = useLanguage();
   const { signOut, user, isLoading } = useAuth();
