@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowRight, Download, Printer, Loader2,
+  ArrowRight, Loader2,
   ArrowUpRight, ArrowDownRight, Wallet, TrendingUp, TrendingDown, Landmark,
   Building2, PiggyBank, CalendarDays,
 } from "lucide-react";
@@ -16,6 +16,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import useTenantIsolation from "@/hooks/useTenantIsolation";
 import { useLanguage } from "@/hooks/useLanguage";
+import { usePrintSettings } from "@/hooks/usePrintSettings";
+import ReportActions from "@/components/print/ReportActions";
+import { PrintableDocument, CompanyInfo } from "@/components/print/types";
+import { exportToExcel } from "@/lib/exportUtils";
 
 interface CashFlowItem {
   entry_id: string;
