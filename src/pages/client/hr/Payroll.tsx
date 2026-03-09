@@ -208,9 +208,9 @@ const Payroll = () => {
         .from("hr_payroll_items").select("*, hr_employees(name, name_en, employee_number, account_id)")
         .eq("payroll_run_id", run.id);
 
-      // Filter to selected items only
-      const items = (allItems || []).filter((i: any) => selectedIds.includes(i.id));
-      if (items.length === 0) throw new Error(isRTL ? "لم يتم تحديد أي موظف" : "No employees selected");
+      // Filter to selected items only AND exclude already approved
+      const items = (allItems || []).filter((i: any) => selectedIds.includes(i.id) && !i.is_approved);
+      if (items.length === 0) throw new Error(isRTL ? "لم يتم تحديد أي موظف غير معتمد" : "No unapproved employees selected");
 
       // Validate all selected employees have account_id
       const unlinked = items.filter((i: any) => !i.hr_employees?.account_id);
@@ -221,13 +221,30 @@ const Payroll = () => {
           : `Cannot approve: the following employees are not linked to an account: ${names}`);
       }
 
-      // Get journal number sequence
+      // Get journal number sequence — fix duplicate key by checking actual max
       const { data: settings } = await (supabase as any)
         .from("company_settings").select("journal_prefix, next_journal_number")
         .eq("company_id", companyId).maybeSingle();
 
       const prefix = settings?.journal_prefix || "JE-";
-      let nextNum = settings?.next_journal_number || 1;
+      let settingsNext = settings?.next_journal_number || 1;
+
+      // Also check the actual max entry_number in journal_entries to avoid duplicates
+      const { data: allEntries } = await (supabase as any)
+        .from("journal_entries").select("entry_number")
+        .eq("company_id", companyId)
+        .like("entry_number", `${prefix}%`)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      let maxExistingNum = 0;
+      if (allEntries && allEntries.length > 0) {
+        const numStr = allEntries[0].entry_number.replace(prefix, "");
+        const parsed = parseInt(numStr, 10);
+        if (!isNaN(parsed)) maxExistingNum = parsed;
+      }
+
+      let nextNum = Math.max(settingsNext, maxExistingNum + 1);
 
       const entryDate = getLastDayOfMonth(run.period_year, run.period_month);
       const monthLabel = `${run.period_month}/${run.period_year}`;
@@ -253,7 +270,6 @@ const Payroll = () => {
           ? `استحقاق راتب ${empName} - شهر ${monthLabel}`
           : `Salary accrual for ${empName} - ${monthLabel}`;
 
-        // total debit = totalGross, total credit = totalGross (balanced)
         const { data: je, error: jeError } = await (supabase as any)
           .from("journal_entries").insert({
             company_id: companyId, entry_number: entryNumber,
@@ -265,7 +281,6 @@ const Payroll = () => {
 
         const jeLines: any[] = [];
 
-        // Debit: salary expense accounts
         if (basic > 0) {
           jeLines.push({ entry_id: je.id, account_id: hrSettings.salary_expense_account_id, debit: basic, credit: 0, description: isRTL ? "الراتب الأساسي" : "Basic salary" });
         }
@@ -279,16 +294,6 @@ const Payroll = () => {
           jeLines.push({ entry_id: je.id, account_id: hrSettings.other_allowance_account_id || hrSettings.salary_expense_account_id, debit: otherAllow, credit: 0, description: isRTL ? "بدلات أخرى" : "Other allowances" });
         }
 
-        // Credit: employee account (accrual — full gross amount)
-        // Then debit back deductions if any (absence, loan) to balance
-        // Actually: Dr Expenses = Gross, Cr Employee = Gross
-        // The net vs gross difference (deductions) is handled as:
-        // Dr Expenses (gross) / Cr Employee (net) / Cr Loan account or Cr Employee for deductions
-        // Simplest: Cr Employee = net, Cr deduction accounts
-        // But user said: Cr = employee account for salary accrual
-        // So: Dr Expenses = Gross, Cr Employee = Gross (full accrual)
-        // Deductions are separate matters (loans handled separately)
-        // Let's keep it clean: Cr Employee = totalGross
         jeLines.push({
           entry_id: je.id, account_id: empAccountId,
           debit: 0, credit: totalGross,
@@ -296,13 +301,22 @@ const Payroll = () => {
         });
 
         await (supabase as any).from("journal_entry_lines").insert(jeLines);
+
+        // Mark this item as approved
+        await (supabase as any).from("hr_payroll_items").update({ is_approved: true }).eq("id", item.id);
       }
 
       // Update journal number
       await (supabase as any).from("company_settings").update({ next_journal_number: nextNum }).eq("company_id", companyId);
 
-      // Mark run as posted (always post entire run when approving)
-      await (supabase as any).from("hr_payroll_runs").update({ status: "posted" }).eq("id", run.id);
+      // Check if ALL items in the run are now approved
+      const { data: remainingUnapproved } = await (supabase as any)
+        .from("hr_payroll_items").select("id")
+        .eq("payroll_run_id", run.id).eq("is_approved", false);
+
+      const allApproved = !remainingUnapproved || remainingUnapproved.length === 0;
+      const newStatus = allApproved ? "posted" : "partially_posted";
+      await (supabase as any).from("hr_payroll_runs").update({ status: newStatus }).eq("id", run.id);
 
       // Update loans for selected employees
       for (const item of items) {
@@ -320,13 +334,19 @@ const Payroll = () => {
         }
       }
     },
-    onSuccess: () => {
+    onSuccess: async (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["hr-payroll-runs"] });
       queryClient.invalidateQueries({ queryKey: ["hr-loans"] });
       queryClient.invalidateQueries({ queryKey: ["hr-payroll-items"] });
       setConfirmAction(null);
       setSelectedItems(new Set());
-      toast.success(isRTL ? "تم اعتماد المسير وإنشاء قيود الاستحقاق لكل موظف" : "Payroll approved & accrual entries created per employee");
+      // Refresh viewRun status
+      if (viewRun && variables.run.id === viewRun.id) {
+        const { data: updatedRun } = await (supabase as any)
+          .from("hr_payroll_runs").select("*").eq("id", viewRun.id).maybeSingle();
+        if (updatedRun) setViewRun(updatedRun);
+      }
+      toast.success(isRTL ? "تم اعتماد الموظفين المحددين وإنشاء قيود الاستحقاق" : "Selected employees approved & accrual entries created");
     },
     onError: (e: any) => { setConfirmAction(null); toast.error(e.message); },
   });
@@ -535,7 +555,8 @@ const Payroll = () => {
   const monthName = (m: number) => new Date(2000, m - 1).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { month: "long" });
 
   const statusBadge = (status: string) => {
-    if (status === "posted") return <Badge className="bg-emerald-600 text-white">{isRTL ? "معتمد" : "Approved"}</Badge>;
+    if (status === "posted") return <Badge className="bg-emerald-600 text-white">{isRTL ? "معتمد بالكامل" : "Fully Approved"}</Badge>;
+    if (status === "partially_posted") return <Badge className="bg-blue-600 text-white">{isRTL ? "معتمد جزئياً" : "Partially Approved"}</Badge>;
     return <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300">{isRTL ? "مسودة" : "Draft"}</Badge>;
   };
 
@@ -618,13 +639,17 @@ const Payroll = () => {
   // ===== VIEW DETAILS =====
   if (viewRun) {
     const isDraft = viewRun.status === "draft";
+    const isPartiallyPosted = viewRun.status === "partially_posted";
     const isPosted = viewRun.status === "posted";
+    const canApprove = isDraft || isPartiallyPosted;
 
-    const allSelected = payrollItems.length > 0 && payrollItems.every((i: any) => selectedItems.has(i.id));
+    // Only show unapproved items for selection
+    const unapprovedItems = payrollItems.filter((i: any) => !i.is_approved);
+    const allSelected = unapprovedItems.length > 0 && unapprovedItems.every((i: any) => selectedItems.has(i.id));
     const someSelected = selectedItems.size > 0;
     const toggleSelectAll = () => {
       if (allSelected) setSelectedItems(new Set());
-      else setSelectedItems(new Set(payrollItems.map((i: any) => i.id)));
+      else setSelectedItems(new Set(unapprovedItems.map((i: any) => i.id)));
     };
     const toggleItem = (id: string) => {
       const next = new Set(selectedItems);
@@ -664,11 +689,13 @@ const Payroll = () => {
           </div>
           <div className="flex items-center gap-2">
             {statusBadge(viewRun.status)}
-            {isDraft && (
+            {canApprove && (
               <>
-                <Button variant="outline" size="sm" onClick={() => openEdit(viewRun)}>
-                  <Pencil className="h-4 w-4 me-1" />{isRTL ? "تعديل" : "Edit"}
-                </Button>
+                {isDraft && (
+                  <Button variant="outline" size="sm" onClick={() => openEdit(viewRun)}>
+                    <Pencil className="h-4 w-4 me-1" />{isRTL ? "تعديل" : "Edit"}
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   className="bg-emerald-600 hover:bg-emerald-700"
@@ -680,9 +707,11 @@ const Payroll = () => {
                     ? `اعتماد${someSelected ? ` (${selectedItems.size})` : ""}`
                     : `Approve${someSelected ? ` (${selectedItems.size})` : ""}`}
                 </Button>
-                <Button variant="destructive" size="sm" onClick={() => setConfirmAction({ type: "cancel", run: viewRun })}>
-                  <XCircle className="h-4 w-4 me-1" />{isRTL ? "إلغاء" : "Cancel"}
-                </Button>
+                {isDraft && (
+                  <Button variant="destructive" size="sm" onClick={() => setConfirmAction({ type: "cancel", run: viewRun })}>
+                    <XCircle className="h-4 w-4 me-1" />{isRTL ? "إلغاء" : "Cancel"}
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -710,15 +739,22 @@ const Payroll = () => {
         {isPosted && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300 text-sm">
             <CheckCircle className="h-4 w-4" />
-            <span>{isRTL ? `تم اعتماد المسير وإنشاء قيود الاستحقاق` : `Payroll approved - accrual entries created`}</span>
+            <span>{isRTL ? `تم اعتماد المسير بالكامل وإنشاء قيود الاستحقاق` : `Payroll fully approved - all accrual entries created`}</span>
           </div>
         )}
 
-        {isDraft && (
+        {isPartiallyPosted && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-300 text-sm">
+            <CheckCircle className="h-4 w-4" />
+            <span>{isRTL ? `تم اعتماد بعض الموظفين — يمكنك اعتماد المتبقين` : `Some employees approved — you can approve the rest`}</span>
+          </div>
+        )}
+
+        {canApprove && unapprovedItems.length > 0 && (
           <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-muted/50 border text-sm">
             <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} id="select-all" />
             <label htmlFor="select-all" className="cursor-pointer font-medium">
-              {isRTL ? `تحديد الكل (${payrollItems.length})` : `Select All (${payrollItems.length})`}
+              {isRTL ? `تحديد الكل (${unapprovedItems.length} غير معتمد)` : `Select All (${unapprovedItems.length} unapproved)`}
             </label>
             {someSelected && !allSelected && (
               <span className="text-muted-foreground">— {isRTL ? `${selectedItems.size} محدد` : `${selectedItems.size} selected`}</span>
@@ -735,7 +771,7 @@ const Payroll = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/60 dark:bg-muted/30">
-                    {isDraft && <TableHead className="w-10 border-b border-border/50"></TableHead>}
+                    {canApprove && <TableHead className="w-10 border-b border-border/50"></TableHead>}
                     <TableHead className="font-semibold border-b border-border/50">#</TableHead>
                     <TableHead className="font-semibold border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
                     <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "أساسي" : "Basic"}</TableHead>
@@ -746,7 +782,8 @@ const Payroll = () => {
                     <TableHead className="text-end font-semibold text-destructive border-b border-border/50">{isRTL ? "خصم سلف" : "Loan"}</TableHead>
                     <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "إجمالي الاستقطاعات" : "Total Ded."}</TableHead>
                     <TableHead className="text-end font-semibold text-primary border-b border-border/50">{isRTL ? "الصافي" : "Net"}</TableHead>
-                    {isPosted && (
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "الحالة" : "Status"}</TableHead>
+                    {(isPosted || isPartiallyPosted) && (
                       <>
                         <TableHead className="text-end font-semibold text-emerald-600 border-b border-border/50">{isRTL ? "المدفوع" : "Paid"}</TableHead>
                         <TableHead className="text-end font-semibold text-amber-600 border-b border-border/50">{isRTL ? "المتبقي" : "Remaining"}</TableHead>
@@ -758,11 +795,16 @@ const Payroll = () => {
                   {payrollItems.map((item: any, idx: number) => {
                     const paid = item.paid_amount || 0;
                     const remaining = (item.net_salary || 0) - paid;
+                    const itemApproved = !!item.is_approved;
                     return (
                       <TableRow key={item.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${selectedItems.has(item.id) ? "bg-primary/[0.06]" : idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
-                        {isDraft && (
+                        {canApprove && (
                           <TableCell className="border-b border-border/30">
-                            <Checkbox checked={selectedItems.has(item.id)} onCheckedChange={() => toggleItem(item.id)} />
+                            {itemApproved ? (
+                              <CheckCircle className="h-4 w-4 text-emerald-600" />
+                            ) : (
+                              <Checkbox checked={selectedItems.has(item.id)} onCheckedChange={() => toggleItem(item.id)} />
+                            )}
                           </TableCell>
                         )}
                         <TableCell className="text-muted-foreground tabular-nums border-b border-border/30">{idx + 1}</TableCell>
@@ -780,7 +822,13 @@ const Payroll = () => {
                         <TableCell className="text-end tabular-nums text-destructive border-b border-border/30">{formatNum(item.loan_deduction || 0)}</TableCell>
                         <TableCell className="text-end tabular-nums text-destructive font-medium border-b border-border/30">{formatNum(item.total_deductions || 0)}</TableCell>
                         <TableCell className="text-end tabular-nums font-bold text-primary border-b border-border/30">{formatNum(item.net_salary || 0)}</TableCell>
-                        {isPosted && (
+                        <TableCell className="text-center border-b border-border/30">
+                          {itemApproved
+                            ? <Badge className="bg-emerald-600 text-white text-xs">{isRTL ? "معتمد" : "Approved"}</Badge>
+                            : <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300 text-xs">{isRTL ? "غير معتمد" : "Pending"}</Badge>
+                          }
+                        </TableCell>
+                        {(isPosted || isPartiallyPosted) && (
                           <>
                             <TableCell className="text-end tabular-nums text-emerald-600 border-b border-border/30">{formatNum(paid)}</TableCell>
                             <TableCell className={`text-end tabular-nums font-medium border-b border-border/30 ${remaining > 0 ? "text-amber-600" : "text-emerald-600"}`}>
@@ -794,14 +842,15 @@ const Payroll = () => {
                 </TableBody>
                 <tfoot>
                   <TableRow className="bg-muted/70 font-bold border-t-2">
-                    {isDraft && <TableCell></TableCell>}
+                    {canApprove && <TableCell></TableCell>}
                     <TableCell colSpan={2}>{isRTL ? "الإجمالي" : "Total"}</TableCell>
                     <TableCell className="text-end tabular-nums">{formatNum(viewRun.total_basic || 0)}</TableCell>
                     <TableCell colSpan={3}></TableCell>
                     <TableCell colSpan={2}></TableCell>
                     <TableCell className="text-end tabular-nums text-destructive">{formatNum(viewRun.total_deductions || 0)}</TableCell>
                     <TableCell className="text-end tabular-nums text-primary">{formatNum(viewRun.total_net || 0)}</TableCell>
-                    {isPosted && (
+                    <TableCell></TableCell>
+                    {(isPosted || isPartiallyPosted) && (
                       <>
                         <TableCell className="text-end tabular-nums text-emerald-600">
                           {formatNum(payrollItems.reduce((s: number, i: any) => s + (i.paid_amount || 0), 0))}
@@ -819,7 +868,7 @@ const Payroll = () => {
         </Card>
 
         {/* Payment section for posted runs */}
-        {isPosted && unpaidItems.length > 0 && (
+        {(isPosted || isPartiallyPosted) && unpaidItems.length > 0 && (
           <Card className="border-primary/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -904,14 +953,14 @@ const Payroll = () => {
         )}
 
         {/* All paid message */}
-        {isPosted && unpaidItems.length === 0 && payrollItems.length > 0 && (
+        {(isPosted || isPartiallyPosted) && unpaidItems.length === 0 && payrollItems.length > 0 && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300 text-sm">
             <CheckCircle className="h-4 w-4" />
             <span>{isRTL ? "تم تسليم جميع الرواتب بالكامل" : "All salaries have been fully paid"}</span>
           </div>
         )}
 
-        {/* Payment History */}
+        {/* Paymen(isPosted || isPartiallyPosted)y */}
         {isPosted && payrollPayments.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
@@ -1098,13 +1147,15 @@ const Payroll = () => {
                               <Button variant="ghost" size="icon" className="h-8 w-8" title={isRTL ? "تعديل" : "Edit"} onClick={() => openEdit(run)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600" title={isRTL ? "اعتماد (افتح للتحديد)" : "Approve (open to select)"} onClick={() => setViewRun(run)}>
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title={isRTL ? "إلغاء" : "Cancel"} onClick={() => setConfirmAction({ type: "cancel", run })}>
                                 <XCircle className="h-4 w-4" />
                               </Button>
                             </>
+                          )}
+                          {(run.status === "draft" || run.status === "partially_posted") && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600" title={isRTL ? "اعتماد (افتح للتحديد)" : "Approve (open to select)"} onClick={() => setViewRun(run)}>
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
                       </TableCell>
