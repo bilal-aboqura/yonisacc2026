@@ -13,13 +13,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Calendar, CheckCircle, XCircle, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
-const LEAVE_TYPES = [
-  { value: "annual", ar: "سنوية", en: "Annual" },
-  { value: "sick", ar: "مرضية", en: "Sick" },
-  { value: "unpaid", ar: "بدون راتب", en: "Unpaid" },
-  { value: "emergency", ar: "اضطرارية", en: "Emergency" },
-];
-
 const Leaves = () => {
   const { isRTL } = useLanguage();
   const { companyId } = useCompanyId();
@@ -37,6 +30,32 @@ const Leaves = () => {
       return data;
     },
     enabled: !!companyId,
+  });
+
+  const { data: policies = [] } = useQuery({
+    queryKey: ["hr-leave-policies", companyId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hr_leave_policies").select("*")
+        .eq("company_id", companyId).eq("is_active", true);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  const { data: balances = [] } = useQuery({
+    queryKey: ["hr-leave-balances", companyId, form.employee_id, new Date().getFullYear()],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hr_leave_balances").select("*")
+        .eq("company_id", companyId)
+        .eq("employee_id", form.employee_id)
+        .eq("year", new Date().getFullYear());
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId && !!form.employee_id,
   });
 
   const { data: leaves = [], isLoading } = useQuery({
@@ -65,12 +84,27 @@ const Leaves = () => {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, employee_id, leave_type, days_count }: { id: string; status: string; employee_id: string; leave_type: string; days_count: number }) => {
       const { error } = await (supabase as any).from("hr_leaves").update({ status }).eq("id", id);
       if (error) throw error;
+
+      // Deduct from balance on approval
+      if (status === "approved") {
+        const currentYear = new Date().getFullYear();
+        const { data: bal } = await (supabase as any).from("hr_leave_balances")
+          .select("id, used").eq("company_id", companyId)
+          .eq("employee_id", employee_id).eq("leave_type", leave_type)
+          .eq("year", currentYear).single();
+
+        if (bal) {
+          await (supabase as any).from("hr_leave_balances")
+            .update({ used: (bal.used || 0) + days_count }).eq("id", bal.id);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-leaves"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-leave-balances"] });
       toast.success(isRTL ? "تم التحديث" : "Updated");
     },
   });
@@ -86,8 +120,14 @@ const Leaves = () => {
   };
 
   const leaveLabel = (t: string) => {
-    const lt = LEAVE_TYPES.find((l) => l.value === t);
-    return lt ? (isRTL ? lt.ar : lt.en) : t;
+    const pol = policies.find((p: any) => p.leave_type === t);
+    if (pol) return isRTL ? pol.name : (pol.name_en || pol.name);
+    const fallback: Record<string, { ar: string; en: string }> = {
+      annual: { ar: "سنوية", en: "Annual" }, sick: { ar: "مرضية", en: "Sick" },
+      unpaid: { ar: "بدون راتب", en: "Unpaid" }, emergency: { ar: "اضطرارية", en: "Emergency" },
+    };
+    const f = fallback[t];
+    return f ? (isRTL ? f.ar : f.en) : t;
   };
 
   const updateDays = (start: string, end: string) => {
@@ -96,6 +136,14 @@ const Leaves = () => {
       setForm((f) => ({ ...f, start_date: start, end_date: end, days_count: Math.max(1, diff) }));
     }
   };
+
+  const getBalance = (leaveType: string) => {
+    const bal = balances.find((b: any) => b.leave_type === leaveType);
+    if (!bal) return null;
+    return { entitlement: bal.entitlement, used: bal.used, remaining: bal.entitlement + bal.carried_over - bal.used };
+  };
+
+  const selectedBalance = form.leave_type ? getBalance(form.leave_type) : null;
 
   if (showForm) {
     return (
@@ -120,8 +168,19 @@ const Leaves = () => {
                 <Label>{isRTL ? "النوع" : "Type"}</Label>
                 <Select value={form.leave_type} onValueChange={(v) => setForm({ ...form, leave_type: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{LEAVE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{isRTL ? t.ar : t.en}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {policies.length > 0
+                      ? policies.map((p: any) => <SelectItem key={p.leave_type} value={p.leave_type}>{isRTL ? p.name : (p.name_en || p.name)}</SelectItem>)
+                      : ["annual", "sick", "unpaid", "emergency"].map(t => <SelectItem key={t} value={t}>{leaveLabel(t)}</SelectItem>)
+                    }
+                  </SelectContent>
                 </Select>
+                {selectedBalance && (
+                  <p className="text-xs text-muted-foreground">
+                    {isRTL ? `الرصيد المتبقي: ${selectedBalance.remaining} يوم` : `Remaining: ${selectedBalance.remaining} days`}
+                    {selectedBalance.remaining <= 0 && <span className="text-destructive ms-1">({isRTL ? "لا يوجد رصيد" : "No balance"})</span>}
+                  </p>
+                )}
               </div>
               <div className="space-y-2"><Label>{isRTL ? "من" : "From"}</Label><Input type="date" value={form.start_date} onChange={(e) => updateDays(e.target.value, form.end_date)} /></div>
               <div className="space-y-2"><Label>{isRTL ? "إلى" : "To"}</Label><Input type="date" value={form.end_date} onChange={(e) => updateDays(form.start_date, e.target.value)} /></div>
@@ -196,8 +255,8 @@ const Leaves = () => {
                     <TableCell className="border-b border-border/30">
                       {l.status === "pending" && (
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" onClick={() => updateStatus.mutate({ id: l.id, status: "approved" })}><CheckCircle className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => updateStatus.mutate({ id: l.id, status: "rejected" })}><XCircle className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" onClick={() => updateStatus.mutate({ id: l.id, status: "approved", employee_id: l.employee_id, leave_type: l.leave_type, days_count: l.days_count || 0 })}><CheckCircle className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => updateStatus.mutate({ id: l.id, status: "rejected", employee_id: l.employee_id, leave_type: l.leave_type, days_count: 0 })}><XCircle className="h-4 w-4" /></Button>
                         </div>
                       )}
                     </TableCell>

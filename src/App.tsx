@@ -178,6 +178,7 @@ import HRReports from "./pages/client/hr/HRReports";
 import HRAccountSetup from "./pages/client/hr/HRAccountSetup";
 import PenaltyRules from "./pages/client/hr/PenaltyRules";
 import Deductions from "./pages/client/hr/Deductions";
+import LeaveSettings from "./pages/client/hr/LeaveSettings";
 import FiscalYearManagement from "./pages/client/FiscalYearManagement";
 import SalesAccountSetup from "./pages/client/setup/SalesAccountSetup";
 import PurchasesAccountSetup from "./pages/client/setup/PurchasesAccountSetup";
@@ -288,6 +289,7 @@ const App = () => (
               <Route path="hr/reports" element={<HRReports />} />
               <Route path="hr/penalty-rules" element={<PenaltyRules />} />
               <Route path="hr/deductions" element={<Deductions />} />
+              <Route path="hr/leave-settings" element={<LeaveSettings />} />
               <Route path="hr/setup" element={<HRAccountSetup />} />
               
               {/* Auto Parts */}
