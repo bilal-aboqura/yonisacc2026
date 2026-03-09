@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,8 @@ interface Plan {
   description_ar: string | null;
   description_en: string | null;
   price: number;
+  yearly_price: number;
+  yearly_discount_months: number;
   max_invoices: number | null;
   max_entries: number | null;
   max_users: number | null;
@@ -58,6 +61,7 @@ const defaultPlanFeatures: Record<string, { features_ar: string[]; features_en: 
 export const Pricing = () => {
   const { t } = useTranslation();
   const { isRTL } = useLanguage();
+  const [isYearly, setIsYearly] = useState(false);
 
   const { data: plans, isLoading } = useQuery({
     queryKey: ["subscription-plans"],
@@ -74,7 +78,6 @@ export const Pricing = () => {
   });
 
   const getPlanFeatures = (plan: Plan) => {
-    // Use DB features if available, otherwise fall back to defaults
     const defaultFeatures = defaultPlanFeatures[plan.name_en] || defaultPlanFeatures["Basic"];
     
     return {
@@ -89,6 +92,47 @@ export const Pricing = () => {
 
   const isPopular = (index: number) => index === 1;
   const isEnterprise = (plan: Plan) => plan.name_en === "Enterprise";
+
+  const getDisplayPrice = (plan: Plan) => {
+    if (isEnterprise(plan)) return null;
+    if (plan.price === 0) return { price: 0, isFree: true };
+    if (isYearly && plan.yearly_price > 0) {
+      const monthlyEquivalent = Math.round((plan.yearly_price / 12) * 100) / 100;
+      return { price: monthlyEquivalent, originalMonthly: plan.price, yearlyTotal: plan.yearly_price, discountMonths: plan.yearly_discount_months || 2 };
+    }
+    return { price: plan.price };
+  };
+
+  // Billing toggle component
+  const BillingToggle = () => (
+    <div className="flex items-center justify-center gap-3 mb-10">
+      <span className={cn("text-sm font-medium transition-colors", !isYearly ? "text-foreground" : "text-muted-foreground")}>
+        {isRTL ? "شهري" : "Monthly"}
+      </span>
+      <button
+        type="button"
+        onClick={() => setIsYearly(!isYearly)}
+        className={cn(
+          "relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          isYearly ? "bg-primary" : "bg-muted"
+        )}
+      >
+        <span className={cn(
+          "inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform",
+          isYearly ? (isRTL ? "translate-x-1.5" : "translate-x-7.5") : (isRTL ? "translate-x-7.5" : "translate-x-1.5")
+        )} />
+      </button>
+      <span className={cn("text-sm font-medium transition-colors", isYearly ? "text-foreground" : "text-muted-foreground")}>
+        {isRTL ? "سنوي" : "Yearly"}
+      </span>
+      {isYearly && (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+          <Sparkles className="w-3 h-3" />
+          {isRTL ? "وفّر شهرين" : "Save 2 months"}
+        </span>
+      )}
+    </div>
+  );
 
   if (isLoading) {
     return (
@@ -128,12 +172,16 @@ export const Pricing = () => {
           </p>
         </div>
 
+        {/* Billing Toggle */}
+        <BillingToggle />
+
         {/* Pricing Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {plans?.map((plan, index) => {
             const { features, notIncluded } = getPlanFeatures(plan);
             const popular = isPopular(index);
             const enterprise = isEnterprise(plan);
+            const displayPrice = getDisplayPrice(plan);
 
             return (
               <div
@@ -168,14 +216,26 @@ export const Pricing = () => {
                   <div className="text-center">
                     {enterprise ? (
                       <span className="text-2xl font-bold gradient-text">{t("landing.pricing.plans.enterprise.price")}</span>
-                    ) : plan.price > 0 ? (
-                      <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-4xl font-bold gradient-text">{plan.price}</span>
-                        <span className="text-muted-foreground">{t("landing.pricing.currency")}/{t("landing.pricing.period")}</span>
-                      </div>
-                    ) : (
+                    ) : displayPrice?.isFree ? (
                       <div className="flex items-baseline justify-center gap-1">
                         <span className="text-4xl font-bold gradient-text">{isRTL ? "مجاني" : "Free"}</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1">
+                        {isYearly && displayPrice?.originalMonthly && (
+                          <span className="text-lg text-muted-foreground line-through">
+                            {displayPrice.originalMonthly} {t("landing.pricing.currency")}
+                          </span>
+                        )}
+                        <div className="flex items-baseline justify-center gap-1">
+                          <span className="text-4xl font-bold gradient-text">{displayPrice?.price}</span>
+                          <span className="text-muted-foreground">{t("landing.pricing.currency")}/{t("landing.pricing.period")}</span>
+                        </div>
+                        {isYearly && displayPrice?.yearlyTotal && (
+                          <span className="text-xs text-muted-foreground">
+                            {displayPrice.yearlyTotal} {t("landing.pricing.currency")}/{isRTL ? "سنوياً" : "year"}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -201,7 +261,7 @@ export const Pricing = () => {
                   </ul>
 
                   {/* CTA */}
-                  <Link to={`/register-company?plan=${plan.id}`} className="block">
+                  <Link to={`/register-company?plan=${plan.id}&billing=${isYearly ? 'yearly' : 'monthly'}`} className="block">
                     <Button
                       className="w-full rounded-xl h-12 gradient-primary text-white btn-primary-shadow"
                     >
