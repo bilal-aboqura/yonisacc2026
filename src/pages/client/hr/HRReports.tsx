@@ -4,17 +4,22 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyId } from "@/hooks/useCompanyId";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Users, Calendar, DollarSign, Loader2, Banknote } from "lucide-react";
+import { BarChart3, Users, Calendar, DollarSign, Loader2, Banknote, FileDown, Printer } from "lucide-react";
+import { exportToExcel } from "@/lib/exportUtils";
 
 const HRReports = () => {
   const { isRTL } = useLanguage();
   const { companyId } = useCompanyId();
   const today = new Date();
   const [monthFilter, setMonthFilter] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`);
+  const [balanceYear, setBalanceYear] = useState(today.getFullYear());
+  const [balanceEmployee, setBalanceEmployee] = useState("all");
 
   const year = parseInt(monthFilter.split("-")[0]);
   const month = parseInt(monthFilter.split("-")[1]);
@@ -84,6 +89,31 @@ const HRReports = () => {
     enabled: !!companyId,
   });
 
+  const { data: leaveBalances = [], isLoading: loadingBalances } = useQuery({
+    queryKey: ["hr-leave-balances-report", companyId, balanceYear, balanceEmployee],
+    queryFn: async () => {
+      let query = (supabase as any).from("hr_leave_balances")
+        .select("*, hr_employees(name, name_en, employee_number)")
+        .eq("company_id", companyId).eq("year", balanceYear);
+      if (balanceEmployee !== "all") query = query.eq("employee_id", balanceEmployee);
+      const { data, error } = await query.order("leave_type");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  const { data: policies = [] } = useQuery({
+    queryKey: ["hr-leave-policies-report", companyId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hr_leave_policies").select("*").eq("company_id", companyId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
   // Attendance summary per employee
   const attSummary = employees.map((emp: any) => {
     const empAtt = attendance.filter((a: any) => a.employee_id === emp.id);
@@ -119,14 +149,47 @@ const HRReports = () => {
     else if (l.leave_type === "emergency") leaveSummary[empId].emergency += days;
   });
 
+  const policyLabel = (t: string) => {
+    const pol = policies.find((p: any) => p.leave_type === t);
+    if (pol) return isRTL ? pol.name : (pol.name_en || pol.name);
+    return t;
+  };
+
+  const handleExportBalances = () => {
+    const columns = [
+      { header: isRTL ? "رقم الموظف" : "Emp #", key: "number", format: "text" as const },
+      { header: isRTL ? "الموظف" : "Employee", key: "name", format: "text" as const },
+      { header: isRTL ? "نوع الإجازة" : "Leave Type", key: "type", format: "text" as const },
+      { header: isRTL ? "الاستحقاق" : "Entitlement", key: "entitlement", format: "number" as const },
+      { header: isRTL ? "المستخدم" : "Used", key: "used", format: "number" as const },
+      { header: isRTL ? "المرحّل" : "Carried Over", key: "carried", format: "number" as const },
+      { header: isRTL ? "المتبقي" : "Remaining", key: "remaining", format: "number" as const },
+    ];
+    const rows = leaveBalances.map((b: any) => ({
+      number: b.hr_employees?.employee_number || "",
+      name: b.hr_employees ? (isRTL ? b.hr_employees.name : (b.hr_employees.name_en || b.hr_employees.name)) : "",
+      type: policyLabel(b.leave_type),
+      entitlement: b.entitlement || 0,
+      used: b.used || 0,
+      carried: b.carried_over || 0,
+      remaining: (b.entitlement || 0) + (b.carried_over || 0) - (b.used || 0),
+    }));
+    exportToExcel({ filename: `leave-balances-${balanceYear}`, columns, rows, title: isRTL ? "تقرير أرصدة الإجازات" : "Leave Balances Report" });
+  };
+
+  const handlePrintBalances = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">{isRTL ? "تقارير الموارد البشرية" : "HR Reports"}</h1>
 
       <Tabs defaultValue="attendance" className="space-y-4">
-        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
           <TabsTrigger value="attendance" className="flex items-center gap-1"><Users className="h-4 w-4" />{isRTL ? "الحضور" : "Attendance"}</TabsTrigger>
           <TabsTrigger value="leaves" className="flex items-center gap-1"><Calendar className="h-4 w-4" />{isRTL ? "الإجازات" : "Leaves"}</TabsTrigger>
+          <TabsTrigger value="balances" className="flex items-center gap-1"><Calendar className="h-4 w-4" />{isRTL ? "الأرصدة" : "Balances"}</TabsTrigger>
           <TabsTrigger value="payroll" className="flex items-center gap-1"><DollarSign className="h-4 w-4" />{isRTL ? "الرواتب" : "Payroll"}</TabsTrigger>
           <TabsTrigger value="loans" className="flex items-center gap-1"><Banknote className="h-4 w-4" />{isRTL ? "السلف" : "Advances"}</TabsTrigger>
         </TabsList>
@@ -215,6 +278,92 @@ const HRReports = () => {
                 </TableBody>
               </Table>
               </div>}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Leave Balances Report */}
+        <TabsContent value="balances">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />{isRTL ? "تقرير أرصدة الإجازات" : "Leave Balances Report"}</CardTitle>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleExportBalances} disabled={!leaveBalances.length}>
+                    <FileDown className="h-4 w-4 me-1" />{isRTL ? "تصدير" : "Export"}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handlePrintBalances} disabled={!leaveBalances.length}>
+                    <Printer className="h-4 w-4 me-1" />{isRTL ? "طباعة" : "Print"}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4 mb-6 flex-wrap">
+                <div className="space-y-1">
+                  <Label>{isRTL ? "السنة" : "Year"}</Label>
+                  <Input type="number" value={balanceYear} onChange={(e) => setBalanceYear(Number(e.target.value))} className="w-28" />
+                </div>
+                <div className="space-y-1">
+                  <Label>{isRTL ? "الموظف" : "Employee"}</Label>
+                  <Select value={balanceEmployee} onValueChange={setBalanceEmployee}>
+                    <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{isRTL ? "جميع الموظفين" : "All Employees"}</SelectItem>
+                      {employees.map((e: any) => (
+                        <SelectItem key={e.id} value={e.id}>{e.employee_number} - {isRTL ? e.name : (e.name_en || e.name)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {loadingBalances ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
+              leaveBalances.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  {isRTL ? "لا توجد أرصدة. قم بتطبيق السياسات من شاشة تجهيز الإجازات" : "No balances. Apply policies from Leave Settings"}
+                </div>
+              ) : (
+                <div className="overflow-auto rounded-lg border border-border/50 print:border-black">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/60 dark:bg-muted/30">
+                        <TableHead className="border-b border-border/50">{isRTL ? "رقم" : "#"}</TableHead>
+                        <TableHead className="border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                        <TableHead className="border-b border-border/50">{isRTL ? "نوع الإجازة" : "Leave Type"}</TableHead>
+                        <TableHead className="border-b border-border/50">{isRTL ? "الاستحقاق" : "Entitlement"}</TableHead>
+                        <TableHead className="border-b border-border/50">{isRTL ? "المستخدم" : "Used"}</TableHead>
+                        <TableHead className="border-b border-border/50">{isRTL ? "المرحّل" : "Carried Over"}</TableHead>
+                        <TableHead className="border-b border-border/50">{isRTL ? "المتبقي" : "Remaining"}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leaveBalances.map((b: any, idx: number) => {
+                        const remaining = (b.entitlement || 0) + (b.carried_over || 0) - (b.used || 0);
+                        return (
+                          <TableRow key={b.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                            <TableCell className="font-mono border-b border-border/30">{b.hr_employees?.employee_number || ""}</TableCell>
+                            <TableCell className="font-medium border-b border-border/30">{b.hr_employees ? (isRTL ? b.hr_employees.name : (b.hr_employees.name_en || b.hr_employees.name)) : "—"}</TableCell>
+                            <TableCell className="border-b border-border/30">{policyLabel(b.leave_type)}</TableCell>
+                            <TableCell className="border-b border-border/30">{b.entitlement}</TableCell>
+                            <TableCell className="text-amber-600 font-semibold border-b border-border/30">{b.used}</TableCell>
+                            <TableCell className="border-b border-border/30">{b.carried_over}</TableCell>
+                            <TableCell className={`font-bold border-b border-border/30 ${remaining <= 0 ? "text-destructive" : "text-emerald-600"}`}>{remaining}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {/* Totals row */}
+                      <TableRow className="bg-muted/50 font-bold">
+                        <TableCell colSpan={3}>{isRTL ? "الإجمالي" : "Total"}</TableCell>
+                        <TableCell>{leaveBalances.reduce((s: number, b: any) => s + (b.entitlement || 0), 0)}</TableCell>
+                        <TableCell className="text-amber-600">{leaveBalances.reduce((s: number, b: any) => s + (b.used || 0), 0)}</TableCell>
+                        <TableCell>{leaveBalances.reduce((s: number, b: any) => s + (b.carried_over || 0), 0)}</TableCell>
+                        <TableCell className="text-emerald-600">{leaveBalances.reduce((s: number, b: any) => s + (b.entitlement || 0) + (b.carried_over || 0) - (b.used || 0), 0)}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
