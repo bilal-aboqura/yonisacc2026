@@ -33,6 +33,7 @@ const Payroll = () => {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
   const [confirmAction, setConfirmAction] = useState<{ type: "approve" | "cancel"; run: any } | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   // Queries
   const { data: payrollRuns = [], isLoading } = useQuery({
