@@ -24,7 +24,7 @@ const Loans = () => {
     queryKey: ["hr-employees-active", companyId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("hr_employees").select("id, name, name_en, employee_number")
+        .from("hr_employees").select("id, name, name_en, employee_number, account_id")
         .eq("company_id", companyId).eq("status", "active");
       if (error) throw error;
       return data;
@@ -46,50 +46,54 @@ const Loans = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      // Get the employee's linked account
+      const emp = employees.find((e: any) => e.id === form.employee_id);
+      if (!emp?.account_id) {
+        throw new Error(isRTL ? "يجب ربط الموظف بحساب في دليل الحسابات أولاً" : "Employee must be linked to a ledger account first");
+      }
+
+      // Get cash/bank account from HR settings
+      const { data: hrSettings } = await (supabase as any)
+        .from("hr_account_settings").select("cash_account_id, bank_account_id")
+        .eq("company_id", companyId).maybeSingle();
+
+      const cashAccountId = hrSettings?.cash_account_id || hrSettings?.bank_account_id;
+      if (!cashAccountId) {
+        throw new Error(isRTL ? "يجب تجهيز حساب الصندوق أو البنك في إعدادات الموارد البشرية" : "Cash or bank account must be configured in HR settings");
+      }
+
       const remaining = form.amount;
       const { error } = await (supabase as any).from("hr_loans").insert({
         ...form, company_id: companyId, remaining, total_paid: 0,
       });
       if (error) throw error;
 
-      // Create journal entry for loan
-      const { data: accounts } = await (supabase as any)
-        .from("accounts").select("id, code")
-        .eq("company_id", companyId)
-        .in("code", ["117", "111"]);
-      
-      if (accounts && accounts.length === 2) {
-        const advanceAcc = accounts.find((a: any) => a.code === "117");
-        const cashAcc = accounts.find((a: any) => a.code === "111");
-        if (advanceAcc && cashAcc) {
-          const { data: settings } = await (supabase as any)
-            .from("company_settings").select("journal_prefix, next_journal_number")
-            .eq("company_id", companyId).maybeSingle();
-          
-          const prefix = settings?.journal_prefix || "JE-";
-          const nextNum = settings?.next_journal_number || 1;
-          const entryNumber = `${prefix}${String(nextNum).padStart(6, "0")}`;
+      // Create journal entry: Debit = employee account, Credit = cash/bank
+      const { data: settings } = await (supabase as any)
+        .from("company_settings").select("journal_prefix, next_journal_number")
+        .eq("company_id", companyId).maybeSingle();
 
-          const emp = employees.find((e: any) => e.id === form.employee_id);
-          const desc = isRTL ? `سلفة موظف: ${emp?.name || ""}` : `Employee advance: ${emp?.name_en || emp?.name || ""}`;
+      const prefix = settings?.journal_prefix || "JE-";
+      const nextNum = settings?.next_journal_number || 1;
+      const entryNumber = `${prefix}${String(nextNum).padStart(6, "0")}`;
 
-          const { data: je, error: jeError } = await (supabase as any)
-            .from("journal_entries").insert({
-              company_id: companyId, entry_number: entryNumber,
-              entry_date: form.start_date, description: desc,
-              total_debit: form.amount, total_credit: form.amount,
-              status: "posted", source: "hr_loan", created_by: null,
-            }).select().single();
+      const desc = isRTL ? `سلفة موظف: ${emp?.name || ""}` : `Employee advance: ${emp?.name_en || emp?.name || ""}`;
 
-          if (!jeError && je) {
-            await (supabase as any).from("journal_entry_lines").insert([
-              { entry_id: je.id, account_id: advanceAcc.id, debit: form.amount, credit: 0, description: desc },
-              { entry_id: je.id, account_id: cashAcc.id, debit: 0, credit: form.amount, description: desc },
-            ]);
-            await (supabase as any).from("company_settings").update({ next_journal_number: nextNum + 1 }).eq("company_id", companyId);
-          }
-        }
-      }
+      const { data: je, error: jeError } = await (supabase as any)
+        .from("journal_entries").insert({
+          company_id: companyId, entry_number: entryNumber,
+          entry_date: form.start_date, description: desc,
+          total_debit: form.amount, total_credit: form.amount,
+          status: "posted", source: "hr_loan", created_by: null,
+        }).select().single();
+
+      if (jeError) throw jeError;
+
+      await (supabase as any).from("journal_entry_lines").insert([
+        { entry_id: je.id, account_id: emp.account_id, debit: form.amount, credit: 0, description: desc },
+        { entry_id: je.id, account_id: cashAccountId, debit: 0, credit: form.amount, description: desc },
+      ]);
+      await (supabase as any).from("company_settings").update({ next_journal_number: nextNum + 1 }).eq("company_id", companyId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-loans"] });
