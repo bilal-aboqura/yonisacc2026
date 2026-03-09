@@ -209,7 +209,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
     onError: (e: any) => toast.error(e.message),
   });
 
-  const canSave = form.name && form.employee_number && (!form.has_iqama || (form.iqama_number && form.iqama_expiry));
+  const canSave = form.name && form.employee_number && (!form.has_iqama || (form.national_id && form.iqama_expiry));
 
   return (
     <div className="space-y-6">
