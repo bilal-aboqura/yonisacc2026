@@ -973,16 +973,18 @@ const Payroll = () => {
                       <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "الصافي" : "Net"}</TableHead>
                       <TableHead className="text-end font-semibold text-emerald-600 border-b border-border/50">{isRTL ? "المدفوع" : "Paid"}</TableHead>
                       <TableHead className="text-end font-semibold text-amber-600 border-b border-border/50">{isRTL ? "المتبقي" : "Remaining"}</TableHead>
+                      <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "مبلغ الدفع" : "Pay Amount"}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {unpaidItems.map((item: any, idx: number) => {
                       const paid = item.paid_amount || 0;
                       const remaining = (item.net_salary || 0) - paid;
+                      const isSelected = paymentSelectedItems.has(item.id);
                       return (
-                        <TableRow key={item.id} className={`${paymentSelectedItems.has(item.id) ? "bg-primary/[0.06]" : idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                        <TableRow key={item.id} className={`${isSelected ? "bg-primary/[0.06]" : idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
                           <TableCell className="border-b border-border/30">
-                            <Checkbox checked={paymentSelectedItems.has(item.id)} onCheckedChange={() => togglePaymentItem(item.id)} />
+                            <Checkbox checked={isSelected} onCheckedChange={() => togglePaymentItem(item.id)} />
                           </TableCell>
                           <TableCell className="font-medium whitespace-nowrap border-b border-border/30">
                             {item.hr_employees ? (isRTL ? item.hr_employees.name : (item.hr_employees.name_en || item.hr_employees.name)) : "—"}
@@ -990,6 +992,24 @@ const Payroll = () => {
                           <TableCell className="text-end tabular-nums border-b border-border/30">{formatNum(item.net_salary || 0)}</TableCell>
                           <TableCell className="text-end tabular-nums text-emerald-600 border-b border-border/30">{formatNum(paid)}</TableCell>
                           <TableCell className="text-end tabular-nums text-amber-600 font-medium border-b border-border/30">{formatNum(remaining)}</TableCell>
+                          <TableCell className="border-b border-border/30">
+                            {isSelected ? (
+                              <Input
+                                type="number"
+                                min={0}
+                                max={remaining}
+                                step="0.01"
+                                className="w-28 text-end tabular-nums ms-auto"
+                                value={paymentAmounts[item.id] ?? remaining}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  setPaymentAmounts({ ...paymentAmounts, [item.id]: Math.min(val, remaining) });
+                                }}
+                              />
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -1003,8 +1023,8 @@ const Payroll = () => {
                   <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
                     <SelectTrigger><SelectValue placeholder={isRTL ? "اختر طريقة الدفع" : "Select method"} /></SelectTrigger>
                     <SelectContent>
-                      {activePaymentMethods.map((m: any) => (
-                        <SelectItem key={m.id} value={m.id}>{isRTL ? m.name : (m.name_en || m.name)}</SelectItem>
+                      {mergedPaymentOptions.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1021,11 +1041,12 @@ const Payroll = () => {
                     selectedPayrollItemIds: Array.from(paymentSelectedItems),
                     methodId: paymentMethodId,
                     date: paymentDate,
+                    amounts: paymentAmounts,
                   })}
                 >
                   {paymentMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
                   <CreditCard className="h-4 w-4 me-2" />
-                  {isRTL ? `تسليم (${formatNum(totalRemainingSelected)})` : `Pay (${formatNum(totalRemainingSelected)})`}
+                  {isRTL ? `تسليم (${formatNum(totalPaymentSelected)})` : `Pay (${formatNum(totalPaymentSelected)})`}
                 </Button>
               </div>
             </CardContent>
