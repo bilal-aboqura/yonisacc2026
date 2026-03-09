@@ -1141,13 +1141,15 @@ const Payroll = () => {
                               <Button variant="ghost" size="icon" className="h-8 w-8" title={isRTL ? "تعديل" : "Edit"} onClick={() => openEdit(run)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600" title={isRTL ? "اعتماد (افتح للتحديد)" : "Approve (open to select)"} onClick={() => setViewRun(run)}>
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title={isRTL ? "إلغاء" : "Cancel"} onClick={() => setConfirmAction({ type: "cancel", run })}>
                                 <XCircle className="h-4 w-4" />
                               </Button>
                             </>
+                          )}
+                          {(run.status === "draft" || run.status === "partially_posted") && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600" title={isRTL ? "اعتماد (افتح للتحديد)" : "Approve (open to select)"} onClick={() => setViewRun(run)}>
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
                       </TableCell>
