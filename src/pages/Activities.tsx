@@ -78,24 +78,36 @@ const Activities = () => {
           </p>
 
           {/* Monthly/Yearly Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-12">
-            <span className={cn(
-              "font-medium transition-colors",
-              !isYearly ? "text-foreground" : "text-muted-foreground"
-            )}>
-              {isRTL ? "شهري" : "Monthly"}
-            </span>
-            <Switch checked={isYearly} onCheckedChange={setIsYearly} />
-            <span className={cn(
-              "font-medium transition-colors",
-              isYearly ? "text-foreground" : "text-muted-foreground"
-            )}>
-              {isRTL ? "سنوي" : "Yearly"}
-            </span>
+          <div className="flex items-center justify-center gap-3 mb-12">
+            <div className="inline-flex items-center rounded-full border border-border bg-muted/50 p-1">
+              <button
+                type="button"
+                onClick={() => setIsYearly(false)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-medium transition-all",
+                  !isYearly ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {!isYearly && <Check className="w-3.5 h-3.5" />}
+                {isRTL ? "شهري" : "Monthly"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsYearly(true)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-medium transition-all",
+                  isYearly ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {isYearly && <Check className="w-3.5 h-3.5" />}
+                {isRTL ? "سنوي" : "Yearly"}
+              </button>
+            </div>
             {isYearly && (
-              <Badge className="bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/10">
-                {isRTL ? "وفر 20%" : "Save 20%"}
-              </Badge>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                <Sparkles className="w-3 h-3" />
+                {isRTL ? "وفّر 20%" : "Save 20%"}
+              </span>
             )}
           </div>
         </div>
