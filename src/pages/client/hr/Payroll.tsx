@@ -40,8 +40,59 @@ const Payroll = () => {
   const [paymentSelectedItems, setPaymentSelectedItems] = useState<Set<string>>(new Set());
   const [paymentMethodId, setPaymentMethodId] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentAmounts, setPaymentAmounts] = useState<Record<string, number>>({});
 
   const { data: activePaymentMethods = [] } = useActivePaymentMethods(companyId);
+
+  // Fetch HR account settings for bank/cash accounts
+  const { data: hrAccountSettings } = useQuery({
+    queryKey: ["hr-account-settings-payment", companyId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("hr_account_settings").select("bank_account_id, cash_account_id")
+        .eq("company_id", companyId).maybeSingle();
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  // Fetch account names for HR settings accounts
+  const hrAccountIds = [hrAccountSettings?.bank_account_id, hrAccountSettings?.cash_account_id].filter(Boolean);
+  const { data: hrAccounts = [] } = useQuery({
+    queryKey: ["hr-payment-accounts", hrAccountIds],
+    queryFn: async () => {
+      if (hrAccountIds.length === 0) return [];
+      const { data } = await supabase.from("accounts").select("id, name, name_en, code")
+        .in("id", hrAccountIds);
+      return data || [];
+    },
+    enabled: hrAccountIds.length > 0,
+  });
+
+  // Build merged payment options: active payment methods + HR bank/cash accounts
+  const mergedPaymentOptions = (() => {
+    const options: { id: string; label: string; account_id: string }[] = [];
+    // From active payment methods
+    activePaymentMethods.forEach((m: any) => {
+      options.push({ id: `pm-${m.id}`, label: isRTL ? m.name : (m.name_en || m.name), account_id: m.account_id });
+    });
+    // From HR account settings
+    if (hrAccountSettings?.bank_account_id) {
+      const alreadyLinked = activePaymentMethods.some((m: any) => m.account_id === hrAccountSettings.bank_account_id);
+      if (!alreadyLinked) {
+        const acc = hrAccounts.find((a: any) => a.id === hrAccountSettings.bank_account_id);
+        if (acc) options.push({ id: `hr-bank`, label: isRTL ? `${acc.name} (بنك)` : `${acc.name_en || acc.name} (Bank)`, account_id: acc.id });
+      }
+    }
+    if (hrAccountSettings?.cash_account_id) {
+      const alreadyLinked = activePaymentMethods.some((m: any) => m.account_id === hrAccountSettings.cash_account_id);
+      if (!alreadyLinked) {
+        const acc = hrAccounts.find((a: any) => a.id === hrAccountSettings.cash_account_id);
+        if (acc) options.push({ id: `hr-cash`, label: isRTL ? `${acc.name} (نقدي)` : `${acc.name_en || acc.name} (Cash)`, account_id: acc.id });
+      }
+    }
+    return options;
+  })();
 
   // Queries
   const { data: payrollRuns = [], isLoading } = useQuery({
@@ -368,12 +419,13 @@ const Payroll = () => {
 
   // Payment mutation - disburse salaries
   const paymentMutation = useMutation({
-    mutationFn: async ({ run, selectedPayrollItemIds, methodId, date }: { run: any; selectedPayrollItemIds: string[]; methodId: string; date: string }) => {
-      // Get payment method account
-      const method = activePaymentMethods.find((m: any) => m.id === methodId);
-      if (!method || !method.account_id) {
+    mutationFn: async ({ run, selectedPayrollItemIds, methodId, date, amounts }: { run: any; selectedPayrollItemIds: string[]; methodId: string; date: string; amounts: Record<string, number> }) => {
+      // Get payment account from merged options
+      const selectedOption = mergedPaymentOptions.find((o) => o.id === methodId);
+      if (!selectedOption || !selectedOption.account_id) {
         throw new Error(isRTL ? "طريقة الدفع غير مرتبطة بحساب" : "Payment method not linked to an account");
       }
+      const payAccountId = selectedOption.account_id;
 
       // Get items with employee info
       const items = payrollItems.filter((i: any) => selectedPayrollItemIds.includes(i.id));
@@ -385,33 +437,48 @@ const Payroll = () => {
         throw new Error(isRTL ? "بعض الموظفين غير مرتبطين بحساب محاسبي" : "Some employees are not linked to an account");
       }
 
-      // Calculate amounts (remaining = net - paid)
-      const paymentAmounts: { item: any; amount: number }[] = [];
+      // Calculate amounts using custom per-employee amounts
+      const payAmounts: { item: any; amount: number }[] = [];
       let totalPayment = 0;
       for (const item of items) {
-        const remaining = (item.net_salary || 0) - (item.paid_amount || 0);
-        if (remaining <= 0) continue;
-        paymentAmounts.push({ item, amount: remaining });
-        totalPayment += remaining;
+        const maxRemaining = (item.net_salary || 0) - (item.paid_amount || 0);
+        if (maxRemaining <= 0) continue;
+        const customAmount = amounts[item.id] !== undefined ? amounts[item.id] : maxRemaining;
+        const finalAmount = Math.min(Math.max(0, customAmount), maxRemaining);
+        if (finalAmount <= 0) continue;
+        payAmounts.push({ item, amount: finalAmount });
+        totalPayment += finalAmount;
       }
 
-      if (totalPayment <= 0) throw new Error(isRTL ? "لا يوجد مبلغ متبقي للتسليم" : "No remaining amount to pay");
+      if (totalPayment <= 0) throw new Error(isRTL ? "لا يوجد مبلغ للتسليم" : "No amount to pay");
 
-      // Get journal number
+      // Get journal number — fix duplicate key
       const { data: settings } = await (supabase as any)
         .from("company_settings").select("journal_prefix, next_journal_number")
         .eq("company_id", companyId).maybeSingle();
 
       const prefix = settings?.journal_prefix || "JE-";
-      const nextNum = settings?.next_journal_number || 1;
+      let settingsNext = settings?.next_journal_number || 1;
+
+      const { data: allEntries } = await (supabase as any)
+        .from("journal_entries").select("entry_number")
+        .eq("company_id", companyId).like("entry_number", `${prefix}%`)
+        .order("created_at", { ascending: false }).limit(1);
+
+      let maxExistingNum = 0;
+      if (allEntries && allEntries.length > 0) {
+        const parsed = parseInt(allEntries[0].entry_number.replace(prefix, ""), 10);
+        if (!isNaN(parsed)) maxExistingNum = parsed;
+      }
+      let nextNum = Math.max(settingsNext, maxExistingNum + 1);
       const entryNumber = `${prefix}${String(nextNum).padStart(6, "0")}`;
 
-      const methodName = isRTL ? (method as any).name : ((method as any).name_en || (method as any).name);
+      const methodLabel = selectedOption.label;
       const desc = isRTL
-        ? `تسليم رواتب شهر ${run.period_month}/${run.period_year} - ${methodName}`
-        : `Salary payment ${run.period_month}/${run.period_year} - ${methodName}`;
+        ? `تسليم رواتب شهر ${run.period_month}/${run.period_year} - ${methodLabel}`
+        : `Salary payment ${run.period_month}/${run.period_year} - ${methodLabel}`;
 
-      // Create journal entry: Dr Employee accounts, Cr Payment method account
+      // Create journal entry: Dr Employee accounts, Cr Payment account
       const { data: je, error: jeError } = await (supabase as any)
         .from("journal_entries").insert({
           company_id: companyId, entry_number: entryNumber,
@@ -422,50 +489,37 @@ const Payroll = () => {
       if (jeError) throw jeError;
 
       const jeLines: any[] = [];
-
-      // Debit: each employee account (clearing the liability)
-      for (const { item, amount } of paymentAmounts) {
+      for (const { item, amount } of payAmounts) {
         const empName = isRTL ? item.hr_employees?.name : (item.hr_employees?.name_en || item.hr_employees?.name);
         jeLines.push({
-          entry_id: je.id,
-          account_id: item.hr_employees.account_id,
+          entry_id: je.id, account_id: item.hr_employees.account_id,
           debit: amount, credit: 0,
           description: isRTL ? `تسليم راتب ${empName}` : `Salary payment - ${empName}`,
         });
       }
-
-      // Credit: payment method account
-      jeLines.push({
-        entry_id: je.id,
-        account_id: method.account_id,
-        debit: 0, credit: totalPayment,
-        description: desc,
-      });
+      jeLines.push({ entry_id: je.id, account_id: payAccountId, debit: 0, credit: totalPayment, description: desc });
 
       await (supabase as any).from("journal_entry_lines").insert(jeLines);
       await (supabase as any).from("company_settings").update({ next_journal_number: nextNum + 1 }).eq("company_id", companyId);
 
-      // Create payment record
+      // Create payment record — use a real payment_method_id if available, else null
+      const realMethodId = methodId.startsWith("pm-") ? methodId.replace("pm-", "") : null;
       const { data: payment, error: payError } = await (supabase as any)
         .from("hr_payroll_payments").insert({
           payroll_run_id: run.id, company_id: companyId,
-          payment_date: date, payment_method_id: methodId,
+          payment_date: date, payment_method_id: realMethodId,
           journal_entry_id: je.id, total_amount: totalPayment,
           created_by: user?.id,
         }).select().single();
       if (payError) throw payError;
 
-      // Create payment items and update paid_amount
-      const payItems = paymentAmounts.map(({ item, amount }) => ({
-        payment_id: payment.id,
-        payroll_item_id: item.id,
-        employee_id: item.employee_id,
-        amount,
+      const payItems = payAmounts.map(({ item, amount }) => ({
+        payment_id: payment.id, payroll_item_id: item.id,
+        employee_id: item.employee_id, amount,
       }));
       await (supabase as any).from("hr_payroll_payment_items").insert(payItems);
 
-      // Update paid_amount on payroll items
-      for (const { item, amount } of paymentAmounts) {
+      for (const { item, amount } of payAmounts) {
         const newPaid = (item.paid_amount || 0) + amount;
         await (supabase as any).from("hr_payroll_items").update({ paid_amount: newPaid }).eq("id", item.id);
       }
@@ -476,6 +530,7 @@ const Payroll = () => {
       queryClient.invalidateQueries({ queryKey: ["hr-payroll-payment-items"] });
       setPaymentSelectedItems(new Set());
       setPaymentMethodId("");
+      setPaymentAmounts({});
       toast.success(isRTL ? "تم تسليم الرواتب وإنشاء القيد المحاسبي" : "Salaries paid & journal entry created");
     },
     onError: (e: any) => toast.error(e.message),
@@ -662,24 +717,49 @@ const Payroll = () => {
     const allPaymentSelected = unpaidItems.length > 0 && unpaidItems.every((i: any) => paymentSelectedItems.has(i.id));
     const somePaymentSelected = paymentSelectedItems.size > 0;
     const togglePaymentSelectAll = () => {
-      if (allPaymentSelected) setPaymentSelectedItems(new Set());
-      else setPaymentSelectedItems(new Set(unpaidItems.map((i: any) => i.id)));
+      if (allPaymentSelected) {
+        setPaymentSelectedItems(new Set());
+      } else {
+        const newSet = new Set<string>(unpaidItems.map((i: any) => i.id));
+        setPaymentSelectedItems(newSet);
+        // Auto-fill amounts for newly selected items
+        const newAmounts = { ...paymentAmounts };
+        unpaidItems.forEach((i: any) => {
+          if (newAmounts[i.id] === undefined) newAmounts[i.id] = (i.net_salary || 0) - (i.paid_amount || 0);
+        });
+        setPaymentAmounts(newAmounts);
+      }
     };
     const togglePaymentItem = (id: string) => {
       const next = new Set(paymentSelectedItems);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+        const newAmounts = { ...paymentAmounts };
+        delete newAmounts[id];
+        setPaymentAmounts(newAmounts);
+      } else {
+        next.add(id);
+        const item = unpaidItems.find((i: any) => i.id === id);
+        if (item && paymentAmounts[id] === undefined) {
+          setPaymentAmounts({ ...paymentAmounts, [id]: (item.net_salary || 0) - (item.paid_amount || 0) });
+        }
+      }
       setPaymentSelectedItems(next);
     };
 
-    const totalRemainingSelected = payrollItems
+    const totalPaymentSelected = payrollItems
       .filter((i: any) => paymentSelectedItems.has(i.id))
-      .reduce((sum: number, i: any) => sum + Math.max(0, (i.net_salary || 0) - (i.paid_amount || 0)), 0);
+      .reduce((sum: number, i: any) => {
+        const maxRemaining = Math.max(0, (i.net_salary || 0) - (i.paid_amount || 0));
+        const customAmt = paymentAmounts[i.id] !== undefined ? paymentAmounts[i.id] : maxRemaining;
+        return sum + Math.min(Math.max(0, customAmt), maxRemaining);
+      }, 0);
 
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => { setViewRun(null); setSelectedItems(new Set()); setPaymentSelectedItems(new Set()); }}>
+            <Button variant="ghost" size="icon" onClick={() => { setViewRun(null); setSelectedItems(new Set()); setPaymentSelectedItems(new Set()); setPaymentAmounts({}); }}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -893,16 +973,18 @@ const Payroll = () => {
                       <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "الصافي" : "Net"}</TableHead>
                       <TableHead className="text-end font-semibold text-emerald-600 border-b border-border/50">{isRTL ? "المدفوع" : "Paid"}</TableHead>
                       <TableHead className="text-end font-semibold text-amber-600 border-b border-border/50">{isRTL ? "المتبقي" : "Remaining"}</TableHead>
+                      <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "مبلغ الدفع" : "Pay Amount"}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {unpaidItems.map((item: any, idx: number) => {
                       const paid = item.paid_amount || 0;
                       const remaining = (item.net_salary || 0) - paid;
+                      const isSelected = paymentSelectedItems.has(item.id);
                       return (
-                        <TableRow key={item.id} className={`${paymentSelectedItems.has(item.id) ? "bg-primary/[0.06]" : idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                        <TableRow key={item.id} className={`${isSelected ? "bg-primary/[0.06]" : idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
                           <TableCell className="border-b border-border/30">
-                            <Checkbox checked={paymentSelectedItems.has(item.id)} onCheckedChange={() => togglePaymentItem(item.id)} />
+                            <Checkbox checked={isSelected} onCheckedChange={() => togglePaymentItem(item.id)} />
                           </TableCell>
                           <TableCell className="font-medium whitespace-nowrap border-b border-border/30">
                             {item.hr_employees ? (isRTL ? item.hr_employees.name : (item.hr_employees.name_en || item.hr_employees.name)) : "—"}
@@ -910,6 +992,24 @@ const Payroll = () => {
                           <TableCell className="text-end tabular-nums border-b border-border/30">{formatNum(item.net_salary || 0)}</TableCell>
                           <TableCell className="text-end tabular-nums text-emerald-600 border-b border-border/30">{formatNum(paid)}</TableCell>
                           <TableCell className="text-end tabular-nums text-amber-600 font-medium border-b border-border/30">{formatNum(remaining)}</TableCell>
+                          <TableCell className="border-b border-border/30">
+                            {isSelected ? (
+                              <Input
+                                type="number"
+                                min={0}
+                                max={remaining}
+                                step="0.01"
+                                className="w-28 text-end tabular-nums ms-auto"
+                                value={paymentAmounts[item.id] ?? remaining}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  setPaymentAmounts({ ...paymentAmounts, [item.id]: Math.min(val, remaining) });
+                                }}
+                              />
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -923,8 +1023,8 @@ const Payroll = () => {
                   <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
                     <SelectTrigger><SelectValue placeholder={isRTL ? "اختر طريقة الدفع" : "Select method"} /></SelectTrigger>
                     <SelectContent>
-                      {activePaymentMethods.map((m: any) => (
-                        <SelectItem key={m.id} value={m.id}>{isRTL ? m.name : (m.name_en || m.name)}</SelectItem>
+                      {mergedPaymentOptions.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -941,11 +1041,12 @@ const Payroll = () => {
                     selectedPayrollItemIds: Array.from(paymentSelectedItems),
                     methodId: paymentMethodId,
                     date: paymentDate,
+                    amounts: paymentAmounts,
                   })}
                 >
                   {paymentMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
                   <CreditCard className="h-4 w-4 me-2" />
-                  {isRTL ? `تسليم (${formatNum(totalRemainingSelected)})` : `Pay (${formatNum(totalRemainingSelected)})`}
+                  {isRTL ? `تسليم (${formatNum(totalPaymentSelected)})` : `Pay (${formatNum(totalPaymentSelected)})`}
                 </Button>
               </div>
             </CardContent>
