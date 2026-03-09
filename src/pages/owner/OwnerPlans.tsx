@@ -44,6 +44,8 @@ interface Plan {
   description_ar: string | null;
   description_en: string | null;
   price: number;
+  yearly_price: number;
+  yearly_discount_months: number;
   duration_months: number;
   max_invoices: number | null;
   max_entries: number | null;
