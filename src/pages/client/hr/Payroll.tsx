@@ -549,7 +549,8 @@ const Payroll = () => {
   const monthName = (m: number) => new Date(2000, m - 1).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { month: "long" });
 
   const statusBadge = (status: string) => {
-    if (status === "posted") return <Badge className="bg-emerald-600 text-white">{isRTL ? "معتمد" : "Approved"}</Badge>;
+    if (status === "posted") return <Badge className="bg-emerald-600 text-white">{isRTL ? "معتمد بالكامل" : "Fully Approved"}</Badge>;
+    if (status === "partially_posted") return <Badge className="bg-blue-600 text-white">{isRTL ? "معتمد جزئياً" : "Partially Approved"}</Badge>;
     return <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300">{isRTL ? "مسودة" : "Draft"}</Badge>;
   };
 
