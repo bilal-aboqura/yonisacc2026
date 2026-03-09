@@ -947,7 +947,7 @@ const Payroll = () => {
         )}
 
         {/* All paid message */}
-        {(isPosted || isPartiallyPosted)d || isPartiallyPosted) && unpaidItems.length === 0 && payrollItems.length > 0 && (
+        {(isPosted || isPartiallyPosted) && unpaidItems.length === 0 && payrollItems.length > 0 && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300 text-sm">
             <CheckCircle className="h-4 w-4" />
             <span>{isRTL ? "تم تسليم جميع الرواتب بالكامل" : "All salaries have been fully paid"}</span>
