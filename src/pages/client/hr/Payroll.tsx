@@ -720,7 +720,7 @@ const Payroll = () => {
       if (allPaymentSelected) {
         setPaymentSelectedItems(new Set());
       } else {
-        const newSet = new Set(unpaidItems.map((i: any) => i.id));
+        const newSet = new Set<string>(unpaidItems.map((i: any) => i.id));
         setPaymentSelectedItems(newSet);
         // Auto-fill amounts for newly selected items
         const newAmounts = { ...paymentAmounts };
