@@ -744,8 +744,8 @@ const Payroll = () => {
             <AlertDialogDescription>
               {confirmAction?.type === "approve"
                 ? (isRTL
-                  ? `سيتم إنشاء قيد محاسبي بتاريخ ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""} وترحيل المسير. لا يمكن التراجع.`
-                  : `A journal entry dated ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""} will be created. This cannot be undone.`)
+                  ? `سيتم اعتماد ${selectedItems.size} موظف وإنشاء قيد محاسبي بتاريخ ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""}. لا يمكن التراجع.`
+                  : `${selectedItems.size} employee(s) will be approved and a journal entry dated ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""} will be created. This cannot be undone.`)
                 : (isRTL ? "سيتم حذف المسير وجميع بياناته نهائياً. لا يمكن التراجع." : "The payroll run and all its data will be permanently deleted. This cannot be undone.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -754,8 +754,11 @@ const Payroll = () => {
             <AlertDialogAction
               className={confirmAction?.type === "cancel" ? "bg-destructive hover:bg-destructive/90" : "bg-emerald-600 hover:bg-emerald-700"}
               onClick={() => {
-                if (confirmAction?.type === "approve") approvePayrollMutation.mutate(confirmAction.run);
-                else if (confirmAction?.type === "cancel") cancelPayrollMutation.mutate(confirmAction.run);
+                if (confirmAction?.type === "approve") {
+                  approvePayrollMutation.mutate({ run: confirmAction.run, selectedIds: Array.from(selectedItems) });
+                } else if (confirmAction?.type === "cancel") {
+                  cancelPayrollMutation.mutate(confirmAction.run);
+                }
               }}
               disabled={approvePayrollMutation.isPending || cancelPayrollMutation.isPending}
             >
