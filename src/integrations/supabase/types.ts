@@ -3671,6 +3671,107 @@ export type Database = {
           },
         ]
       }
+      hr_leave_balances: {
+        Row: {
+          carried_over: number | null
+          company_id: string
+          created_at: string | null
+          employee_id: string
+          entitlement: number | null
+          id: string
+          leave_type: string
+          used: number | null
+          year: number
+        }
+        Insert: {
+          carried_over?: number | null
+          company_id: string
+          created_at?: string | null
+          employee_id: string
+          entitlement?: number | null
+          id?: string
+          leave_type: string
+          used?: number | null
+          year: number
+        }
+        Update: {
+          carried_over?: number | null
+          company_id?: string
+          created_at?: string | null
+          employee_id?: string
+          entitlement?: number | null
+          id?: string
+          leave_type?: string
+          used?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_leave_balances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_leave_balances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_leave_policies: {
+        Row: {
+          annual_entitlement: number | null
+          carry_over_allowed: boolean | null
+          company_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_paid: boolean | null
+          leave_type: string
+          max_carry_over_days: number | null
+          name: string
+          name_en: string | null
+        }
+        Insert: {
+          annual_entitlement?: number | null
+          carry_over_allowed?: boolean | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_paid?: boolean | null
+          leave_type: string
+          max_carry_over_days?: number | null
+          name: string
+          name_en?: string | null
+        }
+        Update: {
+          annual_entitlement?: number | null
+          carry_over_allowed?: boolean | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_paid?: boolean | null
+          leave_type?: string
+          max_carry_over_days?: number | null
+          name?: string
+          name_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_leave_policies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_leaves: {
         Row: {
           approved_by: string | null
