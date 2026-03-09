@@ -310,7 +310,16 @@ const Loans = () => {
                           <DropdownMenuItem onClick={() => handleEdit(l)}>
                             <Pencil className="h-4 w-4 me-2" />{isRTL ? "تعديل" : "Edit"}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setDeleteLoan(l)} className="text-destructive focus:text-destructive">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              if ((l.total_paid || 0) > 0) {
+                                toast.error(isRTL ? "لا يمكن حذف السلفة لوجود خصومات مرتبطة بمسيرات رواتب" : "Cannot delete: payroll deductions exist");
+                                return;
+                              }
+                              setDeleteLoan(l);
+                            }}
+                            className="text-destructive focus:text-destructive"
+                          >
                             <Trash2 className="h-4 w-4 me-2" />{isRTL ? "حذف" : "Delete"}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
