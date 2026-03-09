@@ -44,6 +44,8 @@ interface Plan {
   description_ar: string | null;
   description_en: string | null;
   price: number;
+  yearly_price: number;
+  yearly_discount_months: number;
   duration_months: number;
   max_invoices: number | null;
   max_entries: number | null;
@@ -67,6 +69,8 @@ interface FormData {
   description_ar: string;
   description_en: string;
   price: number;
+  yearly_price: number;
+  yearly_discount_months: number;
   duration_months: number;
   max_invoices: string;
   max_entries: string;
@@ -86,7 +90,7 @@ interface FormData {
 
 const defaultForm: FormData = {
   name_ar: "", name_en: "", description_ar: "", description_en: "",
-  price: 0, duration_months: 1,
+  price: 0, yearly_price: 0, yearly_discount_months: 2, duration_months: 1,
   max_invoices: "", max_entries: "", max_users: "", max_branches: "",
   max_sales_invoices: "", max_purchase_invoices: "", max_journal_entries: "",
   features_ar: [], features_en: [], not_included_ar: [], not_included_en: [],
@@ -138,7 +142,8 @@ const OwnerPlans = () => {
       const planData: any = {
         name_ar: data.name_ar, name_en: data.name_en,
         description_ar: data.description_ar || null, description_en: data.description_en || null,
-        price: data.price, duration_months: data.duration_months,
+        price: data.price, yearly_price: data.yearly_price, yearly_discount_months: data.yearly_discount_months,
+        duration_months: data.duration_months,
         max_invoices: data.max_invoices ? parseInt(data.max_invoices) : null,
         max_entries: data.max_entries ? parseInt(data.max_entries) : null,
         max_users: data.max_users ? parseInt(data.max_users) : null,
@@ -207,7 +212,9 @@ const OwnerPlans = () => {
     setFormData({
       name_ar: plan.name_ar, name_en: plan.name_en,
       description_ar: plan.description_ar || "", description_en: plan.description_en || "",
-      price: plan.price, duration_months: plan.duration_months,
+      price: plan.price, yearly_price: plan.yearly_price || plan.price * 10,
+      yearly_discount_months: plan.yearly_discount_months ?? 2,
+      duration_months: plan.duration_months,
       max_invoices: plan.max_invoices?.toString() || "", max_entries: plan.max_entries?.toString() || "",
       max_users: plan.max_users?.toString() || "", max_branches: plan.max_branches?.toString() || "",
       max_sales_invoices: plan.max_sales_invoices?.toString() || "",
@@ -258,10 +265,12 @@ const OwnerPlans = () => {
           { key: "price", header: isRTL ? "السعر" : "Price", numeric: true, render: (p: Plan) => (
             <div>
               <span className="font-semibold">{p.price}</span>
-              <span className="text-muted-foreground text-sm ms-1">SAR</span>
-              <p className="text-xs text-muted-foreground">
-                {p.duration_months} {isRTL ? "شهر" : (p.duration_months === 1 ? "month" : "months")}
-              </p>
+              <span className="text-muted-foreground text-sm ms-1">SAR/{isRTL ? "شهري" : "mo"}</span>
+              {p.yearly_price > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {p.yearly_price} SAR/{isRTL ? "سنوي" : "yr"}
+                </p>
+              )}
             </div>
           )},
           { key: "modules", header: isRTL ? "الوحدات" : "Modules", render: (p: Plan) => {
@@ -351,8 +360,12 @@ const OwnerPlans = () => {
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label>{isRTL ? "السعر (ريال)" : "Price (SAR)"} *</Label>
-                    <Input type="number" min="0" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })} required />
+                    <Label>{isRTL ? "السعر الشهري (ريال)" : "Monthly Price (SAR)"} *</Label>
+                    <Input type="number" min="0" step="0.01" value={formData.price} onChange={(e) => {
+                      const monthlyPrice = parseFloat(e.target.value) || 0;
+                      const discountMonths = formData.yearly_discount_months;
+                      setFormData({ ...formData, price: monthlyPrice, yearly_price: monthlyPrice * (12 - discountMonths) });
+                    }} required />
                   </div>
                   <div className="space-y-2">
                     <Label>{isRTL ? "المدة (أشهر)" : "Duration (months)"} *</Label>
@@ -363,6 +376,35 @@ const OwnerPlans = () => {
                     <Input type="number" min="0" value={formData.sort_order} onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) || 0 })} />
                   </div>
                 </div>
+
+                {/* Yearly Pricing Section */}
+                <div className="rounded-lg border p-4 bg-muted/30 space-y-4">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-primary" />
+                    {isRTL ? "التسعير السنوي" : "Yearly Pricing"}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>{isRTL ? "عدد أشهر الخصم" : "Discount Months"}</Label>
+                      <Input type="number" min="0" max="11" value={formData.yearly_discount_months} onChange={(e) => {
+                        const discountMonths = parseInt(e.target.value) || 0;
+                        setFormData({ ...formData, yearly_discount_months: discountMonths, yearly_price: formData.price * (12 - discountMonths) });
+                      }} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{isRTL ? "السعر السنوي (ريال)" : "Yearly Price (SAR)"}</Label>
+                      <Input type="number" min="0" step="0.01" value={formData.yearly_price} onChange={(e) => setFormData({ ...formData, yearly_price: parseFloat(e.target.value) || 0 })} />
+                    </div>
+                  </div>
+                  {formData.price > 0 && (
+                    <div className="text-xs text-muted-foreground bg-background rounded-md p-2.5 space-y-1">
+                      <p>{isRTL ? "السعر الشهري" : "Monthly"}: {formData.price} × 12 = <span className="font-medium">{(formData.price * 12).toFixed(2)} SAR</span></p>
+                      <p>{isRTL ? "بعد خصم" : "After"} {formData.yearly_discount_months} {isRTL ? "أشهر" : "months discount"}: <span className="font-medium text-primary">{formData.yearly_price.toFixed(2)} SAR</span></p>
+                      <p>{isRTL ? "التوفير" : "Savings"}: <span className="font-medium text-emerald-600">{((formData.price * 12) - formData.yearly_price).toFixed(2)} SAR</span></p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-3 pt-2">
                   <Switch checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} />
                   <Label>{isRTL ? "الباقة نشطة" : "Plan is active"}</Label>
