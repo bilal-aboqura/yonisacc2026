@@ -64,6 +64,26 @@ const ProductCard = () => {
     onError: () => toast.error(isRTL ? "فشل حذف المنتج" : "Failed to delete product"),
   });
 
+  // Compute ledger with running balance + weighted moving average cost
+  const ledger = useMemo(() => {
+    const sorted = [...filteredMovements].sort((a: any, b: any) => new Date(a.movement_date).getTime() - new Date(b.movement_date).getTime());
+    let balance = 0;
+    let wAvgCost = 0;
+    return sorted.map((m: any) => {
+      const qty = m.quantity || 0;
+      const unitCost = m.unit_cost || 0;
+      const isInbound = inboundTypes.includes(m.movement_type);
+      if (isInbound && qty > 0 && unitCost > 0) {
+        const newBal = balance + qty;
+        wAvgCost = newBal > 0 ? (balance * wAvgCost + qty * unitCost) / newBal : unitCost;
+        balance = newBal;
+      } else {
+        balance += qty;
+      }
+      return { ...m, balance, avgCostAtMove: wAvgCost, lineValue: balance * wAvgCost };
+    }).reverse();
+  }, [filteredMovements]);
+
   // Sparkline data (last 30 days cumulative)
   const sparklineData = useMemo(() => {
     if (filteredMovements.length === 0) return [];
@@ -90,26 +110,6 @@ const ProductCard = () => {
   const totalQty = filteredStock.reduce((s: number, ps: any) => s + (ps.quantity || 0), 0);
   const totalValue = filteredStock.reduce((s: number, ps: any) => s + (ps.quantity || 0) * (ps.avg_cost || 0), 0);
   const avgCost = totalQty > 0 ? totalValue / totalQty : 0;
-
-  // Compute ledger with running balance + weighted moving average cost
-  const ledger = useMemo(() => {
-    const sorted = [...filteredMovements].sort((a: any, b: any) => new Date(a.movement_date).getTime() - new Date(b.movement_date).getTime());
-    let balance = 0;
-    let wAvgCost = 0;
-    return sorted.map((m: any) => {
-      const qty = m.quantity || 0;
-      const unitCost = m.unit_cost || 0;
-      const isInbound = inboundTypes.includes(m.movement_type);
-      if (isInbound && qty > 0 && unitCost > 0) {
-        const newBal = balance + qty;
-        wAvgCost = newBal > 0 ? (balance * wAvgCost + qty * unitCost) / newBal : unitCost;
-        balance = newBal;
-      } else {
-        balance += qty;
-      }
-      return { ...m, balance, avgCostAtMove: wAvgCost, lineValue: balance * wAvgCost };
-    }).reverse();
-  }, [filteredMovements]);
 
   const movementTypeLabel = (type: string) => {
     const labels: Record<string, Record<string, string>> = {
