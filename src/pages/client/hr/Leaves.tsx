@@ -184,7 +184,7 @@ const Leaves = () => {
                 )}
               </div>
               <div className="space-y-2"><Label>{isRTL ? "من" : "From"}</Label><Input type="date" value={form.start_date} onChange={(e) => { const v = e.target.value; setForm(f => ({ ...f, start_date: v, days_count: calcDays(v, f.end_date) })); }} /></div>
-              <div className="space-y-2"><Label>{isRTL ? "إلى" : "To"}</Label><Input type="date" value={form.end_date} onChange={(e) => updateDays(form.start_date, e.target.value)} /></div>
+              <div className="space-y-2"><Label>{isRTL ? "إلى" : "To"}</Label><Input type="date" value={form.end_date} onChange={(e) => { const v = e.target.value; setForm(f => ({ ...f, end_date: v, days_count: calcDays(f.start_date, v) })); }} /></div>
               <div className="space-y-2"><Label>{isRTL ? "عدد الأيام" : "Days"}</Label><Input type="number" value={form.days_count} readOnly /></div>
               <div className="space-y-2"><Label>{isRTL ? "ملاحظات" : "Notes"}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
             </div>
