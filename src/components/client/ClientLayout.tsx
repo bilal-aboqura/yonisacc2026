@@ -120,7 +120,6 @@ const baseMenuItems: MenuItem[] = [
       { icon: Users, label: "العملاء", labelEn: "Customers", path: "/client/customers", permission: "VIEW_CUSTOMERS" },
       { icon: FileText, label: "عرض سعر", labelEn: "Quotations", path: "/client/quotes", permission: "VIEW_QUOTES" },
       { icon: Receipt, label: "فاتورة مبيعات", labelEn: "Sales Invoice", path: "/client/sales", permission: "VIEW_SALES" },
-      { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/sales/setup", permission: "VIEW_SETTINGS" },
     ]
   },
   {
