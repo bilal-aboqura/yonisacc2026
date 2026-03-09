@@ -29,6 +29,7 @@ const ALL_MODULES = [
   { key: "realestate", labelAr: "العقارات", labelEn: "Real Estate" },
   { key: "delivery", labelAr: "التوصيل", labelEn: "Delivery" },
   { key: "assets", labelAr: "الأصول الثابتة", labelEn: "Fixed Assets" },
+  { key: "fuelstation", labelAr: "محطات الوقود", labelEn: "Fuel Station" },
 ];
 
 const isStrongPassword = (pw: string) =>
