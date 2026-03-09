@@ -1,41 +1,85 @@
 
+# خطة نظام نقاط البيع الشامل (POS)
 
-## خطة الإصلاح
+## الحالة: ✅ تم تنفيذ المراحل 1-10
 
-### المشكلة الأولى: تحميل الخصومات والجزاءات الافتراضية
-**السبب**: عمود `third_offense` في جدول `hr_penalty_rules` معرّف كـ `NOT NULL`، لكن بعض البيانات الافتراضية (مثل ABS-04) تحتوي على `third: null`. هذا يسبب خطأ عند الإدخال.
+### ما تم إنجازه:
 
-**الحل**: تعديل قاعدة البيانات لجعل `third_offense` قابلاً للقيم الفارغة (nullable)، ثم تحديث البيانات الافتراضية في الكود لتحويل `null` إلى `""` كاحتياط.
+**المرحلة 1: قاعدة البيانات** ✅
+- 11 جدول جديد: pos_terminals, pos_sessions, pos_transactions, pos_transaction_items, pos_tables, pos_reservations, pos_menus, pos_menu_items, pos_promotions, pos_sales_targets, pos_activity_log
+- RLS على جميع الجداول
+- صلاحيات RBAC: 8 feature flags جديدة
 
-- Migration: `ALTER TABLE hr_penalty_rules ALTER COLUMN third_offense DROP NOT NULL;`
-- كود: تحديث `loadDefaultsMutation` لإرسال `""` بدل `null` كاحتياط إضافي
+**المرحلة 2: شاشة POS الرئيسية** ✅
+- شاشة ملء الشاشة مع شبكة منتجات + سلة مشتريات
+- بحث سريع وباركود + تصفية بالتصنيف
+- نوع الطلب (محلي/سفري/توصيل)
+- أزرار دفع متعددة (نقد/بطاقة)
+- اختصارات لوحة مفاتيح (F1/F2/F5/Esc)
+- فتح/إغلاق الصندوق مع المبلغ
 
-### المشكلة الثانية: التواريخ في طلب الإجازة
-**السبب**: دالة `updateDays` تشترط وجود كلا التاريخين (`start` و `end`) قبل تحديث الحالة. عندما يختار المستخدم تاريخ البداية فقط، لا يتم تحديث `form.start_date` لأن `form.end_date` لا يزال فارغاً، والعكس صحيح.
+**المرحلة 3: إدارة الطاولات** ✅
+- عرض تفاعلي مع ألوان حسب الحالة
+- CRUD للطاولات مع الشكل والسعة والطابق
 
-**الحل في `Leaves.tsx`**: تعديل منطق التحديث ليحفظ كل تاريخ بشكل مستقل، ويحسب عدد الأيام فقط عند توفر كلا التاريخين:
+**المرحلة 4: الإعدادات والمنيو** ✅
+- إدارة نقاط البيع (Terminals) مع النوع (تجزئة/مطعم)
+- إدارة المنيو المخصص لكل فرع
 
-```typescript
-// بدلاً من updateDays التي تشترط كلا التاريخين:
-onChange={(e) => {
-  const start = e.target.value;
-  setForm(f => {
-    const newForm = { ...f, start_date: start };
-    if (start && f.end_date) {
-      const [sy,sm,sd] = start.split("-").map(Number);
-      const [ey,em,ed] = f.end_date.split("-").map(Number);
-      const diff = Math.ceil((new Date(ey,em-1,ed).getTime() - new Date(sy,sm-1,sd).getTime()) / 86400000) + 1;
-      newForm.days_count = Math.max(1, diff);
-    }
-    return newForm;
-  });
-}}
-```
+**المرحلة 5: العروض والأهداف** ✅
+- إنشاء عروض (نسبة/مبلغ/اشتر X واحصل Y)
+- أهداف مبيعات مع شريط التقدم
 
-نفس النمط لحقل تاريخ النهاية. هذا يستخدم أيضاً parsing محلي للتواريخ لتجنب مشاكل timezone.
+**المرحلة 6: التقارير** ✅
+- بطاقات ملخص (إجمالي/عدد/متوسط)
+- رسم بياني يومي + توزيع طرق الدفع
+- جدول العمليات
 
-### الملفات المتأثرة
-- `src/pages/client/hr/PenaltyRules.tsx` — تحديث بيانات الافتراضي
-- `src/pages/client/hr/Leaves.tsx` — إصلاح منطق التواريخ
-- Migration: جعل `third_offense` nullable
+**المرحلة 7-8: التكامل** ✅
+- 7 مسارات POS في App.tsx
+- قسم "نقاط البيع" في القائمة الجانبية
+- سجل نشاط المستخدمين
 
+**المرحلة 9: الكوبونات والعروض المتقدمة** ✅
+- جدول pos_coupons مع RLS
+- شاشة إدارة كوبونات (CRUD) مع inline form
+- تطبيق الكوبون في شاشة البيع مع التحقق (الفترة، الاستخدام، الحد الأدنى)
+- ربط العروض بمنتجات محددة عبر جدول pos_promotion_products
+- تحويل شاشة العروض من Dialog إلى inline مع product checkboxes
+
+**المرحلة 10: مستخدمو POS وتقارير الصندوق** ✅
+- جدول pos_users مع أدوار (كاشير/مدير فرع) وربط بالفرع
+- شاشة إدارة مستخدمي POS (إنشاء بإيميل+باسورد+فرع+دور)
+- تقرير إغلاق الصندوق (مبيعات/مرتجعات/خصومات/طرق دفع/رصيد إغلاق) مع طباعة
+- شاشة سجل المستخدمين (تاريخ الجلسات مع فلترة)
+- أعمدة تقارير في pos_sessions (total_sales, total_returns, payment_summary, etc.)
+
+---
+
+# نظام إدارة السنوات المالية الشامل
+
+## الحالة: ✅ تم تنفيذ المراحل 1-4
+
+### ما تم إنجازه:
+
+**المرحلة 1: البنية التحتية** ✅
+- تطوير جدول fiscal_periods بأعمدة: status, locked_by, locked_at, closing_journal_entry_id, opening_journal_entry_id, created_by, reopen_reason, reopened_at, reopened_by
+- جدول fiscal_year_audit_log مع RLS
+- جداول stock_count_sessions و stock_count_lines مع RLS
+- 3 RPCs: pre_closing_validation, close_fiscal_year, reopen_fiscal_year
+
+**المرحلة 2: واجهة إدارة السنوات المالية** ✅
+- صفحة FiscalYearManagement.tsx مع 5 تبويبات (السنوات | التحقق | الجرد | التقرير | التدقيق)
+- بطاقات إحصائية (مفتوحة/مقفلة مؤقتاً/مقفلة نهائياً)
+- إجراءات: قفل مؤقت ← إقفال نهائي ← إعادة فتح
+
+**المرحلة 3: RPCs للعمليات الذرية** ✅
+- pre_closing_validation: فحص قيود مسودة، فواتير مسودة، حركات معلقة، فترات HR
+- close_fiscal_year: إقفال حسابات الدخل → أرباح مبقاة → أرصدة افتتاحية
+- reopen_fiscal_year: حذف قيود الإقفال وإعادة الفتح مع سجل تدقيق
+
+**المرحلة 4: التقارير وسجل التدقيق** ✅
+- PreClosingValidation.tsx: فحوصات تلقائية مع ✅/❌
+- StockCountSession.tsx: جلسات جرد مع إدخال كميات فعلية
+- YearClosingReport.tsx: ملخص الدخل + الميزانية العمومية
+- FiscalAuditLog.tsx: سجل كل العمليات على السنوات المالية
