@@ -13,8 +13,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Loader2, CreditCard, Plus, X, Shield, BarChart3, FileText, Users, Building2, FileBarChart, BookOpen } from "lucide-react";
+import {
+  Pencil, Trash2, Loader2, CreditCard, Plus, X, Shield, BarChart3, FileText, Users, Building2, FileBarChart, BookOpen,
+  Calculator, ShoppingCart, Warehouse, Landmark, Monitor, Gem, Car, Heart, Building, Truck, HardDrive, Blocks, Check,
+} from "lucide-react";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
+
+// ─── Module definitions (same as ManageCompanyAccess) ─────────────────────
+const ALL_MODULES = [
+  { key: "accounting", labelAr: "المحاسبة", labelEn: "Accounting", icon: Calculator, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
+  { key: "sales", labelAr: "المبيعات", labelEn: "Sales", icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+  { key: "purchases", labelAr: "المشتريات", labelEn: "Purchases", icon: ShoppingCart, color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/30" },
+  { key: "inventory", labelAr: "المخزون", labelEn: "Inventory", icon: Warehouse, color: "text-indigo-600", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
+  { key: "hr", labelAr: "الموارد البشرية", labelEn: "HR", icon: Users, color: "text-pink-600", bg: "bg-pink-50 dark:bg-pink-950/30" },
+  { key: "treasury", labelAr: "الخزينة", labelEn: "Treasury", icon: Landmark, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" },
+  { key: "reports", labelAr: "التقارير", labelEn: "Reports", icon: BarChart3, color: "text-cyan-600", bg: "bg-cyan-50 dark:bg-cyan-950/30" },
+  { key: "pos", labelAr: "نقاط البيع", labelEn: "POS", icon: Monitor, color: "text-violet-600", bg: "bg-violet-50 dark:bg-violet-950/30" },
+  { key: "gold", labelAr: "الذهب والمجوهرات", labelEn: "Gold & Jewelry", icon: Gem, color: "text-yellow-600", bg: "bg-yellow-50 dark:bg-yellow-950/30" },
+  { key: "autoparts", labelAr: "قطع السيارات", labelEn: "Auto Parts", icon: Car, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" },
+  { key: "clinic", labelAr: "العيادة", labelEn: "Clinic", icon: Heart, color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950/30" },
+  { key: "realestate", labelAr: "العقارات", labelEn: "Real Estate", icon: Building, color: "text-teal-600", bg: "bg-teal-50 dark:bg-teal-950/30" },
+  { key: "delivery", labelAr: "التوصيل", labelEn: "Delivery", icon: Truck, color: "text-sky-600", bg: "bg-sky-50 dark:bg-sky-950/30" },
+  { key: "assets", labelAr: "الأصول الثابتة", labelEn: "Fixed Assets", icon: HardDrive, color: "text-slate-600", bg: "bg-slate-50 dark:bg-slate-950/30" },
+];
 
 interface Plan {
   id: string;
@@ -35,6 +56,7 @@ interface Plan {
   features_en: string[] | null;
   not_included_ar: string[] | null;
   not_included_en: string[] | null;
+  allowed_modules: string[] | null;
   is_active: boolean;
   sort_order: number | null;
 }
@@ -57,6 +79,7 @@ interface FormData {
   features_en: string[];
   not_included_ar: string[];
   not_included_en: string[];
+  allowed_modules: string[];
   is_active: boolean;
   sort_order: number;
 }
@@ -67,6 +90,7 @@ const defaultForm: FormData = {
   max_invoices: "", max_entries: "", max_users: "", max_branches: "",
   max_sales_invoices: "", max_purchase_invoices: "", max_journal_entries: "",
   features_ar: [], features_en: [], not_included_ar: [], not_included_en: [],
+  allowed_modules: ALL_MODULES.map(m => m.key),
   is_active: true, sort_order: 0,
 };
 
@@ -82,13 +106,36 @@ const OwnerPlans = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("subscription_plans").select("*").order("sort_order");
       if (error) throw error;
-      return data as Plan[];
+      return (data as unknown) as Plan[];
     },
   });
 
+  // Sync allowed_modules to all company_members under this plan's subscribers
+  const syncModulesToSubscribers = async (planId: string, allowedModules: string[]) => {
+    // Get all active subscriptions for this plan
+    const { data: subs } = await supabase
+      .from("subscriptions")
+      .select("company_id")
+      .eq("plan_id", planId)
+      .in("status", ["active", "trialing"]);
+
+    if (!subs || subs.length === 0) return 0;
+
+    const companyIds = subs.map(s => s.company_id);
+
+    // Update all company_members for these companies
+    const { error } = await supabase
+      .from("company_members")
+      .update({ allowed_modules: allowedModules })
+      .in("company_id", companyIds);
+
+    if (error) throw error;
+    return companyIds.length;
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const planData = {
+      const planData: any = {
         name_ar: data.name_ar, name_en: data.name_en,
         description_ar: data.description_ar || null, description_en: data.description_en || null,
         price: data.price, duration_months: data.duration_months,
@@ -103,21 +150,36 @@ const OwnerPlans = () => {
         features_en: data.features_en.length ? data.features_en : [],
         not_included_ar: data.not_included_ar.length ? data.not_included_ar : [],
         not_included_en: data.not_included_en.length ? data.not_included_en : [],
+        allowed_modules: data.allowed_modules,
         is_active: data.is_active, sort_order: data.sort_order,
       };
+
+      let planId = editingPlan?.id;
+
       if (editingPlan) {
         const { error } = await supabase.from("subscription_plans").update(planData).eq("id", editingPlan.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("subscription_plans").insert([planData]);
+        const { data: inserted, error } = await supabase.from("subscription_plans").insert([planData]).select("id").single();
         if (error) throw error;
+        planId = inserted.id;
       }
+
+      // Sync modules to subscribers
+      if (planId) {
+        const count = await syncModulesToSubscribers(planId, data.allowed_modules);
+        return count;
+      }
+      return 0;
     },
-    onSuccess: () => {
+    onSuccess: (syncedCount) => {
       queryClient.invalidateQueries({ queryKey: ["owner-plans"] });
       setIsDialogOpen(false);
       resetForm();
-      toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم حفظ الباقة بنجاح" : "Plan saved successfully" });
+      const desc = syncedCount > 0
+        ? (isRTL ? `تم حفظ الباقة وتحديث ${syncedCount} شركة` : `Plan saved and ${syncedCount} companies updated`)
+        : (isRTL ? "تم حفظ الباقة بنجاح" : "Plan saved successfully");
+      toast({ title: isRTL ? "تم الحفظ" : "Saved", description: desc });
     },
     onError: () => {
       toast({ title: isRTL ? "خطأ" : "Error", description: isRTL ? "حدث خطأ أثناء الحفظ" : "Error saving plan", variant: "destructive" });
@@ -153,9 +215,19 @@ const OwnerPlans = () => {
       max_journal_entries: plan.max_journal_entries?.toString() || "",
       features_ar: plan.features_ar || [], features_en: plan.features_en || [],
       not_included_ar: plan.not_included_ar || [], not_included_en: plan.not_included_en || [],
+      allowed_modules: plan.allowed_modules || ALL_MODULES.map(m => m.key),
       is_active: plan.is_active, sort_order: plan.sort_order || 0,
     });
     setIsDialogOpen(true);
+  };
+
+  const toggleModule = (key: string) => {
+    setFormData(prev => ({
+      ...prev,
+      allowed_modules: prev.allowed_modules.includes(key)
+        ? prev.allowed_modules.filter(k => k !== key)
+        : [...prev.allowed_modules, key],
+    }));
   };
 
   const limitsConfig = [
@@ -167,6 +239,9 @@ const OwnerPlans = () => {
     { key: "max_invoices" as const, ar: "إجمالي الفواتير", en: "Total Invoices", icon: FileBarChart },
     { key: "max_entries" as const, ar: "إجمالي القيود", en: "Total Entries", icon: BookOpen },
   ];
+
+  const activeModuleCount = formData.allowed_modules.length;
+  const totalModuleCount = ALL_MODULES.length;
 
   return (
     <div className="space-y-6">
@@ -189,12 +264,21 @@ const OwnerPlans = () => {
               </p>
             </div>
           )},
+          { key: "modules", header: isRTL ? "الوحدات" : "Modules", render: (p: Plan) => {
+            const mods = p.allowed_modules || [];
+            return (
+              <div className="flex items-center gap-1.5">
+                <Badge variant="secondary" className="text-xs">
+                  {mods.length}/{totalModuleCount}
+                </Badge>
+              </div>
+            );
+          }},
           { key: "limits", header: isRTL ? "الحدود" : "Limits", render: (p: Plan) => (
             <div className="text-xs space-y-0.5">
               <p><Users className="inline h-3 w-3 me-1 text-muted-foreground" />{isRTL ? "مستخدمين" : "Users"}: <span className="font-medium">{p.max_users || "∞"}</span></p>
               <p><Building2 className="inline h-3 w-3 me-1 text-muted-foreground" />{isRTL ? "فروع" : "Branches"}: <span className="font-medium">{p.max_branches || "∞"}</span></p>
               <p><FileBarChart className="inline h-3 w-3 me-1 text-muted-foreground" />{isRTL ? "فواتير/شهر" : "Invoices/mo"}: <span className="font-medium">{p.max_sales_invoices || "∞"}</span></p>
-              <p><BookOpen className="inline h-3 w-3 me-1 text-muted-foreground" />{isRTL ? "قيود/شهر" : "Entries/mo"}: <span className="font-medium">{p.max_journal_entries || "∞"}</span></p>
             </div>
           ), hideOnMobile: true },
           { key: "status", header: isRTL ? "الحالة" : "Status", render: (p: Plan) => (
@@ -221,7 +305,7 @@ const OwnerPlans = () => {
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(formData); }}>
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="w-full grid grid-cols-3 mb-4">
+              <TabsList className="w-full grid grid-cols-4 mb-4">
                 <TabsTrigger value="basic" className="gap-1.5 text-xs sm:text-sm">
                   <FileText className="h-3.5 w-3.5 hidden sm:block" />
                   {isRTL ? "أساسي" : "Basic"}
@@ -229,6 +313,13 @@ const OwnerPlans = () => {
                 <TabsTrigger value="limits" className="gap-1.5 text-xs sm:text-sm">
                   <Shield className="h-3.5 w-3.5 hidden sm:block" />
                   {isRTL ? "الحدود" : "Limits"}
+                </TabsTrigger>
+                <TabsTrigger value="modules" className="gap-1.5 text-xs sm:text-sm">
+                  <Blocks className="h-3.5 w-3.5 hidden sm:block" />
+                  {isRTL ? "الوحدات" : "Modules"}
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ms-1">
+                    {activeModuleCount}
+                  </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="features" className="gap-1.5 text-xs sm:text-sm">
                   <BarChart3 className="h-3.5 w-3.5 hidden sm:block" />
@@ -299,6 +390,74 @@ const OwnerPlans = () => {
                     </div>
                   ))}
                 </div>
+              </TabsContent>
+
+              {/* Modules Tab */}
+              <TabsContent value="modules" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {isRTL
+                      ? `${activeModuleCount} من ${totalModuleCount} وحدة مفعّلة`
+                      : `${activeModuleCount} of ${totalModuleCount} modules enabled`}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button" variant="outline" size="sm"
+                      onClick={() => setFormData(prev => ({ ...prev, allowed_modules: ALL_MODULES.map(m => m.key) }))}
+                      disabled={activeModuleCount === totalModuleCount}
+                      className="gap-1.5 text-xs"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      {isRTL ? "تحديد الكل" : "Select All"}
+                    </Button>
+                    <Button
+                      type="button" variant="outline" size="sm"
+                      onClick={() => setFormData(prev => ({ ...prev, allowed_modules: [] }))}
+                      disabled={activeModuleCount === 0}
+                      className="gap-1.5 text-xs"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      {isRTL ? "إلغاء الكل" : "Deselect All"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {ALL_MODULES.map((mod) => {
+                    const Icon = mod.icon;
+                    const isActive = formData.allowed_modules.includes(mod.key);
+                    return (
+                      <button
+                        key={mod.key}
+                        type="button"
+                        onClick={() => toggleModule(mod.key)}
+                        className={`flex items-center gap-3 rounded-lg border p-3 transition-all text-start ${
+                          isActive
+                            ? `${mod.bg} border-primary/30 ring-1 ring-primary/20`
+                            : "bg-muted/30 border-border opacity-60 hover:opacity-80"
+                        }`}
+                      >
+                        <div className={`rounded-md p-2 ${isActive ? mod.bg : "bg-muted"}`}>
+                          <Icon className={`h-4 w-4 ${isActive ? mod.color : "text-muted-foreground"}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium truncate ${isActive ? "" : "text-muted-foreground"}`}>
+                            {isRTL ? mod.labelAr : mod.labelEn}
+                          </p>
+                        </div>
+                        {isActive && <Check className="h-4 w-4 text-primary shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {editingPlan && (
+                  <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+                    {isRTL
+                      ? "⚡ عند الحفظ سيتم تحديث الوحدات المتاحة تلقائياً لجميع الشركات المشتركة بهذه الباقة"
+                      : "⚡ On save, allowed modules will be automatically synced to all companies subscribed to this plan"}
+                  </p>
+                )}
               </TabsContent>
 
               {/* Features Tab */}
