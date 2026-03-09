@@ -157,7 +157,6 @@ const ProductCard = () => {
     return match ? match[0] : null;
   };
 
-  const inboundTypes = ["purchase", "adjustment_in", "transfer_in", "manufacturing_in"];
 
   const handlePrint = () => {
     const container = document.getElementById("product-card-root");
