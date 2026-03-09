@@ -683,11 +683,13 @@ const Payroll = () => {
           </div>
           <div className="flex items-center gap-2">
             {statusBadge(viewRun.status)}
-            {isDraft && (
+            {canApprove && (
               <>
-                <Button variant="outline" size="sm" onClick={() => openEdit(viewRun)}>
-                  <Pencil className="h-4 w-4 me-1" />{isRTL ? "تعديل" : "Edit"}
-                </Button>
+                {isDraft && (
+                  <Button variant="outline" size="sm" onClick={() => openEdit(viewRun)}>
+                    <Pencil className="h-4 w-4 me-1" />{isRTL ? "تعديل" : "Edit"}
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   className="bg-emerald-600 hover:bg-emerald-700"
@@ -699,9 +701,11 @@ const Payroll = () => {
                     ? `اعتماد${someSelected ? ` (${selectedItems.size})` : ""}`
                     : `Approve${someSelected ? ` (${selectedItems.size})` : ""}`}
                 </Button>
-                <Button variant="destructive" size="sm" onClick={() => setConfirmAction({ type: "cancel", run: viewRun })}>
-                  <XCircle className="h-4 w-4 me-1" />{isRTL ? "إلغاء" : "Cancel"}
-                </Button>
+                {isDraft && (
+                  <Button variant="destructive" size="sm" onClick={() => setConfirmAction({ type: "cancel", run: viewRun })}>
+                    <XCircle className="h-4 w-4 me-1" />{isRTL ? "إلغاء" : "Cancel"}
+                  </Button>
+                )}
               </>
             )}
           </div>
