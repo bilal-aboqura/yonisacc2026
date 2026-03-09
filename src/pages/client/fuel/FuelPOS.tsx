@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Fuel, Loader2, ShoppingCart, Wallet, Banknote, Check, User } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Fuel, Loader2, ShoppingCart, Wallet, Banknote, Check, User, Car, Container } from "lucide-react";
 
 const fuelLabels: Record<string, { ar: string; en: string }> = {
   gasoline_91: { ar: "بنزين 91", en: "Gasoline 91" },
@@ -25,6 +26,7 @@ const FuelPOS = () => {
   const queryClient = useQueryClient();
 
   const [customerId, setCustomerId] = useState("");
+  const [selectedPlate, setSelectedPlate] = useState("");
   const [pumpId, setPumpId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"wallet" | "cash">("cash");
@@ -42,7 +44,7 @@ const FuelPOS = () => {
   const { data: pumps } = useQuery({
     queryKey: ["fuel-pumps-active", companyId],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("fuel_pumps").select("id, pump_number, fuel_type, tank_id").eq("company_id", companyId).eq("status", "active").order("pump_number");
+      const { data } = await (supabase as any).from("fuel_pumps").select("id, pump_number, fuel_type, tank_id, fuel_tanks(tank_name, current_qty, capacity)").eq("company_id", companyId).eq("status", "active").order("pump_number");
       return data || [];
     },
     enabled: !!companyId,
@@ -66,12 +68,30 @@ const FuelPOS = () => {
   const totalAmount = qty * unitPrice;
 
   const selectedCustomer = customers?.find((c: any) => c.id === customerId);
-  const walletBalance = selectedCustomer?.fuel_wallets?.[0]?.balance || 0;
-  const walletId = selectedCustomer?.fuel_wallets?.[0]?.id;
+  // fuel_wallets is returned as a single object (not array) from .select join
+  const walletData = selectedCustomer?.fuel_wallets;
+  const walletBalance = Array.isArray(walletData) ? (walletData[0]?.balance || 0) : (walletData?.balance || 0);
+  const walletId = Array.isArray(walletData) ? (walletData[0]?.id) : (walletData?.id);
+
+  // Parse plates from comma-separated string
+  const customerPlates = selectedCustomer?.plate_number
+    ? selectedCustomer.plate_number.split(/[،,]/).map((p: string) => p.trim()).filter(Boolean)
+    : [];
+
+  // Tank info for selected pump
+  const tankInfo = selectedPump?.fuel_tanks;
+  const tankPct = tankInfo && tankInfo.capacity > 0 ? (tankInfo.current_qty / tankInfo.capacity) * 100 : 0;
+
+  const handleCustomerChange = (val: string) => {
+    setCustomerId(val);
+    setSelectedPlate("");
+    setPaymentMethod("cash");
+  };
 
   const saleMutation = useMutation({
     mutationFn: async () => {
       if (!pumpId || qty <= 0) throw new Error(isRTL ? "اختر المضخة وأدخل الكمية" : "Select pump and enter quantity");
+      if (customerId && customerPlates.length > 0 && !selectedPlate) throw new Error(isRTL ? "اختر رقم اللوحة" : "Select plate number");
       if (paymentMethod === "wallet" && !customerId) throw new Error(isRTL ? "اختر العميل للدفع من المحفظة" : "Select customer for wallet payment");
       if (paymentMethod === "wallet" && walletBalance < totalAmount) throw new Error(isRTL ? "رصيد المحفظة غير كافٍ" : "Insufficient wallet balance");
 
@@ -87,7 +107,7 @@ const FuelPOS = () => {
           company_id: companyId!,
           entry_number: entryNumber,
           entry_date: new Date().toISOString().split("T")[0],
-          description: `${isRTL ? "بيع وقود" : "Fuel sale"} - ${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]} - ${qty}L`,
+          description: `${isRTL ? "بيع وقود" : "Fuel sale"} - ${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]} - ${qty}L${selectedPlate ? ` - ${selectedPlate}` : ""}`,
           status: "posted",
           is_auto: true,
         }).select("id").single();
@@ -119,7 +139,7 @@ const FuelPOS = () => {
         await (supabase as any).from("fuel_wallets").update({ balance: newBal }).eq("id", walletId);
         await (supabase as any).from("fuel_wallet_transactions").insert({
           company_id: companyId, wallet_id: walletId, type: "deduction",
-          amount: totalAmount, balance_after: newBal, notes: `${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]} - ${qty}L`,
+          amount: totalAmount, balance_after: newBal, notes: `${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]} - ${qty}L${selectedPlate ? ` - ${selectedPlate}` : ""}`,
         });
 
         await (supabase as any).from("fuel_message_logs").insert({
@@ -134,7 +154,7 @@ const FuelPOS = () => {
       setSaleComplete(true);
       setTimeout(() => {
         setSaleComplete(false);
-        setCustomerId(""); setPumpId(""); setQuantity("");
+        setCustomerId(""); setPumpId(""); setQuantity(""); setSelectedPlate("");
       }, 3000);
       toast({ title: isRTL ? "تمت عملية البيع" : "Sale Complete" });
     },
@@ -150,7 +170,7 @@ const FuelPOS = () => {
               <Check className="h-8 w-8 text-emerald-600" />
             </div>
             <h2 className="text-xl font-bold">{isRTL ? "تمت العملية بنجاح!" : "Sale Complete!"}</h2>
-            <p className="text-muted-foreground">{totalAmount.toLocaleString()} SAR</p>
+            <p className="text-muted-foreground">{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR</p>
           </CardContent>
         </Card>
       </div>
@@ -171,7 +191,7 @@ const FuelPOS = () => {
               {/* Customer */}
               <div className="space-y-2">
                 <Label>{isRTL ? "العميل (اختياري للدفع النقدي)" : "Customer (optional for cash)"}</Label>
-                <Select value={customerId} onValueChange={setCustomerId}>
+                <Select value={customerId} onValueChange={handleCustomerChange}>
                   <SelectTrigger><SelectValue placeholder={isRTL ? "اختر العميل" : "Select Customer"} /></SelectTrigger>
                   <SelectContent>
                     {(customers || []).map((c: any) => (
@@ -191,10 +211,10 @@ const FuelPOS = () => {
                       </div>
                       <div className="flex-1">
                         <p className="font-medium">{selectedCustomer.name}</p>
-                        {selectedCustomer.plate_number && (
+                        {customerPlates.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {selectedCustomer.plate_number.split("،").map((p: string, i: number) => p.trim() && (
-                              <Badge key={i} variant="secondary" className="text-xs">{p.trim()}</Badge>
+                            {customerPlates.map((p: string, i: number) => (
+                              <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>
                             ))}
                           </div>
                         )}
@@ -213,6 +233,24 @@ const FuelPOS = () => {
                 </Card>
               )}
 
+              {/* Plate Selection */}
+              {customerId && customerPlates.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <Car className="h-4 w-4" />
+                    {isRTL ? "رقم اللوحة *" : "Plate Number *"}
+                  </Label>
+                  <Select value={selectedPlate} onValueChange={setSelectedPlate}>
+                    <SelectTrigger><SelectValue placeholder={isRTL ? "اختر اللوحة" : "Select Plate"} /></SelectTrigger>
+                    <SelectContent>
+                      {customerPlates.map((plate: string, i: number) => (
+                        <SelectItem key={i} value={plate}>{plate}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Pump */}
               <div className="space-y-2">
                 <Label>{isRTL ? "المضخة *" : "Pump *"}</Label>
@@ -227,6 +265,26 @@ const FuelPOS = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Pump/Tank Info Card */}
+              {selectedPump && tankInfo && (
+                <Card className="border-accent/30 bg-accent/5">
+                  <CardContent className="py-3 px-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                        <Container className="h-5 w-5 text-accent-foreground" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="font-medium text-sm">{tankInfo.tank_name}</p>
+                        <Progress value={tankPct} className={`h-2 ${tankPct < 20 ? "[&>div]:bg-destructive" : ""}`} />
+                        <p className={`text-xs ${tankPct < 20 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                          {Number(tankInfo.current_qty).toLocaleString()} / {Number(tankInfo.capacity).toLocaleString()} L ({tankPct.toFixed(0)}%)
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {fuelType && (
                 <div className="flex items-center gap-2">
@@ -275,6 +333,12 @@ const FuelPOS = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {selectedPlate && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{isRTL ? "اللوحة" : "Plate"}</span>
+                  <Badge variant="outline">{selectedPlate}</Badge>
+                </div>
+              )}
               {fuelType && (
                 <>
                   <div className="flex justify-between text-sm">
@@ -298,7 +362,7 @@ const FuelPOS = () => {
 
               <Button
                 onClick={() => saleMutation.mutate()}
-                disabled={!pumpId || qty <= 0 || saleMutation.isPending}
+                disabled={!pumpId || qty <= 0 || saleMutation.isPending || (customerId && customerPlates.length > 0 && !selectedPlate)}
                 className="w-full h-14 text-lg gap-2"
                 size="lg"
               >
