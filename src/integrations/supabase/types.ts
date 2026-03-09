@@ -4168,7 +4168,7 @@ export type Database = {
           is_active: boolean | null
           second_offense: string
           sort_order: number | null
-          third_offense: string
+          third_offense: string | null
           updated_at: string | null
           violation_code: string
           violation_name: string
@@ -4185,7 +4185,7 @@ export type Database = {
           is_active?: boolean | null
           second_offense?: string
           sort_order?: number | null
-          third_offense?: string
+          third_offense?: string | null
           updated_at?: string | null
           violation_code: string
           violation_name: string
@@ -4202,7 +4202,7 @@ export type Database = {
           is_active?: boolean | null
           second_offense?: string
           sort_order?: number | null
-          third_offense?: string
+          third_offense?: string | null
           updated_at?: string | null
           violation_code?: string
           violation_name?: string
