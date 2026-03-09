@@ -135,7 +135,6 @@ const Activities = () => {
                 const name = isRTL ? vertical.name_ar : vertical.name_en;
                 const description = isRTL ? vertical.description_ar : vertical.description_en;
                 const features = isRTL ? vertical.features_ar : vertical.features_en;
-                const price = isYearly ? vertical.yearly_price : vertical.monthly_price;
 
                 const monthlyPrice = vertical.monthly_price;
                 const yearlyPrice = vertical.yearly_price;
