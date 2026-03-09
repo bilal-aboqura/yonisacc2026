@@ -6,13 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Navbar } from "@/components/landing/Navbar";
 import { NizamFooter } from "@/components/landing/NizamFooter";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Check, ArrowRight, ArrowLeft } from "lucide-react";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import {
-  Gem, Car, ShoppingCart, Scissors, Sparkles,
+  Check, ArrowRight, ArrowLeft, Sparkles,
+  Gem, Car, ShoppingCart, Scissors,
   Stethoscope, Pill, Building2, UtensilsCrossed, Store
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -79,24 +77,36 @@ const Activities = () => {
           </p>
 
           {/* Monthly/Yearly Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-12">
-            <span className={cn(
-              "font-medium transition-colors",
-              !isYearly ? "text-foreground" : "text-muted-foreground"
-            )}>
-              {isRTL ? "شهري" : "Monthly"}
-            </span>
-            <Switch checked={isYearly} onCheckedChange={setIsYearly} />
-            <span className={cn(
-              "font-medium transition-colors",
-              isYearly ? "text-foreground" : "text-muted-foreground"
-            )}>
-              {isRTL ? "سنوي" : "Yearly"}
-            </span>
+          <div className="flex items-center justify-center gap-3 mb-12">
+            <div className="inline-flex items-center rounded-full border border-border bg-muted/50 p-1">
+              <button
+                type="button"
+                onClick={() => setIsYearly(false)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-medium transition-all",
+                  !isYearly ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {!isYearly && <Check className="w-3.5 h-3.5" />}
+                {isRTL ? "شهري" : "Monthly"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsYearly(true)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-medium transition-all",
+                  isYearly ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {isYearly && <Check className="w-3.5 h-3.5" />}
+                {isRTL ? "سنوي" : "Yearly"}
+              </button>
+            </div>
             {isYearly && (
-              <Badge className="bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/10">
-                {isRTL ? "وفر 20%" : "Save 20%"}
-              </Badge>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                <Sparkles className="w-3 h-3" />
+                {isRTL ? "وفّر 20%" : "Save 20%"}
+              </span>
             )}
           </div>
         </div>
@@ -124,7 +134,11 @@ const Activities = () => {
                 const name = isRTL ? vertical.name_ar : vertical.name_en;
                 const description = isRTL ? vertical.description_ar : vertical.description_en;
                 const features = isRTL ? vertical.features_ar : vertical.features_en;
-                const price = isYearly ? vertical.yearly_price : vertical.monthly_price;
+
+                const monthlyPrice = vertical.monthly_price;
+                const yearlyPrice = vertical.yearly_price;
+                const originalYearly = monthlyPrice * 12;
+                const savings = originalYearly - yearlyPrice;
 
                 return (
                   <Card 
@@ -146,12 +160,32 @@ const Activities = () => {
                     <CardContent className="pb-4">
                       {/* Price */}
                       <div className="mb-6">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-3xl font-bold">{price}</span>
-                          <span className="text-muted-foreground text-sm">
-                            {isRTL ? "ر.س" : "SAR"} / {isYearly ? (isRTL ? "سنة" : "year") : (isRTL ? "شهر" : "month")}
-                          </span>
-                        </div>
+                        {isYearly ? (
+                          <div className="space-y-1">
+                            <span className="text-sm text-muted-foreground line-through">
+                              {originalYearly} {isRTL ? "ر.س" : "SAR"}
+                            </span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-3xl font-bold">{yearlyPrice}</span>
+                              <span className="text-muted-foreground text-sm">
+                                {isRTL ? "ر.س" : "SAR"} / {isRTL ? "سنة" : "year"}
+                              </span>
+                            </div>
+                            {savings > 0 && (
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                                <Sparkles className="w-3 h-3" />
+                                {isRTL ? `توفير ${savings} ر.س` : `Save ${savings} SAR`}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-bold">{monthlyPrice}</span>
+                            <span className="text-muted-foreground text-sm">
+                              {isRTL ? "ر.س" : "SAR"} / {isRTL ? "شهر" : "month"}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Features */}

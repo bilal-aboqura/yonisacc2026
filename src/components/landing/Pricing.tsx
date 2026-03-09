@@ -106,25 +106,30 @@ export const Pricing = () => {
   // Billing toggle component
   const BillingToggle = () => (
     <div className="flex items-center justify-center gap-3 mb-10">
-      <span className={cn("text-sm font-medium transition-colors", !isYearly ? "text-foreground" : "text-muted-foreground")}>
-        {isRTL ? "شهري" : "Monthly"}
-      </span>
-      <button
-        type="button"
-        onClick={() => setIsYearly(!isYearly)}
-        className={cn(
-          "relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          isYearly ? "bg-primary" : "bg-muted"
-        )}
-      >
-        <span className={cn(
-          "inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform",
-          isYearly ? (isRTL ? "translate-x-1.5" : "translate-x-7.5") : (isRTL ? "translate-x-7.5" : "translate-x-1.5")
-        )} />
-      </button>
-      <span className={cn("text-sm font-medium transition-colors", isYearly ? "text-foreground" : "text-muted-foreground")}>
-        {isRTL ? "سنوي" : "Yearly"}
-      </span>
+      <div className="inline-flex items-center rounded-full border border-border bg-muted/50 p-1">
+        <button
+          type="button"
+          onClick={() => setIsYearly(false)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-medium transition-all",
+            !isYearly ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {!isYearly && <Check className="w-3.5 h-3.5" />}
+          {isRTL ? "شهري" : "Monthly"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsYearly(true)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-medium transition-all",
+            isYearly ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {isYearly && <Check className="w-3.5 h-3.5" />}
+          {isRTL ? "سنوي" : "Yearly"}
+        </button>
+      </div>
       {isYearly && (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
           <Sparkles className="w-3 h-3" />
