@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip } from "recharts";
 
+const inboundTypes = ["purchase", "adjustment_in", "transfer_in", "manufacturing_in"];
+
 const ProductCard = () => {
   const { id } = useParams<{ id: string }>();
   const { isRTL } = useLanguage();
