@@ -142,7 +142,8 @@ const OwnerPlans = () => {
       const planData: any = {
         name_ar: data.name_ar, name_en: data.name_en,
         description_ar: data.description_ar || null, description_en: data.description_en || null,
-        price: data.price, duration_months: data.duration_months,
+        price: data.price, yearly_price: data.yearly_price, yearly_discount_months: data.yearly_discount_months,
+        duration_months: data.duration_months,
         max_invoices: data.max_invoices ? parseInt(data.max_invoices) : null,
         max_entries: data.max_entries ? parseInt(data.max_entries) : null,
         max_users: data.max_users ? parseInt(data.max_users) : null,
