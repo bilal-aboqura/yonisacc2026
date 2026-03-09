@@ -5,12 +5,13 @@ import { useCompanyId } from "@/hooks/useCompanyId";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Loader2, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const CreateFuelCustomer = () => {
   const { isRTL } = useLanguage();
@@ -22,8 +23,9 @@ const CreateFuelCustomer = () => {
 
   const [form, setForm] = useState({
     name: "", name_en: "", mobile: "", customer_type: "individual",
-    plate_number: "", credit_limit: "0", notes: "",
+    credit_limit: "0", notes: "",
   });
+  const [plates, setPlates] = useState<string[]>([""]);
 
   const { data: existing } = useQuery({
     queryKey: ["fuel-customer", id],
@@ -39,22 +41,24 @@ const CreateFuelCustomer = () => {
       setForm({
         name: existing.name || "", name_en: existing.name_en || "",
         mobile: existing.mobile || "", customer_type: existing.customer_type || "individual",
-        plate_number: existing.plate_number || "", credit_limit: String(existing.credit_limit || 0),
+        credit_limit: String(existing.credit_limit || 0),
         notes: existing.notes || "",
       });
+      const existingPlates = existing.plate_number ? existing.plate_number.split("،").map((p: string) => p.trim()).filter(Boolean) : [""];
+      setPlates(existingPlates.length ? existingPlates : [""]);
     }
   }, [existing]);
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const payload = { ...form, credit_limit: parseFloat(form.credit_limit) || 0, company_id: companyId };
+      const plateNumber = plates.filter(p => p.trim()).join("، ");
+      const payload = { ...form, plate_number: plateNumber, credit_limit: parseFloat(form.credit_limit) || 0, company_id: companyId };
       if (isEdit) {
         const { error } = await (supabase as any).from("fuel_customers").update(payload).eq("id", id);
         if (error) throw error;
       } else {
         const { data: customer, error } = await (supabase as any).from("fuel_customers").insert(payload).select("id").single();
         if (error) throw error;
-        // Create wallet for new customer
         await (supabase as any).from("fuel_wallets").insert({ customer_id: customer.id, company_id: companyId, balance: 0 });
       }
     },
@@ -67,6 +71,10 @@ const CreateFuelCustomer = () => {
   });
 
   const update = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
+
+  const addPlate = () => setPlates(prev => [...prev, ""]);
+  const removePlate = (index: number) => setPlates(prev => prev.filter((_, i) => i !== index));
+  const updatePlate = (index: number, value: string) => setPlates(prev => prev.map((p, i) => i === index ? value : p));
 
   return (
     <div className="space-y-6">
@@ -106,11 +114,36 @@ const CreateFuelCustomer = () => {
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{isRTL ? "رقم اللوحة" : "Plate Number"}</Label>
-              <Input dir="ltr" value={form.plate_number} onChange={e => update("plate_number", e.target.value)} />
+
+          {/* Multiple Plate Numbers */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>{isRTL ? "أرقام اللوحات" : "Plate Numbers"}</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addPlate} className="gap-1">
+                <Plus className="h-3 w-3" />
+                {isRTL ? "إضافة لوحة" : "Add Plate"}
+              </Button>
             </div>
+            <div className="space-y-2">
+              {plates.map((plate, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    dir="ltr"
+                    value={plate}
+                    onChange={e => updatePlate(index, e.target.value)}
+                    placeholder={isRTL ? `لوحة ${index + 1}` : `Plate ${index + 1}`}
+                  />
+                  {plates.length > 1 && (
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removePlate(index)} className="shrink-0">
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{isRTL ? "حد الائتمان" : "Credit Limit"}</Label>
               <Input type="number" dir="ltr" value={form.credit_limit} onChange={e => update("credit_limit", e.target.value)} />
