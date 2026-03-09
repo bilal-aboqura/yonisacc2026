@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -64,6 +65,7 @@ const CreateProduct = () => {
   const [description, setDescription] = useState("");
   const [isService, setIsService] = useState(false);
   const [isActive, setIsActive] = useState(true);
+  const [taxInclusive, setTaxInclusive] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   // Auto parts fields
@@ -205,6 +207,7 @@ const CreateProduct = () => {
         description: description.trim() || null,
         is_service: isService,
         is_active: isActive,
+        tax_inclusive: taxInclusive,
         image_url: imageUrl,
         oem_number: isAutoPartsCompany ? (oemNumber.trim() || null) : null,
         shelf_location: isAutoPartsCompany ? (shelfLocation.trim() || null) : null,
@@ -521,6 +524,22 @@ const CreateProduct = () => {
                 onChange={(e) => setTaxRate(Number(e.target.value))}
               />
             </div>
+          </div>
+
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+            <Checkbox
+              id="tax_inclusive"
+              checked={taxInclusive}
+              onCheckedChange={(checked) => setTaxInclusive(checked === true)}
+            />
+            <label htmlFor="tax_inclusive" className="text-sm font-medium cursor-pointer select-none">
+              السعر شامل الضريبة
+            </label>
+            {taxInclusive && salePrice > 0 && taxRate > 0 && (
+              <span className="text-xs text-muted-foreground mr-auto">
+                السعر بدون ضريبة: {(salePrice / (1 + taxRate / 100)).toFixed(2)} ر.س
+              </span>
+            )}
           </div>
 
           {salePrice > 0 && purchasePrice > 0 && (
