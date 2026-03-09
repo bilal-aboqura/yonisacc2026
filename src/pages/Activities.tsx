@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Navbar } from "@/components/landing/Navbar";
 import { NizamFooter } from "@/components/landing/NizamFooter";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import {
   Check, ArrowRight, ArrowLeft, Sparkles,
