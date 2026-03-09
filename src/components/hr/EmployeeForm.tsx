@@ -320,6 +320,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
                 </p>
               </div>
             </div>
+          </div>
 
           {/* Documents & IDs */}
           <div>
