@@ -65,6 +65,7 @@ const CreateProduct = () => {
   const [description, setDescription] = useState("");
   const [isService, setIsService] = useState(false);
   const [isActive, setIsActive] = useState(true);
+  const [taxInclusive, setTaxInclusive] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   // Auto parts fields
