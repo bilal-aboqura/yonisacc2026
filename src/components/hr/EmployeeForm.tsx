@@ -82,6 +82,7 @@ const defaultForm = {
   job_title: "", job_title_en: "",
   basic_salary: 0, housing_allowance: 0, transport_allowance: 0, other_allowance: 0,
   bank_name: "", bank_iban: "", department_id: "", status: "active",
+  account_id: "",
   gender: "", nationality: "",
   health_card_number: "", health_card_expiry: "",
   passport_number: "", passport_expiry: "",
