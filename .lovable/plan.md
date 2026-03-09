@@ -1,85 +1,68 @@
 
-# خطة نظام نقاط البيع الشامل (POS)
 
-## الحالة: ✅ تم تنفيذ المراحل 1-10
+## شاشة تجهيز سياسات الإجازات + تقرير أرصدة الإجازات
 
-### ما تم إنجازه:
+### الفكرة
+إنشاء نظام متكامل لإدارة سياسات الإجازات يتضمن: تعريف أنواع الإجازات واستحقاقاتها، تطبيقها تلقائياً على الموظفين، وتقرير احترافي لأرصدة الإجازات.
 
-**المرحلة 1: قاعدة البيانات** ✅
-- 11 جدول جديد: pos_terminals, pos_sessions, pos_transactions, pos_transaction_items, pos_tables, pos_reservations, pos_menus, pos_menu_items, pos_promotions, pos_sales_targets, pos_activity_log
-- RLS على جميع الجداول
-- صلاحيات RBAC: 8 feature flags جديدة
+### 1. جدول جديد: `hr_leave_policies`
+```sql
+CREATE TABLE hr_leave_policies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) NOT NULL,
+  leave_type TEXT NOT NULL,          -- annual, sick, unpaid, emergency
+  name TEXT NOT NULL,                -- اسم السياسة بالعربي
+  name_en TEXT,                      -- اسم السياسة بالإنجليزي
+  annual_entitlement NUMERIC DEFAULT 0, -- الاستحقاق السنوي بالأيام
+  carry_over_allowed BOOLEAN DEFAULT false, -- السماح بترحيل الرصيد
+  max_carry_over_days NUMERIC DEFAULT 0,    -- أقصى أيام ترحيل
+  is_paid BOOLEAN DEFAULT true,      -- مدفوعة أم لا
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
 
-**المرحلة 2: شاشة POS الرئيسية** ✅
-- شاشة ملء الشاشة مع شبكة منتجات + سلة مشتريات
-- بحث سريع وباركود + تصفية بالتصنيف
-- نوع الطلب (محلي/سفري/توصيل)
-- أزرار دفع متعددة (نقد/بطاقة)
-- اختصارات لوحة مفاتيح (F1/F2/F5/Esc)
-- فتح/إغلاق الصندوق مع المبلغ
+### 2. جدول جديد: `hr_leave_balances`
+```sql
+CREATE TABLE hr_leave_balances (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES companies(id) NOT NULL,
+  employee_id UUID REFERENCES hr_employees(id) NOT NULL,
+  leave_type TEXT NOT NULL,
+  year INTEGER NOT NULL,
+  entitlement NUMERIC DEFAULT 0,   -- الاستحقاق
+  used NUMERIC DEFAULT 0,          -- المستخدم
+  carried_over NUMERIC DEFAULT 0,  -- المرحّل
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(company_id, employee_id, leave_type, year)
+);
+```
 
-**المرحلة 3: إدارة الطاولات** ✅
-- عرض تفاعلي مع ألوان حسب الحالة
-- CRUD للطاولات مع الشكل والسعة والطابق
+### 3. شاشة جديدة: `LeaveSettings.tsx`
+- تعريف سياسات الإجازات (سنوية: 21/30 يوم، مرضية: عدد أيام، اضطرارية، بدون راتب)
+- لكل نوع: الاستحقاق السنوي، السماح بالترحيل، أقصى ترحيل، مدفوعة/غير مدفوعة
+- زر "تطبيق على جميع الموظفين" لإنشاء أرصدة لكل موظف نشط بناءً على السياسات المعرّفة
 
-**المرحلة 4: الإعدادات والمنيو** ✅
-- إدارة نقاط البيع (Terminals) مع النوع (تجزئة/مطعم)
-- إدارة المنيو المخصص لكل فرع
+### 4. تحديث `Leaves.tsx`
+- عند الموافقة على إجازة، يتم خصم الأيام من `hr_leave_balances` للموظف المعني
+- عرض الرصيد المتبقي بجانب نوع الإجازة في نموذج الطلب
 
-**المرحلة 5: العروض والأهداف** ✅
-- إنشاء عروض (نسبة/مبلغ/اشتر X واحصل Y)
-- أهداف مبيعات مع شريط التقدم
+### 5. تقرير أرصدة الإجازات في `HRReports.tsx`
+- تبويب جديد "أرصدة الإجازات" يعرض:
+  - فلتر حسب الموظف أو جميع الموظفين + فلتر حسب السنة
+  - جدول: الموظف | نوع الإجازة | الاستحقاق | المستخدم | المرحّل | المتبقي
+  - دعم التصدير Excel + طباعة
+- إمكانية عرض تفاصيل موظف واحد أو كل الموظفين مع إجمالي لكل نوع
 
-**المرحلة 6: التقارير** ✅
-- بطاقات ملخص (إجمالي/عدد/متوسط)
-- رسم بياني يومي + توزيع طرق الدفع
-- جدول العمليات
+### 6. إضافة رابط في القائمة الجانبية
+- إضافة "تجهيز الإجازات" / "Leave Settings" في قسم الموارد البشرية بـ `ClientLayout.tsx`
+- إضافة Route جديد في `App.tsx`
 
-**المرحلة 7-8: التكامل** ✅
-- 7 مسارات POS في App.tsx
-- قسم "نقاط البيع" في القائمة الجانبية
-- سجل نشاط المستخدمين
+### الملفات المتأثرة
+- **جديد**: `src/pages/client/hr/LeaveSettings.tsx` — شاشة تجهيز السياسات
+- **تعديل**: `src/pages/client/hr/Leaves.tsx` — خصم الرصيد عند الموافقة
+- **تعديل**: `src/pages/client/hr/HRReports.tsx` — تبويب تقرير الأرصدة
+- **تعديل**: `src/components/client/ClientLayout.tsx` — رابط القائمة
+- **تعديل**: `src/App.tsx` — Route جديد
+- **Migration**: جدولان جديدان + RLS policies
 
-**المرحلة 9: الكوبونات والعروض المتقدمة** ✅
-- جدول pos_coupons مع RLS
-- شاشة إدارة كوبونات (CRUD) مع inline form
-- تطبيق الكوبون في شاشة البيع مع التحقق (الفترة، الاستخدام، الحد الأدنى)
-- ربط العروض بمنتجات محددة عبر جدول pos_promotion_products
-- تحويل شاشة العروض من Dialog إلى inline مع product checkboxes
-
-**المرحلة 10: مستخدمو POS وتقارير الصندوق** ✅
-- جدول pos_users مع أدوار (كاشير/مدير فرع) وربط بالفرع
-- شاشة إدارة مستخدمي POS (إنشاء بإيميل+باسورد+فرع+دور)
-- تقرير إغلاق الصندوق (مبيعات/مرتجعات/خصومات/طرق دفع/رصيد إغلاق) مع طباعة
-- شاشة سجل المستخدمين (تاريخ الجلسات مع فلترة)
-- أعمدة تقارير في pos_sessions (total_sales, total_returns, payment_summary, etc.)
-
----
-
-# نظام إدارة السنوات المالية الشامل
-
-## الحالة: ✅ تم تنفيذ المراحل 1-4
-
-### ما تم إنجازه:
-
-**المرحلة 1: البنية التحتية** ✅
-- تطوير جدول fiscal_periods بأعمدة: status, locked_by, locked_at, closing_journal_entry_id, opening_journal_entry_id, created_by, reopen_reason, reopened_at, reopened_by
-- جدول fiscal_year_audit_log مع RLS
-- جداول stock_count_sessions و stock_count_lines مع RLS
-- 3 RPCs: pre_closing_validation, close_fiscal_year, reopen_fiscal_year
-
-**المرحلة 2: واجهة إدارة السنوات المالية** ✅
-- صفحة FiscalYearManagement.tsx مع 5 تبويبات (السنوات | التحقق | الجرد | التقرير | التدقيق)
-- بطاقات إحصائية (مفتوحة/مقفلة مؤقتاً/مقفلة نهائياً)
-- إجراءات: قفل مؤقت ← إقفال نهائي ← إعادة فتح
-
-**المرحلة 3: RPCs للعمليات الذرية** ✅
-- pre_closing_validation: فحص قيود مسودة، فواتير مسودة، حركات معلقة، فترات HR
-- close_fiscal_year: إقفال حسابات الدخل → أرباح مبقاة → أرصدة افتتاحية
-- reopen_fiscal_year: حذف قيود الإقفال وإعادة الفتح مع سجل تدقيق
-
-**المرحلة 4: التقارير وسجل التدقيق** ✅
-- PreClosingValidation.tsx: فحوصات تلقائية مع ✅/❌
-- StockCountSession.tsx: جلسات جرد مع إدخال كميات فعلية
-- YearClosingReport.tsx: ملخص الدخل + الميزانية العمومية
-- FiscalAuditLog.tsx: سجل كل العمليات على السنوات المالية
