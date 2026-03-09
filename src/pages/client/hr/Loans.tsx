@@ -74,7 +74,19 @@ const Loans = () => {
         .eq("company_id", companyId).maybeSingle();
 
       const prefix = settings?.journal_prefix || "JE-";
-      const nextNum = settings?.next_journal_number || 1;
+      let nextNum = settings?.next_journal_number || 1;
+
+      // Fetch max existing entry number to avoid duplicates
+      const { data: allEntries } = await (supabase as any)
+        .from("journal_entries").select("entry_number")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false }).limit(1);
+
+      if (allEntries && allEntries.length > 0) {
+        const lastNum = parseInt(allEntries[0].entry_number.replace(/[^0-9]/g, ""), 10) || 0;
+        if (lastNum >= nextNum) nextNum = lastNum + 1;
+      }
+
       const entryNumber = `${prefix}${String(nextNum).padStart(6, "0")}`;
 
       const desc = isRTL ? `سلفة موظف: ${emp?.name || ""}` : `Employee advance: ${emp?.name_en || emp?.name || ""}`;
@@ -84,7 +96,7 @@ const Loans = () => {
           company_id: companyId, entry_number: entryNumber,
           entry_date: form.start_date, description: desc,
           total_debit: form.amount, total_credit: form.amount,
-          status: "posted", source: "hr_loan", created_by: null,
+          status: "posted", reference_type: "hr_loan", is_auto: true, created_by: null,
         }).select().single();
 
       if (jeError) throw jeError;
