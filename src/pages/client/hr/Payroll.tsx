@@ -144,9 +144,9 @@ const Payroll = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Approve (Post) payroll — journal entry date = last day of payroll month
+  // Approve (Post) payroll — supports partial approval (selected employees)
   const approvePayrollMutation = useMutation({
-    mutationFn: async (run: any) => {
+    mutationFn: async ({ run, selectedIds }: { run: any; selectedIds: string[] }) => {
       // Fetch HR account settings
       const { data: hrSettings } = await (supabase as any)
         .from("hr_account_settings").select("*")
@@ -160,6 +160,23 @@ const Payroll = () => {
         throw new Error(isRTL ? "يجب تجهيز حساب البنك أو الصندوق في إعدادات الموارد البشرية" : "Bank or cash account must be configured in HR settings");
       }
 
+      // Fetch all items for the run
+      const { data: allItems } = await (supabase as any)
+        .from("hr_payroll_items").select("*, hr_employees(account_id)")
+        .eq("payroll_run_id", run.id);
+
+      // Filter to selected items only
+      const items = (allItems || []).filter((i: any) => selectedIds.includes(i.id));
+      if (items.length === 0) throw new Error(isRTL ? "لم يتم تحديد أي موظف" : "No employees selected");
+
+      // Calculate totals from selected items
+      const totalBasic = items.reduce((s: number, i: any) => s + (i.basic_salary || 0), 0);
+      const totalHousing = items.reduce((s: number, i: any) => s + (i.housing_allowance || 0), 0);
+      const totalTransport = items.reduce((s: number, i: any) => s + (i.transport_allowance || 0), 0);
+      const totalOther = items.reduce((s: number, i: any) => s + (i.other_allowance || 0), 0);
+      const totalNet = items.reduce((s: number, i: any) => s + (i.net_salary || 0), 0);
+      const totalGross = totalBasic + totalHousing + totalTransport + totalOther;
+
       const { data: settings } = await (supabase as any)
         .from("company_settings").select("journal_prefix, next_journal_number")
         .eq("company_id", companyId).maybeSingle();
@@ -168,9 +185,11 @@ const Payroll = () => {
       const nextNum = settings?.next_journal_number || 1;
       const entryNumber = `${prefix}${String(nextNum).padStart(6, "0")}`;
 
-      const totalGross = run.total_basic + run.total_allowances;
       const entryDate = getLastDayOfMonth(run.period_year, run.period_month);
-      const desc = isRTL ? `رواتب شهر ${run.period_month}/${run.period_year}` : `Payroll ${run.period_month}/${run.period_year}`;
+      const isPartial = items.length < (allItems || []).length;
+      const desc = isRTL
+        ? `رواتب شهر ${run.period_month}/${run.period_year}${isPartial ? ` (${items.length} موظف)` : ""}`
+        : `Payroll ${run.period_month}/${run.period_year}${isPartial ? ` (${items.length} employees)` : ""}`;
 
       const { data: je, error: jeError } = await (supabase as any)
         .from("journal_entries").insert({
@@ -181,17 +200,10 @@ const Payroll = () => {
         }).select().single();
       if (jeError) throw jeError;
 
-      // Build debit lines for salary & allowances from HR settings
+      // Build journal entry lines
       const jeLines: any[] = [];
 
-      // Basic salary debit
-      jeLines.push({ entry_id: je.id, account_id: hrSettings.salary_expense_account_id, debit: run.total_basic, credit: 0, description: isRTL ? "الراتب الأساسي" : "Basic salary" });
-
-      // Allowance debits (use specific account if configured, otherwise lump into salary)
-      const { data: items } = await (supabase as any).from("hr_payroll_items").select("*, hr_employees(account_id)").eq("payroll_run_id", run.id);
-      const totalHousing = (items || []).reduce((s: number, i: any) => s + (i.housing_allowance || 0), 0);
-      const totalTransport = (items || []).reduce((s: number, i: any) => s + (i.transport_allowance || 0), 0);
-      const totalOther = (items || []).reduce((s: number, i: any) => s + (i.other_allowance || 0), 0);
+      jeLines.push({ entry_id: je.id, account_id: hrSettings.salary_expense_account_id, debit: totalBasic, credit: 0, description: isRTL ? "الراتب الأساسي" : "Basic salary" });
 
       if (totalHousing > 0) {
         jeLines.push({ entry_id: je.id, account_id: hrSettings.housing_expense_account_id || hrSettings.salary_expense_account_id, debit: totalHousing, credit: 0, description: isRTL ? "بدل سكن" : "Housing allowance" });
@@ -204,28 +216,28 @@ const Payroll = () => {
       }
 
       // Credit: cash/bank for net salary
-      jeLines.push({ entry_id: je.id, account_id: paymentAccountId, debit: 0, credit: run.total_net, description: desc });
+      jeLines.push({ entry_id: je.id, account_id: paymentAccountId, debit: 0, credit: totalNet, description: desc });
 
-      // Credit: loan deductions per employee (using each employee's linked account)
-      let totalLoanDeductions = 0;
-      for (const item of (items || [])) {
+      // Credit: loan deductions per employee
+      for (const item of items) {
         if (item.loan_deduction > 0) {
           const empAccountId = item.hr_employees?.account_id;
           if (empAccountId) {
             jeLines.push({ entry_id: je.id, account_id: empAccountId, debit: 0, credit: item.loan_deduction, description: isRTL ? "استقطاع سلفة" : "Loan deduction" });
-            totalLoanDeductions += item.loan_deduction;
           }
         }
       }
 
-      // If there are absence deductions not covered by loan deductions, they reduce net (already in cash credit)
-
       await (supabase as any).from("journal_entry_lines").insert(jeLines);
       await (supabase as any).from("company_settings").update({ next_journal_number: nextNum + 1 }).eq("company_id", companyId);
-      await (supabase as any).from("hr_payroll_runs").update({ status: "posted", journal_entry_id: je.id }).eq("id", run.id);
 
-      // Update loans
-      for (const item of (items || [])) {
+      // If all employees selected, mark entire run as posted
+      if (!isPartial) {
+        await (supabase as any).from("hr_payroll_runs").update({ status: "posted", journal_entry_id: je.id }).eq("id", run.id);
+      }
+
+      // Update loans for selected employees
+      for (const item of items) {
         if (item.loan_deduction > 0) {
           const { data: empLoans } = await (supabase as any).from("hr_loans")
             .select("id, remaining, total_paid").eq("employee_id", item.employee_id).eq("status", "active");
@@ -243,7 +255,9 @@ const Payroll = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-payroll-runs"] });
       queryClient.invalidateQueries({ queryKey: ["hr-loans"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-payroll-items"] });
       setConfirmAction(null);
+      setSelectedItems(new Set());
       toast.success(isRTL ? "تم اعتماد المسير وإنشاء القيد المحاسبي" : "Payroll approved & journal entry created");
     },
     onError: (e: any) => { setConfirmAction(null); toast.error(e.message); },
