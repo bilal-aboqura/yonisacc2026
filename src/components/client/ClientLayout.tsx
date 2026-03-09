@@ -73,6 +73,8 @@ import {
   Truck,
   MinusCircle,
   Link2,
+  Fuel,
+  Gauge,
   type LucideIcon,
 } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
