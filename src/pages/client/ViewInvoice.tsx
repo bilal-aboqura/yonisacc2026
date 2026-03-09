@@ -417,61 +417,95 @@ const ViewInvoice = () => {
           marginBottom: "14px",
         }}>
           {/* Seller / Supplier */}
-          <div style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "4px",
-            overflow: "hidden",
-          }}>
-            <div style={{
-              background: pc,
-              color: "white",
-              padding: "6px 10px",
-              fontSize: "11px",
-              fontWeight: 700,
-            }}>
-              {isRTL ? config.sellerAr : config.sellerEn}
-            </div>
-            <div style={{ padding: "8px 10px", fontSize: "11px", lineHeight: "1.7" }}>
-              <div><strong>{company.name}</strong></div>
-              {company.tax_number && <div style={{ color: "#666" }}>الرقم الضريبي: {company.tax_number}</div>}
-              {company.address && <div style={{ color: "#666" }}>{company.address}</div>}
-              {company.phone && <div style={{ color: "#666" }}>هاتف: {company.phone}</div>}
-            </div>
-          </div>
+          {(() => {
+            const isPurchase = invoice.type === "purchase";
+            const sellerData = isPurchase ? invoice.contact : company;
+            const buyerData = isPurchase ? company : invoice.contact;
+            return (
+              <>
+                <div style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "4px",
+                  overflow: "hidden",
+                }}>
+                  <div style={{
+                    background: pc,
+                    color: "white",
+                    padding: "6px 10px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                  }}>
+                    {isRTL ? config.sellerAr : config.sellerEn}
+                  </div>
+                  <div style={{ padding: "8px 10px", fontSize: "11px", lineHeight: "1.7" }}>
+                    {isPurchase && sellerData ? (
+                      <>
+                        <div><strong>{sellerData.name}</strong></div>
+                        {sellerData.tax_number && <div style={{ color: "#666" }}>الرقم الضريبي: {sellerData.tax_number}</div>}
+                        {sellerData.address && (
+                          <div style={{ color: "#666" }}>
+                            {sellerData.address}{(sellerData as any).city ? `، ${(sellerData as any).city}` : ""}
+                          </div>
+                        )}
+                        {sellerData.phone && <div style={{ color: "#666" }}>هاتف: {sellerData.phone}</div>}
+                        {(sellerData as any).email && <div style={{ color: "#666" }}>{(sellerData as any).email}</div>}
+                      </>
+                    ) : !isPurchase ? (
+                      <>
+                        <div><strong>{company.name}</strong></div>
+                        {company.tax_number && <div style={{ color: "#666" }}>الرقم الضريبي: {company.tax_number}</div>}
+                        {company.address && <div style={{ color: "#666" }}>{company.address}</div>}
+                        {company.phone && <div style={{ color: "#666" }}>هاتف: {company.phone}</div>}
+                      </>
+                    ) : (
+                      <div style={{ color: "#999" }}>{isRTL ? "مورد غير محدد" : "Unknown Vendor"}</div>
+                    )}
+                  </div>
+                </div>
 
-          {/* Buyer / Customer */}
-          <div style={{
-            border: "1px solid #e5e7eb",
-            borderRadius: "4px",
-            overflow: "hidden",
-          }}>
-            <div style={{
-              background: pc,
-              color: "white",
-              padding: "6px 10px",
-              fontSize: "11px",
-              fontWeight: 700,
-            }}>
-              {isRTL ? config.buyerAr : config.buyerEn}
-            </div>
-            <div style={{ padding: "8px 10px", fontSize: "11px", lineHeight: "1.7" }}>
-              {invoice.contact ? (
-                <>
-                  <div><strong>{invoice.contact.name}</strong></div>
-                  {invoice.contact.tax_number && <div style={{ color: "#666" }}>الرقم الضريبي: {invoice.contact.tax_number}</div>}
-                  {invoice.contact.address && (
-                    <div style={{ color: "#666" }}>
-                      {invoice.contact.address}{invoice.contact.city ? `، ${invoice.contact.city}` : ""}
-                    </div>
-                  )}
-                  {invoice.contact.phone && <div style={{ color: "#666" }}>هاتف: {invoice.contact.phone}</div>}
-                  {invoice.contact.email && <div style={{ color: "#666" }}>{invoice.contact.email}</div>}
-                </>
-              ) : (
-                <div style={{ color: "#999" }}>{isRTL ? "عميل نقدي" : "Cash Customer"}</div>
-              )}
-            </div>
-          </div>
+                {/* Buyer / Customer */}
+                <div style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "4px",
+                  overflow: "hidden",
+                }}>
+                  <div style={{
+                    background: pc,
+                    color: "white",
+                    padding: "6px 10px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                  }}>
+                    {isRTL ? config.buyerAr : config.buyerEn}
+                  </div>
+                  <div style={{ padding: "8px 10px", fontSize: "11px", lineHeight: "1.7" }}>
+                    {isPurchase ? (
+                      <>
+                        <div><strong>{company.name}</strong></div>
+                        {company.tax_number && <div style={{ color: "#666" }}>الرقم الضريبي: {company.tax_number}</div>}
+                        {company.address && <div style={{ color: "#666" }}>{company.address}</div>}
+                        {company.phone && <div style={{ color: "#666" }}>هاتف: {company.phone}</div>}
+                      </>
+                    ) : buyerData ? (
+                      <>
+                        <div><strong>{(buyerData as any).name}</strong></div>
+                        {(buyerData as any).tax_number && <div style={{ color: "#666" }}>الرقم الضريبي: {(buyerData as any).tax_number}</div>}
+                        {(buyerData as any).address && (
+                          <div style={{ color: "#666" }}>
+                            {(buyerData as any).address}{(buyerData as any).city ? `، ${(buyerData as any).city}` : ""}
+                          </div>
+                        )}
+                        {(buyerData as any).phone && <div style={{ color: "#666" }}>هاتف: {(buyerData as any).phone}</div>}
+                        {(buyerData as any).email && <div style={{ color: "#666" }}>{(buyerData as any).email}</div>}
+                      </>
+                    ) : (
+                      <div style={{ color: "#999" }}>{isRTL ? "عميل نقدي" : "Cash Customer"}</div>
+                    )}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* ─── Items Table ─── */}
