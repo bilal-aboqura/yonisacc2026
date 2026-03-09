@@ -263,8 +263,13 @@ const CashFlow = () => {
             <span className="text-muted-foreground">{isRTL ? "إلى" : "to"}</span>
             <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-40" />
           </div>
-          <Button variant="outline" size="icon"><Printer className="h-4 w-4" /></Button>
-          <Button variant="outline" size="icon"><Download className="h-4 w-4" /></Button>
+          <ReportActions
+            printSettings={printSettings}
+            company={companyInfo}
+            document={printDoc}
+            isRTL={isRTL}
+            onExportExcel={handleExportExcel}
+          />
         </div>
       </div>
 
