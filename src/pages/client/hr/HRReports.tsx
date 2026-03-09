@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { BarChart3, Users, Calendar as CalendarIcon, DollarSign, Loader2, Banknote, FileDown, Printer, Search, CalendarDays, CheckCircle, XCircle, Clock, Palmtree } from "lucide-react";
+import { BarChart3, Users, Calendar as CalendarIcon, DollarSign, Loader2, Banknote, FileDown, Printer, Search, CalendarDays, CheckCircle, XCircle, Clock, Palmtree, AlertTriangle } from "lucide-react";
 import { exportToExcel } from "@/lib/exportUtils";
 
 /* ─── Shared Filter Bar ─── */
@@ -101,7 +101,7 @@ const matchEmployee = (emp: any, term: string, isRTL: boolean) => {
   if (!term) return true;
   const t = term.toLowerCase();
   const name = (isRTL ? emp.name : (emp.name_en || emp.name)) || "";
-  return name.toLowerCase().includes(t) || (emp.employee_number || "").toLowerCase().includes(t) || (emp.identity_number || "").toLowerCase().includes(t);
+  return name.toLowerCase().includes(t) || (emp.employee_number || "").toLowerCase().includes(t) || (emp.national_id || "").toLowerCase().includes(t);
 };
 
 /* ─── Main Component ─── */
@@ -130,6 +130,10 @@ const HRReports = () => {
   const [loanSearch, setLoanSearch] = useState("");
   const [loanDateFrom, setLoanDateFrom] = useState<Date | undefined>();
   const [loanDateTo, setLoanDateTo] = useState<Date | undefined>();
+
+  const [dedSearch, setDedSearch] = useState("");
+  const [dedDateFrom, setDedDateFrom] = useState<Date | undefined>();
+  const [dedDateTo, setDedDateTo] = useState<Date | undefined>();
 
   const attStart = attDateFrom ? format(attDateFrom, "yyyy-MM-dd") : `${today.getFullYear()}-01-01`;
   const attEnd = attDateTo ? format(attDateTo, "yyyy-MM-dd") : format(today, "yyyy-MM-dd");
@@ -164,7 +168,7 @@ const HRReports = () => {
     queryKey: ["hr-report-leaves", companyId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("hr_leaves").select("*, hr_employees(name, name_en, employee_number, identity_number)")
+        .from("hr_leaves").select("*, hr_employees(name, name_en, employee_number, national_id)")
         .eq("company_id", companyId).eq("status", "approved")
         .order("start_date", { ascending: false });
       if (error) throw error;
@@ -190,7 +194,7 @@ const HRReports = () => {
     queryKey: ["hr-report-loans", companyId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("hr_loans").select("*, hr_employees(name, name_en, employee_number, identity_number)")
+        .from("hr_loans").select("*, hr_employees(name, name_en, employee_number, national_id)")
         .eq("company_id", companyId).order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -202,10 +206,24 @@ const HRReports = () => {
     queryKey: ["hr-leave-balances-report", companyId, balanceYear, balanceEmployee],
     queryFn: async () => {
       let query = (supabase as any).from("hr_leave_balances")
-        .select("*, hr_employees(name, name_en, employee_number, identity_number)")
+        .select("*, hr_employees(name, name_en, employee_number, national_id)")
         .eq("company_id", companyId).eq("year", balanceYear);
       if (balanceEmployee !== "all") query = query.eq("employee_id", balanceEmployee);
       const { data, error } = await query.order("leave_type");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  const { data: deductions = [], isLoading: loadingDeductions } = useQuery({
+    queryKey: ["hr-report-deductions", companyId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("hr_deductions")
+        .select("*, hr_employees(name, name_en, employee_number, national_id), hr_penalty_rules(violation_name, violation_name_en)")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -354,6 +372,27 @@ const HRReports = () => {
     remaining: filteredLoans.reduce((s: number, l: any) => s + (l.remaining || 0), 0),
   }), [filteredLoans]);
 
+  /* ─── DEDUCTIONS ─── */
+  const filteredDeductions = useMemo(() => {
+    return deductions.filter((d: any) => {
+      if (dedSearch) {
+        const emp = d.hr_employees;
+        if (emp && !matchEmployee(emp, dedSearch, isRTL)) return false;
+        if (!emp) return false;
+      }
+      if (dedDateFrom && d.created_at < format(dedDateFrom, "yyyy-MM-dd")) return false;
+      if (dedDateTo && d.created_at > format(dedDateTo, "yyyy-MM-dd") + "T23:59:59") return false;
+      return true;
+    });
+  }, [deductions, dedSearch, dedDateFrom, dedDateTo, isRTL]);
+
+  const dedTotals = useMemo(() => ({
+    totalAmount: filteredDeductions.reduce((s: number, d: any) => s + (d.amount || 0), 0),
+    applied: filteredDeductions.filter((d: any) => d.status === "applied").length,
+    pending: filteredDeductions.filter((d: any) => d.status === "pending").length,
+    count: filteredDeductions.length,
+  }), [filteredDeductions]);
+
   /* ─── Export Handlers ─── */
   const handleExportAttendance = () => {
     exportToExcel({
@@ -460,6 +499,30 @@ const HRReports = () => {
     });
   };
 
+  const handleExportDeductions = () => {
+    exportToExcel({
+      filename: `deductions-report`,
+      title: isRTL ? "تقرير الخصومات والجزاءات" : "Deductions Report",
+      columns: [
+        { header: isRTL ? "الموظف" : "Employee", key: "name", format: "text" },
+        { header: isRTL ? "نوع المخالفة" : "Violation", key: "violation", format: "text" },
+        { header: isRTL ? "المبلغ" : "Amount", key: "amount", format: "number" },
+        { header: isRTL ? "الشهر المستهدف" : "Target Month", key: "month", format: "text" },
+        { header: isRTL ? "الحالة" : "Status", key: "status", format: "text" },
+        { header: isRTL ? "ملاحظات" : "Notes", key: "notes", format: "text" },
+      ],
+      rows: filteredDeductions.map((d: any) => ({
+        name: empName(d.hr_employees),
+        violation: d.hr_penalty_rules ? (isRTL ? d.hr_penalty_rules.violation_name : (d.hr_penalty_rules.violation_name_en || d.hr_penalty_rules.violation_name)) : (d.reason || "—"),
+        amount: d.amount || 0,
+        month: d.target_month || "—",
+        status: d.status === "applied" ? (isRTL ? "مطبق" : "Applied") : (isRTL ? "معلق" : "Pending"),
+        notes: d.notes || "",
+      })),
+      totals: { name: isRTL ? "الإجمالي" : "Total", violation: "", amount: dedTotals.totalAmount, month: "", status: "", notes: "" },
+    });
+  };
+
   const handlePrint = () => window.print();
 
   const rowClass = (idx: number) => `transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`;
@@ -470,12 +533,13 @@ const HRReports = () => {
       <h1 className="text-2xl font-bold">{isRTL ? "تقارير الموارد البشرية" : "HR Reports"}</h1>
 
       <Tabs defaultValue="attendance" className="space-y-4">
-        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
-          <TabsTrigger value="attendance" className="flex items-center gap-1"><Users className="h-4 w-4" />{isRTL ? "الحضور" : "Attendance"}</TabsTrigger>
-          <TabsTrigger value="leaves" className="flex items-center gap-1"><CalendarIcon className="h-4 w-4" />{isRTL ? "الإجازات" : "Leaves"}</TabsTrigger>
-          <TabsTrigger value="balances" className="flex items-center gap-1"><CalendarIcon className="h-4 w-4" />{isRTL ? "الأرصدة" : "Balances"}</TabsTrigger>
-          <TabsTrigger value="payroll" className="flex items-center gap-1"><DollarSign className="h-4 w-4" />{isRTL ? "الرواتب" : "Payroll"}</TabsTrigger>
-          <TabsTrigger value="loans" className="flex items-center gap-1"><Banknote className="h-4 w-4" />{isRTL ? "السلف" : "Advances"}</TabsTrigger>
+        <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full max-w-4xl">
+          <TabsTrigger value="attendance" className="flex items-center gap-1 text-xs"><Users className="h-3.5 w-3.5" />{isRTL ? "الحضور" : "Attendance"}</TabsTrigger>
+          <TabsTrigger value="leaves" className="flex items-center gap-1 text-xs"><CalendarIcon className="h-3.5 w-3.5" />{isRTL ? "الإجازات" : "Leaves"}</TabsTrigger>
+          <TabsTrigger value="balances" className="flex items-center gap-1 text-xs"><Palmtree className="h-3.5 w-3.5" />{isRTL ? "الأرصدة" : "Balances"}</TabsTrigger>
+          <TabsTrigger value="payroll" className="flex items-center gap-1 text-xs"><DollarSign className="h-3.5 w-3.5" />{isRTL ? "الرواتب" : "Payroll"}</TabsTrigger>
+          <TabsTrigger value="loans" className="flex items-center gap-1 text-xs"><Banknote className="h-3.5 w-3.5" />{isRTL ? "السلف" : "Advances"}</TabsTrigger>
+          <TabsTrigger value="deductions" className="flex items-center gap-1 text-xs"><AlertTriangle className="h-3.5 w-3.5" />{isRTL ? "الخصومات" : "Deductions"}</TabsTrigger>
         </TabsList>
 
         {/* ═══ ATTENDANCE ═══ */}
@@ -722,6 +786,63 @@ const HRReports = () => {
                     </TableRow>
                   ))}
                   {filteredLoans.length === 0 && (
+                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{isRTL ? "لا توجد بيانات" : "No data"}</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              </div>}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ═══ DEDUCTIONS ═══ */}
+        <TabsContent value="deductions">
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5" />{isRTL ? "تقرير الخصومات والجزاءات" : "Deductions Report"}</CardTitle></CardHeader>
+            <CardContent>
+              <FilterBar isRTL={isRTL} searchTerm={dedSearch} onSearchChange={setDedSearch} dateFrom={dedDateFrom} dateTo={dedDateTo} onDateFromChange={setDedDateFrom} onDateToChange={setDedDateTo} onExport={handleExportDeductions} onPrint={handlePrint} exportDisabled={filteredDeductions.length === 0} />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <SummaryCard label={isRTL ? "عدد الخصومات" : "Total Count"} value={dedTotals.count} icon={AlertTriangle} color="bg-primary/10 text-primary" />
+                <SummaryCard label={isRTL ? "إجمالي المبالغ" : "Total Amount"} value={dedTotals.totalAmount.toLocaleString()} icon={DollarSign} color="bg-destructive/10 text-destructive" />
+                <SummaryCard label={isRTL ? "مطبقة" : "Applied"} value={dedTotals.applied} icon={CheckCircle} color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" />
+                <SummaryCard label={isRTL ? "معلقة" : "Pending"} value={dedTotals.pending} icon={Clock} color="bg-amber-500/10 text-amber-600 dark:text-amber-400" />
+              </div>
+              {loadingDeductions ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> :
+              <div className="overflow-auto rounded-lg border border-border/50">
+              <Table>
+                <TableHeader><TableRow className="bg-muted/60 dark:bg-muted/30">
+                  <TableHead className="border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "نوع المخالفة" : "Violation"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "المبلغ" : "Amount"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الشهر المستهدف" : "Target Month"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "الحالة" : "Status"}</TableHead>
+                  <TableHead className="border-b border-border/50">{isRTL ? "ملاحظات" : "Notes"}</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {filteredDeductions.map((d: any, idx: number) => (
+                    <TableRow key={d.id} className={rowClass(idx)}>
+                      <TableCell className={cn("font-medium", cellBorder)}>{empName(d.hr_employees)}</TableCell>
+                      <TableCell className={cellBorder}>
+                        {d.hr_penalty_rules
+                          ? (isRTL ? d.hr_penalty_rules.violation_name : (d.hr_penalty_rules.violation_name_en || d.hr_penalty_rules.violation_name))
+                          : (d.reason || "—")}
+                      </TableCell>
+                      <TableCell className={cn("text-destructive tabular-nums font-semibold", cellBorder)}>{(d.amount || 0).toLocaleString()}</TableCell>
+                      <TableCell className={cellBorder}>{d.target_month || "—"}</TableCell>
+                      <TableCell className={cellBorder}>
+                        <span className={cn(
+                          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+                          d.status === "applied"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                        )}>
+                          {d.status === "applied" ? (isRTL ? "مطبق" : "Applied") : (isRTL ? "معلق" : "Pending")}
+                        </span>
+                      </TableCell>
+                      <TableCell className={cn("text-muted-foreground text-xs max-w-[200px] truncate", cellBorder)}>{d.notes || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                  {filteredDeductions.length === 0 && (
                     <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{isRTL ? "لا توجد بيانات" : "No data"}</TableCell></TableRow>
                   )}
                 </TableBody>
