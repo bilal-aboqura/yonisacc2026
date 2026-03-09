@@ -319,11 +319,14 @@ const ProductCard = () => {
               <TableHead className="text-center">{isRTL ? "وارد" : "In"}</TableHead>
               <TableHead className="text-center">{isRTL ? "صادر" : "Out"}</TableHead>
               <TableHead className="text-center">{isRTL ? "الرصيد" : "Balance"}</TableHead>
+              <TableHead className="text-end">{isRTL ? "تكلفة الوحدة" : "Unit Cost"}</TableHead>
+              <TableHead className="text-end">{isRTL ? "متوسط التكلفة" : "Avg Cost"}</TableHead>
+              <TableHead className="text-end">{isRTL ? "القيمة" : "Value"}</TableHead>
               <TableHead>{isRTL ? "المرجع" : "Reference"}</TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {ledger.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{isRTL ? "لا توجد حركات" : "No movements"}</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">{isRTL ? "لا توجد حركات" : "No movements"}</TableCell></TableRow>
               ) : ledger.map((m: any) => {
                 const qty = m.quantity || 0;
                 const isInbound = inboundTypes.includes(m.movement_type);
@@ -338,6 +341,9 @@ const ProductCard = () => {
                     <TableCell className="text-center tabular-nums text-emerald-600 dark:text-emerald-400 font-medium">{qty > 0 ? qty : ""}</TableCell>
                     <TableCell className="text-center tabular-nums text-destructive font-medium">{qty < 0 ? Math.abs(qty) : ""}</TableCell>
                     <TableCell className="text-center tabular-nums font-semibold">{m.balance}</TableCell>
+                    <TableCell className="text-end tabular-nums text-muted-foreground">{m.unit_cost ? Number(m.unit_cost).toFixed(2) : "-"}</TableCell>
+                    <TableCell className="text-end tabular-nums text-muted-foreground">{m.avgCostAtMove.toFixed(2)}</TableCell>
+                    <TableCell className="text-end tabular-nums font-medium">{m.lineValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-xs">
                       {m.reference_type ? (
                         <div className="space-y-0.5">
