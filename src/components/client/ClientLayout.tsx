@@ -151,6 +151,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: Award, label: "نهاية الخدمة", labelEn: "End of Service", path: "/client/hr/end-of-service", permission: "VIEW_HR" },
       { icon: BarChart3, label: "التقارير", labelEn: "Reports", path: "/client/hr/reports", permission: "VIEW_HR" },
       { icon: Shield, label: "تجهيز الخصومات", labelEn: "Penalty Rules", path: "/client/hr/penalty-rules", permission: "VIEW_HR" },
+      { icon: Calendar, label: "تجهيز الإجازات", labelEn: "Leave Settings", path: "/client/hr/leave-settings", permission: "VIEW_HR" },
       { icon: Settings, label: "تجهيز الحسابات", labelEn: "Account Setup", path: "/client/hr/setup", permission: "VIEW_HR" },
     ]
   },
