@@ -133,6 +133,7 @@ const OperationsLog = () => {
 
     return (
       <TooltipProvider delayDuration={200}>
+        <div className="border border-border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
