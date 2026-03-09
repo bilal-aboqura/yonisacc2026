@@ -84,18 +84,21 @@ const FuelPOS = () => {
       const creditAccount = settings?.fuel_sales_revenue_account_id;
 
       if (debitAccount && creditAccount && totalAmount > 0) {
-        const { data: je, error: jeErr } = await supabase.from("journal_entries").insert({
+        const entryNumber = `FS-${Date.now()}`;
+        const { data: je, error: jeErr } = await (supabase as any).from("journal_entries").insert({
           company_id: companyId!,
-          date: new Date().toISOString().split("T")[0],
+          entry_number: entryNumber,
+          entry_date: new Date().toISOString().split("T")[0],
           description: `${isRTL ? "بيع وقود" : "Fuel sale"} - ${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]} - ${qty}L`,
-          is_posted: true, source: "fuel_sale",
+          status: "posted",
+          is_auto: true,
         }).select("id").single();
         if (jeErr) throw jeErr;
         journalEntryId = je.id;
 
-        await supabase.from("journal_entry_lines").insert([
-          { journal_entry_id: je.id, account_id: debitAccount, debit: totalAmount, credit: 0, company_id: companyId },
-          { journal_entry_id: je.id, account_id: creditAccount, debit: 0, credit: totalAmount, company_id: companyId },
+        await (supabase as any).from("journal_entry_lines").insert([
+          { entry_id: je.id, account_id: debitAccount, debit: totalAmount, credit: 0 },
+          { entry_id: je.id, account_id: creditAccount, debit: 0, credit: totalAmount },
         ]);
       }
 

@@ -41,19 +41,21 @@ const RechargeWallet = () => {
       // Create journal entry if accounts are configured
       let journalEntryId = null;
       if (settings?.fuel_cash_account_id && settings?.fuel_wallet_liability_account_id) {
-        const { data: je, error: jeError } = await supabase.from("journal_entries").insert({
+        const entryNumber = `FW-${Date.now()}`;
+        const { data: je, error: jeError } = await (supabase as any).from("journal_entries").insert({
           company_id: companyId!,
-          date: new Date().toISOString().split("T")[0],
+          entry_number: entryNumber,
+          entry_date: new Date().toISOString().split("T")[0],
           description: `${isRTL ? "شحن محفظة وقود - " : "Fuel wallet recharge - "}${wallet?.fuel_customers?.name}`,
-          is_posted: true,
-          source: "fuel_wallet",
+          status: "posted",
+          is_auto: true,
         }).select("id").single();
         if (jeError) throw jeError;
         journalEntryId = je.id;
 
-        await supabase.from("journal_entry_lines").insert([
-          { journal_entry_id: je.id, account_id: settings.fuel_cash_account_id, debit: amt, credit: 0, company_id: companyId },
-          { journal_entry_id: je.id, account_id: settings.fuel_wallet_liability_account_id, debit: 0, credit: amt, company_id: companyId },
+        await (supabase as any).from("journal_entry_lines").insert([
+          { entry_id: je.id, account_id: settings.fuel_cash_account_id, debit: amt, credit: 0 },
+          { entry_id: je.id, account_id: settings.fuel_wallet_liability_account_id, debit: 0, credit: amt },
         ]);
       }
 

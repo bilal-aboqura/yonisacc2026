@@ -44,19 +44,21 @@ const RefillTank = () => {
 
       let journalEntryId = null;
       if (settings?.fuel_inventory_account_id && settings?.fuel_supplier_payable_account_id && totalCost > 0) {
-        const { data: je, error: jeError } = await supabase.from("journal_entries").insert({
+        const entryNumber = `FTR-${Date.now()}`;
+        const { data: je, error: jeError } = await (supabase as any).from("journal_entries").insert({
           company_id: companyId!,
-          date: new Date().toISOString().split("T")[0],
+          entry_number: entryNumber,
+          entry_date: new Date().toISOString().split("T")[0],
           description: `${isRTL ? "تعبئة خزان وقود - " : "Fuel tank refill - "}${tank?.tank_name}`,
-          is_posted: true,
-          source: "fuel_tank_refill",
+          status: "posted",
+          is_auto: true,
         }).select("id").single();
         if (jeError) throw jeError;
         journalEntryId = je.id;
 
-        await supabase.from("journal_entry_lines").insert([
-          { journal_entry_id: je.id, account_id: settings.fuel_inventory_account_id, debit: totalCost, credit: 0, company_id: companyId },
-          { journal_entry_id: je.id, account_id: settings.fuel_supplier_payable_account_id, debit: 0, credit: totalCost, company_id: companyId },
+        await (supabase as any).from("journal_entry_lines").insert([
+          { entry_id: je.id, account_id: settings.fuel_inventory_account_id, debit: totalCost, credit: 0 },
+          { entry_id: je.id, account_id: settings.fuel_supplier_payable_account_id, debit: 0, credit: totalCost },
         ]);
       }
 
