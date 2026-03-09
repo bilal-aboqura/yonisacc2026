@@ -153,6 +153,23 @@ import DeliveryReports from "./pages/client/delivery/DeliveryReports";
 import DeliveryAccountSetup from "./pages/client/delivery/DeliveryAccountSetup";
 import DriverSettlement from "./pages/client/delivery/DriverSettlement";
 
+// Fuel Station
+import FuelDashboard from "./pages/client/fuel/FuelDashboard";
+import FuelCustomers from "./pages/client/fuel/FuelCustomers";
+import CreateFuelCustomer from "./pages/client/fuel/CreateFuelCustomer";
+import FuelCustomerStatement from "./pages/client/fuel/FuelCustomerStatement";
+import FuelWallets from "./pages/client/fuel/FuelWallets";
+import RechargeWallet from "./pages/client/fuel/RechargeWallet";
+import FuelPumps from "./pages/client/fuel/FuelPumps";
+import CreateFuelPump from "./pages/client/fuel/CreateFuelPump";
+import FuelTanks from "./pages/client/fuel/FuelTanks";
+import CreateFuelTank from "./pages/client/fuel/CreateFuelTank";
+import RefillTank from "./pages/client/fuel/RefillTank";
+import FuelPOS from "./pages/client/fuel/FuelPOS";
+import FuelPrices from "./pages/client/fuel/FuelPrices";
+import FuelReports from "./pages/client/fuel/FuelReports";
+import FuelAccountSetup from "./pages/client/fuel/FuelAccountSetup";
+
 // Gold & Jewelry
 import GoldItems from "./pages/client/gold/GoldItems";
 import CreateGoldItem from "./pages/client/gold/CreateGoldItem";
@@ -396,6 +413,24 @@ const App = () => (
               <Route path="delivery/reports" element={<DeliveryReports />} />
               <Route path="delivery/setup" element={<DeliveryAccountSetup />} />
               <Route path="delivery/settlement" element={<DriverSettlement />} />
+
+              {/* Fuel Station */}
+              <Route path="fuel" element={<FuelDashboard />} />
+              <Route path="fuel/customers" element={<FuelCustomers />} />
+              <Route path="fuel/customers/new" element={<CreateFuelCustomer />} />
+              <Route path="fuel/customers/:id/edit" element={<CreateFuelCustomer />} />
+              <Route path="fuel/customers/:id/statement" element={<FuelCustomerStatement />} />
+              <Route path="fuel/wallets" element={<FuelWallets />} />
+              <Route path="fuel/wallets/:id/recharge" element={<RechargeWallet />} />
+              <Route path="fuel/pumps" element={<FuelPumps />} />
+              <Route path="fuel/pumps/new" element={<CreateFuelPump />} />
+              <Route path="fuel/tanks" element={<FuelTanks />} />
+              <Route path="fuel/tanks/new" element={<CreateFuelTank />} />
+              <Route path="fuel/tanks/:id/refill" element={<RefillTank />} />
+              <Route path="fuel/pos" element={<FuelPOS />} />
+              <Route path="fuel/prices" element={<FuelPrices />} />
+              <Route path="fuel/reports" element={<FuelReports />} />
+              <Route path="fuel/setup" element={<FuelAccountSetup />} />
 
               {/* Gold & Jewelry */}
               <Route path="gold/items" element={<GoldItems />} />
