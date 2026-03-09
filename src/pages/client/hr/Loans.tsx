@@ -134,14 +134,30 @@ const Loans = () => {
 
   // --- Delete ---
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("hr_loans").delete().eq("id", id).eq("company_id", companyId);
+    mutationFn: async (loan: any) => {
+      if ((loan.total_paid || 0) > 0) {
+        throw new Error(isRTL ? "لا يمكن حذف السلفة لوجود خصومات مرتبطة بمسيرات رواتب" : "Cannot delete loan: payroll deductions already exist");
+      }
+      // Find and delete the associated journal entry
+      const { data: je } = await (supabase as any)
+        .from("journal_entries").select("id")
+        .eq("company_id", companyId)
+        .eq("reference_type", "hr_loan")
+        .eq("is_auto", true)
+        .eq("entry_date", loan.start_date)
+        .eq("total_debit", loan.amount)
+        .maybeSingle();
+      if (je) {
+        await (supabase as any).from("journal_entry_lines").delete().eq("entry_id", je.id);
+        await (supabase as any).from("journal_entries").delete().eq("id", je.id);
+      }
+      const { error } = await (supabase as any).from("hr_loans").delete().eq("id", loan.id).eq("company_id", companyId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-loans"] });
       setDeleteLoan(null);
-      toast.success(isRTL ? "تم حذف السلفة" : "Loan deleted");
+      toast.success(isRTL ? "تم حذف السلفة والقيد المرتبط" : "Loan and related journal entry deleted");
     },
     onError: (e: any) => toast.error(e.message),
   });
