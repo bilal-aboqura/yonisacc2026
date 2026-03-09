@@ -105,6 +105,39 @@ const ProductCard = () => {
     return isRTL ? labels[type]?.ar || type : labels[type]?.en || type;
   };
 
+  const referenceLabel = (type: string) => {
+    const labels: Record<string, Record<string, string>> = {
+      purchase_invoice: { ar: "فاتورة مشتريات", en: "Purchase Invoice" },
+      sales_invoice: { ar: "فاتورة مبيعات", en: "Sales Invoice" },
+      adjustment: { ar: "تسوية مخزون", en: "Stock Adjustment" },
+      consumption: { ar: "استهلاك داخلي", en: "Internal Consumption" },
+      transfer: { ar: "تحويل مخزني", en: "Stock Transfer" },
+      sales_return: { ar: "مرتجع مبيعات", en: "Sales Return" },
+      purchase_return: { ar: "مرتجع مشتريات", en: "Purchase Return" },
+      manufacturing: { ar: "تصنيع", en: "Manufacturing" },
+      opening_balance: { ar: "رصيد افتتاحي", en: "Opening Balance" },
+    };
+    return isRTL ? labels[type]?.ar || type : labels[type]?.en || type;
+  };
+
+  const getDocumentLink = (refType: string, refId: string | null) => {
+    if (!refId) return null;
+    const routes: Record<string, string> = {
+      purchase_invoice: `/client/purchases/view/${refId}`,
+      sales_invoice: `/client/sales/view/${refId}`,
+      adjustment: `/client/inventory/adjustments`,
+      consumption: `/client/inventory/consumptions`,
+      transfer: `/client/inventory/transfers`,
+    };
+    return routes[refType] || null;
+  };
+
+  const extractDocNumber = (notes: string | null) => {
+    if (!notes) return null;
+    const match = notes.match(/(PUR|INV|SAL|ADJ|TRF|CON|MFG|RET)[-]?\d+/i);
+    return match ? match[0] : null;
+  };
+
   const inboundTypes = ["purchase", "adjustment_in", "transfer_in", "manufacturing_in"];
 
   const handlePrint = () => {
