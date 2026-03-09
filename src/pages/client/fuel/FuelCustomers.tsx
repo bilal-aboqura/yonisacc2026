@@ -3,10 +3,9 @@ import { useCompanyId } from "@/hooks/useCompanyId";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
-import { Users, Plus } from "lucide-react";
+import { Users } from "lucide-react";
 
 const FuelCustomers = () => {
   const { isRTL } = useLanguage();
@@ -48,10 +47,29 @@ const FuelCustomers = () => {
         { key: "type", header: isRTL ? "النوع" : "Type", render: (c: any) => (
           <Badge variant="outline">{isRTL ? typeLabels[c.customer_type]?.ar : typeLabels[c.customer_type]?.en}</Badge>
         )},
-        { key: "plate", header: isRTL ? "رقم اللوحة" : "Plate", render: (c: any) => c.plate_number || "—" },
-        { key: "wallet", header: isRTL ? "رصيد المحفظة" : "Wallet Balance", numeric: true, render: (c: any) => {
+        { key: "plate", header: isRTL ? "أرقام اللوحات" : "Plates", render: (c: any) => {
+          if (!c.plate_number) return "—";
+          const plates = c.plate_number.split("،").map((p: string) => p.trim()).filter(Boolean);
+          return (
+            <div className="flex flex-wrap gap-1">
+              {plates.map((plate: string, i: number) => (
+                <Badge key={i} variant="secondary" className="text-xs">{plate}</Badge>
+              ))}
+            </div>
+          );
+        }},
+        { key: "balance", header: isRTL ? "رصيد العميل" : "Balance", numeric: true, render: (c: any) => (
+          <span className={Number(c.balance) > 0 ? "text-emerald-600 font-medium" : ""}>
+            {Number(c.balance || 0).toLocaleString()} SAR
+          </span>
+        )},
+        { key: "wallet", header: isRTL ? "رصيد المحفظة" : "Wallet", numeric: true, render: (c: any) => {
           const w = c.fuel_wallets?.[0];
-          return w ? `${Number(w.balance).toLocaleString()} SAR` : "—";
+          return w ? (
+            <span className={Number(w.balance) > 0 ? "text-blue-600 font-medium" : ""}>
+              {Number(w.balance).toLocaleString()} SAR
+            </span>
+          ) : "—";
         }},
         { key: "status", header: isRTL ? "الحالة" : "Status", render: (c: any) => (
           <StatusBadge config={{ label: c.status === "active" ? (isRTL ? "نشط" : "Active") : (isRTL ? "موقوف" : "Suspended"), variant: c.status === "active" ? "success" : "destructive" }} />
@@ -60,7 +78,7 @@ const FuelCustomers = () => {
       data={customers || []}
       isLoading={isLoading}
       rowKey={(c: any) => c.id}
-      searchPlaceholder={isRTL ? "بحث بالاسم أو الجوال..." : "Search by name or mobile..."}
+      searchPlaceholder={isRTL ? "بحث بالاسم أو الجوال أو اللوحة..." : "Search by name, mobile or plate..."}
       onSearch={(c: any, term: string) => c.name?.toLowerCase().includes(term) || c.mobile?.includes(term) || c.plate_number?.includes(term)}
       createButton={{ label: isRTL ? "إضافة عميل" : "Add Customer", onClick: () => navigate("/client/fuel/customers/new") }}
       actions={[

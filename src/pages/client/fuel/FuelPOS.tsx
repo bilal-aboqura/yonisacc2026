@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useCompanyId } from "@/hooks/useCompanyId";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Fuel, Loader2, ShoppingCart, Wallet, Banknote, Check } from "lucide-react";
+import { Fuel, Loader2, ShoppingCart, Wallet, Banknote, Check, User } from "lucide-react";
 
 const fuelLabels: Record<string, { ar: string; en: string }> = {
   gasoline_91: { ar: "بنزين 91", en: "Gasoline 91" },
@@ -33,7 +33,7 @@ const FuelPOS = () => {
   const { data: customers } = useQuery({
     queryKey: ["fuel-customers-active", companyId],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("fuel_customers").select("id, name, fuel_wallets(id, balance)").eq("company_id", companyId).eq("status", "active").order("name");
+      const { data } = await (supabase as any).from("fuel_customers").select("id, name, name_en, plate_number, fuel_wallets(id, balance)").eq("company_id", companyId).eq("status", "active").order("name");
       return data || [];
     },
     enabled: !!companyId,
@@ -52,7 +52,6 @@ const FuelPOS = () => {
     queryKey: ["fuel-prices-latest", companyId],
     queryFn: async () => {
       const { data } = await (supabase as any).from("fuel_prices").select("*").eq("company_id", companyId).order("effective_date", { ascending: false });
-      // Get latest price for each fuel type
       const latest: Record<string, number> = {};
       (data || []).forEach((p: any) => { if (!latest[p.fuel_type]) latest[p.fuel_type] = p.price_per_liter; });
       return latest;
@@ -78,7 +77,6 @@ const FuelPOS = () => {
 
       const { data: settings } = await (supabase as any).from("fuel_station_account_settings").select("*").eq("company_id", companyId).maybeSingle();
 
-      // Create journal entry
       let journalEntryId = null;
       const debitAccount = paymentMethod === "wallet" ? settings?.fuel_wallet_liability_account_id : settings?.fuel_cash_account_id;
       const creditAccount = settings?.fuel_sales_revenue_account_id;
@@ -102,7 +100,6 @@ const FuelPOS = () => {
         ]);
       }
 
-      // Record sale
       await (supabase as any).from("fuel_sales").insert({
         company_id: companyId, customer_id: customerId || null, pump_id: pumpId,
         fuel_type: fuelType, quantity: qty, unit_price: unitPrice,
@@ -110,7 +107,6 @@ const FuelPOS = () => {
         journal_entry_id: journalEntryId,
       });
 
-      // Deduct from tank
       if (selectedPump?.tank_id) {
         const { data: tank } = await (supabase as any).from("fuel_tanks").select("current_qty").eq("id", selectedPump.tank_id).single();
         if (tank) {
@@ -118,7 +114,6 @@ const FuelPOS = () => {
         }
       }
 
-      // Deduct from wallet if wallet payment
       if (paymentMethod === "wallet" && walletId) {
         const newBal = walletBalance - totalAmount;
         await (supabase as any).from("fuel_wallets").update({ balance: newBal }).eq("id", walletId);
@@ -127,7 +122,6 @@ const FuelPOS = () => {
           amount: totalAmount, balance_after: newBal, notes: `${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]} - ${qty}L`,
         });
 
-        // Log notification
         await (supabase as any).from("fuel_message_logs").insert({
           company_id: companyId, customer_id: customerId, event_type: "fuel_purchase",
           message_text: `${isRTL ? "تم شراء" : "Purchased"} ${qty} ${isRTL ? "لتر" : "liters"} ${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]}. ${isRTL ? "المبلغ:" : "Amount:"} ${totalAmount} SAR. ${isRTL ? "الرصيد المتبقي:" : "Remaining:"} ${newBal} SAR.`,
@@ -171,7 +165,6 @@ const FuelPOS = () => {
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Form */}
         <div className="lg:col-span-2 space-y-4">
           <Card>
             <CardContent className="pt-6 space-y-4">
@@ -187,6 +180,38 @@ const FuelPOS = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Customer Info Card */}
+              {selectedCustomer && (
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardContent className="py-3 px-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{selectedCustomer.name}</p>
+                        {selectedCustomer.plate_number && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {selectedCustomer.plate_number.split("،").map((p: string, i: number) => p.trim() && (
+                              <Badge key={i} variant="secondary" className="text-xs">{p.trim()}</Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-end">
+                        <div className="flex items-center gap-1 text-sm font-bold">
+                          <Wallet className="h-4 w-4 text-blue-600" />
+                          <span className={walletBalance > 0 ? "text-blue-600" : "text-destructive"}>
+                            {Number(walletBalance).toLocaleString()} SAR
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{isRTL ? "رصيد المحفظة" : "Wallet Balance"}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Pump */}
               <div className="space-y-2">
@@ -232,7 +257,6 @@ const FuelPOS = () => {
                     <label htmlFor="wallet" className={`flex items-center gap-1 cursor-pointer ${!customerId ? "opacity-50" : ""}`}>
                       <Wallet className="h-4 w-4" />
                       {isRTL ? "المحفظة" : "Wallet"}
-                      {customerId && <span className="text-xs text-muted-foreground">({Number(walletBalance).toLocaleString()} SAR)</span>}
                     </label>
                   </div>
                 </RadioGroup>
