@@ -948,6 +948,42 @@ const Payroll = () => {
             </CardContent>
           </Card>
         )}
+      {/* Confirm Dialog */}
+      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction?.type === "approve"
+                ? (isRTL ? "تأكيد اعتماد المسير" : "Confirm Approval")
+                : (isRTL ? "تأكيد إلغاء المسير" : "Confirm Cancellation")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === "approve"
+                ? (isRTL
+                  ? `سيتم اعتماد ${selectedItems.size} موظف وإنشاء قيد استحقاق لكل موظف بتاريخ ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""}. لا يمكن التراجع.`
+                  : `${selectedItems.size} employee(s) will be approved and individual accrual entries will be created dated ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""}. This cannot be undone.`)
+                : (isRTL ? "سيتم حذف المسير وجميع بياناته نهائياً. لا يمكن التراجع." : "The payroll run and all its data will be permanently deleted. This cannot be undone.")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{isRTL ? "رجوع" : "Back"}</AlertDialogCancel>
+            <AlertDialogAction
+              className={confirmAction?.type === "cancel" ? "bg-destructive hover:bg-destructive/90" : "bg-emerald-600 hover:bg-emerald-700"}
+              onClick={() => {
+                if (confirmAction?.type === "approve") {
+                  approvePayrollMutation.mutate({ run: confirmAction.run, selectedIds: Array.from(selectedItems) });
+                } else if (confirmAction?.type === "cancel") {
+                  cancelPayrollMutation.mutate(confirmAction.run);
+                }
+              }}
+              disabled={approvePayrollMutation.isPending || cancelPayrollMutation.isPending}
+            >
+              {(approvePayrollMutation.isPending || cancelPayrollMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin me-2" />}
+              {confirmAction?.type === "approve" ? (isRTL ? "اعتماد" : "Approve") : (isRTL ? "إلغاء المسير" : "Cancel Run")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
     );
   }
@@ -1080,43 +1116,6 @@ const Payroll = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Confirm Dialog */}
-      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirmAction?.type === "approve"
-                ? (isRTL ? "تأكيد اعتماد المسير" : "Confirm Approval")
-                : (isRTL ? "تأكيد إلغاء المسير" : "Confirm Cancellation")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmAction?.type === "approve"
-                ? (isRTL
-                  ? `سيتم اعتماد ${selectedItems.size} موظف وإنشاء قيد استحقاق لكل موظف بتاريخ ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""}. لا يمكن التراجع.`
-                  : `${selectedItems.size} employee(s) will be approved and individual accrual entries will be created dated ${confirmAction?.run ? getLastDayOfMonth(confirmAction.run.period_year, confirmAction.run.period_month) : ""}. This cannot be undone.`)
-                : (isRTL ? "سيتم حذف المسير وجميع بياناته نهائياً. لا يمكن التراجع." : "The payroll run and all its data will be permanently deleted. This cannot be undone.")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{isRTL ? "رجوع" : "Back"}</AlertDialogCancel>
-            <AlertDialogAction
-              className={confirmAction?.type === "cancel" ? "bg-destructive hover:bg-destructive/90" : "bg-emerald-600 hover:bg-emerald-700"}
-              onClick={() => {
-                if (confirmAction?.type === "approve") {
-                  approvePayrollMutation.mutate({ run: confirmAction.run, selectedIds: Array.from(selectedItems) });
-                } else if (confirmAction?.type === "cancel") {
-                  cancelPayrollMutation.mutate(confirmAction.run);
-                }
-              }}
-              disabled={approvePayrollMutation.isPending || cancelPayrollMutation.isPending}
-            >
-              {(approvePayrollMutation.isPending || cancelPayrollMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin me-2" />}
-              {confirmAction?.type === "approve" ? (isRTL ? "اعتماد" : "Approve") : (isRTL ? "إلغاء المسير" : "Cancel Run")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

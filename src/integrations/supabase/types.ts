@@ -3903,6 +3903,7 @@ export type Database = {
           net_salary: number | null
           other_allowance: number | null
           other_deduction: number | null
+          paid_amount: number | null
           payroll_run_id: string
           total_allowances: number | null
           total_deductions: number | null
@@ -3918,6 +3919,7 @@ export type Database = {
           net_salary?: number | null
           other_allowance?: number | null
           other_deduction?: number | null
+          paid_amount?: number | null
           payroll_run_id: string
           total_allowances?: number | null
           total_deductions?: number | null
@@ -3933,6 +3935,7 @@ export type Database = {
           net_salary?: number | null
           other_allowance?: number | null
           other_deduction?: number | null
+          paid_amount?: number | null
           payroll_run_id?: string
           total_allowances?: number | null
           total_deductions?: number | null
@@ -3948,6 +3951,120 @@ export type Database = {
           },
           {
             foreignKeyName: "hr_payroll_items_payroll_run_id_fkey"
+            columns: ["payroll_run_id"]
+            isOneToOne: false
+            referencedRelation: "hr_payroll_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_payroll_payment_items: {
+        Row: {
+          amount: number
+          employee_id: string
+          id: string
+          payment_id: string
+          payroll_item_id: string
+        }
+        Insert: {
+          amount?: number
+          employee_id: string
+          id?: string
+          payment_id: string
+          payroll_item_id: string
+        }
+        Update: {
+          amount?: number
+          employee_id?: string
+          id?: string
+          payment_id?: string
+          payroll_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_payroll_payment_items_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_payroll_payment_items_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "hr_payroll_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_payroll_payment_items_payroll_item_id_fkey"
+            columns: ["payroll_item_id"]
+            isOneToOne: false
+            referencedRelation: "hr_payroll_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_payroll_payments: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          payment_date: string
+          payment_method_id: string | null
+          payroll_run_id: string
+          total_amount: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method_id?: string | null
+          payroll_run_id: string
+          total_amount?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method_id?: string | null
+          payroll_run_id?: string
+          total_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_payroll_payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_payroll_payments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_payroll_payments_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_payroll_payments_payroll_run_id_fkey"
             columns: ["payroll_run_id"]
             isOneToOne: false
             referencedRelation: "hr_payroll_runs"
