@@ -69,6 +69,8 @@ interface FormData {
   description_ar: string;
   description_en: string;
   price: number;
+  yearly_price: number;
+  yearly_discount_months: number;
   duration_months: number;
   max_invoices: string;
   max_entries: string;
@@ -88,7 +90,7 @@ interface FormData {
 
 const defaultForm: FormData = {
   name_ar: "", name_en: "", description_ar: "", description_en: "",
-  price: 0, duration_months: 1,
+  price: 0, yearly_price: 0, yearly_discount_months: 2, duration_months: 1,
   max_invoices: "", max_entries: "", max_users: "", max_branches: "",
   max_sales_invoices: "", max_purchase_invoices: "", max_journal_entries: "",
   features_ar: [], features_en: [], not_included_ar: [], not_included_en: [],
