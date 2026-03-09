@@ -50,6 +50,7 @@ const CashFlow = () => {
   const navigate = useNavigate();
   const { companyId, isLoadingCompany } = useTenantIsolation();
   const { isRTL } = useLanguage();
+  const { settings: printSettings } = usePrintSettings(companyId);
 
   const today = new Date();
   const yearStart = `${today.getFullYear()}-01-01`;
@@ -57,6 +58,16 @@ const CashFlow = () => {
 
   const [startDate, setStartDate] = useState(yearStart);
   const [endDate, setEndDate] = useState(todayStr);
+
+  const { data: company } = useQuery({
+    queryKey: ["company-info", companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      const { data } = await supabase.from("companies").select("*").eq("id", companyId).single();
+      return data;
+    },
+    enabled: !!companyId,
+  });
 
   const { data: report, isLoading } = useQuery({
     queryKey: ["cash-flow-report", companyId, startDate, endDate],
@@ -82,6 +93,109 @@ const CashFlow = () => {
 
   const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString(isRTL ? "ar-SA" : "en-US");
+
+  const op = report?.operating || [];
+  const inv = report?.investing || [];
+  const fin = report?.financing || [];
+
+  const allItems = [...op, ...inv, ...fin];
+
+  const companyInfo: CompanyInfo = {
+    name: company?.name || "", name_en: company?.name_en,
+    logo_url: company?.logo_url, tax_number: company?.tax_number,
+    commercial_register: company?.commercial_register, address: company?.address,
+    phone: company?.phone, email: company?.email,
+  };
+
+  const printDoc: PrintableDocument = useMemo(() => {
+    const rows: (string | number)[][] = [];
+
+    // Operating section
+    rows.push([isRTL ? "الأنشطة التشغيلية" : "Operating Activities", "", "", ""]);
+    op.forEach(item => rows.push([
+      item.entry_number,
+      isRTL ? (item.counterpart_name || "") : (item.counterpart_name_en || item.counterpart_name || ""),
+      item.description || "-",
+      item.amount,
+    ]));
+    rows.push(["", "", isRTL ? "إجمالي التشغيلية" : "Total Operating", report?.operating_total || 0]);
+
+    // Investing section
+    rows.push([isRTL ? "الأنشطة الاستثمارية" : "Investing Activities", "", "", ""]);
+    inv.forEach(item => rows.push([
+      item.entry_number,
+      isRTL ? (item.counterpart_name || "") : (item.counterpart_name_en || item.counterpart_name || ""),
+      item.description || "-",
+      item.amount,
+    ]));
+    rows.push(["", "", isRTL ? "إجمالي الاستثمارية" : "Total Investing", report?.investing_total || 0]);
+
+    // Financing section
+    rows.push([isRTL ? "الأنشطة التمويلية" : "Financing Activities", "", "", ""]);
+    fin.forEach(item => rows.push([
+      item.entry_number,
+      isRTL ? (item.counterpart_name || "") : (item.counterpart_name_en || item.counterpart_name || ""),
+      item.description || "-",
+      item.amount,
+    ]));
+    rows.push(["", "", isRTL ? "إجمالي التمويلية" : "Total Financing", report?.financing_total || 0]);
+
+    return {
+      title: isRTL ? "قائمة التدفقات النقدية" : "Cash Flow Statement",
+      subtitle: `${startDate} → ${endDate}`,
+      date: new Date().toISOString().split("T")[0],
+      extraFields: [
+        { label: isRTL ? "الرصيد الافتتاحي" : "Opening Balance", value: fmt(report?.opening_cash || 0) },
+        { label: isRTL ? "الرصيد الختامي" : "Closing Balance", value: fmt(report?.closing_cash || 0) },
+      ],
+      table: {
+        headers: [
+          isRTL ? "رقم القيد" : "Entry #",
+          isRTL ? "الحساب المقابل" : "Counterpart",
+          isRTL ? "البيان" : "Description",
+          isRTL ? "المبلغ" : "Amount",
+        ],
+        rows,
+        totals: ["", "", isRTL ? "صافي التغير" : "Net Change", report?.net_change || 0],
+      },
+    };
+  }, [op, inv, fin, report, startDate, endDate, isRTL]);
+
+  const handleExportExcel = () => {
+    const todayExport = new Date().toISOString().split("T")[0];
+    const exportRows: Record<string, string | number>[] = [];
+
+    const addSection = (label: string, items: CashFlowItem[], total: number) => {
+      exportRows.push({ section: label, entry: "", counterpart: "", description: "", amount: "" });
+      items.forEach(item => exportRows.push({
+        section: "",
+        entry: item.entry_number,
+        counterpart: isRTL ? (item.counterpart_name || "") : (item.counterpart_name_en || item.counterpart_name || ""),
+        description: item.description || "-",
+        amount: item.amount,
+      }));
+      exportRows.push({ section: "", entry: "", counterpart: "", description: isRTL ? `إجمالي ${label}` : `Total ${label}`, amount: total });
+    };
+
+    addSection(isRTL ? "التشغيلية" : "Operating", op, report?.operating_total || 0);
+    addSection(isRTL ? "الاستثمارية" : "Investing", inv, report?.investing_total || 0);
+    addSection(isRTL ? "التمويلية" : "Financing", fin, report?.financing_total || 0);
+
+    exportToExcel({
+      filename: `CashFlow_${company?.name_en || company?.name || "Report"}_${todayExport}`,
+      title: isRTL ? "قائمة التدفقات النقدية" : "Cash Flow Statement",
+      subtitle: `${startDate} → ${endDate}`,
+      columns: [
+        { header: isRTL ? "القسم" : "Section", key: "section", format: "text" },
+        { header: isRTL ? "رقم القيد" : "Entry #", key: "entry", format: "text" },
+        { header: isRTL ? "الحساب المقابل" : "Counterpart", key: "counterpart", format: "text" },
+        { header: isRTL ? "البيان" : "Description", key: "description", format: "text" },
+        { header: isRTL ? "المبلغ" : "Amount", key: "amount", format: "number" },
+      ],
+      rows: exportRows,
+      totals: { section: "", entry: "", counterpart: "", description: isRTL ? "صافي التغير" : "Net Change", amount: report?.net_change || 0 },
+    });
+  };
 
   if (isLoading || isLoadingCompany) {
     return (
