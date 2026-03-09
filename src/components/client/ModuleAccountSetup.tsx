@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AccountCombobox from "@/components/client/AccountCombobox";
 import { toast } from "sonner";
 import { Save, Settings2, Loader2 } from "lucide-react";
 
@@ -186,22 +187,12 @@ const ModuleAccountSetup = ({ tableName, titleAr, titleEn, descriptionAr, descri
               {section.fields.map((field) => (
                 <div key={field.key} className="space-y-1.5">
                   <Label className="text-sm font-medium">{isRTL ? field.labelAr : field.labelEn}</Label>
-                  <Select
-                    value={form[field.key] || "none"}
-                    onValueChange={(v) => setForm((f) => ({ ...f, [field.key]: v === "none" ? null : v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={isRTL ? "اختر الحساب" : "Select Account"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">{isRTL ? "-- بدون --" : "-- None --"}</SelectItem>
-                      {accounts.map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id}>
-                          {acc.code} - {isRTL ? acc.name : acc.name_en || acc.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <AccountCombobox
+                    accounts={accounts}
+                    value={form[field.key]}
+                    onChange={(v) => setForm((f) => ({ ...f, [field.key]: v }))}
+                    isRTL={isRTL}
+                  />
                 </div>
               ))}
             </CardContent>
