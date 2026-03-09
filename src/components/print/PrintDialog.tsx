@@ -63,7 +63,7 @@ export const PrintDialog: React.FC<PrintDialogProps> = (props) => {
       </div>
 
       {/* Print Content */}
-      <div className="flex justify-center p-8 print:p-0 print:m-0">
+      <div className="flex justify-center p-8 print:p-0 print:m-0 print:block">
         <div
           ref={printRef}
           className="bg-white shadow-lg print:shadow-none print-wrapper"
