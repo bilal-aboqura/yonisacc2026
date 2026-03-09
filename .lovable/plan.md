@@ -1,85 +1,123 @@
 
-# خطة نظام نقاط البيع الشامل (POS)
 
-## الحالة: ✅ تم تنفيذ المراحل 1-10
+## خطة بناء مديول إدارة محطات الوقود (Fuel Station Management)
 
-### ما تم إنجازه:
+### نطاق العمل
 
-**المرحلة 1: قاعدة البيانات** ✅
-- 11 جدول جديد: pos_terminals, pos_sessions, pos_transactions, pos_transaction_items, pos_tables, pos_reservations, pos_menus, pos_menu_items, pos_promotions, pos_sales_targets, pos_activity_log
-- RLS على جميع الجداول
-- صلاحيات RBAC: 8 feature flags جديدة
+بناء مديول كامل لإدارة محطات الوقود يتضمن: العملاء والمحافظ، المضخات والخزانات، نقطة بيع الوقود، تسعير الوقود، التقارير، وتجهيز الحسابات — مع ربط كامل بالمحاسبة والمخزون.
 
-**المرحلة 2: شاشة POS الرئيسية** ✅
-- شاشة ملء الشاشة مع شبكة منتجات + سلة مشتريات
-- بحث سريع وباركود + تصفية بالتصنيف
-- نوع الطلب (محلي/سفري/توصيل)
-- أزرار دفع متعددة (نقد/بطاقة)
-- اختصارات لوحة مفاتيح (F1/F2/F5/Esc)
-- فتح/إغلاق الصندوق مع المبلغ
+### 1. قاعدة البيانات (Migration)
 
-**المرحلة 3: إدارة الطاولات** ✅
-- عرض تفاعلي مع ألوان حسب الحالة
-- CRUD للطاولات مع الشكل والسعة والطابق
+إنشاء الجداول التالية:
 
-**المرحلة 4: الإعدادات والمنيو** ✅
-- إدارة نقاط البيع (Terminals) مع النوع (تجزئة/مطعم)
-- إدارة المنيو المخصص لكل فرع
+- **`fuel_station_account_settings`** — تجهيز حسابات المديول (نمط `ModuleAccountSetup`)
+- **`fuel_customers`** — عملاء الوقود (name, mobile, type [individual/company/government], plate_number, credit_limit, balance, status, account_id, company_id)
+- **`fuel_wallets`** — محافظ الوقود (customer_id, balance, company_id)
+- **`fuel_wallet_transactions`** — حركات المحفظة (wallet_id, type [recharge/deduction/refund], amount, balance_after, reference_id, notes)
+- **`fuel_pumps`** — المضخات (pump_number, fuel_type, tank_id, meter_reading, status, company_id)
+- **`fuel_tanks`** — الخزانات (fuel_type, capacity, current_qty, min_alert_level, warehouse_id, company_id)
+- **`fuel_tank_refills`** — تعبئة الخزانات (tank_id, quantity, supplier_id, unit_cost, total_cost, journal_entry_id)
+- **`fuel_prices`** — جدول الأسعار (fuel_type, price_per_liter, effective_date, company_id)
+- **`fuel_sales`** — مبيعات الوقود (customer_id, pump_id, fuel_type, quantity, unit_price, total_amount, payment_method [wallet/cash], journal_entry_id, company_id)
+- **`fuel_message_logs`** — سجل الرسائل (customer_id, event_type, message_text, status, company_id)
 
-**المرحلة 5: العروض والأهداف** ✅
-- إنشاء عروض (نسبة/مبلغ/اشتر X واحصل Y)
-- أهداف مبيعات مع شريط التقدم
+مع RLS على جميع الجداول بـ `company_id`.
 
-**المرحلة 6: التقارير** ✅
-- بطاقات ملخص (إجمالي/عدد/متوسط)
-- رسم بياني يومي + توزيع طرق الدفع
-- جدول العمليات
+### 2. شاشة تجهيز الحسابات
 
-**المرحلة 7-8: التكامل** ✅
-- 7 مسارات POS في App.tsx
-- قسم "نقاط البيع" في القائمة الجانبية
-- سجل نشاط المستخدمين
+ملف: `src/pages/client/fuel/FuelAccountSetup.tsx`
 
-**المرحلة 9: الكوبونات والعروض المتقدمة** ✅
-- جدول pos_coupons مع RLS
-- شاشة إدارة كوبونات (CRUD) مع inline form
-- تطبيق الكوبون في شاشة البيع مع التحقق (الفترة، الاستخدام، الحد الأدنى)
-- ربط العروض بمنتجات محددة عبر جدول pos_promotion_products
-- تحويل شاشة العروض من Dialog إلى inline مع product checkboxes
+يستخدم `ModuleAccountSetup` مع الأقسام:
+- **حسابات الإيرادات**: إيراد مبيعات الوقود، ضريبة مبيعات الوقود
+- **حسابات المخزون**: مخزون الوقود، تكلفة الوقود المباع (COGS)
+- **حسابات العملاء**: ذمم عملاء الوقود، التزام محافظ الوقود
+- **حسابات الموردين**: ذمم موردي الوقود
+- **حسابات الخزينة**: حساب الصندوق، حساب البنك
 
-**المرحلة 10: مستخدمو POS وتقارير الصندوق** ✅
-- جدول pos_users مع أدوار (كاشير/مدير فرع) وربط بالفرع
-- شاشة إدارة مستخدمي POS (إنشاء بإيميل+باسورد+فرع+دور)
-- تقرير إغلاق الصندوق (مبيعات/مرتجعات/خصومات/طرق دفع/رصيد إغلاق) مع طباعة
-- شاشة سجل المستخدمين (تاريخ الجلسات مع فلترة)
-- أعمدة تقارير في pos_sessions (total_sales, total_returns, payment_summary, etc.)
+### 3. الشاشات الداخلية (غير منبثقة)
 
----
+جميع الشاشات صفحات مستقلة (Route-based) كما في باقي المديولات:
 
-# نظام إدارة السنوات المالية الشامل
+| المسار | الشاشة |
+|--------|--------|
+| `/client/fuel` | لوحة تحكم المحطة (FuelDashboard) |
+| `/client/fuel/customers` | قائمة عملاء الوقود |
+| `/client/fuel/customers/new` | إضافة عميل وقود |
+| `/client/fuel/customers/:id/edit` | تعديل عميل وقود |
+| `/client/fuel/customers/:id/statement` | كشف حساب العميل |
+| `/client/fuel/wallets` | إدارة المحافظ |
+| `/client/fuel/wallets/:id/recharge` | شحن محفظة |
+| `/client/fuel/pumps` | إدارة المضخات |
+| `/client/fuel/pumps/new` | إضافة مضخة |
+| `/client/fuel/tanks` | إدارة الخزانات |
+| `/client/fuel/tanks/new` | إضافة خزان |
+| `/client/fuel/tanks/:id/refill` | تعبئة خزان |
+| `/client/fuel/pos` | نقطة بيع الوقود |
+| `/client/fuel/prices` | إدارة الأسعار |
+| `/client/fuel/reports` | التقارير |
+| `/client/fuel/setup` | تجهيز الحسابات |
 
-## الحالة: ✅ تم تنفيذ المراحل 1-4
+### 4. ربط القيود المحاسبية
 
-### ما تم إنجازه:
+كل عملية مالية تولد قيد يومية تلقائياً:
 
-**المرحلة 1: البنية التحتية** ✅
-- تطوير جدول fiscal_periods بأعمدة: status, locked_by, locked_at, closing_journal_entry_id, opening_journal_entry_id, created_by, reopen_reason, reopened_at, reopened_by
-- جدول fiscal_year_audit_log مع RLS
-- جداول stock_count_sessions و stock_count_lines مع RLS
-- 3 RPCs: pre_closing_validation, close_fiscal_year, reopen_fiscal_year
+- **شحن محفظة**: مدين النقد/البنك ← دائن التزام المحفظة
+- **بيع وقود (محفظة)**: مدين التزام المحفظة ← دائن إيراد مبيعات الوقود
+- **بيع وقود (نقد)**: مدين النقد ← دائن إيراد مبيعات الوقود
+- **تعبئة خزان**: مدين مخزون الوقود ← دائن ذمم الموردين
 
-**المرحلة 2: واجهة إدارة السنوات المالية** ✅
-- صفحة FiscalYearManagement.tsx مع 5 تبويبات (السنوات | التحقق | الجرد | التقرير | التدقيق)
-- بطاقات إحصائية (مفتوحة/مقفلة مؤقتاً/مقفلة نهائياً)
-- إجراءات: قفل مؤقت ← إقفال نهائي ← إعادة فتح
+يتم جلب الحسابات من `fuel_station_account_settings` وإنشاء القيد عبر `supabase.from("journal_entries").insert(...)` مع سطوره.
 
-**المرحلة 3: RPCs للعمليات الذرية** ✅
-- pre_closing_validation: فحص قيود مسودة، فواتير مسودة، حركات معلقة، فترات HR
-- close_fiscal_year: إقفال حسابات الدخل → أرباح مبقاة → أرصدة افتتاحية
-- reopen_fiscal_year: حذف قيود الإقفال وإعادة الفتح مع سجل تدقيق
+### 5. تحديث الباقات وإدارة الشركات
 
-**المرحلة 4: التقارير وسجل التدقيق** ✅
-- PreClosingValidation.tsx: فحوصات تلقائية مع ✅/❌
-- StockCountSession.tsx: جلسات جرد مع إدخال كميات فعلية
-- YearClosingReport.tsx: ملخص الدخل + الميزانية العمومية
-- FiscalAuditLog.tsx: سجل كل العمليات على السنوات المالية
+إضافة `fuelstation` إلى `ALL_MODULES` في 4 ملفات:
+- `src/pages/owner/OwnerPlans.tsx`
+- `src/pages/owner/ManageCompanyAccess.tsx`
+- `src/pages/owner/CreateSubscriber.tsx`
+- `src/components/client/TeamManagement.tsx`
+
+```typescript
+{ key: "fuelstation", labelAr: "محطات الوقود", labelEn: "Fuel Station", icon: Fuel, color: "text-amber-700", bg: "bg-amber-50 dark:bg-amber-950/30" }
+```
+
+### 6. تحديث القائمة الجانبية (ClientLayout)
+
+إضافة `fuelStationMenuGroup` بـ `moduleKey: "fuelstation"` مع جميع الشاشات.
+
+### 7. تحديث App.tsx
+
+إضافة جميع Routes تحت `{/* Fuel Station */}`.
+
+### الملفات الجديدة (~18 ملف)
+
+```
+src/pages/client/fuel/FuelDashboard.tsx
+src/pages/client/fuel/FuelCustomers.tsx
+src/pages/client/fuel/CreateFuelCustomer.tsx
+src/pages/client/fuel/FuelCustomerStatement.tsx
+src/pages/client/fuel/FuelWallets.tsx
+src/pages/client/fuel/RechargeWallet.tsx
+src/pages/client/fuel/FuelPumps.tsx
+src/pages/client/fuel/CreateFuelPump.tsx
+src/pages/client/fuel/FuelTanks.tsx
+src/pages/client/fuel/CreateFuelTank.tsx
+src/pages/client/fuel/RefillTank.tsx
+src/pages/client/fuel/FuelPOS.tsx
+src/pages/client/fuel/FuelPrices.tsx
+src/pages/client/fuel/FuelReports.tsx
+src/pages/client/fuel/FuelAccountSetup.tsx
+```
+
+### الملفات المعدّلة (5 ملفات)
+
+- `src/App.tsx` — إضافة routes
+- `src/components/client/ClientLayout.tsx` — إضافة القائمة الجانبية
+- `src/pages/owner/OwnerPlans.tsx` — إضافة للمديولات
+- `src/pages/owner/ManageCompanyAccess.tsx` — إضافة للمديولات
+- `src/pages/owner/CreateSubscriber.tsx` — إضافة للمديولات
+- `src/components/client/TeamManagement.tsx` — إضافة للمديولات
+
+### ملاحظة بخصوص الرسائل (SMS/WhatsApp)
+
+سيتم بناء البنية التحتية لسجل الرسائل (`fuel_message_logs`) مع واجهة عرض السجل. الربط الفعلي مع مزودي الخدمة (Twilio/Unifonic/Taqnyat) يتطلب مفاتيح API وسيتم تنفيذه لاحقاً كمرحلة ثانية عبر Edge Function.
+
