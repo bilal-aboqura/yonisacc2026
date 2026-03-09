@@ -13,6 +13,13 @@ import { toast } from "sonner";
 import AccountCombobox from "@/components/client/AccountCombobox";
 import { toast } from "sonner";
 
+interface AccountOption {
+  id: string;
+  code: string;
+  name: string;
+  name_en: string | null;
+}
+
 interface EmployeeFormProps {
   editId: string | null;
   editData: any;
@@ -20,6 +27,7 @@ interface EmployeeFormProps {
   departments: any[];
   workShifts?: any[];
   costCenters?: any[];
+  accounts?: AccountOption[];
   onClose: () => void;
 }
 
