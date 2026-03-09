@@ -10,6 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import AccountCombobox from "@/components/client/AccountCombobox";
+
+interface AccountOption {
+  id: string;
+  code: string;
+  name: string;
+  name_en: string | null;
+}
 
 interface EmployeeFormProps {
   editId: string | null;
@@ -18,6 +26,7 @@ interface EmployeeFormProps {
   departments: any[];
   workShifts?: any[];
   costCenters?: any[];
+  accounts?: AccountOption[];
   onClose: () => void;
 }
 
@@ -72,6 +81,7 @@ const defaultForm = {
   job_title: "", job_title_en: "",
   basic_salary: 0, housing_allowance: 0, transport_allowance: 0, other_allowance: 0,
   bank_name: "", bank_iban: "", department_id: "", status: "active",
+  account_id: "",
   gender: "", nationality: "",
   health_card_number: "", health_card_expiry: "",
   passport_number: "", passport_expiry: "",
@@ -82,7 +92,7 @@ const defaultForm = {
   cost_center_id: "",
 };
 
-const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [], costCenters = [], onClose }: EmployeeFormProps) => {
+const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [], costCenters = [], accounts = [], onClose }: EmployeeFormProps) => {
   const { isRTL } = useLanguage();
   const queryClient = useQueryClient();
 
@@ -124,6 +134,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
         gosi_amount: editData.gosi_amount || 0,
         work_shift_id: editData.work_shift_id || "",
         cost_center_id: editData.cost_center_id || "",
+        account_id: editData.account_id || "",
       };
     }
     return { ...defaultForm };
@@ -180,6 +191,7 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
         nationality: form.nationality || null,
         work_shift_id: form.work_shift_id || null,
         cost_center_id: form.cost_center_id || null,
+        account_id: form.account_id || null,
       };
       if (editId) {
         const { error } = await (supabase as any).from("hr_employees").update(payload).eq("id", editId);
@@ -293,6 +305,19 @@ const EmployeeForm = ({ editId, editData, companyId, departments, workShifts = [
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{isRTL ? "الحساب بدليل الحسابات" : "Chart of Accounts"}</Label>
+                <AccountCombobox
+                  accounts={accounts}
+                  value={form.account_id || null}
+                  onChange={(v) => setForm({ ...form, account_id: v || "" })}
+                  isRTL={isRTL}
+                  placeholder={isRTL ? "ربط الموظف بحساب" : "Link to account"}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {isRTL ? "يُستخدم للسلف والقروض والجزاءات" : "Used for advances, loans & penalties"}
+                </p>
               </div>
             </div>
           </div>
