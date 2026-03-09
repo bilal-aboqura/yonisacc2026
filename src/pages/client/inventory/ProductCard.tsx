@@ -140,7 +140,7 @@ const ProductCard = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
+    <div id="product-card-root" className="p-4 md:p-6 space-y-6" dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
       <div className={cn("flex items-center justify-between flex-wrap gap-3", isRTL && "flex-row-reverse")}>
         <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
