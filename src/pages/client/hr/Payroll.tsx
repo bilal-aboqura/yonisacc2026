@@ -208,9 +208,9 @@ const Payroll = () => {
         .from("hr_payroll_items").select("*, hr_employees(name, name_en, employee_number, account_id)")
         .eq("payroll_run_id", run.id);
 
-      // Filter to selected items only
-      const items = (allItems || []).filter((i: any) => selectedIds.includes(i.id));
-      if (items.length === 0) throw new Error(isRTL ? "لم يتم تحديد أي موظف" : "No employees selected");
+      // Filter to selected items only AND exclude already approved
+      const items = (allItems || []).filter((i: any) => selectedIds.includes(i.id) && !i.is_approved);
+      if (items.length === 0) throw new Error(isRTL ? "لم يتم تحديد أي موظف غير معتمد" : "No unapproved employees selected");
 
       // Validate all selected employees have account_id
       const unlinked = items.filter((i: any) => !i.hr_employees?.account_id);
@@ -221,13 +221,30 @@ const Payroll = () => {
           : `Cannot approve: the following employees are not linked to an account: ${names}`);
       }
 
-      // Get journal number sequence
+      // Get journal number sequence — fix duplicate key by checking actual max
       const { data: settings } = await (supabase as any)
         .from("company_settings").select("journal_prefix, next_journal_number")
         .eq("company_id", companyId).maybeSingle();
 
       const prefix = settings?.journal_prefix || "JE-";
-      let nextNum = settings?.next_journal_number || 1;
+      let settingsNext = settings?.next_journal_number || 1;
+
+      // Also check the actual max entry_number in journal_entries to avoid duplicates
+      const { data: allEntries } = await (supabase as any)
+        .from("journal_entries").select("entry_number")
+        .eq("company_id", companyId)
+        .like("entry_number", `${prefix}%`)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      let maxExistingNum = 0;
+      if (allEntries && allEntries.length > 0) {
+        const numStr = allEntries[0].entry_number.replace(prefix, "");
+        const parsed = parseInt(numStr, 10);
+        if (!isNaN(parsed)) maxExistingNum = parsed;
+      }
+
+      let nextNum = Math.max(settingsNext, maxExistingNum + 1);
 
       const entryDate = getLastDayOfMonth(run.period_year, run.period_month);
       const monthLabel = `${run.period_month}/${run.period_year}`;
@@ -253,7 +270,6 @@ const Payroll = () => {
           ? `استحقاق راتب ${empName} - شهر ${monthLabel}`
           : `Salary accrual for ${empName} - ${monthLabel}`;
 
-        // total debit = totalGross, total credit = totalGross (balanced)
         const { data: je, error: jeError } = await (supabase as any)
           .from("journal_entries").insert({
             company_id: companyId, entry_number: entryNumber,
@@ -265,7 +281,6 @@ const Payroll = () => {
 
         const jeLines: any[] = [];
 
-        // Debit: salary expense accounts
         if (basic > 0) {
           jeLines.push({ entry_id: je.id, account_id: hrSettings.salary_expense_account_id, debit: basic, credit: 0, description: isRTL ? "الراتب الأساسي" : "Basic salary" });
         }
@@ -279,16 +294,6 @@ const Payroll = () => {
           jeLines.push({ entry_id: je.id, account_id: hrSettings.other_allowance_account_id || hrSettings.salary_expense_account_id, debit: otherAllow, credit: 0, description: isRTL ? "بدلات أخرى" : "Other allowances" });
         }
 
-        // Credit: employee account (accrual — full gross amount)
-        // Then debit back deductions if any (absence, loan) to balance
-        // Actually: Dr Expenses = Gross, Cr Employee = Gross
-        // The net vs gross difference (deductions) is handled as:
-        // Dr Expenses (gross) / Cr Employee (net) / Cr Loan account or Cr Employee for deductions
-        // Simplest: Cr Employee = net, Cr deduction accounts
-        // But user said: Cr = employee account for salary accrual
-        // So: Dr Expenses = Gross, Cr Employee = Gross (full accrual)
-        // Deductions are separate matters (loans handled separately)
-        // Let's keep it clean: Cr Employee = totalGross
         jeLines.push({
           entry_id: je.id, account_id: empAccountId,
           debit: 0, credit: totalGross,
@@ -296,13 +301,22 @@ const Payroll = () => {
         });
 
         await (supabase as any).from("journal_entry_lines").insert(jeLines);
+
+        // Mark this item as approved
+        await (supabase as any).from("hr_payroll_items").update({ is_approved: true }).eq("id", item.id);
       }
 
       // Update journal number
       await (supabase as any).from("company_settings").update({ next_journal_number: nextNum }).eq("company_id", companyId);
 
-      // Mark run as posted (always post entire run when approving)
-      await (supabase as any).from("hr_payroll_runs").update({ status: "posted" }).eq("id", run.id);
+      // Check if ALL items in the run are now approved
+      const { data: remainingUnapproved } = await (supabase as any)
+        .from("hr_payroll_items").select("id")
+        .eq("payroll_run_id", run.id).eq("is_approved", false);
+
+      const allApproved = !remainingUnapproved || remainingUnapproved.length === 0;
+      const newStatus = allApproved ? "posted" : "partially_posted";
+      await (supabase as any).from("hr_payroll_runs").update({ status: newStatus }).eq("id", run.id);
 
       // Update loans for selected employees
       for (const item of items) {
