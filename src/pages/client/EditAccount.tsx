@@ -53,6 +53,8 @@ const EditAccount = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [hasTransactions, setHasTransactions] = useState(false);
+  const [hasChildren, setHasChildren] = useState(false);
 
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
