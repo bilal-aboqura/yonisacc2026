@@ -145,16 +145,18 @@ const Payroll = () => {
   // Approve (Post) payroll — journal entry date = last day of payroll month
   const approvePayrollMutation = useMutation({
     mutationFn: async (run: any) => {
-      const { data: accounts } = await (supabase as any)
-        .from("accounts").select("id, code")
-        .eq("company_id", companyId)
-        .in("code", ["512", "117", "111"]);
+      // Fetch HR account settings
+      const { data: hrSettings } = await (supabase as any)
+        .from("hr_account_settings").select("*")
+        .eq("company_id", companyId).maybeSingle();
 
-      const salaryAcc = accounts?.find((a: any) => a.code === "512");
-      const advanceAcc = accounts?.find((a: any) => a.code === "117");
-      const cashAcc = accounts?.find((a: any) => a.code === "111");
-
-      if (!salaryAcc || !cashAcc) throw new Error(isRTL ? "حسابات الرواتب غير موجودة (512, 111)" : "Salary accounts not found (512, 111)");
+      if (!hrSettings?.salary_expense_account_id) {
+        throw new Error(isRTL ? "يجب تجهيز حساب مصروف الرواتب في إعدادات الموارد البشرية" : "Salary expense account must be configured in HR settings");
+      }
+      const paymentAccountId = hrSettings.bank_account_id || hrSettings.cash_account_id;
+      if (!paymentAccountId) {
+        throw new Error(isRTL ? "يجب تجهيز حساب البنك أو الصندوق في إعدادات الموارد البشرية" : "Bank or cash account must be configured in HR settings");
+      }
 
       const { data: settings } = await (supabase as any)
         .from("company_settings").select("journal_prefix, next_journal_number")
@@ -177,20 +179,50 @@ const Payroll = () => {
         }).select().single();
       if (jeError) throw jeError;
 
-      const jeLines = [
-        { entry_id: je.id, account_id: salaryAcc.id, debit: totalGross, credit: 0, description: desc },
-        { entry_id: je.id, account_id: cashAcc.id, debit: 0, credit: run.total_net, description: desc },
-      ];
-      if (advanceAcc && run.total_deductions > 0) {
-        jeLines.push({ entry_id: je.id, account_id: advanceAcc.id, debit: 0, credit: run.total_deductions, description: isRTL ? "استقطاعات سلف" : "Loan deductions" });
+      // Build debit lines for salary & allowances from HR settings
+      const jeLines: any[] = [];
+
+      // Basic salary debit
+      jeLines.push({ entry_id: je.id, account_id: hrSettings.salary_expense_account_id, debit: run.total_basic, credit: 0, description: isRTL ? "الراتب الأساسي" : "Basic salary" });
+
+      // Allowance debits (use specific account if configured, otherwise lump into salary)
+      const { data: items } = await (supabase as any).from("hr_payroll_items").select("*, hr_employees(account_id)").eq("payroll_run_id", run.id);
+      const totalHousing = (items || []).reduce((s: number, i: any) => s + (i.housing_allowance || 0), 0);
+      const totalTransport = (items || []).reduce((s: number, i: any) => s + (i.transport_allowance || 0), 0);
+      const totalOther = (items || []).reduce((s: number, i: any) => s + (i.other_allowance || 0), 0);
+
+      if (totalHousing > 0) {
+        jeLines.push({ entry_id: je.id, account_id: hrSettings.housing_expense_account_id || hrSettings.salary_expense_account_id, debit: totalHousing, credit: 0, description: isRTL ? "بدل سكن" : "Housing allowance" });
       }
+      if (totalTransport > 0) {
+        jeLines.push({ entry_id: je.id, account_id: hrSettings.transport_expense_account_id || hrSettings.salary_expense_account_id, debit: totalTransport, credit: 0, description: isRTL ? "بدل نقل" : "Transport allowance" });
+      }
+      if (totalOther > 0) {
+        jeLines.push({ entry_id: je.id, account_id: hrSettings.other_allowance_account_id || hrSettings.salary_expense_account_id, debit: totalOther, credit: 0, description: isRTL ? "بدلات أخرى" : "Other allowances" });
+      }
+
+      // Credit: cash/bank for net salary
+      jeLines.push({ entry_id: je.id, account_id: paymentAccountId, debit: 0, credit: run.total_net, description: desc });
+
+      // Credit: loan deductions per employee (using each employee's linked account)
+      let totalLoanDeductions = 0;
+      for (const item of (items || [])) {
+        if (item.loan_deduction > 0) {
+          const empAccountId = item.hr_employees?.account_id;
+          if (empAccountId) {
+            jeLines.push({ entry_id: je.id, account_id: empAccountId, debit: 0, credit: item.loan_deduction, description: isRTL ? "استقطاع سلفة" : "Loan deduction" });
+            totalLoanDeductions += item.loan_deduction;
+          }
+        }
+      }
+
+      // If there are absence deductions not covered by loan deductions, they reduce net (already in cash credit)
 
       await (supabase as any).from("journal_entry_lines").insert(jeLines);
       await (supabase as any).from("company_settings").update({ next_journal_number: nextNum + 1 }).eq("company_id", companyId);
       await (supabase as any).from("hr_payroll_runs").update({ status: "posted", journal_entry_id: je.id }).eq("id", run.id);
 
       // Update loans
-      const { data: items } = await (supabase as any).from("hr_payroll_items").select("employee_id, loan_deduction").eq("payroll_run_id", run.id);
       for (const item of (items || [])) {
         if (item.loan_deduction > 0) {
           const { data: empLoans } = await (supabase as any).from("hr_loans")

@@ -24,7 +24,7 @@ const Loans = () => {
     queryKey: ["hr-employees-active", companyId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("hr_employees").select("id, name, name_en, employee_number")
+        .from("hr_employees").select("id, name, name_en, employee_number, account_id")
         .eq("company_id", companyId).eq("status", "active");
       if (error) throw error;
       return data;
