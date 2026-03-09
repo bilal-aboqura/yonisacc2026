@@ -123,8 +123,8 @@ const ProductCard = () => {
   const getDocumentLink = (refType: string, refId: string | null) => {
     if (!refId) return null;
     const routes: Record<string, string> = {
-      purchase_invoice: `/client/purchases/view/${refId}`,
-      sales_invoice: `/client/sales/view/${refId}`,
+      purchase_invoice: `/client/purchases/${refId}`,
+      sales_invoice: `/client/sales/${refId}`,
       adjustment: `/client/inventory/adjustments`,
       consumption: `/client/inventory/consumptions`,
       transfer: `/client/inventory/transfers`,
