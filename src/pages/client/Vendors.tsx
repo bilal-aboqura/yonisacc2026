@@ -7,7 +7,7 @@ import { useCompanyId } from "@/hooks/useCompanyId";
 import { useState } from "react";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
 import type { DataTableColumn, DataTableAction } from "@/components/ui/data-table";
-import { Truck, Eye, Edit, Trash2, FileSpreadsheet } from "lucide-react";
+import { Truck, Eye, Edit, Trash2, FileSpreadsheet, FileText } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -28,14 +28,30 @@ const Vendors = () => {
   const { data: vendors = [], isLoading } = useQuery({
     queryKey: ["vendors", companyId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contacts")
-        .select("*, accounts:account_id(code, name, name_en)")
-        .eq("company_id", companyId!)
-        .eq("type", "vendor")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      const [contactsRes, balancesRes] = await Promise.all([
+        supabase
+          .from("contacts")
+          .select("*, accounts:account_id(code, name, name_en)")
+          .eq("company_id", companyId!)
+          .eq("type", "vendor")
+          .order("created_at", { ascending: false }),
+        (supabase.rpc as any)("get_account_balances", { p_company_id: companyId }),
+      ]);
+      if (contactsRes.error) throw contactsRes.error;
+      const balanceMap: Record<string, number> = {};
+      if (balancesRes.data) {
+        if (Array.isArray(balancesRes.data)) {
+          balancesRes.data.forEach((b: any) => { balanceMap[b.account_id] = Number(b.balance) || 0; });
+        } else if (typeof balancesRes.data === 'object') {
+          Object.entries(balancesRes.data).forEach(([accountId, balance]) => {
+            balanceMap[accountId] = Number(balance) || 0;
+          });
+        }
+      }
+      return (contactsRes.data || []).map((c: any) => ({
+        ...c,
+        dynamic_balance: c.account_id ? (balanceMap[c.account_id] ?? 0) : (c.balance ?? 0),
+      }));
     },
     enabled: !!companyId,
   });
@@ -99,7 +115,7 @@ const Vendors = () => {
       key: "balance",
       header: isRTL ? "الرصيد" : "Balance",
       numeric: true,
-      render: (row) => (row.balance ?? 0).toLocaleString(),
+      render: (row) => (row.dynamic_balance ?? row.balance ?? 0).toLocaleString(),
     },
     {
       key: "status",
@@ -121,6 +137,11 @@ const Vendors = () => {
       label: isRTL ? "عرض" : "View",
       icon: <Eye className="h-4 w-4" />,
       onClick: (row) => setViewContact(row),
+    },
+    {
+      label: isRTL ? "كشف حساب" : "Statement",
+      icon: <FileText className="h-4 w-4" />,
+      onClick: (row) => navigate(`/client/ledger?account=${row.account_id}`),
     },
     {
       label: isRTL ? "تعديل" : "Edit",

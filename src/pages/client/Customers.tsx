@@ -7,7 +7,7 @@ import { useCompanyId } from "@/hooks/useCompanyId";
 import { useState } from "react";
 import { DataTable, StatusBadge } from "@/components/ui/data-table";
 import type { DataTableColumn, DataTableAction } from "@/components/ui/data-table";
-import { Users, Eye, Edit, Trash2, FileSpreadsheet } from "lucide-react";
+import { Users, Eye, Edit, Trash2, FileSpreadsheet, FileText } from "lucide-react";
 import ImportCustomersDialog from "@/components/client/ImportCustomersDialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -39,8 +39,14 @@ const Customers = () => {
       ]);
       if (contactsRes.error) throw contactsRes.error;
       const balanceMap: Record<string, number> = {};
-      if (balancesRes.data && Array.isArray(balancesRes.data)) {
-        balancesRes.data.forEach((b: any) => { balanceMap[b.account_id] = Number(b.balance) || 0; });
+      if (balancesRes.data) {
+        if (Array.isArray(balancesRes.data)) {
+          balancesRes.data.forEach((b: any) => { balanceMap[b.account_id] = Number(b.balance) || 0; });
+        } else if (typeof balancesRes.data === 'object') {
+          Object.entries(balancesRes.data).forEach(([accountId, balance]) => {
+            balanceMap[accountId] = Number(balance) || 0;
+          });
+        }
       }
       return (contactsRes.data || []).map((c: any) => ({
         ...c,
@@ -131,6 +137,11 @@ const Customers = () => {
       label: isRTL ? "عرض" : "View",
       icon: <Eye className="h-4 w-4" />,
       onClick: (row) => setViewContact(row),
+    },
+    {
+      label: isRTL ? "كشف حساب" : "Statement",
+      icon: <FileText className="h-4 w-4" />,
+      onClick: (row) => navigate(`/client/ledger?account=${row.account_id}`),
     },
     {
       label: isRTL ? "تعديل" : "Edit",
