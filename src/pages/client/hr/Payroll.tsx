@@ -434,11 +434,26 @@ const Payroll = () => {
 
   // ===== VIEW DETAILS =====
   if (viewRun) {
+    const allSelected = payrollItems.length > 0 && payrollItems.every((i: any) => selectedItems.has(i.id));
+    const someSelected = selectedItems.size > 0;
+    const toggleSelectAll = () => {
+      if (allSelected) {
+        setSelectedItems(new Set());
+      } else {
+        setSelectedItems(new Set(payrollItems.map((i: any) => i.id)));
+      }
+    };
+    const toggleItem = (id: string) => {
+      const next = new Set(selectedItems);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      setSelectedItems(next);
+    };
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setViewRun(null)}>
+            <Button variant="ghost" size="icon" onClick={() => { setViewRun(null); setSelectedItems(new Set()); }}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -453,8 +468,16 @@ const Payroll = () => {
                 <Button variant="outline" size="sm" onClick={() => openEdit(viewRun)}>
                   <Pencil className="h-4 w-4 me-1" />{isRTL ? "تعديل" : "Edit"}
                 </Button>
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setConfirmAction({ type: "approve", run: viewRun })}>
-                  <CheckCircle className="h-4 w-4 me-1" />{isRTL ? "اعتماد" : "Approve"}
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  disabled={!someSelected}
+                  onClick={() => setConfirmAction({ type: "approve", run: viewRun })}
+                >
+                  <CheckCircle className="h-4 w-4 me-1" />
+                  {isRTL
+                    ? `اعتماد${someSelected ? ` (${selectedItems.size})` : ""}`
+                    : `Approve${someSelected ? ` (${selectedItems.size})` : ""}`}
                 </Button>
                 <Button variant="destructive" size="sm" onClick={() => setConfirmAction({ type: "cancel", run: viewRun })}>
                   <XCircle className="h-4 w-4 me-1" />{isRTL ? "إلغاء" : "Cancel"}
@@ -490,6 +513,24 @@ const Payroll = () => {
           </div>
         )}
 
+        {viewRun.status === "draft" && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-muted/50 border text-sm">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={toggleSelectAll}
+              id="select-all"
+            />
+            <label htmlFor="select-all" className="cursor-pointer font-medium">
+              {isRTL ? `تحديد الكل (${payrollItems.length})` : `Select All (${payrollItems.length})`}
+            </label>
+            {someSelected && !allSelected && (
+              <span className="text-muted-foreground">
+                — {isRTL ? `${selectedItems.size} محدد` : `${selectedItems.size} selected`}
+              </span>
+            )}
+          </div>
+        )}
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">{isRTL ? "تفاصيل الموظفين" : "Employee Details"}</CardTitle>
@@ -499,6 +540,9 @@ const Payroll = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/60 dark:bg-muted/30">
+                    {viewRun.status === "draft" && (
+                      <TableHead className="w-10 border-b border-border/50"></TableHead>
+                    )}
                     <TableHead className="font-semibold border-b border-border/50">#</TableHead>
                     <TableHead className="font-semibold border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
                     <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "أساسي" : "Basic"}</TableHead>
@@ -513,7 +557,15 @@ const Payroll = () => {
                 </TableHeader>
                 <TableBody>
                   {payrollItems.map((item: any, idx: number) => (
-                    <TableRow key={item.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                    <TableRow key={item.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${selectedItems.has(item.id) ? "bg-primary/[0.06]" : idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
+                      {viewRun.status === "draft" && (
+                        <TableCell className="border-b border-border/30">
+                          <Checkbox
+                            checked={selectedItems.has(item.id)}
+                            onCheckedChange={() => toggleItem(item.id)}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="text-muted-foreground tabular-nums border-b border-border/30">{idx + 1}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap border-b border-border/30">
                         <div>
@@ -534,6 +586,7 @@ const Payroll = () => {
                 </TableBody>
                 <tfoot>
                   <TableRow className="bg-muted/70 font-bold border-t-2">
+                    {viewRun.status === "draft" && <TableCell></TableCell>}
                     <TableCell colSpan={2}>{isRTL ? "الإجمالي" : "Total"}</TableCell>
                     <TableCell className="text-end tabular-nums">{formatNum(viewRun.total_basic || 0)}</TableCell>
                     <TableCell colSpan={3}></TableCell>
