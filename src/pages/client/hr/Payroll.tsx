@@ -633,13 +633,17 @@ const Payroll = () => {
   // ===== VIEW DETAILS =====
   if (viewRun) {
     const isDraft = viewRun.status === "draft";
+    const isPartiallyPosted = viewRun.status === "partially_posted";
     const isPosted = viewRun.status === "posted";
+    const canApprove = isDraft || isPartiallyPosted;
 
-    const allSelected = payrollItems.length > 0 && payrollItems.every((i: any) => selectedItems.has(i.id));
+    // Only show unapproved items for selection
+    const unapprovedItems = payrollItems.filter((i: any) => !i.is_approved);
+    const allSelected = unapprovedItems.length > 0 && unapprovedItems.every((i: any) => selectedItems.has(i.id));
     const someSelected = selectedItems.size > 0;
     const toggleSelectAll = () => {
       if (allSelected) setSelectedItems(new Set());
-      else setSelectedItems(new Set(payrollItems.map((i: any) => i.id)));
+      else setSelectedItems(new Set(unapprovedItems.map((i: any) => i.id)));
     };
     const toggleItem = (id: string) => {
       const next = new Set(selectedItems);
