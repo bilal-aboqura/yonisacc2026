@@ -6735,6 +6735,7 @@ export type Database = {
           shelf_location: string | null
           show_in_pos: boolean | null
           sku: string | null
+          tax_inclusive: boolean | null
           tax_rate: number | null
           tracking_method: string | null
           unit: string | null
@@ -6766,6 +6767,7 @@ export type Database = {
           shelf_location?: string | null
           show_in_pos?: boolean | null
           sku?: string | null
+          tax_inclusive?: boolean | null
           tax_rate?: number | null
           tracking_method?: string | null
           unit?: string | null
@@ -6797,6 +6799,7 @@ export type Database = {
           shelf_location?: string | null
           show_in_pos?: boolean | null
           sku?: string | null
+          tax_inclusive?: boolean | null
           tax_rate?: number | null
           tracking_method?: string | null
           unit?: string | null
