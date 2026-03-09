@@ -107,7 +107,16 @@ const ProductCard = () => {
 
   const inboundTypes = ["purchase", "adjustment_in", "transfer_in", "manufacturing_in"];
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const container = document.getElementById("product-card-root");
+    if (container) {
+      container.classList.add("product-card-print");
+      window.print();
+      container.classList.remove("product-card-print");
+    } else {
+      window.print();
+    }
+  };
   const handleExportExcel = () => {
     const columns = [
       { header: isRTL ? "التاريخ" : "Date", key: "date", format: "text" as const },
