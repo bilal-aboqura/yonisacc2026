@@ -363,22 +363,14 @@ const CreateAccount = () => {
           {/* Parent Account First */}
           <div className="space-y-2">
             <Label>الحساب الرئيسي</Label>
-            <Select 
-              value={parentId || "__none__"} 
-              onValueChange={(v) => setParentId(v === "__none__" ? "" : v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="اختر الحساب الرئيسي (اختياري)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">بدون حساب رئيسي (حساب جذر)</SelectItem>
-                {filteredParents.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.code} - {account.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AccountCombobox
+              accounts={filteredParents}
+              value={parentId || null}
+              onChange={(v) => setParentId(v || "")}
+              isRTL={true}
+              placeholder="اختر الحساب الرئيسي (اختياري)"
+              noneLabel="بدون حساب رئيسي (حساب جذر)"
+            />
             <p className="text-xs text-muted-foreground">
               اختر الحساب الرئيسي وسيتم تحديد النوع والرمز تلقائياً
             </p>

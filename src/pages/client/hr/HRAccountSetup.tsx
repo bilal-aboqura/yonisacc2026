@@ -186,22 +186,12 @@ const HRAccountSetup = () => {
       <Label className="text-sm font-medium">
         {isRTL ? field.labelAr : field.labelEn}
       </Label>
-      <Select
-        value={form[field.key] || "none"}
-        onValueChange={(v) => setForm((f) => ({ ...f, [field.key]: v === "none" ? null : v }))}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder={isRTL ? "اختر الحساب" : "Select Account"} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">{isRTL ? "-- بدون --" : "-- None --"}</SelectItem>
-          {accounts.map((acc) => (
-            <SelectItem key={acc.id} value={acc.id}>
-              {acc.code} - {isRTL ? acc.name : acc.name_en || acc.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <AccountCombobox
+        accounts={accounts}
+        value={form[field.key]}
+        onChange={(v) => setForm((f) => ({ ...f, [field.key]: v }))}
+        isRTL={isRTL}
+      />
     </div>
   );
 
