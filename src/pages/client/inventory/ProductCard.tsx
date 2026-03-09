@@ -151,7 +151,7 @@ const ProductCard = () => {
             <p className="text-muted-foreground text-sm">{product.sku || ""} {product.barcode ? `• ${product.barcode}` : ""}</p>
           </div>
         </div>
-        <div className={cn("flex items-center gap-2 flex-wrap", isRTL && "flex-row-reverse")}>
+        <div className={cn("flex items-center gap-2 flex-wrap no-print", isRTL && "flex-row-reverse")}>
           <Button variant="outline" size="sm" className="gap-2" onClick={handlePrint}><Printer className="h-4 w-4" />{isRTL ? "طباعة" : "Print"}</Button>
           <Button variant="outline" size="sm" className="gap-2" onClick={handleExportExcel}><FileSpreadsheet className="h-4 w-4" />{isRTL ? "تصدير" : "Export"}</Button>
           {canEdit && <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate(`/client/inventory/edit/${id}`)}><Pencil className="h-4 w-4" />{isRTL ? "تعديل" : "Edit"}</Button>}

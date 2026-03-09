@@ -490,6 +490,9 @@
   .print\:hidden {
     display: none !important;
   }
+  .print\:block {
+    display: block !important;
+  }
   /* Hide Lovable badge, iframes, fixed elements */
   iframe,
   [data-lovable],
@@ -540,5 +543,44 @@
   .print-layout .shadow-lg,
   .print-layout .shadow {
     box-shadow: none !important;
+  }
+
+  /* ─── Product Card Print ─── */
+  .product-card-print,
+  .product-card-print * {
+    visibility: visible !important;
+  }
+  .product-card-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 8mm !important;
+    background: white !important;
+    color: #1a1a1a !important;
+    font-size: 12px !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .product-card-print table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+  }
+  .product-card-print table th,
+  .product-card-print table td {
+    border: 1px solid #374151 !important;
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+    word-break: break-word !important;
+  }
+  .product-card-print table th {
+    background: #f3f4f6 !important;
+    font-weight: 700 !important;
+  }
+  .product-card-print .no-print {
+    display: none !important;
   }
 }
