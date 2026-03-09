@@ -106,7 +106,7 @@ const OwnerPlans = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("subscription_plans").select("*").order("sort_order");
       if (error) throw error;
-      return data as Plan[];
+      return (data as unknown) as Plan[];
     },
   });
 

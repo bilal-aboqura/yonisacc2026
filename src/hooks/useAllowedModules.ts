@@ -43,12 +43,13 @@ export const useAllowedModules = () => {
       if (subData?.plan_id) {
         const { data: planData } = await supabase
           .from("subscription_plans")
-          .select("allowed_modules")
+          .select("*")
           .eq("id", subData.plan_id)
           .maybeSingle();
 
-        if (planData?.allowed_modules && Array.isArray(planData.allowed_modules) && planData.allowed_modules.length > 0) {
-          return planData.allowed_modules as string[];
+        const planAny = planData as any;
+        if (planAny?.allowed_modules && Array.isArray(planAny.allowed_modules) && planAny.allowed_modules.length > 0) {
+          return planAny.allowed_modules as string[];
         }
       }
 
