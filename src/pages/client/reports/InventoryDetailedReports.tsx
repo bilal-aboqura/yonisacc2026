@@ -5,14 +5,13 @@ import { useTenantIsolation } from "@/hooks/useTenantIsolation";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package, Download, AlertTriangle, Clock, Users, UserCheck, ListChecks, BarChart3, BoxSelect, Layers } from "lucide-react";
+import { Package, Download, AlertTriangle, Users, UserCheck, ListChecks, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
@@ -48,28 +47,55 @@ const InventoryDetailedReports = () => {
   const { data: movements = [] } = useQuery({
     queryKey: ["movements-report", companyId],
     queryFn: async () => {
-      const { data } = await (supabase.from("stock_movements") as any).select("*, products(name, name_en), warehouses(name, name_en, branch_id)").eq("company_id", companyId!).order("movement_date", { ascending: false }).limit(1000);
+      const { data } = await (supabase.from("stock_movements") as any)
+        .select("*, products(name, name_en), warehouses!stock_movements_warehouse_id_fkey(name, name_en, branch_id)")
+        .eq("company_id", companyId!)
+        .order("movement_date", { ascending: false })
+        .limit(1000);
       return (data || []) as any[];
     },
     enabled: !!companyId,
   });
 
-  // Fetch sales invoices for "items by customer" report
-  const { data: salesInvoices = [] } = useQuery({
-    queryKey: ["sales-invoices-items", companyId],
+  // Fetch invoice items for by-vendor and by-customer reports
+  const { data: salesInvoiceData = [] } = useQuery({
+    queryKey: ["sales-inv-items-inventory", companyId],
     queryFn: async () => {
-      const { data } = await (supabase.from("invoices") as any).select("items, contacts(name, name_en)").eq("company_id", companyId!).eq("invoice_type", "sale").neq("status", "draft");
-      return (data || []) as any[];
+      const { data: invoices } = await supabase.from("invoices")
+        .select("id, contact_id, contacts(name, name_en)")
+        .eq("company_id", companyId!)
+        .eq("type", "sale")
+        .neq("status", "draft");
+      if (!invoices || invoices.length === 0) return [];
+      const ids = invoices.map((i: any) => i.id);
+      const { data: items } = await supabase.from("invoice_items")
+        .select("invoice_id, description, quantity, unit_price, total")
+        .in("invoice_id", ids);
+      return invoices.map((inv: any) => ({
+        ...inv,
+        invoiceItems: (items || []).filter((it: any) => it.invoice_id === inv.id),
+      }));
     },
     enabled: !!companyId,
   });
 
-  // Fetch purchase invoices for "items by vendor" report
-  const { data: purchaseInvoices = [] } = useQuery({
-    queryKey: ["purchase-invoices-items", companyId],
+  const { data: purchaseInvoiceData = [] } = useQuery({
+    queryKey: ["purchase-inv-items-inventory", companyId],
     queryFn: async () => {
-      const { data } = await (supabase.from("invoices") as any).select("items, contacts(name, name_en)").eq("company_id", companyId!).eq("invoice_type", "purchase").neq("status", "draft");
-      return (data || []) as any[];
+      const { data: invoices } = await supabase.from("invoices")
+        .select("id, contact_id, contacts(name, name_en)")
+        .eq("company_id", companyId!)
+        .eq("type", "purchase")
+        .neq("status", "draft");
+      if (!invoices || invoices.length === 0) return [];
+      const ids = invoices.map((i: any) => i.id);
+      const { data: items } = await supabase.from("invoice_items")
+        .select("invoice_id, description, quantity, unit_price, total")
+        .in("invoice_id", ids);
+      return invoices.map((inv: any) => ({
+        ...inv,
+        invoiceItems: (items || []).filter((it: any) => it.invoice_id === inv.id),
+      }));
     },
     enabled: !!companyId,
   });
@@ -104,8 +130,8 @@ const InventoryDetailedReports = () => {
       sku: p.sku || p.barcode || "-",
       category: p.product_categories ? (isRTL ? p.product_categories.name : p.product_categories.name_en || p.product_categories.name) : "-",
       buyPrice: p.purchase_price || 0,
-      sellPrice: p.selling_price || 0,
-      minPrice: p.min_selling_price || 0,
+      sellPrice: p.sale_price || 0,
+      minPrice: 0,
     })).sort((a: any, b: any) => a.name.localeCompare(b.name));
   }, [products, isRTL]);
 
@@ -137,32 +163,32 @@ const InventoryDetailedReports = () => {
   // Items by vendor
   const itemsByVendor = useMemo(() => {
     const map: Record<string, { vendor: string; items: { name: string; qty: number; total: number }[] }> = {};
-    purchaseInvoices.forEach((inv: any) => {
+    purchaseInvoiceData.forEach((inv: any) => {
       const vendor = inv.contacts ? (isRTL ? inv.contacts.name : inv.contacts.name_en || inv.contacts.name) : (isRTL ? "غير محدد" : "Unknown");
       if (!map[vendor]) map[vendor] = { vendor, items: [] };
-      (inv.items || []).forEach((item: any) => {
-        const existing = map[vendor].items.find((i: any) => i.name === (item.product_name || item.description));
-        if (existing) { existing.qty += item.quantity || 0; existing.total += (item.quantity || 0) * (item.unit_price || 0); }
-        else map[vendor].items.push({ name: item.product_name || item.description || "-", qty: item.quantity || 0, total: (item.quantity || 0) * (item.unit_price || 0) });
+      (inv.invoiceItems || []).forEach((item: any) => {
+        const existing = map[vendor].items.find((i: any) => i.name === item.description);
+        if (existing) { existing.qty += item.quantity || 0; existing.total += item.total || ((item.quantity || 0) * (item.unit_price || 0)); }
+        else map[vendor].items.push({ name: item.description || "-", qty: item.quantity || 0, total: item.total || ((item.quantity || 0) * (item.unit_price || 0)) });
       });
     });
-    return Object.values(map);
-  }, [purchaseInvoices, isRTL]);
+    return Object.values(map).filter(g => g.items.length > 0);
+  }, [purchaseInvoiceData, isRTL]);
 
   // Items by customer
   const itemsByCustomer = useMemo(() => {
     const map: Record<string, { customer: string; items: { name: string; qty: number; total: number }[] }> = {};
-    salesInvoices.forEach((inv: any) => {
+    salesInvoiceData.forEach((inv: any) => {
       const customer = inv.contacts ? (isRTL ? inv.contacts.name : inv.contacts.name_en || inv.contacts.name) : (isRTL ? "غير محدد" : "Unknown");
       if (!map[customer]) map[customer] = { customer, items: [] };
-      (inv.items || []).forEach((item: any) => {
-        const existing = map[customer].items.find((i: any) => i.name === (item.product_name || item.description));
-        if (existing) { existing.qty += item.quantity || 0; existing.total += (item.quantity || 0) * (item.unit_price || 0); }
-        else map[customer].items.push({ name: item.product_name || item.description || "-", qty: item.quantity || 0, total: (item.quantity || 0) * (item.unit_price || 0) });
+      (inv.invoiceItems || []).forEach((item: any) => {
+        const existing = map[customer].items.find((i: any) => i.name === item.description);
+        if (existing) { existing.qty += item.quantity || 0; existing.total += item.total || ((item.quantity || 0) * (item.unit_price || 0)); }
+        else map[customer].items.push({ name: item.description || "-", qty: item.quantity || 0, total: item.total || ((item.quantity || 0) * (item.unit_price || 0)) });
       });
     });
-    return Object.values(map);
-  }, [salesInvoices, isRTL]);
+    return Object.values(map).filter(g => g.items.length > 0);
+  }, [salesInvoiceData, isRTL]);
 
   const EmptyState = ({ icon: Icon, text }: { icon: any; text: string }) => (
     <TableRow><TableCell colSpan={8} className="text-center py-16"><Icon className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" /><p className="text-muted-foreground">{text}</p></TableCell></TableRow>
@@ -246,7 +272,6 @@ const InventoryDetailedReports = () => {
             <TableHead>{isRTL ? "التصنيف" : "Category"}</TableHead>
             <TableHead className="text-end">{isRTL ? "سعر الشراء" : "Buy Price"}</TableHead>
             <TableHead className="text-end">{isRTL ? "سعر البيع" : "Sell Price"}</TableHead>
-            <TableHead className="text-end">{isRTL ? "الحد الأدنى" : "Min Price"}</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {priceList.length === 0 ? <EmptyState icon={ListChecks} text={isRTL ? "لا توجد أصناف" : "No items"} /> :
@@ -257,7 +282,6 @@ const InventoryDetailedReports = () => {
                 <TableCell className="text-muted-foreground">{p.category}</TableCell>
                 <TableCell className="text-end tabular-nums">{formatCurrency(p.buyPrice)}</TableCell>
                 <TableCell className="text-end tabular-nums font-medium">{formatCurrency(p.sellPrice)}</TableCell>
-                <TableCell className="text-end tabular-nums text-muted-foreground">{formatCurrency(p.minPrice)}</TableCell>
               </TableRow>
             ))}
           </TableBody></Table></CardContent></Card>
@@ -281,7 +305,7 @@ const InventoryDetailedReports = () => {
                 <TableCell className="font-medium">{m.products ? (isRTL ? m.products.name : m.products.name_en || m.products.name) : "-"}</TableCell>
                 <TableCell><Badge variant={m.quantity > 0 ? "default" : "destructive"} className="font-normal">{m.movement_type}</Badge></TableCell>
                 <TableCell className={cn("text-end tabular-nums font-medium", m.quantity > 0 ? "text-emerald-600" : "text-destructive")}>{m.quantity > 0 ? `+${m.quantity}` : m.quantity}</TableCell>
-                <TableCell className="text-end tabular-nums">{m.running_balance ?? "-"}</TableCell>
+                <TableCell className="text-end tabular-nums">{m.balance ?? "-"}</TableCell>
                 <TableCell className="text-muted-foreground">{m.warehouses ? (isRTL ? m.warehouses.name : m.warehouses.name_en || m.warehouses.name) : "-"}</TableCell>
               </TableRow>
             ))}

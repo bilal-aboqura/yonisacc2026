@@ -28,8 +28,8 @@ const SalesReports = () => {
   const { data: invoices = [], isLoading: invLoading } = useQuery({
     queryKey: ["sales-invoices-report", companyId, dateFrom, dateTo],
     queryFn: async () => {
-      const base: any = supabase.from("invoices").select("*, contacts(name, name_en)");
-      let q = base.eq("company_id", companyId!).eq("invoice_type", "sale").order("invoice_date", { ascending: false });
+      let q = supabase.from("invoices").select("*, contacts(name, name_en)")
+        .eq("company_id", companyId!).eq("type", "sale").order("invoice_date", { ascending: false });
       if (dateFrom) q = q.gte("invoice_date", dateFrom);
       if (dateTo) q = q.lte("invoice_date", dateTo);
       const { data } = await q;
@@ -42,8 +42,8 @@ const SalesReports = () => {
   const { data: quotes = [], isLoading: quotesLoading } = useQuery({
     queryKey: ["quotes-report", companyId, dateFrom, dateTo],
     queryFn: async () => {
-      const base: any = supabase.from("invoices").select("*, contacts(name, name_en)");
-      let q = base.eq("company_id", companyId!).eq("invoice_type", "quote").order("invoice_date", { ascending: false });
+      let q = supabase.from("invoices").select("*, contacts(name, name_en)")
+        .eq("company_id", companyId!).eq("type", "quote").order("invoice_date", { ascending: false });
       if (dateFrom) q = q.gte("invoice_date", dateFrom);
       if (dateTo) q = q.lte("invoice_date", dateTo);
       const { data } = await q;
@@ -52,11 +52,25 @@ const SalesReports = () => {
     enabled: !!companyId,
   });
 
+  // Fetch invoice items for analysis
+  const invoiceIds = useMemo(() => invoices.filter((i: any) => i.status !== "draft").map((i: any) => i.id), [invoices]);
+  const { data: invoiceItems = [] } = useQuery({
+    queryKey: ["sales-invoice-items-report", invoiceIds],
+    queryFn: async () => {
+      if (invoiceIds.length === 0) return [];
+      const { data } = await supabase.from("invoice_items")
+        .select("invoice_id, product_id, description, quantity, unit_price, total")
+        .in("invoice_id", invoiceIds);
+      return (data || []) as any[];
+    },
+    enabled: invoiceIds.length > 0,
+  });
+
   // Fetch customers
   const { data: customers = [] } = useQuery({
     queryKey: ["customers-report", companyId],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("*").eq("company_id", companyId!).eq("type", "customer").eq("is_active", true);
+      const { data } = await supabase.from("contacts").select("*").eq("company_id", companyId!).in("type", ["customer", "both"]).eq("is_active", true);
       return data || [];
     },
     enabled: !!companyId,
@@ -65,16 +79,14 @@ const SalesReports = () => {
   // Sales by item analysis
   const salesByItem = useMemo(() => {
     const map: Record<string, { name: string; qty: number; total: number }> = {};
-    invoices.filter((i: any) => i.status !== "draft").forEach((inv: any) => {
-      (inv.items || []).forEach((item: any) => {
-        const key = item.product_name || item.description || "Other";
-        if (!map[key]) map[key] = { name: key, qty: 0, total: 0 };
-        map[key].qty += item.quantity || 0;
-        map[key].total += (item.quantity || 0) * (item.unit_price || 0);
-      });
+    invoiceItems.forEach((item: any) => {
+      const key = item.description || "Other";
+      if (!map[key]) map[key] = { name: key, qty: 0, total: 0 };
+      map[key].qty += item.quantity || 0;
+      map[key].total += item.total || ((item.quantity || 0) * (item.unit_price || 0));
     });
     return Object.values(map).sort((a, b) => b.total - a.total);
-  }, [invoices]);
+  }, [invoiceItems]);
 
   // Sales by customer
   const salesByCustomer = useMemo(() => {
@@ -94,16 +106,17 @@ const SalesReports = () => {
     const now = new Date();
     const buckets = { current: 0, days30: 0, days60: 0, days90: 0, over90: 0 };
     const details: any[] = [];
-    invoices.filter((i: any) => i.status !== "draft" && i.status !== "paid" && (i.balance_due || 0) > 0).forEach((inv: any) => {
+    invoices.filter((i: any) => i.status !== "draft" && (i.payment_status === "unpaid" || i.payment_status === "partial")).forEach((inv: any) => {
       const dueDate = new Date(inv.due_date || inv.invoice_date);
       const days = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-      const balance = inv.balance_due || inv.total || 0;
+      const balance = (inv.total || 0) - (inv.paid_amount || 0);
+      if (balance <= 0) return;
       if (days <= 0) buckets.current += balance;
       else if (days <= 30) buckets.days30 += balance;
       else if (days <= 60) buckets.days60 += balance;
       else if (days <= 90) buckets.days90 += balance;
       else buckets.over90 += balance;
-      details.push({ ...inv, ageDays: days, balance });
+      details.push({ ...inv, ageDays: Math.max(0, days), balance });
     });
     return { buckets, details: details.sort((a, b) => b.ageDays - a.ageDays) };
   }, [invoices]);
@@ -122,11 +135,11 @@ const SalesReports = () => {
   const formatCurrency = (v: number) => v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const formatDate = (d: string) => d ? new Date(d).toLocaleDateString(isRTL ? "ar-SA" : "en-US", { year: "numeric", month: "short", day: "numeric" }) : "-";
   const statusLabel = (s: string) => {
-    const m: Record<string, Record<string, string>> = { draft: { ar: "مسودة", en: "Draft" }, confirmed: { ar: "مؤكدة", en: "Confirmed" }, paid: { ar: "مدفوعة", en: "Paid" }, partial: { ar: "مدفوع جزئياً", en: "Partial" }, cancelled: { ar: "ملغاة", en: "Cancelled" }, converted: { ar: "محولة", en: "Converted" }, sent: { ar: "مرسلة", en: "Sent" } };
+    const m: Record<string, Record<string, string>> = { draft: { ar: "مسودة", en: "Draft" }, confirmed: { ar: "مؤكدة", en: "Confirmed" }, posted: { ar: "مرحّلة", en: "Posted" }, paid: { ar: "مدفوعة", en: "Paid" }, partial: { ar: "مدفوع جزئياً", en: "Partial" }, cancelled: { ar: "ملغاة", en: "Cancelled" }, converted: { ar: "محولة", en: "Converted" }, sent: { ar: "مرسلة", en: "Sent" } };
     return isRTL ? m[s]?.ar || s : m[s]?.en || s;
   };
   const statusVariant = (s: string): "default" | "secondary" | "destructive" | "outline" => {
-    if (s === "paid") return "default";
+    if (s === "paid" || s === "posted") return "default";
     if (s === "confirmed" || s === "sent") return "secondary";
     if (s === "cancelled") return "destructive";
     return "outline";
@@ -193,7 +206,7 @@ const SalesReports = () => {
                   <TableCell>{inv.contacts ? (isRTL ? inv.contacts.name : inv.contacts.name_en || inv.contacts.name) : "-"}</TableCell>
                   <TableCell className="text-end tabular-nums font-medium">{formatCurrency(inv.total || 0)}</TableCell>
                   <TableCell className="text-end tabular-nums text-muted-foreground">{formatCurrency(inv.paid_amount || 0)}</TableCell>
-                  <TableCell className={cn("text-end tabular-nums font-medium", (inv.balance_due || 0) > 0 && "text-destructive")}>{formatCurrency(inv.balance_due || 0)}</TableCell>
+                  <TableCell className={cn("text-end tabular-nums font-medium", ((inv.total || 0) - (inv.paid_amount || 0)) > 0 && "text-destructive")}>{formatCurrency((inv.total || 0) - (inv.paid_amount || 0))}</TableCell>
                   <TableCell><Badge variant={statusVariant(inv.status)}>{statusLabel(inv.status)}</Badge></TableCell>
                 </TableRow>
               ))}
@@ -379,7 +392,7 @@ const CustomerStatementTab = ({ invoices, customers, isRTL, formatCurrency, form
               <TableCell>{inv.contacts ? (isRTL ? inv.contacts.name : inv.contacts.name_en || inv.contacts.name) : "-"}</TableCell>
               <TableCell className="text-end tabular-nums">{formatCurrency(inv.total || 0)}</TableCell>
               <TableCell className="text-end tabular-nums text-muted-foreground">{formatCurrency(inv.paid_amount || 0)}</TableCell>
-              <TableCell className="text-end tabular-nums font-medium">{formatCurrency(inv.balance_due || 0)}</TableCell>
+              <TableCell className="text-end tabular-nums font-medium">{formatCurrency((inv.total || 0) - (inv.paid_amount || 0))}</TableCell>
             </TableRow>
           ))}
         </TableBody></Table>
