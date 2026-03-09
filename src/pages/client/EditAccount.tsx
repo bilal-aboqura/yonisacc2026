@@ -53,6 +53,8 @@ const EditAccount = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [hasTransactions, setHasTransactions] = useState(false);
+  const [hasChildren, setHasChildren] = useState(false);
 
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -224,6 +226,22 @@ const EditAccount = () => {
         setOpeningBalance(accountData.balance || 0);
         setIsActive(accountData.is_active ?? true);
         setIsSystemAccount(accountData.is_system || false);
+
+        // Check if account has transactions (journal entry lines)
+        const { count: jelCount } = await supabase
+          .from("journal_entry_lines")
+          .select("id", { count: "exact", head: true })
+          .eq("account_id", id as string);
+        
+        // Check if account has children
+        const { count: childCount } = await supabase
+          .from("accounts")
+          .select("id", { count: "exact", head: true })
+          .eq("parent_id", id as string)
+          .eq("company_id", companyData.id);
+
+        setHasTransactions((jelCount || 0) > 0);
+        setHasChildren((childCount || 0) > 0);
       }
     } catch (error: any) {
       console.error("Error fetching data:", error);
@@ -495,8 +513,41 @@ const EditAccount = () => {
                   <p className="text-sm text-muted-foreground">
                     {isRTL ? "تفعيل هذا الخيار إذا كان الحساب يحتوي على حسابات فرعية" : "Enable if this account has sub-accounts"}
                   </p>
+                  {!isParent && hasTransactions && (
+                    <p className="text-sm text-destructive mt-1">
+                      {isRTL ? "لا يمكن تحويله لحساب تجميعي لوجود حركات مالية عليه" : "Cannot convert to parent: account has transactions"}
+                    </p>
+                  )}
+                  {isParent && hasChildren && (
+                    <p className="text-sm text-destructive mt-1">
+                      {isRTL ? "لا يمكن إلغاء التجميعي لوجود حسابات فرعية" : "Cannot remove parent status: has child accounts"}
+                    </p>
+                  )}
                 </div>
-                <Switch checked={isParent} onCheckedChange={setIsParent} disabled={isSystemAccount} />
+                <Switch 
+                  checked={isParent} 
+                  onCheckedChange={(checked) => {
+                    if (checked && hasTransactions) {
+                      toast({
+                        title: isRTL ? "غير مسموح" : "Not Allowed",
+                        description: isRTL ? "لا يمكن تحويل الحساب إلى تجميعي لوجود حركات مالية عليه" : "Cannot convert to parent account because it has transactions",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    if (!checked && hasChildren) {
+                      toast({
+                        title: isRTL ? "غير مسموح" : "Not Allowed",
+                        description: isRTL ? "لا يمكن إلغاء التجميعي لوجود حسابات فرعية تابعة له" : "Cannot remove parent status because it has child accounts",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    setIsParent(checked);
+                    if (checked) setOpeningBalance(0);
+                  }} 
+                  disabled={isSystemAccount || (!isParent && hasTransactions) || (isParent && hasChildren)} 
+                />
               </div>
 
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
