@@ -1,71 +1,85 @@
 
+# خطة نظام نقاط البيع الشامل (POS)
 
-## تعديل نظام الرواتب: استحقاق + تسليم على دفعات
+## الحالة: ✅ تم تنفيذ المراحل 1-10
 
-### الفكرة
-تحويل نظام الرواتب من خطوة واحدة إلى خطوتين:
+### ما تم إنجازه:
 
-1. **الاعتماد (استحقاق)**: قيد لكل موظف — مدين: مصروف الراتب والبدلات، دائن: حساب الموظف
-2. **التسليم (دفعات)**: بعد الاعتماد، يمكن تسليم الرواتب على دفعات باختيار موظفين + طريقة دفع — قيد: مدين طريقة الدفع (بنك/صندوق)، دائن حساب الموظف
+**المرحلة 1: قاعدة البيانات** ✅
+- 11 جدول جديد: pos_terminals, pos_sessions, pos_transactions, pos_transaction_items, pos_tables, pos_reservations, pos_menus, pos_menu_items, pos_promotions, pos_sales_targets, pos_activity_log
+- RLS على جميع الجداول
+- صلاحيات RBAC: 8 feature flags جديدة
 
-### التغييرات المطلوبة
+**المرحلة 2: شاشة POS الرئيسية** ✅
+- شاشة ملء الشاشة مع شبكة منتجات + سلة مشتريات
+- بحث سريع وباركود + تصفية بالتصنيف
+- نوع الطلب (محلي/سفري/توصيل)
+- أزرار دفع متعددة (نقد/بطاقة)
+- اختصارات لوحة مفاتيح (F1/F2/F5/Esc)
+- فتح/إغلاق الصندوق مع المبلغ
 
-#### 1. جدول جديد: `hr_payroll_payments` (migration)
-```sql
-CREATE TABLE public.hr_payroll_payments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  payroll_run_id UUID NOT NULL REFERENCES hr_payroll_runs(id) ON DELETE CASCADE,
-  company_id UUID NOT NULL REFERENCES companies(id),
-  payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  payment_method_id UUID REFERENCES payment_methods(id),
-  journal_entry_id UUID REFERENCES journal_entries(id),
-  total_amount NUMERIC DEFAULT 0,
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  created_by UUID
-);
+**المرحلة 3: إدارة الطاولات** ✅
+- عرض تفاعلي مع ألوان حسب الحالة
+- CRUD للطاولات مع الشكل والسعة والطابق
 
-CREATE TABLE public.hr_payroll_payment_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  payment_id UUID NOT NULL REFERENCES hr_payroll_payments(id) ON DELETE CASCADE,
-  payroll_item_id UUID NOT NULL REFERENCES hr_payroll_items(id),
-  employee_id UUID NOT NULL REFERENCES hr_employees(id),
-  amount NUMERIC NOT NULL DEFAULT 0
-);
-```
+**المرحلة 4: الإعدادات والمنيو** ✅
+- إدارة نقاط البيع (Terminals) مع النوع (تجزئة/مطعم)
+- إدارة المنيو المخصص لكل فرع
 
-أيضاً إضافة عمود `paid_amount` في `hr_payroll_items` لتتبع المبلغ المدفوع لكل موظف:
-```sql
-ALTER TABLE hr_payroll_items ADD COLUMN paid_amount NUMERIC DEFAULT 0;
-```
+**المرحلة 5: العروض والأهداف** ✅
+- إنشاء عروض (نسبة/مبلغ/اشتر X واحصل Y)
+- أهداف مبيعات مع شريط التقدم
 
-وتفعيل RLS مع سياسات على `company_id`.
+**المرحلة 6: التقارير** ✅
+- بطاقات ملخص (إجمالي/عدد/متوسط)
+- رسم بياني يومي + توزيع طرق الدفع
+- جدول العمليات
 
-#### 2. تعديل `approvePayrollMutation` في `Payroll.tsx`
-- التحقق أن كل موظف محدد لديه `account_id`
-- إنشاء **قيد استحقاق لكل موظف**:
-  - مدين: حسابات المصروفات (راتب أساسي، سكن، نقل، أخرى)
-  - دائن: حساب الموظف (`account_id`) بالصافي
-  - دائن: حساب الموظف بخصم السلف (إن وجد) — أو معالجة السلف بشكل منفصل
-- تحديث حالة المسير إلى `posted`
-- حفظ `is_auto: true, reference_type: "hr"` في القيود للظهور في سجل العمليات
+**المرحلة 7-8: التكامل** ✅
+- 7 مسارات POS في App.tsx
+- قسم "نقاط البيع" في القائمة الجانبية
+- سجل نشاط المستخدمين
 
-#### 3. واجهة التسليم (بعد الاعتماد) في `Payroll.tsx`
-عند عرض مسير معتمد (`posted`):
-- إظهار جدول الموظفين مع أعمدة: الصافي، المدفوع، المتبقي
-- خانات اختيار للموظفين المتبقي لهم رصيد
-- اختيار طريقة الدفع (من `useActivePaymentMethods`)
-- تحديد تاريخ الدفع
-- زر "تسليم" ينشئ:
-  - سجل في `hr_payroll_payments` + `hr_payroll_payment_items`
-  - قيد محاسبي: مدين = حساب طريقة الدفع (بنك/صندوق)، دائن = حساب الموظف
-  - تحديث `paid_amount` في `hr_payroll_items`
-- إظهار سجل الدفعات السابقة أسفل الجدول
+**المرحلة 9: الكوبونات والعروض المتقدمة** ✅
+- جدول pos_coupons مع RLS
+- شاشة إدارة كوبونات (CRUD) مع inline form
+- تطبيق الكوبون في شاشة البيع مع التحقق (الفترة، الاستخدام، الحد الأدنى)
+- ربط العروض بمنتجات محددة عبر جدول pos_promotion_products
+- تحويل شاشة العروض من Dialog إلى inline مع product checkboxes
 
-#### 4. سجل العمليات
-القيود ستُنشأ بـ `is_auto: true, reference_type: "hr"` — يظهرها تلقائياً تحت تبويب "الموارد البشرية" في سجل العمليات (الفلتر موجود بالفعل في سطر 101).
+**المرحلة 10: مستخدمو POS وتقارير الصندوق** ✅
+- جدول pos_users مع أدوار (كاشير/مدير فرع) وربط بالفرع
+- شاشة إدارة مستخدمي POS (إنشاء بإيميل+باسورد+فرع+دور)
+- تقرير إغلاق الصندوق (مبيعات/مرتجعات/خصومات/طرق دفع/رصيد إغلاق) مع طباعة
+- شاشة سجل المستخدمين (تاريخ الجلسات مع فلترة)
+- أعمدة تقارير في pos_sessions (total_sales, total_returns, payment_summary, etc.)
 
-### الملفات المتأثرة
-- **Migration SQL** — جدول `hr_payroll_payments` + `hr_payroll_payment_items` + عمود `paid_amount`
-- **`src/pages/client/hr/Payroll.tsx`** — تعديل mutation الاعتماد + إضافة واجهة التسليم بدفعات
+---
 
+# نظام إدارة السنوات المالية الشامل
+
+## الحالة: ✅ تم تنفيذ المراحل 1-4
+
+### ما تم إنجازه:
+
+**المرحلة 1: البنية التحتية** ✅
+- تطوير جدول fiscal_periods بأعمدة: status, locked_by, locked_at, closing_journal_entry_id, opening_journal_entry_id, created_by, reopen_reason, reopened_at, reopened_by
+- جدول fiscal_year_audit_log مع RLS
+- جداول stock_count_sessions و stock_count_lines مع RLS
+- 3 RPCs: pre_closing_validation, close_fiscal_year, reopen_fiscal_year
+
+**المرحلة 2: واجهة إدارة السنوات المالية** ✅
+- صفحة FiscalYearManagement.tsx مع 5 تبويبات (السنوات | التحقق | الجرد | التقرير | التدقيق)
+- بطاقات إحصائية (مفتوحة/مقفلة مؤقتاً/مقفلة نهائياً)
+- إجراءات: قفل مؤقت ← إقفال نهائي ← إعادة فتح
+
+**المرحلة 3: RPCs للعمليات الذرية** ✅
+- pre_closing_validation: فحص قيود مسودة، فواتير مسودة، حركات معلقة، فترات HR
+- close_fiscal_year: إقفال حسابات الدخل → أرباح مبقاة → أرصدة افتتاحية
+- reopen_fiscal_year: حذف قيود الإقفال وإعادة الفتح مع سجل تدقيق
+
+**المرحلة 4: التقارير وسجل التدقيق** ✅
+- PreClosingValidation.tsx: فحوصات تلقائية مع ✅/❌
+- StockCountSession.tsx: جلسات جرد مع إدخال كميات فعلية
+- YearClosingReport.tsx: ملخص الدخل + الميزانية العمومية
+- FiscalAuditLog.tsx: سجل كل العمليات على السنوات المالية
