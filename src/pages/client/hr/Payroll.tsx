@@ -765,7 +765,7 @@ const Payroll = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/60 dark:bg-muted/30">
-                    {isDraft && <TableHead className="w-10 border-b border-border/50"></TableHead>}
+                    {canApprove && <TableHead className="w-10 border-b border-border/50"></TableHead>}
                     <TableHead className="font-semibold border-b border-border/50">#</TableHead>
                     <TableHead className="font-semibold border-b border-border/50">{isRTL ? "الموظف" : "Employee"}</TableHead>
                     <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "أساسي" : "Basic"}</TableHead>
@@ -776,7 +776,8 @@ const Payroll = () => {
                     <TableHead className="text-end font-semibold text-destructive border-b border-border/50">{isRTL ? "خصم سلف" : "Loan"}</TableHead>
                     <TableHead className="text-end font-semibold border-b border-border/50">{isRTL ? "إجمالي الاستقطاعات" : "Total Ded."}</TableHead>
                     <TableHead className="text-end font-semibold text-primary border-b border-border/50">{isRTL ? "الصافي" : "Net"}</TableHead>
-                    {isPosted && (
+                    <TableHead className="text-center font-semibold border-b border-border/50">{isRTL ? "الحالة" : "Status"}</TableHead>
+                    {(isPosted || isPartiallyPosted) && (
                       <>
                         <TableHead className="text-end font-semibold text-emerald-600 border-b border-border/50">{isRTL ? "المدفوع" : "Paid"}</TableHead>
                         <TableHead className="text-end font-semibold text-amber-600 border-b border-border/50">{isRTL ? "المتبقي" : "Remaining"}</TableHead>
@@ -788,11 +789,16 @@ const Payroll = () => {
                   {payrollItems.map((item: any, idx: number) => {
                     const paid = item.paid_amount || 0;
                     const remaining = (item.net_salary || 0) - paid;
+                    const itemApproved = !!item.is_approved;
                     return (
                       <TableRow key={item.id} className={`transition-colors duration-150 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] ${selectedItems.has(item.id) ? "bg-primary/[0.06]" : idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/10" : ""}`}>
-                        {isDraft && (
+                        {canApprove && (
                           <TableCell className="border-b border-border/30">
-                            <Checkbox checked={selectedItems.has(item.id)} onCheckedChange={() => toggleItem(item.id)} />
+                            {itemApproved ? (
+                              <CheckCircle className="h-4 w-4 text-emerald-600" />
+                            ) : (
+                              <Checkbox checked={selectedItems.has(item.id)} onCheckedChange={() => toggleItem(item.id)} />
+                            )}
                           </TableCell>
                         )}
                         <TableCell className="text-muted-foreground tabular-nums border-b border-border/30">{idx + 1}</TableCell>
@@ -810,7 +816,13 @@ const Payroll = () => {
                         <TableCell className="text-end tabular-nums text-destructive border-b border-border/30">{formatNum(item.loan_deduction || 0)}</TableCell>
                         <TableCell className="text-end tabular-nums text-destructive font-medium border-b border-border/30">{formatNum(item.total_deductions || 0)}</TableCell>
                         <TableCell className="text-end tabular-nums font-bold text-primary border-b border-border/30">{formatNum(item.net_salary || 0)}</TableCell>
-                        {isPosted && (
+                        <TableCell className="text-center border-b border-border/30">
+                          {itemApproved
+                            ? <Badge className="bg-emerald-600 text-white text-xs">{isRTL ? "معتمد" : "Approved"}</Badge>
+                            : <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300 text-xs">{isRTL ? "غير معتمد" : "Pending"}</Badge>
+                          }
+                        </TableCell>
+                        {(isPosted || isPartiallyPosted) && (
                           <>
                             <TableCell className="text-end tabular-nums text-emerald-600 border-b border-border/30">{formatNum(paid)}</TableCell>
                             <TableCell className={`text-end tabular-nums font-medium border-b border-border/30 ${remaining > 0 ? "text-amber-600" : "text-emerald-600"}`}>
