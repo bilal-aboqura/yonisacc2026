@@ -134,14 +134,30 @@ const Loans = () => {
 
   // --- Delete ---
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("hr_loans").delete().eq("id", id).eq("company_id", companyId);
+    mutationFn: async (loan: any) => {
+      if ((loan.total_paid || 0) > 0) {
+        throw new Error(isRTL ? "لا يمكن حذف السلفة لوجود خصومات مرتبطة بمسيرات رواتب" : "Cannot delete loan: payroll deductions already exist");
+      }
+      // Find and delete the associated journal entry
+      const { data: je } = await (supabase as any)
+        .from("journal_entries").select("id")
+        .eq("company_id", companyId)
+        .eq("reference_type", "hr_loan")
+        .eq("is_auto", true)
+        .eq("entry_date", loan.start_date)
+        .eq("total_debit", loan.amount)
+        .maybeSingle();
+      if (je) {
+        await (supabase as any).from("journal_entry_lines").delete().eq("entry_id", je.id);
+        await (supabase as any).from("journal_entries").delete().eq("id", je.id);
+      }
+      const { error } = await (supabase as any).from("hr_loans").delete().eq("id", loan.id).eq("company_id", companyId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hr-loans"] });
       setDeleteLoan(null);
-      toast.success(isRTL ? "تم حذف السلفة" : "Loan deleted");
+      toast.success(isRTL ? "تم حذف السلفة والقيد المرتبط" : "Loan and related journal entry deleted");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -294,7 +310,16 @@ const Loans = () => {
                           <DropdownMenuItem onClick={() => handleEdit(l)}>
                             <Pencil className="h-4 w-4 me-2" />{isRTL ? "تعديل" : "Edit"}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setDeleteLoan(l)} className="text-destructive focus:text-destructive">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              if ((l.total_paid || 0) > 0) {
+                                toast.error(isRTL ? "لا يمكن حذف السلفة لوجود خصومات مرتبطة بمسيرات رواتب" : "Cannot delete: payroll deductions exist");
+                                return;
+                              }
+                              setDeleteLoan(l);
+                            }}
+                            className="text-destructive focus:text-destructive"
+                          >
                             <Trash2 className="h-4 w-4 me-2" />{isRTL ? "حذف" : "Delete"}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -341,14 +366,14 @@ const Loans = () => {
             <AlertDialogTitle>{isRTL ? "تأكيد الحذف" : "Confirm Delete"}</AlertDialogTitle>
             <AlertDialogDescription>
               {isRTL
-                ? `هل أنت متأكد من حذف سلفة الموظف "${deleteLoan ? getEmployeeName(deleteLoan) : ""}"؟ لا يمكن التراجع عن هذا الإجراء.`
-                : `Are you sure you want to delete the loan for "${deleteLoan ? getEmployeeName(deleteLoan) : ""}"? This action cannot be undone.`}
+                ? `هل أنت متأكد من حذف سلفة الموظف "${deleteLoan ? getEmployeeName(deleteLoan) : ""}"؟ سيتم حذف القيد المحاسبي المرتبط أيضاً. لا يمكن التراجع عن هذا الإجراء.`
+                : `Are you sure you want to delete the loan for "${deleteLoan ? getEmployeeName(deleteLoan) : ""}"? The related journal entry will also be deleted. This action cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{isRTL ? "إلغاء" : "Cancel"}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteLoan && deleteMutation.mutate(deleteLoan.id)}
+              onClick={() => deleteLoan && deleteMutation.mutate(deleteLoan)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin me-2" />}
