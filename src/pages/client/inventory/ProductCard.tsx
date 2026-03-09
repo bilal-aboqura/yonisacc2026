@@ -177,7 +177,7 @@ const ProductCard = () => {
       </div>
 
       {/* Branch Filter */}
-      <Card>
+      <Card className="no-print">
         <CardContent className="p-4">
           <div className={cn("flex items-center gap-3", isRTL && "flex-row-reverse")}>
             <Filter className="h-4 w-4 text-muted-foreground" />
