@@ -225,27 +225,36 @@ function PrintTable({ table, style, pc, isRTL }: {
     style === "modern" ? "1px solid #e5e7eb" :
     "none";
 
+  const isWide = table.headers.length > 6;
+  const cellFontSize = isWide ? "9px" : (style === "minimal" ? "10px" : "12px");
+  const headerFontSize = isWide ? "9px" : (style === "minimal" ? "10px" : "11px");
+  const cellPadding = isWide ? "2px 3px" : (style === "minimal" ? "3px 6px" : "6px 10px");
+  const headerPadding = isWide ? "3px 4px" : (style === "minimal" ? "4px 6px" : "8px 10px");
+
   return (
-    <table style={{
+    <table className={isWide ? "wide-table" : ""} style={{
       width: "100%",
       borderCollapse: "collapse",
       marginBottom: "12px",
+      tableLayout: "fixed",
       border: style === "minimal" ? `1px solid #d1d5db` : borderStyle,
     }}>
       <thead>
         <tr>
           {table.headers.map((h, i) => (
             <th key={i} style={{
-              padding: style === "minimal" ? "4px 6px" : "8px 10px",
+              padding: headerPadding,
               textAlign: isRTL ? "right" : "left",
               border: borderStyle,
               background: style === "classic" ? "#f3f4f6" :
                 style === "government" ? "#e5e7eb" :
                 style === "modern" ? pc : "transparent",
               color: style === "modern" ? "white" : "#374151",
-              fontSize: style === "minimal" ? "10px" : "11px",
+              fontSize: headerFontSize,
               fontWeight: 700,
               borderBottom: style === "minimal" ? `2px solid ${pc}` : borderStyle,
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
             }}>
               {h}
             </th>
@@ -257,12 +266,14 @@ function PrintTable({ table, style, pc, isRTL }: {
           <tr key={ri}>
             {row.map((cell, ci) => (
               <td key={ci} style={{
-                padding: style === "minimal" ? "3px 6px" : "6px 10px",
+                padding: cellPadding,
                 border: style === "minimal" ? "none" : borderStyle,
                 borderBottom: style === "minimal" ? "1px solid #f3f4f6" : borderStyle,
-                fontSize: style === "minimal" ? "10px" : "12px",
+                fontSize: cellFontSize,
                 fontVariantNumeric: typeof cell === "number" ? "tabular-nums" : undefined,
                 textAlign: typeof cell === "number" ? (isRTL ? "left" : "right") : (isRTL ? "right" : "left"),
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
               }}>
                 {typeof cell === "number" ? cell.toLocaleString("en-US", { minimumFractionDigits: 2 }) : cell}
               </td>
@@ -273,15 +284,16 @@ function PrintTable({ table, style, pc, isRTL }: {
           <tr>
             {table.totals.map((cell, ci) => (
               <td key={ci} style={{
-                padding: style === "minimal" ? "4px 6px" : "8px 10px",
+                padding: headerPadding,
                 border: borderStyle,
                 fontWeight: 700,
-                fontSize: style === "minimal" ? "11px" : "13px",
+                fontSize: isWide ? "10px" : (style === "minimal" ? "11px" : "13px"),
                 background: style === "classic" ? "#f9fafb" :
                   style === "government" ? "#e5e7eb" :
                   style === "modern" ? `${pc}11` : "transparent",
                 borderTop: style === "minimal" ? `2px solid ${pc}` : borderStyle,
                 textAlign: typeof cell === "number" ? (isRTL ? "left" : "right") : (isRTL ? "right" : "left"),
+                wordBreak: "break-word",
               }}>
                 {typeof cell === "number" ? cell.toLocaleString("en-US", { minimumFractionDigits: 2 }) : cell}
               </td>

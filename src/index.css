@@ -456,18 +456,21 @@
 
 /* Print Engine Styles - A4 Portrait Professional Layout */
 @media print {
-  /* Hide everything except print content */
-  body * {
-    visibility: hidden;
+  /* Hide everything except the print wrapper overlay */
+  body > *:not(.print-overlay-root) {
+    display: none !important;
   }
-  .print-layout,
-  .print-layout * {
-    visibility: visible !important;
+  /* The fixed overlay container of PrintDialog */
+  .print-overlay-root {
+    display: block !important;
+    position: static !important;
+    background: white !important;
+  }
+  .print-overlay-root > .print\:hidden {
+    display: none !important;
   }
   .print-layout {
-    position: absolute;
-    left: 0;
-    top: 0;
+    position: relative;
     width: 100% !important;
     max-width: none !important;
     min-height: auto;
@@ -497,11 +500,10 @@
   iframe,
   [data-lovable],
   a[href*="lovable"],
-  div[style*="position: fixed"],
+  div[style*="position: fixed"]:not(.print-overlay-root),
   .lovable-badge,
   #lovable-badge {
     display: none !important;
-    visibility: hidden !important;
   }
   @page {
     size: A4 portrait;
@@ -511,10 +513,19 @@
   .print-layout table {
     width: 100% !important;
     border-collapse: collapse !important;
+    table-layout: fixed !important;
   }
   .print-layout table th,
   .print-layout table td {
     border: 1px solid #374151 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+  /* Auto-scale font for wide tables (7+ columns) */
+  .print-layout table.wide-table th,
+  .print-layout table.wide-table td {
+    font-size: 9px !important;
+    padding: 3px 4px !important;
   }
   /* Table pagination */
   table {
