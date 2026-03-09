@@ -263,7 +263,7 @@ const App = () => (
               <Route path="sales/:id" element={<ViewInvoice />} />
               <Route path="sales/:id/edit" element={<CreateSalesInvoice />} />
               <Route path="sales/:id" element={<ViewInvoice />} />
-              <Route path="sales/setup" element={<SalesAccountSetup />} />
+              {/* sales/setup removed - available in settings */}
               
               {/* Purchases */}
               <Route path="vendors" element={<Vendors />} />
