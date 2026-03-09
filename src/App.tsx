@@ -274,7 +274,7 @@ const App = () => (
               <Route path="purchases/new" element={<CreatePurchaseInvoice />} />
               <Route path="purchases/:id" element={<ViewInvoice />} />
               <Route path="purchases/:id/edit" element={<CreatePurchaseInvoice />} />
-              <Route pa{/* purchases/setup removed - available in settings */}      
+              {/* purchases/setup removed - available in settings */}      
               {/* HR */}
               <Route path="hr" element={<HRDashboard />} />
               <Route path="hr/employees" element={<Employees />} />
