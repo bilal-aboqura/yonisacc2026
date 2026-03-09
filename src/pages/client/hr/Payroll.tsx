@@ -40,8 +40,59 @@ const Payroll = () => {
   const [paymentSelectedItems, setPaymentSelectedItems] = useState<Set<string>>(new Set());
   const [paymentMethodId, setPaymentMethodId] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentAmounts, setPaymentAmounts] = useState<Record<string, number>>({});
 
   const { data: activePaymentMethods = [] } = useActivePaymentMethods(companyId);
+
+  // Fetch HR account settings for bank/cash accounts
+  const { data: hrAccountSettings } = useQuery({
+    queryKey: ["hr-account-settings-payment", companyId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("hr_account_settings").select("bank_account_id, cash_account_id")
+        .eq("company_id", companyId).maybeSingle();
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  // Fetch account names for HR settings accounts
+  const hrAccountIds = [hrAccountSettings?.bank_account_id, hrAccountSettings?.cash_account_id].filter(Boolean);
+  const { data: hrAccounts = [] } = useQuery({
+    queryKey: ["hr-payment-accounts", hrAccountIds],
+    queryFn: async () => {
+      if (hrAccountIds.length === 0) return [];
+      const { data } = await supabase.from("accounts").select("id, name, name_en, code")
+        .in("id", hrAccountIds);
+      return data || [];
+    },
+    enabled: hrAccountIds.length > 0,
+  });
+
+  // Build merged payment options: active payment methods + HR bank/cash accounts
+  const mergedPaymentOptions = (() => {
+    const options: { id: string; label: string; account_id: string }[] = [];
+    // From active payment methods
+    activePaymentMethods.forEach((m: any) => {
+      options.push({ id: `pm-${m.id}`, label: isRTL ? m.name : (m.name_en || m.name), account_id: m.account_id });
+    });
+    // From HR account settings
+    if (hrAccountSettings?.bank_account_id) {
+      const alreadyLinked = activePaymentMethods.some((m: any) => m.account_id === hrAccountSettings.bank_account_id);
+      if (!alreadyLinked) {
+        const acc = hrAccounts.find((a: any) => a.id === hrAccountSettings.bank_account_id);
+        if (acc) options.push({ id: `hr-bank`, label: isRTL ? `${acc.name} (بنك)` : `${acc.name_en || acc.name} (Bank)`, account_id: acc.id });
+      }
+    }
+    if (hrAccountSettings?.cash_account_id) {
+      const alreadyLinked = activePaymentMethods.some((m: any) => m.account_id === hrAccountSettings.cash_account_id);
+      if (!alreadyLinked) {
+        const acc = hrAccounts.find((a: any) => a.id === hrAccountSettings.cash_account_id);
+        if (acc) options.push({ id: `hr-cash`, label: isRTL ? `${acc.name} (نقدي)` : `${acc.name_en || acc.name} (Cash)`, account_id: acc.id });
+      }
+    }
+    return options;
+  })();
 
   // Queries
   const { data: payrollRuns = [], isLoading } = useQuery({
