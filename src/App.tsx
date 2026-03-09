@@ -263,8 +263,7 @@ const App = () => (
               <Route path="sales/:id" element={<ViewInvoice />} />
               <Route path="sales/:id/edit" element={<CreateSalesInvoice />} />
               <Route path="sales/:id" element={<ViewInvoice />} />
-              <Route path="sales/setup" element={<SalesAccountSetup />} />
-              
+              {/* sales/setup removed - available in settings */}      
               {/* Purchases */}
               <Route path="vendors" element={<Vendors />} />
               <Route path="purchase-orders" element={<PurchaseOrders />} />
@@ -275,8 +274,7 @@ const App = () => (
               <Route path="purchases/new" element={<CreatePurchaseInvoice />} />
               <Route path="purchases/:id" element={<ViewInvoice />} />
               <Route path="purchases/:id/edit" element={<CreatePurchaseInvoice />} />
-              <Route path="purchases/setup" element={<PurchasesAccountSetup />} />
-              
+              {/* purchases/setup removed - available in settings */}      
               {/* HR */}
               <Route path="hr" element={<HRDashboard />} />
               <Route path="hr/employees" element={<Employees />} />

@@ -1,43 +1,85 @@
 
+# خطة نظام نقاط البيع الشامل (POS)
 
-## خطة التعديلات
+## الحالة: ✅ تم تنفيذ المراحل 1-10
 
-### 1. حذف تجهيز الحسابات من المبيعات والمشتريات
-- **`src/components/client/ClientLayout.tsx`**: حذف سطري القائمة الجانبية لـ "تجهيز الحسابات" (سطر 123 و 135)
-- **`src/App.tsx`**: حذف مسارات `/client/sales/setup` و `/client/purchases/setup` (سطر 266 و 278)
+### ما تم إنجازه:
 
-### 2. إصلاح رصيد العملاء والموردين
-**المشكلة**: `get_account_balances` يرجع **كائن JSON** (`{account_id: balance}`) وليس مصفوفة. الكود الحالي في العملاء يعامله كمصفوفة بـ `.forEach` فيفشل. الموردين لا يستدعي الـ RPC أصلاً.
+**المرحلة 1: قاعدة البيانات** ✅
+- 11 جدول جديد: pos_terminals, pos_sessions, pos_transactions, pos_transaction_items, pos_tables, pos_reservations, pos_menus, pos_menu_items, pos_promotions, pos_sales_targets, pos_activity_log
+- RLS على جميع الجداول
+- صلاحيات RBAC: 8 feature flags جديدة
 
-- **`src/pages/client/Customers.tsx`**: تصحيح تحويل البيانات من كائن لخريطة:
-  ```tsx
-  const balanceMap: Record<string, number> = {};
-  if (balancesRes.data && typeof balancesRes.data === 'object') {
-    Object.entries(balancesRes.data).forEach(([accountId, balance]) => {
-      balanceMap[accountId] = Number(balance) || 0;
-    });
-  }
-  ```
+**المرحلة 2: شاشة POS الرئيسية** ✅
+- شاشة ملء الشاشة مع شبكة منتجات + سلة مشتريات
+- بحث سريع وباركود + تصفية بالتصنيف
+- نوع الطلب (محلي/سفري/توصيل)
+- أزرار دفع متعددة (نقد/بطاقة)
+- اختصارات لوحة مفاتيح (F1/F2/F5/Esc)
+- فتح/إغلاق الصندوق مع المبلغ
 
-- **`src/pages/client/Vendors.tsx`**: إضافة استدعاء `get_account_balances` بنفس النمط وعرض `dynamic_balance` بدلاً من `balance`
+**المرحلة 3: إدارة الطاولات** ✅
+- عرض تفاعلي مع ألوان حسب الحالة
+- CRUD للطاولات مع الشكل والسعة والطابق
 
-### 3. إضافة كشف حساب لإجراءات العملاء والموردين
-- في كلا الملفين، إضافة إجراء جديد "كشف حساب" في مصفوفة `actions` يوجه لصفحة دفتر الأستاذ مع فلتر حساب جهة الاتصال:
-  ```tsx
-  {
-    label: isRTL ? "كشف حساب" : "Statement",
-    icon: <FileText className="h-4 w-4" />,
-    onClick: (row) => navigate(`/client/general-ledger?account=${row.account_id}`),
-  }
-  ```
+**المرحلة 4: الإعدادات والمنيو** ✅
+- إدارة نقاط البيع (Terminals) مع النوع (تجزئة/مطعم)
+- إدارة المنيو المخصص لكل فرع
 
-### 4. تحويل أزرار الإجراءات لأيقونات
-- تعديل `actions` في كلا الملفين لاستخدام خاصية `iconOnly: true` (إذا مدعومة في DataTable) أو استبدال عمود الإجراءات بأيقونات مباشرة مع Tooltips بدلاً من قائمة dropdown.
-- سأتحقق من دعم DataTable للأيقونات المباشرة وإلا سأضيف عمود render مخصص بأيقونات.
+**المرحلة 5: العروض والأهداف** ✅
+- إنشاء عروض (نسبة/مبلغ/اشتر X واحصل Y)
+- أهداف مبيعات مع شريط التقدم
 
-### الملفات المتأثرة
-- `src/components/client/ClientLayout.tsx`
-- `src/App.tsx`
-- `src/pages/client/Customers.tsx`
-- `src/pages/client/Vendors.tsx`
+**المرحلة 6: التقارير** ✅
+- بطاقات ملخص (إجمالي/عدد/متوسط)
+- رسم بياني يومي + توزيع طرق الدفع
+- جدول العمليات
 
+**المرحلة 7-8: التكامل** ✅
+- 7 مسارات POS في App.tsx
+- قسم "نقاط البيع" في القائمة الجانبية
+- سجل نشاط المستخدمين
+
+**المرحلة 9: الكوبونات والعروض المتقدمة** ✅
+- جدول pos_coupons مع RLS
+- شاشة إدارة كوبونات (CRUD) مع inline form
+- تطبيق الكوبون في شاشة البيع مع التحقق (الفترة، الاستخدام، الحد الأدنى)
+- ربط العروض بمنتجات محددة عبر جدول pos_promotion_products
+- تحويل شاشة العروض من Dialog إلى inline مع product checkboxes
+
+**المرحلة 10: مستخدمو POS وتقارير الصندوق** ✅
+- جدول pos_users مع أدوار (كاشير/مدير فرع) وربط بالفرع
+- شاشة إدارة مستخدمي POS (إنشاء بإيميل+باسورد+فرع+دور)
+- تقرير إغلاق الصندوق (مبيعات/مرتجعات/خصومات/طرق دفع/رصيد إغلاق) مع طباعة
+- شاشة سجل المستخدمين (تاريخ الجلسات مع فلترة)
+- أعمدة تقارير في pos_sessions (total_sales, total_returns, payment_summary, etc.)
+
+---
+
+# نظام إدارة السنوات المالية الشامل
+
+## الحالة: ✅ تم تنفيذ المراحل 1-4
+
+### ما تم إنجازه:
+
+**المرحلة 1: البنية التحتية** ✅
+- تطوير جدول fiscal_periods بأعمدة: status, locked_by, locked_at, closing_journal_entry_id, opening_journal_entry_id, created_by, reopen_reason, reopened_at, reopened_by
+- جدول fiscal_year_audit_log مع RLS
+- جداول stock_count_sessions و stock_count_lines مع RLS
+- 3 RPCs: pre_closing_validation, close_fiscal_year, reopen_fiscal_year
+
+**المرحلة 2: واجهة إدارة السنوات المالية** ✅
+- صفحة FiscalYearManagement.tsx مع 5 تبويبات (السنوات | التحقق | الجرد | التقرير | التدقيق)
+- بطاقات إحصائية (مفتوحة/مقفلة مؤقتاً/مقفلة نهائياً)
+- إجراءات: قفل مؤقت ← إقفال نهائي ← إعادة فتح
+
+**المرحلة 3: RPCs للعمليات الذرية** ✅
+- pre_closing_validation: فحص قيود مسودة، فواتير مسودة، حركات معلقة، فترات HR
+- close_fiscal_year: إقفال حسابات الدخل → أرباح مبقاة → أرصدة افتتاحية
+- reopen_fiscal_year: حذف قيود الإقفال وإعادة الفتح مع سجل تدقيق
+
+**المرحلة 4: التقارير وسجل التدقيق** ✅
+- PreClosingValidation.tsx: فحوصات تلقائية مع ✅/❌
+- StockCountSession.tsx: جلسات جرد مع إدخال كميات فعلية
+- YearClosingReport.tsx: ملخص الدخل + الميزانية العمومية
+- FiscalAuditLog.tsx: سجل كل العمليات على السنوات المالية
