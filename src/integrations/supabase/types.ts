@@ -3145,6 +3145,7 @@ export type Database = {
           journal_entry_id: string | null
           notes: string | null
           reference_id: string | null
+          transaction_date: string | null
           type: string
           wallet_id: string
         }
@@ -3157,6 +3158,7 @@ export type Database = {
           journal_entry_id?: string | null
           notes?: string | null
           reference_id?: string | null
+          transaction_date?: string | null
           type: string
           wallet_id: string
         }
@@ -3169,6 +3171,7 @@ export type Database = {
           journal_entry_id?: string | null
           notes?: string | null
           reference_id?: string | null
+          transaction_date?: string | null
           type?: string
           wallet_id?: string
         }
