@@ -68,10 +68,10 @@ export const Header = () => {
               </>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => navigate("/auth")}>
+                <Button className="gradient-primary text-white" onClick={() => navigate("/auth")}>
                   {t("nav.login")}
                 </Button>
-                <Button className="gradient-primary text-white" onClick={() => navigate("/register-company")}>
+                <Button variant="outline" onClick={() => navigate("/register-company")}>
                   {t("nav.registerCompany")}
                 </Button>
               </>
