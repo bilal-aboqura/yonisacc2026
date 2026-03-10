@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ArrowRight, Save, Loader2, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import AccountCombobox from "@/components/client/AccountCombobox";
 
 const CreateFuelCustomer = () => {
   const { isRTL } = useLanguage();
@@ -23,7 +24,7 @@ const CreateFuelCustomer = () => {
 
   const [form, setForm] = useState({
     name: "", name_en: "", mobile: "", customer_type: "individual",
-    credit_limit: "0", notes: "",
+    credit_limit: "0", notes: "", account_id: null as string | null,
   });
   const [plates, setPlates] = useState<string[]>([""]);
 
@@ -36,6 +37,21 @@ const CreateFuelCustomer = () => {
     enabled: isEdit,
   });
 
+  // Fetch accounts for combobox
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["accounts-list", companyId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("accounts")
+        .select("id, code, name, name_en")
+        .eq("company_id", companyId!)
+        .eq("is_active", true)
+        .order("code");
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+
   useEffect(() => {
     if (existing) {
       setForm({
@@ -43,6 +59,7 @@ const CreateFuelCustomer = () => {
         mobile: existing.mobile || "", customer_type: existing.customer_type || "individual",
         credit_limit: String(existing.credit_limit || 0),
         notes: existing.notes || "",
+        account_id: existing.account_id || null,
       });
       const existingPlates = existing.plate_number ? existing.plate_number.split("،").map((p: string) => p.trim()).filter(Boolean) : [""];
       setPlates(existingPlates.length ? existingPlates : [""]);
@@ -52,7 +69,12 @@ const CreateFuelCustomer = () => {
   const mutation = useMutation({
     mutationFn: async () => {
       const plateNumber = plates.filter(p => p.trim()).join("، ");
-      const payload = { ...form, plate_number: plateNumber, credit_limit: parseFloat(form.credit_limit) || 0, company_id: companyId };
+      const payload = {
+        ...form, plate_number: plateNumber,
+        credit_limit: parseFloat(form.credit_limit) || 0,
+        company_id: companyId,
+        account_id: form.account_id || null,
+      };
       if (isEdit) {
         const { error } = await (supabase as any).from("fuel_customers").update(payload).eq("id", id);
         if (error) throw error;
@@ -113,6 +135,20 @@ const CreateFuelCustomer = () => {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Account Link */}
+          <div className="space-y-2">
+            <Label>{isRTL ? "الحساب المرتبط (دليل الحسابات)" : "Linked Account (Chart of Accounts)"}</Label>
+            <AccountCombobox
+              accounts={accounts}
+              value={form.account_id}
+              onChange={(v) => setForm(p => ({ ...p, account_id: v }))}
+              isRTL={isRTL}
+              placeholder={isRTL ? "اختر الحساب..." : "Select account..."}
+              showNone
+              noneLabel={isRTL ? "بدون حساب" : "No account"}
+            />
           </div>
 
           {/* Multiple Plate Numbers */}
