@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ArrowRight, Save, Loader2, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { AccountCombobox } from "@/components/client/AccountCombobox";
+import AccountCombobox from "@/components/client/AccountCombobox";
 
 const CreateFuelCustomer = () => {
   const { isRTL } = useLanguage();
