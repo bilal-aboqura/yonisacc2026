@@ -129,13 +129,7 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
       }
 
       if (!signUpData.session) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: data.email,
-          password: data.password,
-        });
-        if (signInError || !signInData.session) {
-          throw new Error(isRTL ? "تم إنشاء الحساب بنجاح. يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول." : "Account created. Please confirm your email then sign in.");
-        }
+        throw new Error(isRTL ? "حدث خطأ في إنشاء الجلسة. يرجى المحاولة مرة أخرى." : "Failed to create session. Please try again.");
       }
 
       const payload: Record<string, unknown> = {
