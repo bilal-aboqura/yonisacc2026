@@ -35,7 +35,12 @@ const FuelPOS = () => {
   const { data: customers } = useQuery({
     queryKey: ["fuel-customers-active", companyId],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("fuel_customers").select("id, name, name_en, plate_number, fuel_wallets(id, balance)").eq("company_id", companyId).eq("status", "active").order("name");
+      const { data } = await (supabase as any)
+        .from("fuel_customers")
+        .select("id, name, name_en, plate_number, account_id, fuel_wallets(id, balance)")
+        .eq("company_id", companyId)
+        .eq("status", "active")
+        .order("name");
       return data || [];
     },
     enabled: !!companyId,
@@ -44,7 +49,12 @@ const FuelPOS = () => {
   const { data: pumps } = useQuery({
     queryKey: ["fuel-pumps-active", companyId],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("fuel_pumps").select("id, pump_number, fuel_type, tank_id, fuel_tanks(tank_name, current_qty, capacity)").eq("company_id", companyId).eq("status", "active").order("pump_number");
+      const { data } = await (supabase as any)
+        .from("fuel_pumps")
+        .select("id, pump_number, fuel_type, tank_id, fuel_tanks(tank_name, current_qty, capacity)")
+        .eq("company_id", companyId)
+        .eq("status", "active")
+        .order("pump_number");
       return data || [];
     },
     enabled: !!companyId,
@@ -53,9 +63,15 @@ const FuelPOS = () => {
   const { data: prices } = useQuery({
     queryKey: ["fuel-prices-latest", companyId],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("fuel_prices").select("*").eq("company_id", companyId).order("effective_date", { ascending: false });
+      const { data } = await (supabase as any)
+        .from("fuel_prices")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("effective_date", { ascending: false });
       const latest: Record<string, number> = {};
-      (data || []).forEach((p: any) => { if (!latest[p.fuel_type]) latest[p.fuel_type] = p.price_per_liter; });
+      (data || []).forEach((p: any) => {
+        if (!latest[p.fuel_type]) latest[p.fuel_type] = p.price_per_liter;
+      });
       return latest;
     },
     enabled: !!companyId,
@@ -68,17 +84,14 @@ const FuelPOS = () => {
   const totalAmount = qty * unitPrice;
 
   const selectedCustomer = customers?.find((c: any) => c.id === customerId);
-  // fuel_wallets is returned as a single object (not array) from .select join
   const walletData = selectedCustomer?.fuel_wallets;
   const walletBalance = Array.isArray(walletData) ? (walletData[0]?.balance || 0) : (walletData?.balance || 0);
-  const walletId = Array.isArray(walletData) ? (walletData[0]?.id) : (walletData?.id);
+  const walletId = Array.isArray(walletData) ? walletData[0]?.id : walletData?.id;
 
-  // Parse plates from comma-separated string
   const customerPlates = selectedCustomer?.plate_number
     ? selectedCustomer.plate_number.split(/[،,]/).map((p: string) => p.trim()).filter(Boolean)
     : [];
 
-  // Tank info for selected pump
   const tankInfo = selectedPump?.fuel_tanks;
   const tankPct = tankInfo && tankInfo.capacity > 0 ? (tankInfo.current_qty / tankInfo.capacity) * 100 : 0;
 
@@ -95,22 +108,41 @@ const FuelPOS = () => {
       if (paymentMethod === "wallet" && !customerId) throw new Error(isRTL ? "اختر العميل للدفع من المحفظة" : "Select customer for wallet payment");
       if (paymentMethod === "wallet" && walletBalance < totalAmount) throw new Error(isRTL ? "رصيد المحفظة غير كافٍ" : "Insufficient wallet balance");
 
-      const { data: settings } = await (supabase as any).from("fuel_station_account_settings").select("*").eq("company_id", companyId).maybeSingle();
+      const { data: settings } = await (supabase as any)
+        .from("fuel_station_account_settings")
+        .select("*")
+        .eq("company_id", companyId)
+        .maybeSingle();
+
+      // Use customer's linked account for personalized journal entries
+      const customerAccountId = selectedCustomer?.account_id;
 
       let journalEntryId = null;
-      const debitAccount = paymentMethod === "wallet" ? settings?.fuel_wallet_liability_account_id : settings?.fuel_cash_account_id;
-      const creditAccount = settings?.fuel_sales_revenue_account_id;
+      let debitAccount: string | null = null;
+      let creditAccount = settings?.fuel_sales_revenue_account_id;
+
+      if (paymentMethod === "wallet") {
+        // Wallet payment: debit wallet liability (or customer account), credit revenue
+        debitAccount = customerAccountId || settings?.fuel_wallet_liability_account_id;
+      } else {
+        // Cash payment: debit cash, credit revenue
+        debitAccount = settings?.fuel_cash_account_id;
+      }
 
       if (debitAccount && creditAccount && totalAmount > 0) {
         const entryNumber = `FS-${Date.now()}`;
-        const { data: je, error: jeErr } = await (supabase as any).from("journal_entries").insert({
-          company_id: companyId!,
-          entry_number: entryNumber,
-          entry_date: new Date().toISOString().split("T")[0],
-          description: `${isRTL ? "بيع وقود" : "Fuel sale"} - ${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]} - ${qty}L${selectedPlate ? ` - ${selectedPlate}` : ""}`,
-          status: "posted",
-          is_auto: true,
-        }).select("id").single();
+        const { data: je, error: jeErr } = await (supabase as any)
+          .from("journal_entries")
+          .insert({
+            company_id: companyId!,
+            entry_number: entryNumber,
+            entry_date: new Date().toISOString().split("T")[0],
+            description: `${isRTL ? "بيع وقود" : "Fuel sale"} - ${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]} - ${qty}L${selectedCustomer ? ` - ${selectedCustomer.name}` : ""}${selectedPlate ? ` - ${selectedPlate}` : ""}`,
+            status: "posted",
+            is_auto: true,
+          })
+          .select("id")
+          .single();
         if (jeErr) throw jeErr;
         journalEntryId = je.id;
 
@@ -121,16 +153,28 @@ const FuelPOS = () => {
       }
 
       await (supabase as any).from("fuel_sales").insert({
-        company_id: companyId, customer_id: customerId || null, pump_id: pumpId,
-        fuel_type: fuelType, quantity: qty, unit_price: unitPrice,
-        total_amount: totalAmount, payment_method: paymentMethod,
+        company_id: companyId,
+        customer_id: customerId || null,
+        pump_id: pumpId,
+        fuel_type: fuelType,
+        quantity: qty,
+        unit_price: unitPrice,
+        total_amount: totalAmount,
+        payment_method: paymentMethod,
         journal_entry_id: journalEntryId,
       });
 
       if (selectedPump?.tank_id) {
-        const { data: tank } = await (supabase as any).from("fuel_tanks").select("current_qty").eq("id", selectedPump.tank_id).single();
+        const { data: tank } = await (supabase as any)
+          .from("fuel_tanks")
+          .select("current_qty")
+          .eq("id", selectedPump.tank_id)
+          .single();
         if (tank) {
-          await (supabase as any).from("fuel_tanks").update({ current_qty: Math.max(0, Number(tank.current_qty) - qty) }).eq("id", selectedPump.tank_id);
+          await (supabase as any)
+            .from("fuel_tanks")
+            .update({ current_qty: Math.max(0, Number(tank.current_qty) - qty) })
+            .eq("id", selectedPump.tank_id);
         }
       }
 
@@ -138,12 +182,19 @@ const FuelPOS = () => {
         const newBal = walletBalance - totalAmount;
         await (supabase as any).from("fuel_wallets").update({ balance: newBal }).eq("id", walletId);
         await (supabase as any).from("fuel_wallet_transactions").insert({
-          company_id: companyId, wallet_id: walletId, type: "deduction",
-          amount: totalAmount, balance_after: newBal, notes: `${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]} - ${qty}L${selectedPlate ? ` - ${selectedPlate}` : ""}`,
+          company_id: companyId,
+          wallet_id: walletId,
+          type: "deduction",
+          amount: totalAmount,
+          balance_after: newBal,
+          transaction_date: new Date().toISOString().split("T")[0],
+          notes: `${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]} - ${qty}L${selectedPlate ? ` - ${selectedPlate}` : ""}`,
         });
 
         await (supabase as any).from("fuel_message_logs").insert({
-          company_id: companyId, customer_id: customerId, event_type: "fuel_purchase",
+          company_id: companyId,
+          customer_id: customerId,
+          event_type: "fuel_purchase",
           message_text: `${isRTL ? "تم شراء" : "Purchased"} ${qty} ${isRTL ? "لتر" : "liters"} ${fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]}. ${isRTL ? "المبلغ:" : "Amount:"} ${totalAmount} SAR. ${isRTL ? "الرصيد المتبقي:" : "Remaining:"} ${newBal} SAR.`,
           status: "logged",
         });
@@ -154,11 +205,15 @@ const FuelPOS = () => {
       setSaleComplete(true);
       setTimeout(() => {
         setSaleComplete(false);
-        setCustomerId(""); setPumpId(""); setQuantity(""); setSelectedPlate("");
+        setCustomerId("");
+        setPumpId("");
+        setQuantity("");
+        setSelectedPlate("");
       }, 3000);
       toast({ title: isRTL ? "تمت عملية البيع" : "Sale Complete" });
     },
-    onError: (e: any) => toast({ title: isRTL ? "خطأ" : "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any) =>
+      toast({ title: isRTL ? "خطأ" : "Error", description: e.message, variant: "destructive" }),
   });
 
   if (saleComplete) {
@@ -170,7 +225,9 @@ const FuelPOS = () => {
               <Check className="h-8 w-8 text-emerald-600" />
             </div>
             <h2 className="text-xl font-bold">{isRTL ? "تمت العملية بنجاح!" : "Sale Complete!"}</h2>
-            <p className="text-muted-foreground">{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR</p>
+            <p className="text-muted-foreground">
+              {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -192,10 +249,14 @@ const FuelPOS = () => {
               <div className="space-y-2">
                 <Label>{isRTL ? "العميل (اختياري للدفع النقدي)" : "Customer (optional for cash)"}</Label>
                 <Select value={customerId} onValueChange={handleCustomerChange}>
-                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر العميل" : "Select Customer"} /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isRTL ? "اختر العميل" : "Select Customer"} />
+                  </SelectTrigger>
                   <SelectContent>
                     {(customers || []).map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -214,7 +275,9 @@ const FuelPOS = () => {
                         {customerPlates.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {customerPlates.map((p: string, i: number) => (
-                              <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>
+                              <Badge key={i} variant="secondary" className="text-xs">
+                                {p}
+                              </Badge>
                             ))}
                           </div>
                         )}
@@ -226,7 +289,9 @@ const FuelPOS = () => {
                             {Number(walletBalance).toLocaleString()} SAR
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground">{isRTL ? "رصيد المحفظة" : "Wallet Balance"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {isRTL ? "رصيد المحفظة" : "Wallet Balance"}
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -241,10 +306,14 @@ const FuelPOS = () => {
                     {isRTL ? "رقم اللوحة *" : "Plate Number *"}
                   </Label>
                   <Select value={selectedPlate} onValueChange={setSelectedPlate}>
-                    <SelectTrigger><SelectValue placeholder={isRTL ? "اختر اللوحة" : "Select Plate"} /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isRTL ? "اختر اللوحة" : "Select Plate"} />
+                    </SelectTrigger>
                     <SelectContent>
                       {customerPlates.map((plate: string, i: number) => (
-                        <SelectItem key={i} value={plate}>{plate}</SelectItem>
+                        <SelectItem key={i} value={plate}>
+                          {plate}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -255,7 +324,9 @@ const FuelPOS = () => {
               <div className="space-y-2">
                 <Label>{isRTL ? "المضخة *" : "Pump *"}</Label>
                 <Select value={pumpId} onValueChange={setPumpId}>
-                  <SelectTrigger><SelectValue placeholder={isRTL ? "اختر المضخة" : "Select Pump"} /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isRTL ? "اختر المضخة" : "Select Pump"} />
+                  </SelectTrigger>
                   <SelectContent>
                     {(pumps || []).map((p: any) => (
                       <SelectItem key={p.id} value={p.id}>
@@ -276,9 +347,15 @@ const FuelPOS = () => {
                       </div>
                       <div className="flex-1 space-y-1">
                         <p className="font-medium text-sm">{tankInfo.tank_name}</p>
-                        <Progress value={tankPct} className={`h-2 ${tankPct < 20 ? "[&>div]:bg-destructive" : ""}`} />
-                        <p className={`text-xs ${tankPct < 20 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                          {Number(tankInfo.current_qty).toLocaleString()} / {Number(tankInfo.capacity).toLocaleString()} L ({tankPct.toFixed(0)}%)
+                        <Progress
+                          value={tankPct}
+                          className={`h-2 ${tankPct < 20 ? "[&>div]:bg-destructive" : ""}`}
+                        />
+                        <p
+                          className={`text-xs ${tankPct < 20 ? "text-destructive font-medium" : "text-muted-foreground"}`}
+                        >
+                          {Number(tankInfo.current_qty).toLocaleString()} / {Number(tankInfo.capacity).toLocaleString()} L (
+                          {tankPct.toFixed(0)}%)
                         </p>
                       </div>
                     </div>
@@ -289,20 +366,33 @@ const FuelPOS = () => {
               {fuelType && (
                 <div className="flex items-center gap-2">
                   <Badge>{fuelLabels[fuelType]?.[isRTL ? "ar" : "en"]}</Badge>
-                  <span className="text-sm text-muted-foreground">{unitPrice.toFixed(2)} SAR/{isRTL ? "لتر" : "L"}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {unitPrice.toFixed(2)} SAR/{isRTL ? "لتر" : "L"}
+                  </span>
                 </div>
               )}
 
               {/* Quantity */}
               <div className="space-y-2">
                 <Label>{isRTL ? "الكمية (لتر) *" : "Quantity (Liters) *"}</Label>
-                <Input type="number" dir="ltr" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="0" className="text-2xl h-14" />
+                <Input
+                  type="number"
+                  dir="ltr"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="0"
+                  className="text-2xl h-14"
+                />
               </div>
 
               {/* Payment Method */}
               <div className="space-y-2">
                 <Label>{isRTL ? "طريقة الدفع" : "Payment Method"}</Label>
-                <RadioGroup value={paymentMethod} onValueChange={v => setPaymentMethod(v as "wallet" | "cash")} className="flex gap-4">
+                <RadioGroup
+                  value={paymentMethod}
+                  onValueChange={(v) => setPaymentMethod(v as "wallet" | "cash")}
+                  className="flex gap-4"
+                >
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="cash" id="cash" />
                     <label htmlFor="cash" className="flex items-center gap-1 cursor-pointer">
@@ -312,7 +402,10 @@ const FuelPOS = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="wallet" id="wallet" disabled={!customerId} />
-                    <label htmlFor="wallet" className={`flex items-center gap-1 cursor-pointer ${!customerId ? "opacity-50" : ""}`}>
+                    <label
+                      htmlFor="wallet"
+                      className={`flex items-center gap-1 cursor-pointer ${!customerId ? "opacity-50" : ""}`}
+                    >
                       <Wallet className="h-4 w-4" />
                       {isRTL ? "المحفظة" : "Wallet"}
                     </label>
@@ -362,11 +455,20 @@ const FuelPOS = () => {
 
               <Button
                 onClick={() => saleMutation.mutate()}
-                disabled={!pumpId || qty <= 0 || saleMutation.isPending || (customerId && customerPlates.length > 0 && !selectedPlate)}
+                disabled={
+                  !pumpId ||
+                  qty <= 0 ||
+                  saleMutation.isPending ||
+                  (customerId && customerPlates.length > 0 && !selectedPlate)
+                }
                 className="w-full h-14 text-lg gap-2"
                 size="lg"
               >
-                {saleMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingCart className="h-5 w-5" />}
+                {saleMutation.isPending ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ShoppingCart className="h-5 w-5" />
+                )}
                 {isRTL ? "تأكيد البيع" : "Confirm Sale"}
               </Button>
             </CardContent>
