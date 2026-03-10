@@ -108,8 +108,10 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
       if (signUpError) {
         const errMsg = signUpError.message?.toLowerCase() || "";
         let msg = isRTL ? "حدث خطأ أثناء إنشاء الحساب" : "Failed to create account";
-        if (errMsg.includes("already registered") || errMsg.includes("already been registered") || signUpError.status === 422) {
+        if (errMsg.includes("already registered") || errMsg.includes("already been registered")) {
           msg = isRTL ? "هذا البريد الإلكتروني مسجل مسبقاً. يرجى تسجيل الدخول أو استخدام بريد آخر." : "This email is already registered. Please sign in or use a different email.";
+        } else if (errMsg.includes("signups not allowed") || errMsg.includes("signup_disabled")) {
+          msg = isRTL ? "التسجيل غير متاح حالياً. يرجى المحاولة لاحقاً." : "Signups are currently disabled. Please try again later.";
         } else if (errMsg.includes("password")) {
           msg = isRTL ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل" : "Password must be at least 6 characters";
         }
