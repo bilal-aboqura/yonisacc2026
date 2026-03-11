@@ -104,7 +104,7 @@ export const Navbar = () => {
           </div>
 
           {/* Mobile/Tablet Menu */}
-          <div className="flex lg:hidden items-center gap-1 sm:gap-2">
+          <div className="flex lg:hidden items-center gap-0.5 sm:gap-2 flex-shrink-0">
             <LanguageToggle />
             <ThemeToggle />
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -112,7 +112,7 @@ export const Navbar = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 sm:h-10 sm:w-10"
+                  className="h-8 w-8 sm:h-10 sm:w-10"
                   aria-label="Toggle menu"
                 >
                   <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
