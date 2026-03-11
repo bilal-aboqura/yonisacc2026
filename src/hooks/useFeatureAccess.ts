@@ -111,8 +111,15 @@ export const useFeatureAccess = () => {
     refetchUsage();
   };
 
-  // All modules are enabled by default — plans only control usage limits
-  const isModuleEnabled = (_module: string): boolean => true;
+  const isModuleEnabled = (module: string): boolean => {
+    // Allow while loading to avoid UI flash
+    if (isLoadingCompany || isLoadingFeatures) return true;
+    if (!features) return true;
+    // Map module name to feature key and check
+    const key = `module_${module}` as keyof FeatureAccess;
+    if (key in features) return features[key] !== false;
+    return true; // Unknown modules are allowed by default
+  };
 
   return {
     features: features || defaultFeatures,

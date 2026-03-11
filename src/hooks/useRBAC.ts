@@ -41,9 +41,13 @@ export const useRBAC = () => {
    * Check if the current user has a specific permission.
    * Returns true while loading to avoid flash of locked UI.
    */
-  const can = (_permissionCode: string): boolean => {
-    // All permissions granted by default — RBAC will be rebuilt later
-    return true;
+  const can = (permissionCode: string): boolean => {
+    // While loading, allow access to avoid flash of locked UI
+    if (isLoadingCompany || isLoadingPerms) return true;
+    // If no permissions loaded (e.g. no role assigned yet), allow for backward compat
+    if (!permissions || Object.keys(permissions).length === 0) return true;
+    // Check the actual permission map
+    return permissions[permissionCode] === true;
   };
 
   /**

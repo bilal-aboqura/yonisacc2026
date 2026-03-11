@@ -24,6 +24,7 @@ import ClientContacts from "./pages/client/ClientContacts";
 import ClientReports from "./pages/client/ClientReports";
 
 import ClientSettings from "./pages/client/ClientSettings";
+import PaymentPage from "./pages/client/PaymentPage";
 import BranchManagement from "./pages/client/BranchManagement";
 import CreateSalesInvoice from "./pages/client/CreateSalesInvoice";
 import CreateContact from "./pages/client/CreateContact";
@@ -221,245 +222,248 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AutoLogoutWrapper>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            
-            <Route path="/register-company" element={<CompanyRegistration />} />
-            <Route path="/activities" element={<Activities />} />
-            <Route path="/subscription-expired" element={<SubscriptionExpired />} />
-            <Route path="/invite/accept" element={<AcceptInvitation />} />
-            
-            {/* Client Portal Routes */}
-            <Route path="/client" element={<ClientLayout />}>
-              <Route index element={<ClientDashboard />} />
-              
-              {/* Financial Accounting */}
-              <Route path="accounts" element={<ClientAccounts />} />
-              <Route path="accounts/new" element={<CreateAccount />} />
-              <Route path="accounts/:id/edit" element={<EditAccount />} />
-              <Route path="accounts/opening-balances" element={<OpeningBalances />} />
-              <Route path="cost-centers" element={<CostCenters />} />
-              <Route path="cost-centers/new" element={<CreateCostCenter />} />
-              <Route path="cost-centers/reports" element={<CostCenterReports />} />
-              <Route path="journal" element={<ClientJournal />} />
-              <Route path="journal/new" element={<CreateJournalEntry />} />
-              <Route path="journal/:id" element={<ViewJournalEntry />} />
-              <Route path="journal/:id/edit" element={<EditJournalEntry />} />
-              <Route path="treasury" element={<ClientTreasury />} />
-              <Route path="treasury/new" element={<CreateTreasuryTransaction />} />
-              <Route path="treasury/:id" element={<ViewTreasuryTransaction />} />
-              <Route path="treasury/:id/edit" element={<EditTreasuryTransaction />} />
-              <Route path="ledger" element={<GeneralLedger />} />
-              <Route path="operations-log" element={<OperationsLog />} />
-              
-              {/* Sales */}
-              <Route path="customers" element={<Customers />} />
-              <Route path="quotes" element={<Quotes />} />
-              <Route path="quotes/new" element={<CreateQuote />} />
-              <Route path="quotes/:id" element={<ViewInvoice />} />
-              <Route path="quotes/:id/edit" element={<CreateQuote />} />
-              <Route path="sales" element={<ClientSales />} />
-              <Route path="sales/new" element={<CreateSalesInvoice />} />
-              <Route path="sales/:id" element={<ViewInvoice />} />
-              <Route path="sales/:id/edit" element={<CreateSalesInvoice />} />
-              <Route path="sales/:id" element={<ViewInvoice />} />
-              {/* sales/setup removed - available in settings */}      
-              {/* Purchases */}
-              <Route path="vendors" element={<Vendors />} />
-              <Route path="purchase-orders" element={<PurchaseOrders />} />
-              <Route path="purchase-orders/new" element={<CreatePurchaseOrder />} />
-              <Route path="purchase-orders/:id" element={<ViewInvoice />} />
-              <Route path="purchase-orders/:id/edit" element={<CreatePurchaseOrder />} />
-              <Route path="purchases" element={<ClientPurchases />} />
-              <Route path="purchases/new" element={<CreatePurchaseInvoice />} />
-              <Route path="purchases/:id" element={<ViewInvoice />} />
-              <Route path="purchases/:id/edit" element={<CreatePurchaseInvoice />} />
-              {/* purchases/setup removed - available in settings */}      
-              {/* HR */}
-              <Route path="hr" element={<HRDashboard />} />
-              <Route path="hr/employees" element={<Employees />} />
-              <Route path="hr/departments" element={<Departments />} />
-              <Route path="hr/leaves" element={<Leaves />} />
-              <Route path="hr/periods" element={<Periods />} />
-              <Route path="hr/attendance" element={<Attendance />} />
-              <Route path="hr/loans" element={<Loans />} />
-              <Route path="hr/payroll" element={<Payroll />} />
-              <Route path="hr/end-of-service" element={<EndOfService />} />
-              <Route path="hr/reports" element={<HRReports />} />
-              <Route path="hr/penalty-rules" element={<PenaltyRules />} />
-              <Route path="hr/deductions" element={<Deductions />} />
-              <Route path="hr/leave-settings" element={<LeaveSettings />} />
-              <Route path="hr/setup" element={<HRAccountSetup />} />
-              
-              {/* Auto Parts */}
-              <Route path="auto-parts" element={<AutoPartsDashboard />} />
-              <Route path="auto-parts/catalog" element={<PartsCatalog />} />
-              <Route path="auto-parts/brands" element={<CarBrands />} />
-              <Route path="auto-parts/models" element={<CarModels />} />
-              <Route path="auto-parts/reports" element={<AutoPartsReports />} />
-              <Route path="auto-parts/setup" element={<AutoPartsAccountSetup />} />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
 
-              {/* Inventory */}
-              <Route path="inventory" element={<ClientInventory />} />
-              <Route path="inventory/new" element={<CreateProduct />} />
-              <Route path="inventory/product/:id" element={<ProductCard />} />
-              <Route path="inventory/edit/:id" element={<EditProduct />} />
-              <Route path="inventory/units" element={<UnitsManagement />} />
-              <Route path="inventory/categories" element={<CategoriesManagement />} />
-              <Route path="inventory/stock" element={<StockOverview />} />
-              <Route path="inventory/adjustments" element={<StockAdjustments />} />
-              <Route path="inventory/transfers" element={<StockTransfers />} />
-              <Route path="inventory/consumptions" element={<InternalConsumptions />} />
-              <Route path="inventory/manufacturing" element={<Manufacturing />} />
-              <Route path="inventory/reports" element={<InventoryReports />} />
-              <Route path="inventory/setup" element={<InventoryAccountSetup />} />
-              <Route path="inventory/movements" element={<ClientInventory tab="movements" />} />
+              <Route path="/register-company" element={<CompanyRegistration />} />
+              <Route path="/activities" element={<Activities />} />
+              <Route path="/subscription-expired" element={<SubscriptionExpired />} />
+              <Route path="/invite/accept" element={<AcceptInvitation />} />
 
-              {/* POS */}
-              <Route path="pos" element={<POSScreen />} />
-              <Route path="pos/tables" element={<POSTables />} />
-              <Route path="pos/settings" element={<POSSettings />} />
-              <Route path="pos/menus" element={<POSMenuManager />} />
-              <Route path="pos/promotions" element={<POSPromotions />} />
-              <Route path="pos/coupons" element={<POSCoupons />} />
-              <Route path="pos/targets" element={<POSTargets />} />
-              <Route path="pos/reports" element={<POSReports />} />
-              <Route path="pos/users" element={<POSUsers />} />
-              <Route path="pos/user-logs" element={<POSUserLogs />} />
-              <Route path="pos/invoices" element={<POSInvoices />} />
-              <Route path="pos/account-setup" element={<POSAccountSetup />} />
-              <Route path="pos/integrations" element={<POSIntegrations />} />
+              {/* Client Portal Routes */}
+              <Route path="/client" element={<ClientLayout />}>
+                <Route index element={<ClientDashboard />} />
 
-              {/* Fixed Assets */}
-              <Route path="assets" element={<FixedAssets />} />
-              <Route path="assets/new" element={<CreateFixedAsset />} />
-              <Route path="assets/:id" element={<ViewFixedAsset />} />
-              <Route path="assets/:id/edit" element={<CreateFixedAsset />} />
-              <Route path="assets/categories" element={<AssetCategories />} />
-              <Route path="assets/depreciation" element={<DepreciationRun />} />
-              <Route path="assets/reports" element={<AssetReports />} />
-              <Route path="assets/setup" element={<AssetAccountSetup />} />
+                {/* Financial Accounting */}
+                <Route path="accounts" element={<ClientAccounts />} />
+                <Route path="accounts/new" element={<CreateAccount />} />
+                <Route path="accounts/:id/edit" element={<EditAccount />} />
+                <Route path="accounts/opening-balances" element={<OpeningBalances />} />
+                <Route path="cost-centers" element={<CostCenters />} />
+                <Route path="cost-centers/new" element={<CreateCostCenter />} />
+                <Route path="cost-centers/reports" element={<CostCenterReports />} />
+                <Route path="journal" element={<ClientJournal />} />
+                <Route path="journal/new" element={<CreateJournalEntry />} />
+                <Route path="journal/:id" element={<ViewJournalEntry />} />
+                <Route path="journal/:id/edit" element={<EditJournalEntry />} />
+                <Route path="treasury" element={<ClientTreasury />} />
+                <Route path="treasury/new" element={<CreateTreasuryTransaction />} />
+                <Route path="treasury/:id" element={<ViewTreasuryTransaction />} />
+                <Route path="treasury/:id/edit" element={<EditTreasuryTransaction />} />
+                <Route path="ledger" element={<GeneralLedger />} />
+                <Route path="operations-log" element={<OperationsLog />} />
 
-              {/* Clinic */}
-              <Route path="clinic/patients" element={<Patients />} />
-              <Route path="clinic/patients/new" element={<CreatePatient />} />
-              <Route path="clinic/patients/:id" element={<ViewPatient />} />
-              <Route path="clinic/patients/:id/edit" element={<CreatePatient />} />
-              <Route path="clinic/doctors" element={<Doctors />} />
-              <Route path="clinic/doctors/new" element={<CreateDoctor />} />
-              <Route path="clinic/doctors/:id/edit" element={<CreateDoctor />} />
-              <Route path="clinic/appointments" element={<ClinicAppointments />} />
-              <Route path="clinic/appointments/new" element={<CreateAppointment />} />
-              <Route path="clinic/prescriptions" element={<Prescriptions />} />
-              <Route path="clinic/prescriptions/new" element={<CreatePrescription />} />
-              <Route path="clinic/prescriptions/:id" element={<ViewPrescription />} />
-              <Route path="clinic/billing" element={<ClinicBilling />} />
-              <Route path="clinic/billing/new" element={<CreateClinicInvoice />} />
-              <Route path="clinic/billing/:id/pay" element={<PayClinicInvoice />} />
-              <Route path="clinic/reports" element={<ClinicReports />} />
-              <Route path="clinic/setup" element={<ClinicAccountSetup />} />
+                {/* Sales */}
+                <Route path="customers" element={<Customers />} />
+                <Route path="quotes" element={<Quotes />} />
+                <Route path="quotes/new" element={<CreateQuote />} />
+                <Route path="quotes/:id" element={<ViewInvoice />} />
+                <Route path="quotes/:id/edit" element={<CreateQuote />} />
+                <Route path="sales" element={<ClientSales />} />
+                <Route path="sales/new" element={<CreateSalesInvoice />} />
+                <Route path="sales/:id" element={<ViewInvoice />} />
+                <Route path="sales/:id/edit" element={<CreateSalesInvoice />} />
+                <Route path="sales/:id" element={<ViewInvoice />} />
+                {/* sales/setup removed - available in settings */}
+                {/* Purchases */}
+                <Route path="vendors" element={<Vendors />} />
+                <Route path="purchase-orders" element={<PurchaseOrders />} />
+                <Route path="purchase-orders/new" element={<CreatePurchaseOrder />} />
+                <Route path="purchase-orders/:id" element={<ViewInvoice />} />
+                <Route path="purchase-orders/:id/edit" element={<CreatePurchaseOrder />} />
+                <Route path="purchases" element={<ClientPurchases />} />
+                <Route path="purchases/new" element={<CreatePurchaseInvoice />} />
+                <Route path="purchases/:id" element={<ViewInvoice />} />
+                <Route path="purchases/:id/edit" element={<CreatePurchaseInvoice />} />
+                {/* purchases/setup removed - available in settings */}
+                {/* HR */}
+                <Route path="hr" element={<HRDashboard />} />
+                <Route path="hr/employees" element={<Employees />} />
+                <Route path="hr/departments" element={<Departments />} />
+                <Route path="hr/leaves" element={<Leaves />} />
+                <Route path="hr/periods" element={<Periods />} />
+                <Route path="hr/attendance" element={<Attendance />} />
+                <Route path="hr/loans" element={<Loans />} />
+                <Route path="hr/payroll" element={<Payroll />} />
+                <Route path="hr/end-of-service" element={<EndOfService />} />
+                <Route path="hr/reports" element={<HRReports />} />
+                <Route path="hr/penalty-rules" element={<PenaltyRules />} />
+                <Route path="hr/deductions" element={<Deductions />} />
+                <Route path="hr/leave-settings" element={<LeaveSettings />} />
+                <Route path="hr/setup" element={<HRAccountSetup />} />
 
-              {/* Real Estate */}
-              <Route path="realestate/properties" element={<REProperties />} />
-              <Route path="realestate/properties/new" element={<CreateProperty />} />
-              <Route path="realestate/properties/:id/edit" element={<CreateProperty />} />
-              <Route path="realestate/units" element={<REUnits />} />
-              <Route path="realestate/units/new" element={<CreateUnit />} />
-              <Route path="realestate/units/:id/edit" element={<CreateUnit />} />
-              <Route path="realestate/tenants" element={<RETenants />} />
-              <Route path="realestate/tenants/new" element={<CreateTenant />} />
-              <Route path="realestate/tenants/:id/edit" element={<CreateTenant />} />
-              <Route path="realestate/leases" element={<RELeases />} />
-              <Route path="realestate/leases/new" element={<CreateLease />} />
-              <Route path="realestate/leases/:id/edit" element={<CreateLease />} />
-              <Route path="realestate/invoices" element={<RentInvoices />} />
-              <Route path="realestate/invoices/new" element={<CreateRentInvoice />} />
-              <Route path="realestate/invoices/:id/pay" element={<PayRentInvoice />} />
-              <Route path="realestate/maintenance" element={<MaintenanceRequests />} />
-              <Route path="realestate/maintenance/new" element={<CreateMaintenanceRequest />} />
-              <Route path="realestate/reports" element={<RealEstateReports />} />
-              <Route path="realestate/setup" element={<RealEstateAccountSetup />} />
+                {/* Auto Parts */}
+                <Route path="auto-parts" element={<AutoPartsDashboard />} />
+                <Route path="auto-parts/catalog" element={<PartsCatalog />} />
+                <Route path="auto-parts/brands" element={<CarBrands />} />
+                <Route path="auto-parts/models" element={<CarModels />} />
+                <Route path="auto-parts/reports" element={<AutoPartsReports />} />
+                <Route path="auto-parts/setup" element={<AutoPartsAccountSetup />} />
 
-              {/* Delivery */}
-              <Route path="delivery" element={<DeliveryDashboard />} />
-              <Route path="delivery/orders" element={<DeliveryOrders />} />
-              <Route path="delivery/orders/new" element={<CreateDeliveryOrder />} />
-              <Route path="delivery/orders/:id" element={<ViewDeliveryOrder />} />
-              <Route path="delivery/orders/:id/edit" element={<CreateDeliveryOrder />} />
-              <Route path="delivery/drivers" element={<DeliveryDrivers />} />
-              <Route path="delivery/drivers/new" element={<CreateDeliveryDriver />} />
-              <Route path="delivery/drivers/:id/edit" element={<CreateDeliveryDriver />} />
-              <Route path="delivery/areas" element={<DeliveryAreas />} />
-              <Route path="delivery/areas/new" element={<CreateDeliveryArea />} />
-              <Route path="delivery/areas/:id/edit" element={<CreateDeliveryArea />} />
-              <Route path="delivery/reports" element={<DeliveryReports />} />
-              <Route path="delivery/setup" element={<DeliveryAccountSetup />} />
-              <Route path="delivery/settlement" element={<DriverSettlement />} />
+                {/* Inventory */}
+                <Route path="inventory" element={<ClientInventory />} />
+                <Route path="inventory/new" element={<CreateProduct />} />
+                <Route path="inventory/product/:id" element={<ProductCard />} />
+                <Route path="inventory/edit/:id" element={<EditProduct />} />
+                <Route path="inventory/units" element={<UnitsManagement />} />
+                <Route path="inventory/categories" element={<CategoriesManagement />} />
+                <Route path="inventory/stock" element={<StockOverview />} />
+                <Route path="inventory/adjustments" element={<StockAdjustments />} />
+                <Route path="inventory/transfers" element={<StockTransfers />} />
+                <Route path="inventory/consumptions" element={<InternalConsumptions />} />
+                <Route path="inventory/manufacturing" element={<Manufacturing />} />
+                <Route path="inventory/reports" element={<InventoryReports />} />
+                <Route path="inventory/setup" element={<InventoryAccountSetup />} />
+                <Route path="inventory/movements" element={<ClientInventory tab="movements" />} />
 
-              {/* Gold & Jewelry */}
-              <Route path="gold/items" element={<GoldItems />} />
-              <Route path="gold/items/new" element={<CreateGoldItem />} />
-              <Route path="gold/items/:id/edit" element={<CreateGoldItem />} />
-              <Route path="gold/purchases" element={<GoldPurchases />} />
-              <Route path="gold/purchases/new" element={<CreateGoldPurchase />} />
-              <Route path="gold/sales" element={<GoldSales />} />
-              <Route path="gold/sales/new" element={<CreateGoldSale />} />
-              <Route path="gold/prices" element={<GoldPriceSettings />} />
-              <Route path="gold/reports" element={<GoldReports />} />
-              <Route path="gold/setup" element={<GoldAccountSetup />} />
-              
-              {/* Other */}
-              <Route path="contacts" element={<ClientContacts />} />
-              <Route path="contacts/new" element={<CreateContact />} />
-              <Route path="contacts/:id/edit" element={<EditContact />} />
-              <Route path="reports" element={<ClientReports />} />
-              <Route path="reports/income-statement" element={<IncomeStatement />} />
-              <Route path="reports/balance-sheet" element={<BalanceSheet />} />
-              <Route path="reports/cash-flow" element={<CashFlow />} />
-              <Route path="reports/trial-balance" element={<TrialBalance />} />
-              <Route path="reports/vat" element={<VATReport />} />
-              <Route path="reports/sales" element={<SalesReports />} />
-              <Route path="reports/purchases" element={<PurchaseReports />} />
-              <Route path="reports/operations" element={<OperationalReports />} />
-              <Route path="reports/inventory" element={<InventoryDetailedReports />} />
-              
-              {/* Settings */}
-              <Route path="settings" element={<ClientSettings />} />
-              <Route path="settings/team" element={<ClientSettings tab="team" />} />
-              <Route path="settings/roles" element={<ClientSettings tab="roles" />} />
-              <Route path="settings/profile" element={<ClientSettings tab="profile" />} />
-              <Route path="settings/branch-management" element={<BranchManagement />} />
-              <Route path="settings/branches" element={<ClientSettings tab="branches" />} />
-              <Route path="settings/print" element={<ClientSettings tab="print" />} />
-              <Route path="settings/payment-methods" element={<ClientSettings tab="payment-methods" />} />
-              <Route path="settings/appearance" element={<ClientSettings tab="appearance" />} />
-              <Route path="settings/danger" element={<ClientSettings tab="danger" />} />
-              <Route path="settings/zatca" element={<ZatcaSettings />} />
-              <Route path="fiscal-year-management" element={<FiscalYearManagement />} />
-            </Route>
-            
-            
-            {/* Owner Portal Routes */}
-            <Route path="/owner" element={<OwnerLayout />}>
-              <Route index element={<OwnerDashboard />} />
-              <Route path="subscribers" element={<OwnerSubscribers />} />
-              <Route path="subscribers/create" element={<CreateSubscriber />} />
-              <Route path="subscribers/:id/access" element={<ManageCompanyAccess />} />
-              <Route path="subscriptions" element={<OwnerSubscriptions />} />
-              <Route path="plans" element={<OwnerPlans />} />
-              
-              <Route path="landing-content" element={<OwnerLandingContent />} />
-              <Route path="messages" element={<OwnerMessages />} />
-              <Route path="reports" element={<OwnerReports />} />
-              <Route path="audit-logs" element={<OwnerAuditLogs />} />
-              <Route path="activities" element={<OwnerActivities />} />
-              <Route path="settings" element={<OwnerSettings />} />
-            </Route>
+                {/* POS */}
+                <Route path="pos" element={<POSScreen />} />
+                <Route path="pos/tables" element={<POSTables />} />
+                <Route path="pos/settings" element={<POSSettings />} />
+                <Route path="pos/menus" element={<POSMenuManager />} />
+                <Route path="pos/promotions" element={<POSPromotions />} />
+                <Route path="pos/coupons" element={<POSCoupons />} />
+                <Route path="pos/targets" element={<POSTargets />} />
+                <Route path="pos/reports" element={<POSReports />} />
+                <Route path="pos/users" element={<POSUsers />} />
+                <Route path="pos/user-logs" element={<POSUserLogs />} />
+                <Route path="pos/invoices" element={<POSInvoices />} />
+                <Route path="pos/account-setup" element={<POSAccountSetup />} />
+                <Route path="pos/integrations" element={<POSIntegrations />} />
 
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+                {/* Fixed Assets */}
+                <Route path="assets" element={<FixedAssets />} />
+                <Route path="assets/new" element={<CreateFixedAsset />} />
+                <Route path="assets/:id" element={<ViewFixedAsset />} />
+                <Route path="assets/:id/edit" element={<CreateFixedAsset />} />
+                <Route path="assets/categories" element={<AssetCategories />} />
+                <Route path="assets/depreciation" element={<DepreciationRun />} />
+                <Route path="assets/reports" element={<AssetReports />} />
+                <Route path="assets/setup" element={<AssetAccountSetup />} />
+
+                {/* Clinic */}
+                <Route path="clinic/patients" element={<Patients />} />
+                <Route path="clinic/patients/new" element={<CreatePatient />} />
+                <Route path="clinic/patients/:id" element={<ViewPatient />} />
+                <Route path="clinic/patients/:id/edit" element={<CreatePatient />} />
+                <Route path="clinic/doctors" element={<Doctors />} />
+                <Route path="clinic/doctors/new" element={<CreateDoctor />} />
+                <Route path="clinic/doctors/:id/edit" element={<CreateDoctor />} />
+                <Route path="clinic/appointments" element={<ClinicAppointments />} />
+                <Route path="clinic/appointments/new" element={<CreateAppointment />} />
+                <Route path="clinic/prescriptions" element={<Prescriptions />} />
+                <Route path="clinic/prescriptions/new" element={<CreatePrescription />} />
+                <Route path="clinic/prescriptions/:id" element={<ViewPrescription />} />
+                <Route path="clinic/billing" element={<ClinicBilling />} />
+                <Route path="clinic/billing/new" element={<CreateClinicInvoice />} />
+                <Route path="clinic/billing/:id/pay" element={<PayClinicInvoice />} />
+                <Route path="clinic/reports" element={<ClinicReports />} />
+                <Route path="clinic/setup" element={<ClinicAccountSetup />} />
+
+                {/* Real Estate */}
+                <Route path="realestate/properties" element={<REProperties />} />
+                <Route path="realestate/properties/new" element={<CreateProperty />} />
+                <Route path="realestate/properties/:id/edit" element={<CreateProperty />} />
+                <Route path="realestate/units" element={<REUnits />} />
+                <Route path="realestate/units/new" element={<CreateUnit />} />
+                <Route path="realestate/units/:id/edit" element={<CreateUnit />} />
+                <Route path="realestate/tenants" element={<RETenants />} />
+                <Route path="realestate/tenants/new" element={<CreateTenant />} />
+                <Route path="realestate/tenants/:id/edit" element={<CreateTenant />} />
+                <Route path="realestate/leases" element={<RELeases />} />
+                <Route path="realestate/leases/new" element={<CreateLease />} />
+                <Route path="realestate/leases/:id/edit" element={<CreateLease />} />
+                <Route path="realestate/invoices" element={<RentInvoices />} />
+                <Route path="realestate/invoices/new" element={<CreateRentInvoice />} />
+                <Route path="realestate/invoices/:id/pay" element={<PayRentInvoice />} />
+                <Route path="realestate/maintenance" element={<MaintenanceRequests />} />
+                <Route path="realestate/maintenance/new" element={<CreateMaintenanceRequest />} />
+                <Route path="realestate/reports" element={<RealEstateReports />} />
+                <Route path="realestate/setup" element={<RealEstateAccountSetup />} />
+
+                {/* Delivery */}
+                <Route path="delivery" element={<DeliveryDashboard />} />
+                <Route path="delivery/orders" element={<DeliveryOrders />} />
+                <Route path="delivery/orders/new" element={<CreateDeliveryOrder />} />
+                <Route path="delivery/orders/:id" element={<ViewDeliveryOrder />} />
+                <Route path="delivery/orders/:id/edit" element={<CreateDeliveryOrder />} />
+                <Route path="delivery/drivers" element={<DeliveryDrivers />} />
+                <Route path="delivery/drivers/new" element={<CreateDeliveryDriver />} />
+                <Route path="delivery/drivers/:id/edit" element={<CreateDeliveryDriver />} />
+                <Route path="delivery/areas" element={<DeliveryAreas />} />
+                <Route path="delivery/areas/new" element={<CreateDeliveryArea />} />
+                <Route path="delivery/areas/:id/edit" element={<CreateDeliveryArea />} />
+                <Route path="delivery/reports" element={<DeliveryReports />} />
+                <Route path="delivery/setup" element={<DeliveryAccountSetup />} />
+                <Route path="delivery/settlement" element={<DriverSettlement />} />
+
+                {/* Gold & Jewelry */}
+                <Route path="gold/items" element={<GoldItems />} />
+                <Route path="gold/items/new" element={<CreateGoldItem />} />
+                <Route path="gold/items/:id/edit" element={<CreateGoldItem />} />
+                <Route path="gold/purchases" element={<GoldPurchases />} />
+                <Route path="gold/purchases/new" element={<CreateGoldPurchase />} />
+                <Route path="gold/sales" element={<GoldSales />} />
+                <Route path="gold/sales/new" element={<CreateGoldSale />} />
+                <Route path="gold/prices" element={<GoldPriceSettings />} />
+                <Route path="gold/reports" element={<GoldReports />} />
+                <Route path="gold/setup" element={<GoldAccountSetup />} />
+
+                {/* Other */}
+                <Route path="contacts" element={<ClientContacts />} />
+                <Route path="contacts/new" element={<CreateContact />} />
+                <Route path="contacts/:id/edit" element={<EditContact />} />
+                <Route path="reports" element={<ClientReports />} />
+                <Route path="reports/income-statement" element={<IncomeStatement />} />
+                <Route path="reports/balance-sheet" element={<BalanceSheet />} />
+                <Route path="reports/cash-flow" element={<CashFlow />} />
+                <Route path="reports/trial-balance" element={<TrialBalance />} />
+                <Route path="reports/vat" element={<VATReport />} />
+                <Route path="reports/sales" element={<SalesReports />} />
+                <Route path="reports/purchases" element={<PurchaseReports />} />
+                <Route path="reports/operations" element={<OperationalReports />} />
+                <Route path="reports/inventory" element={<InventoryDetailedReports />} />
+
+                {/* Settings */}
+                <Route path="settings" element={<ClientSettings />} />
+                <Route path="settings/team" element={<ClientSettings tab="team" />} />
+                <Route path="settings/roles" element={<ClientSettings tab="roles" />} />
+                <Route path="settings/profile" element={<ClientSettings tab="profile" />} />
+                <Route path="settings/branch-management" element={<BranchManagement />} />
+                <Route path="settings/branches" element={<ClientSettings tab="branches" />} />
+                <Route path="settings/print" element={<ClientSettings tab="print" />} />
+                <Route path="settings/payment-methods" element={<ClientSettings tab="payment-methods" />} />
+                <Route path="settings/appearance" element={<ClientSettings tab="appearance" />} />
+                <Route path="settings/danger" element={<ClientSettings tab="danger" />} />
+                <Route path="settings/zatca" element={<ZatcaSettings />} />
+                <Route path="fiscal-year-management" element={<FiscalYearManagement />} />
+
+                {/* Payment & Subscription */}
+                <Route path="payment" element={<PaymentPage />} />
+              </Route>
+
+
+              {/* Owner Portal Routes */}
+              <Route path="/owner" element={<OwnerLayout />}>
+                <Route index element={<OwnerDashboard />} />
+                <Route path="subscribers" element={<OwnerSubscribers />} />
+                <Route path="subscribers/create" element={<CreateSubscriber />} />
+                <Route path="subscribers/:id/access" element={<ManageCompanyAccess />} />
+                <Route path="subscriptions" element={<OwnerSubscriptions />} />
+                <Route path="plans" element={<OwnerPlans />} />
+
+                <Route path="landing-content" element={<OwnerLandingContent />} />
+                <Route path="messages" element={<OwnerMessages />} />
+                <Route path="reports" element={<OwnerReports />} />
+                <Route path="audit-logs" element={<OwnerAuditLogs />} />
+                <Route path="activities" element={<OwnerActivities />} />
+                <Route path="settings" element={<OwnerSettings />} />
+              </Route>
+
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </AutoLogoutWrapper>
         </BrowserRouter>
       </AuthProvider>
