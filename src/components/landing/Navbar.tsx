@@ -57,11 +57,11 @@ export const Navbar = () => {
       <div className="container-custom px-4 sm:px-6 lg:px-8">
         <nav className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 sm:gap-3 group flex-shrink-0">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl gradient-primary flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg group-hover:shadow-xl transition-shadow">
+          <Link to="/" className="flex items-center gap-2 group flex-shrink-0 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl gradient-primary flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg group-hover:shadow-xl transition-shadow flex-shrink-0">
               ك
             </div>
-            <span className="text-lg sm:text-xl font-bold text-foreground">{t("common.appName")}</span>
+            <span className="text-base sm:text-xl font-bold text-foreground truncate">{t("common.appName")}</span>
           </Link>
 
           {/* Desktop Navigation */}
