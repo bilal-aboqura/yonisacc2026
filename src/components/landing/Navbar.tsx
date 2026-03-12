@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -20,6 +21,7 @@ export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { isRTL } = useLanguage();
+  const { user, isLoading: authLoading } = useAuth();
 
   const navLinks = [
     { href: "#features", label: t("nav.features") },
@@ -91,16 +93,27 @@ export const Navbar = () => {
           <div className="hidden lg:flex items-center gap-2 xl:gap-3">
             <LanguageToggle />
             <ThemeToggle />
-            <Link to="/auth">
-              <Button variant="ghost" className="font-medium text-sm xl:text-base">
-                {t("nav.login")}
-              </Button>
-            </Link>
-            <Link to="/register-company">
-              <Button className="gradient-primary text-white btn-primary-shadow font-medium text-sm xl:text-base">
-                {t("nav.startFree")}
-              </Button>
-            </Link>
+            {!authLoading && user ? (
+              <Link to="/client">
+                <Button className="gradient-primary text-white btn-primary-shadow font-medium text-sm xl:text-base gap-2">
+                  <LayoutDashboard className="h-4 w-4" />
+                  {isRTL ? "لوحة التحكم" : "Dashboard"}
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/auth">
+                  <Button variant="ghost" className="font-medium text-sm xl:text-base">
+                    {t("nav.login")}
+                  </Button>
+                </Link>
+                <Link to="/register-company">
+                  <Button className="gradient-primary text-white btn-primary-shadow font-medium text-sm xl:text-base">
+                    {t("nav.startFree")}
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile/Tablet Menu */}
@@ -149,16 +162,27 @@ export const Navbar = () => {
                     )
                   ))}
                   <div className="pt-4 mt-4 border-t border-border space-y-3">
-                    <Link to="/auth" className="block" onClick={() => setIsOpen(false)}>
-                      <Button variant="outline" className="w-full justify-center font-medium h-12 text-base">
-                        {t("nav.login")}
-                      </Button>
-                    </Link>
-                    <Link to="/register-company" className="block" onClick={() => setIsOpen(false)}>
-                      <Button className="w-full gradient-primary text-white font-medium h-12 text-base">
-                        {t("nav.startFree")}
-                      </Button>
-                    </Link>
+                    {!authLoading && user ? (
+                      <Link to="/client" className="block" onClick={() => setIsOpen(false)}>
+                        <Button className="w-full gradient-primary text-white font-medium h-12 text-base gap-2">
+                          <LayoutDashboard className="h-4 w-4" />
+                          {isRTL ? "لوحة التحكم" : "Dashboard"}
+                        </Button>
+                      </Link>
+                    ) : (
+                      <>
+                        <Link to="/auth" className="block" onClick={() => setIsOpen(false)}>
+                          <Button variant="outline" className="w-full justify-center font-medium h-12 text-base">
+                            {t("nav.login")}
+                          </Button>
+                        </Link>
+                        <Link to="/register-company" className="block" onClick={() => setIsOpen(false)}>
+                          <Button className="w-full gradient-primary text-white font-medium h-12 text-base">
+                            {t("nav.startFree")}
+                          </Button>
+                        </Link>
+                      </>
+                    )}
                   </div>
                 </div>
               </SheetContent>

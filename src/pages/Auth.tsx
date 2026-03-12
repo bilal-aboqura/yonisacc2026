@@ -59,11 +59,16 @@ const Auth = () => {
     setIsLoading(false);
 
     if (error) {
+      const errMsg = (error.message || "").toLowerCase();
       let errorMessage = isRTL ? "حدث خطأ أثناء تسجيل الدخول" : "Login failed";
-      if (error.message.includes("Invalid login credentials")) {
+      if (errMsg.includes("invalid login credentials") || errMsg.includes("invalid_credentials")) {
         errorMessage = isRTL ? "البريد الإلكتروني أو كلمة المرور غير صحيحة" : "Invalid email or password";
-      } else if (error.message.includes("Email not confirmed")) {
-        errorMessage = isRTL ? "يرجى تأكيد بريدك الإلكتروني أولاً" : "Please confirm your email first";
+      } else if (errMsg.includes("email not confirmed") || errMsg.includes("email_not_confirmed")) {
+        errorMessage = isRTL ? "يرجى تأكيد بريدك الإلكتروني أولاً. تحقق من صندوق الوارد أو البريد العشوائي" : "Please confirm your email first. Check your inbox or spam folder";
+      } else if (errMsg.includes("too many requests") || errMsg.includes("rate limit")) {
+        errorMessage = isRTL ? "محاولات كثيرة جداً. يرجى الانتظار قليلاً والمحاولة مرة أخرى" : "Too many attempts. Please wait a moment and try again";
+      } else if (errMsg.includes("network") || errMsg.includes("fetch")) {
+        errorMessage = isRTL ? "خطأ في الاتصال. يرجى التحقق من اتصالك بالإنترنت" : "Connection error. Please check your internet connection";
       }
       toast({ title: isRTL ? "خطأ" : "Error", description: errorMessage, variant: "destructive" });
       return;

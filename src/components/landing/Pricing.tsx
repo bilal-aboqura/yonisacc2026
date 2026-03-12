@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Plan {
@@ -61,6 +62,7 @@ const defaultPlanFeatures: Record<string, { features_ar: string[]; features_en: 
 export const Pricing = () => {
   const { t } = useTranslation();
   const { isRTL } = useLanguage();
+  const { user } = useAuth();
   const [isYearly, setIsYearly] = useState(false);
 
   const { data: plans, isLoading } = useQuery({
@@ -266,7 +268,7 @@ export const Pricing = () => {
                   </ul>
 
                   {/* CTA */}
-                  <Link to={`/register-company?plan=${plan.id}&billing=${isYearly ? 'yearly' : 'monthly'}`} className="block">
+                  <Link to={user ? `/client/payment?plan=${plan.id}&billing=${isYearly ? 'yearly' : 'monthly'}` : `/register-company?plan=${plan.id}&billing=${isYearly ? 'yearly' : 'monthly'}`} className="block">
                     <Button
                       className="w-full rounded-xl h-12 gradient-primary text-white btn-primary-shadow"
                     >

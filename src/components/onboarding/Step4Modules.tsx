@@ -121,10 +121,12 @@ export const Step4Modules = ({ isRTL }: Props) => {
       if (signUpError) {
         const errMsg = signUpError.message?.toLowerCase() || "";
         let msg = isRTL ? "حدث خطأ أثناء إنشاء الحساب" : "Failed to create account";
-        if (errMsg.includes("already registered") || errMsg.includes("already been registered") || signUpError.status === 422) {
+        if (errMsg.includes("already registered") || errMsg.includes("already been registered")) {
           msg = isRTL ? "هذا البريد الإلكتروني مسجل مسبقاً" : "This email is already registered";
-        } else if (errMsg.includes("password")) {
-          msg = isRTL ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل" : "Password must be at least 6 characters";
+        } else if (errMsg.includes("password") || errMsg.includes("weak") || errMsg.includes("pwned") || errMsg.includes("leaked") || errMsg.includes("breach")) {
+          msg = isRTL ? "كلمة المرور ضعيفة أو مسربة. يرجى استخدام كلمة مرور أقوى وأكثر تعقيداً." : "Password is too weak or has been found in a data breach. Please use a stronger password.";
+        } else if (signUpError.status === 422) {
+          msg = signUpError.message || msg;
         }
         throw new Error(msg);
       }

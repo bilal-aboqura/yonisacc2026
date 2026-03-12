@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantIsolation } from "@/hooks/useTenantIsolation";
@@ -11,16 +11,127 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     CreditCard, CheckCircle, XCircle, Loader2, ArrowLeft, Clock,
-    Shield, Zap, Crown,
+    Shield, Zap, Crown, Globe,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
+import { useSearchParams } from "react-router-dom";
+
+// ── Kashier Iframe Component ───────────────────────────────────
+interface KashierData {
+    merchantId: string;
+    orderId: string;
+    amount: string;
+    currency: string;
+    hash: string;
+    mode: string;
+    merchantRedirect: string;
+    serverWebhook: string;
+    metaData?: string;
+}
+
+const KashierIframe = ({
+    data,
+    onClose,
+    isRTL,
+}: {
+    data: KashierData;
+    onClose: () => void;
+    isRTL: boolean;
+}) => {
+    const iframeUrl = new URL("https://checkout.kashier.io");
+    iframeUrl.searchParams.set("merchantId", data.merchantId);
+    iframeUrl.searchParams.set("orderId", data.orderId);
+    iframeUrl.searchParams.set("amount", data.amount);
+    iframeUrl.searchParams.set("currency", data.currency);
+    iframeUrl.searchParams.set("hash", data.hash);
+    iframeUrl.searchParams.set("mode", data.mode);
+    iframeUrl.searchParams.set("merchantRedirect", data.merchantRedirect);
+    iframeUrl.searchParams.set("serverWebhook", data.serverWebhook);
+    if (data.metaData) {
+        iframeUrl.searchParams.set("metaData", data.metaData);
+    }
+    iframeUrl.searchParams.set("display", "en");
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-background rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b">
+                    <h3 className="font-semibold text-lg">
+                        {isRTL ? "إتمام الدفع" : "Complete Payment"}
+                    </h3>
+                    <Button variant="ghost" size="sm" onClick={onClose}>
+                        <XCircle className="h-5 w-5" />
+                    </Button>
+                </div>
+                <div className="w-full" style={{ height: "500px" }}>
+                    <iframe
+                        src={iframeUrl.toString()}
+                        className="w-full h-full border-0"
+                        title="Kashier Payment"
+                        allow="payment"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
+                    />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ── Main PaymentPage Component ─────────────────────────────────
 
 const PaymentPage = () => {
     const { isRTL } = useLanguage();
     const { user } = useAuth();
     const { companyId } = useTenantIsolation();
     const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+    const [kashierData, setKashierData] = useState<KashierData | null>(null);
+    const [userCountry, setUserCountry] = useState<string>("");
+    const [searchParams] = useSearchParams();
+
+    // Detect callback status from URL
+    const callbackStatus = searchParams.get("status");
+    const callbackPaymentId = searchParams.get("payment_id");
+
+    // Show toast on callback return
+    useEffect(() => {
+        if (callbackStatus === "success") {
+            toast({
+                title: isRTL ? "تم الدفع بنجاح" : "Payment Successful",
+                description: isRTL
+                    ? "تم تفعيل اشتراكك بنجاح"
+                    : "Your subscription has been activated successfully",
+            });
+        } else if (callbackStatus === "failed") {
+            toast({
+                title: isRTL ? "فشل الدفع" : "Payment Failed",
+                description: isRTL
+                    ? "لم تتم عملية الدفع. يرجى المحاولة مرة أخرى"
+                    : "Payment was not completed. Please try again",
+                variant: "destructive",
+            });
+        }
+    }, [callbackStatus, isRTL]);
+
+    // Detect user country via IP geolocation
+    useEffect(() => {
+        const detectCountry = async () => {
+            try {
+                const res = await fetch("https://ipapi.co/json/", {
+                    signal: AbortSignal.timeout(5000),
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setUserCountry(data.country_code || "");
+                    console.log("Detected country:", data.country_code);
+                }
+            } catch (e) {
+                console.warn("Country detection failed, defaulting to PayTabs");
+                setUserCountry("SA"); // default to SAR/PayTabs
+            }
+        };
+        detectCountry();
+    }, []);
 
     // Fetch current subscription
     const { data: currentSub, isLoading: loadingSub } = useQuery({
@@ -81,6 +192,7 @@ const PaymentPage = () => {
                 body: {
                     plan_id: planId,
                     company_id: companyId,
+                    country: userCountry,
                     callback_url: window.location.origin + "/client/payment?callback=true",
                 },
             });
@@ -88,8 +200,11 @@ const PaymentPage = () => {
             return data;
         },
         onSuccess: (data) => {
-            if (data?.payment_url) {
-                // Redirect to payment gateway
+            if (data?.gateway === "kashier" && data?.kashier_data) {
+                // Egypt: show Kashier iframe
+                setKashierData(data.kashier_data);
+            } else if (data?.payment_url) {
+                // PayTabs: redirect to hosted page
                 window.location.href = data.payment_url;
             } else {
                 toast({
@@ -124,6 +239,13 @@ const PaymentPage = () => {
         return <Crown className="h-6 w-6" />;
     };
 
+    const getGatewayLabel = () => {
+        if (userCountry === "EG") {
+            return { name: isRTL ? "كاشير" : "Kashier", currency: "EGP", icon: "🇪🇬" };
+        }
+        return { name: isRTL ? "بيتابز" : "PayTabs", currency: "SAR", icon: "💳" };
+    };
+
     if (!user || !companyId) {
         return (
             <div className="flex items-center justify-center p-12">
@@ -132,14 +254,35 @@ const PaymentPage = () => {
         );
     }
 
+    const gatewayInfo = getGatewayLabel();
+
     return (
         <div className="space-y-8 max-w-5xl mx-auto">
+            {/* Kashier Iframe Modal */}
+            {kashierData && (
+                <KashierIframe
+                    data={kashierData}
+                    isRTL={isRTL}
+                    onClose={() => setKashierData(null)}
+                />
+            )}
+
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold">{isRTL ? "الاشتراك والدفع" : "Subscription & Payment"}</h1>
                 <p className="text-muted-foreground mt-1">
                     {isRTL ? "إدارة اشتراكك وطرق الدفع" : "Manage your subscription and payment methods"}
                 </p>
+                {/* Payment Gateway Info */}
+                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                    <Globe className="h-4 w-4" />
+                    <span>
+                        {isRTL ? "بوابة الدفع:" : "Payment gateway:"}{" "}
+                        <span className="font-medium text-foreground">
+                            {gatewayInfo.icon} {gatewayInfo.name}
+                        </span>
+                    </span>
+                </div>
             </div>
 
             {/* Current Subscription Card */}
@@ -290,9 +433,16 @@ const PaymentPage = () => {
                                             <Clock className="h-5 w-5 text-muted-foreground" />
                                         )}
                                         <div>
-                                            <p className="font-medium text-sm">{p.description || `Payment #${p.id.slice(0, 8)}`}</p>
-                                            <p className="text-xs text-muted-foreground">
+                                            <p className="font-medium text-sm">
+                                                {p.description || `Payment #${p.id.slice(0, 8)}`}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
                                                 {format(new Date(p.created_at), "dd MMM yyyy HH:mm", { locale: isRTL ? ar : enUS })}
+                                                {p.gateway && (
+                                                    <Badge variant="outline" className="text-[10px] px-1 py-0 ml-1">
+                                                        {p.gateway === "kashier" ? "Kashier" : p.gateway === "paytabs" ? "PayTabs" : p.gateway}
+                                                    </Badge>
+                                                )}
                                             </p>
                                         </div>
                                     </div>
