@@ -110,18 +110,12 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
         let msg = isRTL ? "حدث خطأ أثناء إنشاء الحساب" : "Failed to create account";
         if (errMsg.includes("already registered") || errMsg.includes("already been registered")) {
           msg = isRTL ? "هذا البريد الإلكتروني مسجل مسبقاً. يرجى تسجيل الدخول أو استخدام بريد آخر." : "This email is already registered. Please sign in or use a different email.";
-<<<<<<< HEAD
+        } else if (errMsg.includes("signups not allowed") || errMsg.includes("signup_disabled")) {
+          msg = isRTL ? "التسجيل غير متاح حالياً. يرجى المحاولة لاحقاً." : "Signups are currently disabled. Please try again later.";
         } else if (errMsg.includes("password") || errMsg.includes("weak") || errMsg.includes("pwned") || errMsg.includes("leaked") || errMsg.includes("breach")) {
           msg = isRTL ? "كلمة المرور ضعيفة أو مسربة. يرجى استخدام كلمة مرور أقوى وأكثر تعقيداً." : "Password is too weak or has been found in a data breach. Please use a stronger password.";
         } else if (signUpError.status === 422) {
-          // For other 422 errors, show the actual Supabase error message
           msg = signUpError.message || msg;
-=======
-        } else if (errMsg.includes("signups not allowed") || errMsg.includes("signup_disabled")) {
-          msg = isRTL ? "التسجيل غير متاح حالياً. يرجى المحاولة لاحقاً." : "Signups are currently disabled. Please try again later.";
-        } else if (errMsg.includes("password")) {
-          msg = isRTL ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل" : "Password must be at least 6 characters";
->>>>>>> 99da5f54610e52c5bc240794be18131a0db12669
         }
         throw new Error(msg);
       }
@@ -137,17 +131,12 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
       }
 
       if (!signUpData.session) {
-<<<<<<< HEAD
         // Try to sign in immediately (works when email confirmation is disabled)
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
         });
         if (signInError || !signInData.session) {
-          // Email confirmation is likely required — this is NOT an error,
-          // just means the user needs to verify their email first.
-          // We'll still try to provision the tenant anonymously below,
-          // but if that requires auth we should guide the user.
           const errMsg = (signInError?.message || "").toLowerCase();
           if (errMsg.includes("email not confirmed") || errMsg.includes("invalid login credentials") || errMsg.includes("invalid_credentials")) {
             toast.success(
@@ -160,9 +149,6 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
           }
           throw new Error(isRTL ? "تم إنشاء الحساب بنجاح. يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول." : "Account created. Please confirm your email then sign in.");
         }
-=======
-        throw new Error(isRTL ? "حدث خطأ في إنشاء الجلسة. يرجى المحاولة مرة أخرى." : "Failed to create session. Please try again.");
->>>>>>> 99da5f54610e52c5bc240794be18131a0db12669
       }
 
       const payload: Record<string, unknown> = {
