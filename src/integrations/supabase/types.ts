@@ -2618,6 +2618,629 @@ export type Database = {
           },
         ]
       }
+      fuel_customers: {
+        Row: {
+          account_id: string | null
+          balance: number | null
+          company_id: string
+          created_at: string | null
+          credit_limit: number | null
+          customer_type: string
+          id: string
+          mobile: string | null
+          name: string
+          name_en: string | null
+          notes: string | null
+          plate_number: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          balance?: number | null
+          company_id: string
+          created_at?: string | null
+          credit_limit?: number | null
+          customer_type?: string
+          id?: string
+          mobile?: string | null
+          name: string
+          name_en?: string | null
+          notes?: string | null
+          plate_number?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          balance?: number | null
+          company_id?: string
+          created_at?: string | null
+          credit_limit?: number | null
+          customer_type?: string
+          id?: string
+          mobile?: string | null
+          name?: string
+          name_en?: string | null
+          notes?: string | null
+          plate_number?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_customers_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fuel_message_logs: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          customer_id: string | null
+          event_type: string
+          id: string
+          message_text: string
+          provider: string | null
+          status: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          customer_id?: string | null
+          event_type: string
+          id?: string
+          message_text: string
+          provider?: string | null
+          status?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          customer_id?: string | null
+          event_type?: string
+          id?: string
+          message_text?: string
+          provider?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_message_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_message_logs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "fuel_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fuel_prices: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          effective_date: string
+          fuel_type: string
+          id: string
+          price_per_liter: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          effective_date?: string
+          fuel_type: string
+          id?: string
+          price_per_liter: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          effective_date?: string
+          fuel_type?: string
+          id?: string
+          price_per_liter?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_prices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fuel_pumps: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          fuel_type: string
+          id: string
+          meter_reading: number | null
+          pump_number: string
+          status: string
+          tank_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          fuel_type: string
+          id?: string
+          meter_reading?: number | null
+          pump_number: string
+          status?: string
+          tank_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          fuel_type?: string
+          id?: string
+          meter_reading?: number | null
+          pump_number?: string
+          status?: string
+          tank_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_pumps_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_pumps_tank_id_fkey"
+            columns: ["tank_id"]
+            isOneToOne: false
+            referencedRelation: "fuel_tanks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fuel_sales: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          customer_id: string | null
+          fuel_type: string
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          payment_method: string
+          pump_id: string | null
+          quantity: number
+          sale_date: string | null
+          total_amount: number
+          unit_price: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          customer_id?: string | null
+          fuel_type: string
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_method?: string
+          pump_id?: string | null
+          quantity: number
+          sale_date?: string | null
+          total_amount: number
+          unit_price: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          customer_id?: string | null
+          fuel_type?: string
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_method?: string
+          pump_id?: string | null
+          quantity?: number
+          sale_date?: string | null
+          total_amount?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_sales_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "fuel_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_sales_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_sales_pump_id_fkey"
+            columns: ["pump_id"]
+            isOneToOne: false
+            referencedRelation: "fuel_pumps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fuel_station_account_settings: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          fuel_bank_account_id: string | null
+          fuel_cash_account_id: string | null
+          fuel_cogs_account_id: string | null
+          fuel_customer_receivable_account_id: string | null
+          fuel_inventory_account_id: string | null
+          fuel_sales_revenue_account_id: string | null
+          fuel_sales_tax_account_id: string | null
+          fuel_supplier_payable_account_id: string | null
+          fuel_wallet_liability_account_id: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          fuel_bank_account_id?: string | null
+          fuel_cash_account_id?: string | null
+          fuel_cogs_account_id?: string | null
+          fuel_customer_receivable_account_id?: string | null
+          fuel_inventory_account_id?: string | null
+          fuel_sales_revenue_account_id?: string | null
+          fuel_sales_tax_account_id?: string | null
+          fuel_supplier_payable_account_id?: string | null
+          fuel_wallet_liability_account_id?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          fuel_bank_account_id?: string | null
+          fuel_cash_account_id?: string | null
+          fuel_cogs_account_id?: string | null
+          fuel_customer_receivable_account_id?: string | null
+          fuel_inventory_account_id?: string | null
+          fuel_sales_revenue_account_id?: string | null
+          fuel_sales_tax_account_id?: string | null
+          fuel_supplier_payable_account_id?: string | null
+          fuel_wallet_liability_account_id?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_station_account_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_station_account_settings_fuel_bank_account_id_fkey"
+            columns: ["fuel_bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_station_account_settings_fuel_cash_account_id_fkey"
+            columns: ["fuel_cash_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_station_account_settings_fuel_cogs_account_id_fkey"
+            columns: ["fuel_cogs_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_station_account_settings_fuel_customer_receivable_acc_fkey"
+            columns: ["fuel_customer_receivable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_station_account_settings_fuel_inventory_account_id_fkey"
+            columns: ["fuel_inventory_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_station_account_settings_fuel_sales_revenue_account_i_fkey"
+            columns: ["fuel_sales_revenue_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_station_account_settings_fuel_sales_tax_account_id_fkey"
+            columns: ["fuel_sales_tax_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_station_account_settings_fuel_supplier_payable_accoun_fkey"
+            columns: ["fuel_supplier_payable_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_station_account_settings_fuel_wallet_liability_accoun_fkey"
+            columns: ["fuel_wallet_liability_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fuel_tank_refills: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          quantity: number
+          refill_date: string | null
+          supplier_name: string | null
+          tank_id: string
+          total_cost: number
+          unit_cost: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          quantity: number
+          refill_date?: string | null
+          supplier_name?: string | null
+          tank_id: string
+          total_cost?: number
+          unit_cost?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          quantity?: number
+          refill_date?: string | null
+          supplier_name?: string | null
+          tank_id?: string
+          total_cost?: number
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_tank_refills_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_tank_refills_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_tank_refills_tank_id_fkey"
+            columns: ["tank_id"]
+            isOneToOne: false
+            referencedRelation: "fuel_tanks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fuel_tanks: {
+        Row: {
+          branch_id: string | null
+          capacity: number
+          company_id: string
+          created_at: string | null
+          current_qty: number
+          fuel_type: string
+          id: string
+          is_active: boolean | null
+          min_alert_level: number | null
+          tank_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          capacity?: number
+          company_id: string
+          created_at?: string | null
+          current_qty?: number
+          fuel_type: string
+          id?: string
+          is_active?: boolean | null
+          min_alert_level?: number | null
+          tank_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          capacity?: number
+          company_id?: string
+          created_at?: string | null
+          current_qty?: number
+          fuel_type?: string
+          id?: string
+          is_active?: boolean | null
+          min_alert_level?: number | null
+          tank_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_tanks_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_tanks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fuel_wallet_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          company_id: string
+          created_at: string | null
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          reference_id: string | null
+          transaction_date: string | null
+          type: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number
+          company_id: string
+          created_at?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          reference_id?: string | null
+          transaction_date?: string | null
+          type: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          reference_id?: string | null
+          transaction_date?: string | null
+          type?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_wallet_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_wallet_transactions_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "fuel_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fuel_wallets: {
+        Row: {
+          balance: number
+          company_id: string
+          created_at: string | null
+          customer_id: string
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          balance?: number
+          company_id: string
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          balance?: number
+          company_id?: string
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_wallets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fuel_wallets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "fuel_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       global_accounts: {
         Row: {
           code: string
@@ -9066,6 +9689,7 @@ export type Database = {
         Args: { p_company_id: string; p_usage_type: string }
         Returns: undefined
       }
+      is_company_member: { Args: { _company_id: string }; Returns: boolean }
       is_company_owner: { Args: { _company_id: string }; Returns: boolean }
       log_access_denied: {
         Args: {

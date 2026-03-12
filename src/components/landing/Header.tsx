@@ -68,10 +68,10 @@ export const Header = () => {
               </>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => navigate("/auth")}>
+                <Button className="gradient-primary text-white" onClick={() => navigate("/auth")}>
                   {t("nav.login")}
                 </Button>
-                <Button className="gradient-primary text-white" onClick={() => navigate("/register-company")}>
+                <Button variant="outline" onClick={() => navigate("/register-company")}>
                   {t("nav.registerCompany")}
                 </Button>
               </>
@@ -128,14 +128,14 @@ export const Header = () => {
                   ) : (
                     <>
                       <Button 
-                        variant="outline" 
-                        className="w-full" 
+                        className="gradient-primary text-white w-full" 
                         onClick={() => { navigate("/auth"); setIsOpen(false); }}
                       >
                         {t("nav.login")}
                       </Button>
                       <Button 
-                        className="gradient-primary text-white w-full gap-2" 
+                        variant="outline" 
+                        className="w-full gap-2" 
                         onClick={() => { navigate("/register-company"); setIsOpen(false); }}
                       >
                         <Building2 className="h-4 w-4" />
