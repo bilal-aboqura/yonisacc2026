@@ -143,6 +143,22 @@ const PaymentPage = () => {
             if (data?.payment_url) {
                 // Redirect to payment page (Kashier or PayTabs)
                 window.location.href = data.payment_url;
+            } else if (data?.kashier_data) {
+                // Backward compat: old edge function returns kashier_data for iframe
+                // Build redirect URL from it instead
+                const kd = data.kashier_data;
+                const url = new URL("https://checkout.kashier.io");
+                url.searchParams.set("merchantId", kd.merchantId);
+                url.searchParams.set("orderId", kd.orderId);
+                url.searchParams.set("amount", kd.amount);
+                url.searchParams.set("currency", kd.currency);
+                url.searchParams.set("hash", kd.hash);
+                url.searchParams.set("mode", kd.mode);
+                url.searchParams.set("merchantRedirect", kd.merchantRedirect);
+                url.searchParams.set("serverWebhook", kd.serverWebhook);
+                if (kd.metaData) url.searchParams.set("metaData", kd.metaData);
+                url.searchParams.set("display", "en");
+                window.location.href = url.toString();
             } else {
                 toast({
                     title: isRTL ? "خطأ" : "Error",
