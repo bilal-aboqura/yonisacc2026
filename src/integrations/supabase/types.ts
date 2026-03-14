@@ -5880,6 +5880,88 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          callback_url: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          gateway: string
+          gateway_payment_id: string | null
+          gateway_status: string | null
+          id: string
+          metadata: Json | null
+          paid_at: string | null
+          payment_method: string | null
+          plan_id: string | null
+          status: string
+          subscription_id: string | null
+        }
+        Insert: {
+          amount: number
+          callback_url?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          gateway?: string
+          gateway_payment_id?: string | null
+          gateway_status?: string | null
+          id?: string
+          metadata?: Json | null
+          paid_at?: string | null
+          payment_method?: string | null
+          plan_id?: string | null
+          status?: string
+          subscription_id?: string | null
+        }
+        Update: {
+          amount?: number
+          callback_url?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          gateway?: string
+          gateway_payment_id?: string | null
+          gateway_status?: string | null
+          id?: string
+          metadata?: Json | null
+          paid_at?: string | null
+          payment_method?: string | null
+          plan_id?: string | null
+          status?: string
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_feature_permissions: {
         Row: {
           allowed: boolean
@@ -8951,6 +9033,7 @@ export type Database = {
           created_at: string
           end_date: string | null
           entries_used: number | null
+          grace_period_end: string | null
           id: string
           invoices_used: number | null
           notes: string | null
@@ -8966,6 +9049,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           entries_used?: number | null
+          grace_period_end?: string | null
           id?: string
           invoices_used?: number | null
           notes?: string | null
@@ -8981,6 +9065,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           entries_used?: number | null
+          grace_period_end?: string | null
           id?: string
           invoices_used?: number | null
           notes?: string | null
