@@ -415,6 +415,24 @@ const App = () => (
                 <Route path="delivery/setup" element={<DeliveryAccountSetup />} />
                 <Route path="delivery/settlement" element={<DriverSettlement />} />
 
+                {/* Fuel Station */}
+                <Route path="fuel" element={<FuelDashboard />} />
+                <Route path="fuel/customers" element={<FuelCustomers />} />
+                <Route path="fuel/customers/new" element={<CreateFuelCustomer />} />
+                <Route path="fuel/customers/:id/edit" element={<CreateFuelCustomer />} />
+                <Route path="fuel/customers/:id/statement" element={<FuelCustomerStatement />} />
+                <Route path="fuel/wallets" element={<FuelWallets />} />
+                <Route path="fuel/wallets/:id/recharge" element={<RechargeWallet />} />
+                <Route path="fuel/pumps" element={<FuelPumps />} />
+                <Route path="fuel/pumps/new" element={<CreateFuelPump />} />
+                <Route path="fuel/tanks" element={<FuelTanks />} />
+                <Route path="fuel/tanks/new" element={<CreateFuelTank />} />
+                <Route path="fuel/tanks/:id/refill" element={<RefillTank />} />
+                <Route path="fuel/pos" element={<FuelPOS />} />
+                <Route path="fuel/prices" element={<FuelPrices />} />
+                <Route path="fuel/reports" element={<FuelReports />} />
+                <Route path="fuel/setup" element={<FuelAccountSetup />} />
+
                 {/* Gold & Jewelry */}
                 <Route path="gold/items" element={<GoldItems />} />
                 <Route path="gold/items/new" element={<CreateGoldItem />} />
@@ -460,7 +478,6 @@ const App = () => (
                 <Route path="payment" element={<PaymentPage />} />
               </Route>
 
-
               {/* Owner Portal Routes */}
               <Route path="/owner" element={<OwnerLayout />}>
                 <Route index element={<OwnerDashboard />} />
@@ -469,7 +486,6 @@ const App = () => (
                 <Route path="subscribers/:id/access" element={<ManageCompanyAccess />} />
                 <Route path="subscriptions" element={<OwnerSubscriptions />} />
                 <Route path="plans" element={<OwnerPlans />} />
-
                 <Route path="landing-content" element={<OwnerLandingContent />} />
                 <Route path="messages" element={<OwnerMessages />} />
                 <Route path="reports" element={<OwnerReports />} />
