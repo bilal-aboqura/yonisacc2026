@@ -334,7 +334,6 @@ const App = () => (
                 <Route path="inventory/setup" element={<InventoryAccountSetup />} />
                 <Route path="inventory/movements" element={<ClientInventory tab="movements" />} />
 
-<<<<<<< HEAD
                 {/* POS */}
                 <Route path="pos" element={<POSScreen />} />
                 <Route path="pos/tables" element={<POSTables />} />
@@ -349,85 +348,6 @@ const App = () => (
                 <Route path="pos/invoices" element={<POSInvoices />} />
                 <Route path="pos/account-setup" element={<POSAccountSetup />} />
                 <Route path="pos/integrations" element={<POSIntegrations />} />
-=======
-              {/* Fuel Station */}
-              <Route path="fuel" element={<FuelDashboard />} />
-              <Route path="fuel/customers" element={<FuelCustomers />} />
-              <Route path="fuel/customers/new" element={<CreateFuelCustomer />} />
-              <Route path="fuel/customers/:id/edit" element={<CreateFuelCustomer />} />
-              <Route path="fuel/customers/:id/statement" element={<FuelCustomerStatement />} />
-              <Route path="fuel/wallets" element={<FuelWallets />} />
-              <Route path="fuel/wallets/:id/recharge" element={<RechargeWallet />} />
-              <Route path="fuel/pumps" element={<FuelPumps />} />
-              <Route path="fuel/pumps/new" element={<CreateFuelPump />} />
-              <Route path="fuel/tanks" element={<FuelTanks />} />
-              <Route path="fuel/tanks/new" element={<CreateFuelTank />} />
-              <Route path="fuel/tanks/:id/refill" element={<RefillTank />} />
-              <Route path="fuel/pos" element={<FuelPOS />} />
-              <Route path="fuel/prices" element={<FuelPrices />} />
-              <Route path="fuel/reports" element={<FuelReports />} />
-              <Route path="fuel/setup" element={<FuelAccountSetup />} />
-
-              {/* Gold & Jewelry */}
-              <Route path="gold/items" element={<GoldItems />} />
-              <Route path="gold/items/new" element={<CreateGoldItem />} />
-              <Route path="gold/items/:id/edit" element={<CreateGoldItem />} />
-              <Route path="gold/purchases" element={<GoldPurchases />} />
-              <Route path="gold/purchases/new" element={<CreateGoldPurchase />} />
-              <Route path="gold/sales" element={<GoldSales />} />
-              <Route path="gold/sales/new" element={<CreateGoldSale />} />
-              <Route path="gold/prices" element={<GoldPriceSettings />} />
-              <Route path="gold/reports" element={<GoldReports />} />
-              <Route path="gold/setup" element={<GoldAccountSetup />} />
-              
-              {/* Other */}
-              <Route path="contacts" element={<ClientContacts />} />
-              <Route path="contacts/new" element={<CreateContact />} />
-              <Route path="contacts/:id/edit" element={<EditContact />} />
-              <Route path="reports" element={<ClientReports />} />
-              <Route path="reports/income-statement" element={<IncomeStatement />} />
-              <Route path="reports/balance-sheet" element={<BalanceSheet />} />
-              <Route path="reports/cash-flow" element={<CashFlow />} />
-              <Route path="reports/trial-balance" element={<TrialBalance />} />
-              <Route path="reports/vat" element={<VATReport />} />
-              <Route path="reports/sales" element={<SalesReports />} />
-              <Route path="reports/purchases" element={<PurchaseReports />} />
-              <Route path="reports/operations" element={<OperationalReports />} />
-              <Route path="reports/inventory" element={<InventoryDetailedReports />} />
-              
-              {/* Settings */}
-              <Route path="settings" element={<ClientSettings />} />
-              <Route path="settings/team" element={<ClientSettings tab="team" />} />
-              <Route path="settings/roles" element={<ClientSettings tab="roles" />} />
-              <Route path="settings/profile" element={<ClientSettings tab="profile" />} />
-              <Route path="settings/branch-management" element={<BranchManagement />} />
-              <Route path="settings/branches" element={<ClientSettings tab="branches" />} />
-              <Route path="settings/print" element={<ClientSettings tab="print" />} />
-              <Route path="settings/payment-methods" element={<ClientSettings tab="payment-methods" />} />
-              <Route path="settings/appearance" element={<ClientSettings tab="appearance" />} />
-              <Route path="settings/danger" element={<ClientSettings tab="danger" />} />
-              <Route path="settings/zatca" element={<ZatcaSettings />} />
-              <Route path="fiscal-year-management" element={<FiscalYearManagement />} />
-            </Route>
-            
-            
-            {/* Owner Portal Routes */}
-            <Route path="/owner" element={<OwnerLayout />}>
-              <Route index element={<OwnerDashboard />} />
-              <Route path="subscribers" element={<OwnerSubscribers />} />
-              <Route path="subscribers/create" element={<CreateSubscriber />} />
-              <Route path="subscribers/:id/access" element={<ManageCompanyAccess />} />
-              <Route path="subscriptions" element={<OwnerSubscriptions />} />
-              <Route path="plans" element={<OwnerPlans />} />
-              
-              <Route path="landing-content" element={<OwnerLandingContent />} />
-              <Route path="messages" element={<OwnerMessages />} />
-              <Route path="reports" element={<OwnerReports />} />
-              <Route path="audit-logs" element={<OwnerAuditLogs />} />
-              <Route path="activities" element={<OwnerActivities />} />
-              <Route path="settings" element={<OwnerSettings />} />
-            </Route>
->>>>>>> 99da5f54610e52c5bc240794be18131a0db12669
 
                 {/* Fixed Assets */}
                 <Route path="assets" element={<FixedAssets />} />

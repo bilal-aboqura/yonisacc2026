@@ -210,27 +210,30 @@ Deno.serve(async (req) => {
         .update({ gateway_payment_id: merchantOrderId })
         .eq("id", payment.id);
 
-      // Return iframe data for the frontend to render
+      // Build Kashier checkout redirect URL (no iframe)
+      const kashierCheckoutUrl = new URL("https://checkout.kashier.io");
+      kashierCheckoutUrl.searchParams.set("merchantId", kashierMerchantId);
+      kashierCheckoutUrl.searchParams.set("orderId", merchantOrderId);
+      kashierCheckoutUrl.searchParams.set("amount", amount);
+      kashierCheckoutUrl.searchParams.set("currency", currency);
+      kashierCheckoutUrl.searchParams.set("hash", hash);
+      kashierCheckoutUrl.searchParams.set("mode", Deno.env.get("KASHIER_MODE") || "live");
+      kashierCheckoutUrl.searchParams.set("merchantRedirect", callback_url || `${appUrl}/client/payment?callback=true`);
+      kashierCheckoutUrl.searchParams.set("serverWebhook", webhookUrl);
+      kashierCheckoutUrl.searchParams.set("metaData", JSON.stringify({
+        payment_id: payment.id,
+        company_id,
+        plan_id: plan.id,
+        subscription_id: subscription?.id || null,
+        plan_name: plan.name_en || plan.name_ar,
+      }));
+      kashierCheckoutUrl.searchParams.set("display", "en");
+
+      // Return redirect URL (same pattern as PayTabs)
       return jsonResponse({
         gateway: "kashier",
         payment_id: payment.id,
-        kashier_data: {
-          merchantId: kashierMerchantId,
-          orderId: merchantOrderId,
-          amount,
-          currency,
-          hash,
-          mode: Deno.env.get("KASHIER_MODE") || "live",
-          merchantRedirect: callback_url || `${appUrl}/client/payment?callback=true`,
-          serverWebhook: webhookUrl,
-          metaData: JSON.stringify({
-            payment_id: payment.id,
-            company_id,
-            plan_id: plan.id,
-            subscription_id: subscription?.id || null,
-            plan_name: plan.name_en || plan.name_ar,
-          }),
-        },
+        payment_url: kashierCheckoutUrl.toString(),
       });
     } else {
       // ═══════════════════════════════════════════════════════

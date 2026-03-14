@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantIsolation } from "@/hooks/useTenantIsolation";
@@ -17,66 +17,7 @@ import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { useSearchParams } from "react-router-dom";
 
-// ── Kashier Iframe Component ───────────────────────────────────
-interface KashierData {
-    merchantId: string;
-    orderId: string;
-    amount: string;
-    currency: string;
-    hash: string;
-    mode: string;
-    merchantRedirect: string;
-    serverWebhook: string;
-    metaData?: string;
-}
-
-const KashierIframe = ({
-    data,
-    onClose,
-    isRTL,
-}: {
-    data: KashierData;
-    onClose: () => void;
-    isRTL: boolean;
-}) => {
-    const iframeUrl = new URL("https://checkout.kashier.io");
-    iframeUrl.searchParams.set("merchantId", data.merchantId);
-    iframeUrl.searchParams.set("orderId", data.orderId);
-    iframeUrl.searchParams.set("amount", data.amount);
-    iframeUrl.searchParams.set("currency", data.currency);
-    iframeUrl.searchParams.set("hash", data.hash);
-    iframeUrl.searchParams.set("mode", data.mode);
-    iframeUrl.searchParams.set("merchantRedirect", data.merchantRedirect);
-    iframeUrl.searchParams.set("serverWebhook", data.serverWebhook);
-    if (data.metaData) {
-        iframeUrl.searchParams.set("metaData", data.metaData);
-    }
-    iframeUrl.searchParams.set("display", "en");
-
-    return (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-background rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-                <div className="flex items-center justify-between p-4 border-b">
-                    <h3 className="font-semibold text-lg">
-                        {isRTL ? "إتمام الدفع" : "Complete Payment"}
-                    </h3>
-                    <Button variant="ghost" size="sm" onClick={onClose}>
-                        <XCircle className="h-5 w-5" />
-                    </Button>
-                </div>
-                <div className="w-full" style={{ height: "500px" }}>
-                    <iframe
-                        src={iframeUrl.toString()}
-                        className="w-full h-full border-0"
-                        title="Kashier Payment"
-                        allow="payment"
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
-                    />
-                </div>
-            </div>
-        </div>
-    );
-};
+// Both Kashier and PayTabs now use redirect-based payment (no iframe)
 
 // ── Main PaymentPage Component ─────────────────────────────────
 
@@ -85,7 +26,6 @@ const PaymentPage = () => {
     const { user } = useAuth();
     const { companyId } = useTenantIsolation();
     const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-    const [kashierData, setKashierData] = useState<KashierData | null>(null);
     const [userCountry, setUserCountry] = useState<string>("");
     const [searchParams] = useSearchParams();
 
@@ -200,11 +140,8 @@ const PaymentPage = () => {
             return data;
         },
         onSuccess: (data) => {
-            if (data?.gateway === "kashier" && data?.kashier_data) {
-                // Egypt: show Kashier iframe
-                setKashierData(data.kashier_data);
-            } else if (data?.payment_url) {
-                // PayTabs: redirect to hosted page
+            if (data?.payment_url) {
+                // Redirect to payment page (Kashier or PayTabs)
                 window.location.href = data.payment_url;
             } else {
                 toast({
@@ -258,14 +195,6 @@ const PaymentPage = () => {
 
     return (
         <div className="space-y-8 max-w-5xl mx-auto">
-            {/* Kashier Iframe Modal */}
-            {kashierData && (
-                <KashierIframe
-                    data={kashierData}
-                    isRTL={isRTL}
-                    onClose={() => setKashierData(null)}
-                />
-            )}
 
             {/* Header */}
             <div>
