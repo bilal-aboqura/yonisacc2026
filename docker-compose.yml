@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  yonisacc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+    container_name: yonisacc
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    environment:
+      - TZ=Africa/Cairo
