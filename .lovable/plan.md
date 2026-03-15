@@ -1,85 +1,57 @@
 
-# خطة نظام نقاط البيع الشامل (POS)
 
-## الحالة: ✅ تم تنفيذ المراحل 1-10
+## المشكلة
 
-### ما تم إنجازه:
+تحليل نظام الوحدات كشف عن عدة مشاكل في ربط الوحدات بين لوحة المالك (Owner) ولوحة المستخدم (Client):
 
-**المرحلة 1: قاعدة البيانات** ✅
-- 11 جدول جديد: pos_terminals, pos_sessions, pos_transactions, pos_transaction_items, pos_tables, pos_reservations, pos_menus, pos_menu_items, pos_promotions, pos_sales_targets, pos_activity_log
-- RLS على جميع الجداول
-- صلاحيات RBAC: 8 feature flags جديدة
+### 1. المالك لا يرى القيود على الوحدات
+`useAllowedModules` يبحث عن سجل في `company_members` للمستخدم الحالي. إذا كان المستخدم هو مالك الشركة وليس لديه سجل في `company_members`، الهوك يعود `null` = **كل الوحدات متاحة** بغض النظر عن إعدادات المالك.
 
-**المرحلة 2: شاشة POS الرئيسية** ✅
-- شاشة ملء الشاشة مع شبكة منتجات + سلة مشتريات
-- بحث سريع وباركود + تصفية بالتصنيف
-- نوع الطلب (محلي/سفري/توصيل)
-- أزرار دفع متعددة (نقد/بطاقة)
-- اختصارات لوحة مفاتيح (F1/F2/F5/Esc)
-- فتح/إغلاق الصندوق مع المبلغ
+### 2. وحدة "الخزينة" في لوحة المالك بدون تأثير
+لوحة المالك تحتوي على وحدة `treasury` لكن في القائمة الجانبية للعميل، الخزينة جزء من مجموعة "المحاسبة" (`accounting`) وليس لها `moduleKey` مستقل.
 
-**المرحلة 3: إدارة الطاولات** ✅
-- عرض تفاعلي مع ألوان حسب الحالة
-- CRUD للطاولات مع الشكل والسعة والطابق
-
-**المرحلة 4: الإعدادات والمنيو** ✅
-- إدارة نقاط البيع (Terminals) مع النوع (تجزئة/مطعم)
-- إدارة المنيو المخصص لكل فرع
-
-**المرحلة 5: العروض والأهداف** ✅
-- إنشاء عروض (نسبة/مبلغ/اشتر X واحصل Y)
-- أهداف مبيعات مع شريط التقدم
-
-**المرحلة 6: التقارير** ✅
-- بطاقات ملخص (إجمالي/عدد/متوسط)
-- رسم بياني يومي + توزيع طرق الدفع
-- جدول العمليات
-
-**المرحلة 7-8: التكامل** ✅
-- 7 مسارات POS في App.tsx
-- قسم "نقاط البيع" في القائمة الجانبية
-- سجل نشاط المستخدمين
-
-**المرحلة 9: الكوبونات والعروض المتقدمة** ✅
-- جدول pos_coupons مع RLS
-- شاشة إدارة كوبونات (CRUD) مع inline form
-- تطبيق الكوبون في شاشة البيع مع التحقق (الفترة، الاستخدام، الحد الأدنى)
-- ربط العروض بمنتجات محددة عبر جدول pos_promotion_products
-- تحويل شاشة العروض من Dialog إلى inline مع product checkboxes
-
-**المرحلة 10: مستخدمو POS وتقارير الصندوق** ✅
-- جدول pos_users مع أدوار (كاشير/مدير فرع) وربط بالفرع
-- شاشة إدارة مستخدمي POS (إنشاء بإيميل+باسورد+فرع+دور)
-- تقرير إغلاق الصندوق (مبيعات/مرتجعات/خصومات/طرق دفع/رصيد إغلاق) مع طباعة
-- شاشة سجل المستخدمين (تاريخ الجلسات مع فلترة)
-- أعمدة تقارير في pos_sessions (total_sales, total_returns, payment_summary, etc.)
+### 3. عدم مزامنة الوحدات مع الباقة
+عند حفظ الوحدات من لوحة المالك، يتم التحديث فقط على `company_members` بدون تحديث `subscription_plans.allowed_modules`.
 
 ---
 
-# نظام إدارة السنوات المالية الشامل
+## الخطة
 
-## الحالة: ✅ تم تنفيذ المراحل 1-4
+### الخطوة 1: إصلاح `useAllowedModules` — دعم المالك
+- إضافة فحص: إذا لم يوجد سجل `company_members` للمستخدم، البحث عن سجلات أخرى لنفس الشركة (أي عضو آخر) لقراءة `allowed_modules`
+- إضافة فحص بديل: إذا كان المستخدم هو `owner_id` في جدول `companies`، يستخدم `allowed_modules` من أي سجل `company_members` لنفس الشركة
 
-### ما تم إنجازه:
+### الخطوة 2: إضافة `moduleKey: "treasury"` للقائمة الجانبية
+- فصل الخزينة كعنصر مستقل في `baseMenuItems` مع `moduleKey: "treasury"`، أو إضافة `moduleKey` على مستوى العناصر الفرعية
+- الأبسط: إضافة `moduleKey: "treasury"` على مجموعة الخزينة إذا كانت منفصلة، أو إزالة "treasury" من قائمة الوحدات في لوحة المالك لأنها فعلياً جزء من المحاسبة
 
-**المرحلة 1: البنية التحتية** ✅
-- تطوير جدول fiscal_periods بأعمدة: status, locked_by, locked_at, closing_journal_entry_id, opening_journal_entry_id, created_by, reopen_reason, reopened_at, reopened_by
-- جدول fiscal_year_audit_log مع RLS
-- جداول stock_count_sessions و stock_count_lines مع RLS
-- 3 RPCs: pre_closing_validation, close_fiscal_year, reopen_fiscal_year
+### الخطوة 3: ضمان إنشاء سجل `company_members` للمالك
+- في `handleSaveModules` بلوحة المالك، التأكد من إنشاء/تحديث سجل للمالك أيضاً (هذا موجود جزئياً لكن يعمل فقط إذا لم يوجد أي سجل)
 
-**المرحلة 2: واجهة إدارة السنوات المالية** ✅
-- صفحة FiscalYearManagement.tsx مع 5 تبويبات (السنوات | التحقق | الجرد | التقرير | التدقيق)
-- بطاقات إحصائية (مفتوحة/مقفلة مؤقتاً/مقفلة نهائياً)
-- إجراءات: قفل مؤقت ← إقفال نهائي ← إعادة فتح
+---
 
-**المرحلة 3: RPCs للعمليات الذرية** ✅
-- pre_closing_validation: فحص قيود مسودة، فواتير مسودة، حركات معلقة، فترات HR
-- close_fiscal_year: إقفال حسابات الدخل → أرباح مبقاة → أرصدة افتتاحية
-- reopen_fiscal_year: حذف قيود الإقفال وإعادة الفتح مع سجل تدقيق
+## التفاصيل التقنية
 
-**المرحلة 4: التقارير وسجل التدقيق** ✅
-- PreClosingValidation.tsx: فحوصات تلقائية مع ✅/❌
-- StockCountSession.tsx: جلسات جرد مع إدخال كميات فعلية
-- YearClosingReport.tsx: ملخص الدخل + الميزانية العمومية
-- FiscalAuditLog.tsx: سجل كل العمليات على السنوات المالية
+**`src/hooks/useAllowedModules.ts`**:
+```typescript
+// بعد فحص memberData، إذا لم يوجد سجل للمستخدم الحالي:
+// فحص أي سجل company_members آخر لنفس الشركة
+const { data: anyMember } = await supabase
+  .from("company_members")
+  .select("allowed_modules")
+  .eq("company_id", companyId)
+  .eq("is_active", true)
+  .not("allowed_modules", "is", null)
+  .limit(1)
+  .maybeSingle();
+if (anyMember?.allowed_modules?.length > 0) {
+  return anyMember.allowed_modules;
+}
+```
+
+**`src/components/client/ClientLayout.tsx`**:
+- إزالة "treasury" من `ALL_MODULES` في لوحة المالك أو إضافة عنصر خزينة مستقل في القائمة الجانبية مع `moduleKey: "treasury"`
+
+**`src/pages/owner/ManageCompanyAccess.tsx`**:  
+- تعديل `handleSaveModules` لضمان وجود سجل للمالك دائماً عبر `upsert` بدلاً من `insert` الشرطي
+
