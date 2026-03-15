@@ -109,7 +109,7 @@ const baseMenuItems: MenuItem[] = [
       { icon: FileSpreadsheet, label: "الأرصدة الإفتتاحية", labelEn: "Opening Balances", path: "/client/accounts/opening-balances", permission: "VIEW_OPENING_BALANCES" },
       { icon: Target, label: "مراكز التكلفة", labelEn: "Cost Centers", path: "/client/cost-centers", permission: "VIEW_COST_CENTERS" },
       { icon: BookOpen, label: "قيود اليومية", labelEn: "Journal Entries", path: "/client/journal", permission: "VIEW_JOURNAL" },
-      { icon: Wallet, label: "الخزينة و البنوك", labelEn: "Treasury & Banks", path: "/client/treasury", permission: "VIEW_TREASURY" },
+      { icon: Wallet, label: "الخزينة و البنوك", labelEn: "Treasury & Banks", path: "/client/treasury", permission: "VIEW_TREASURY", moduleKey: "treasury" },
       { icon: ListChecks, label: "سجل العمليات", labelEn: "Operations Log", path: "/client/operations-log", permission: "VIEW_JOURNAL" },
     ]
   },

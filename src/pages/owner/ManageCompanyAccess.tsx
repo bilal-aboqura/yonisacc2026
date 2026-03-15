@@ -192,7 +192,7 @@ const ManageCompanyAccess = () => {
     if (!id || !company?.owner_id) return;
     setSavingModules(true);
     try {
-      // Update ALL company_members for this company
+      // Update ALL existing company_members for this company
       const { data: updated, error } = await supabase
         .from("company_members")
         .update({ allowed_modules: selectedModules })
@@ -200,20 +200,34 @@ const ManageCompanyAccess = () => {
         .select("id");
       if (error) throw error;
       const count = updated?.length ?? 0;
-      if (error) throw error;
 
-      // If no records existed, create one for the owner
+      // Ensure the owner always has a record with allowed_modules
       if (!count || count === 0) {
-        const { error: insertError } = await supabase
+        // Check if owner record exists but was not updated (e.g. inactive)
+        const { data: existingOwner } = await supabase
           .from("company_members")
-          .insert({
-            company_id: id,
-            user_id: company.owner_id,
-            role: "owner" as any,
-            allowed_modules: selectedModules,
-            is_active: true,
-          });
-        if (insertError) throw insertError;
+          .select("id")
+          .eq("company_id", id)
+          .eq("user_id", company.owner_id)
+          .maybeSingle();
+
+        if (existingOwner) {
+          await supabase
+            .from("company_members")
+            .update({ allowed_modules: selectedModules, is_active: true })
+            .eq("id", existingOwner.id);
+        } else {
+          const { error: insertError } = await supabase
+            .from("company_members")
+            .insert({
+              company_id: id,
+              user_id: company.owner_id,
+              role: "owner" as any,
+              allowed_modules: selectedModules,
+              is_active: true,
+            });
+          if (insertError) throw insertError;
+        }
       }
 
       toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تحديث الوحدات المتاحة" : "Available modules updated" });
