@@ -463,7 +463,17 @@ const ClientLayout = () => {
     }
 
     // Filter by allowed modules — items without moduleKey (Dashboard, Settings) always visible
-    items = items.filter(item => !item.moduleKey || isModuleAllowed(item.moduleKey));
+    items = items
+      .filter(item => !item.moduleKey || isModuleAllowed(item.moduleKey))
+      .map(item => {
+        if (item.children) {
+          return {
+            ...item,
+            children: item.children.filter(child => !child.moduleKey || isModuleAllowed(child.moduleKey)),
+          };
+        }
+        return item;
+      });
 
     return items;
   })();
