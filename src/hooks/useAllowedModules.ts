@@ -17,7 +17,7 @@ export const useAllowedModules = () => {
     queryFn: async () => {
       if (!user?.id || !companyId) return null;
 
-      // 1. Check company_members for custom allowed_modules
+      // 1. Check company_members for custom allowed_modules for current user
       const { data: memberData } = await supabase
         .from("company_members")
         .select("allowed_modules")
@@ -30,7 +30,23 @@ export const useAllowedModules = () => {
         return memberData.allowed_modules as string[];
       }
 
-      // 2. Fallback: get from subscription plan
+      // 2. If no record for current user (e.g. owner), check any other member of same company
+      if (!memberData) {
+        const { data: anyMember } = await supabase
+          .from("company_members")
+          .select("allowed_modules")
+          .eq("company_id", companyId)
+          .eq("is_active", true)
+          .not("allowed_modules", "is", null)
+          .limit(1)
+          .maybeSingle();
+
+        if (anyMember?.allowed_modules && Array.isArray(anyMember.allowed_modules) && anyMember.allowed_modules.length > 0) {
+          return anyMember.allowed_modules as string[];
+        }
+      }
+
+      // 3. Fallback: get from subscription plan
       const { data: subData } = await supabase
         .from("subscriptions")
         .select("plan_id")
