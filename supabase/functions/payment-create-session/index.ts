@@ -210,8 +210,8 @@ Deno.serve(async (req) => {
         .update({ gateway_payment_id: merchantOrderId })
         .eq("id", payment.id);
 
-      // Build Kashier checkout redirect URL (no iframe)
-      const kashierCheckoutUrl = new URL("https://checkout.kashier.io");
+      // Build Kashier payment redirect URL (payments.kashier.io is the correct endpoint)
+      const kashierCheckoutUrl = new URL("https://payments.kashier.io/");
       kashierCheckoutUrl.searchParams.set("merchantId", kashierMerchantId);
       kashierCheckoutUrl.searchParams.set("orderId", merchantOrderId);
       kashierCheckoutUrl.searchParams.set("amount", amount);
