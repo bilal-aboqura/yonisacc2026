@@ -192,17 +192,19 @@ const ManageCompanyAccess = () => {
   const handleSaveModules = async () => {
     if (!id || !company?.owner_id) return;
     setSavingModules(true);
+    console.log("[SaveModules] Saving modules:", selectedModules, "| company_id:", id, "| owner_id:", company.owner_id);
     try {
-      // Update ALL existing company_members for this company
-      const { error: updateError } = await supabase
+      // Step 1: Update ALL existing company_members for this company
+      const { data: updateData, error: updateError, count: updateCount } = await supabase
         .from("company_members")
         .update({ allowed_modules: selectedModules })
-        .eq("company_id", id);
+        .eq("company_id", id)
+        .select("id, user_id");
+      console.log("[SaveModules] Step 1 - UPDATE result:", { updateData, updateError, updateCount });
       if (updateError) throw updateError;
 
-      // Always upsert the owner's member record so useAllowedModules
-      // can always find a record — even when allowed_modules is [] (block all).
-      const { error: upsertError } = await supabase
+      // Step 2: Upsert owner's member record
+      const { data: upsertData, error: upsertError } = await supabase
         .from("company_members")
         .upsert(
           {
@@ -213,11 +215,21 @@ const ManageCompanyAccess = () => {
             is_active: true,
           },
           { onConflict: "company_id,user_id" }
-        );
+        )
+        .select("id, user_id, allowed_modules");
+      console.log("[SaveModules] Step 2 - UPSERT result:", { upsertData, upsertError });
       if (upsertError) throw upsertError;
+
+      // Step 3: Verify the record was saved correctly
+      const { data: verifyData, error: verifyError } = await supabase
+        .from("company_members")
+        .select("user_id, allowed_modules")
+        .eq("company_id", id);
+      console.log("[SaveModules] Step 3 - VERIFY all members after save:", { verifyData, verifyError });
 
       toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تحديث الوحدات المتاحة" : "Available modules updated" });
     } catch (e: any) {
+      console.error("[SaveModules] ❌ Error:", e);
       toast({ title: isRTL ? "خطأ" : "Error", description: e.message, variant: "destructive" });
     } finally {
       setSavingModules(false);
