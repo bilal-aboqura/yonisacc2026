@@ -359,16 +359,9 @@ const ClientDashboard = () => {
     return <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600">{isRTL ? "مسودة" : "Draft"}</span>;
   };
 
-  if (isLoadingCompany) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!company) {
-    navigate("/register-company", { replace: true });
+  // Show spinner while company data is loading
+  // (ClientLayout handles the redirect to /register-company if no company found)
+  if (isLoadingCompany || !company) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

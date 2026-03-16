@@ -481,6 +481,10 @@ const ClientLayout = () => {
     if (subStatus === "blocked") {
       navigate("/subscription-expired", { replace: true });
     }
+    // If user has no company, redirect to company registration
+    if (subStatus === "no_company") {
+      navigate("/register-company", { replace: true });
+    }
   }, [subStatus, navigate]);
 
   // Auto-open group containing current path

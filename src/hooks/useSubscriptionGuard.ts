@@ -68,7 +68,23 @@ export const useSubscriptionGuard = () => {
         .order("created_at", { ascending: false })
         .limit(1);
 
-      if (subError || !subs?.length) {
+      // If there's a permissions error (RLS), don't block — allow access
+      // This prevents lockout due to misconfigured RLS policies
+      if (subError) {
+        const errCode = (subError as any)?.code;
+        // PGRST301 = insufficient privilege (RLS), 42501 = permission denied
+        if (errCode === "PGRST301" || errCode === "42501") {
+          console.warn("Subscription check: RLS permission error, allowing access:", subError.message);
+          setStatus("allowed");
+          return;
+        }
+        // Other errors (network, etc.) — allow with warning
+        console.warn("Subscription check error, allowing access:", subError.message);
+        setStatus("allowed");
+        return;
+      }
+
+      if (!subs?.length) {
         setStatus("blocked");
         setSubscriptionInfo({ status: "none", endDate: null, planName: null });
         return;

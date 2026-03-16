@@ -7,9 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
  * Works for both company owners AND team members (company_members).
  */
 export const useTenantIsolation = () => {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
-  const { data: company, isLoading: isLoadingCompany } = useQuery({
+  const { data: company, isLoading: isLoadingCompanyQuery } = useQuery({
     queryKey: ["user-company", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -48,9 +48,12 @@ export const useTenantIsolation = () => {
 
       return null;
     },
-    enabled: !!user?.id,
+    enabled: !isAuthLoading && !!user?.id,
     staleTime: 5 * 60 * 1000,
   });
+
+  // isLoadingCompany should be true while auth is loading OR while company query is loading
+  const isLoadingCompany = isAuthLoading || (!!user?.id && isLoadingCompanyQuery);
 
   /**
    * Verify that a company_id belongs to the current user (owner or member)
