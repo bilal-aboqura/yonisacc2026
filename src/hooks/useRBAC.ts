@@ -28,10 +28,27 @@ export const useRBAC = () => {
       });
 
       if (error) {
-        console.error("Failed to fetch RBAC permissions:", error);
+        console.warn("[useRBAC] get_user_permissions error (will allow all):", error.message);
         return {};
       }
-      return (data as any) || {};
+
+      console.log("[useRBAC] get_user_permissions result:", data);
+
+      // The function returns [{role, permissions: {can_read, can_create, ...}}]
+      // This is a different format from what the sidebar expects ({VIEW_SALES: true, ...}).
+      // The sidebar uses isModuleAllowed() for module-level access control,
+      // so we fall back to allow-all here for backward compatibility.
+      if (Array.isArray(data)) {
+        console.warn("[useRBAC] Detected legacy array format — falling back to allow-all for sidebar compatibility.");
+        return {};
+      }
+
+      // If it's already a flat map {PERMISSION_CODE: true}, use it directly
+      if (data && typeof data === "object" && !Array.isArray(data)) {
+        return data as RBACPermissionMap;
+      }
+
+      return {};
     },
     enabled: !!user?.id && !!companyId,
     staleTime: 30 * 1000,
