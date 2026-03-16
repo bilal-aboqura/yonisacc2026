@@ -79,10 +79,11 @@ const moduleLabels: Record<string, { ar: string; en: string }> = {
   auto_parts: { ar: "قطع الغيار", en: "Auto Parts" },
   gold: { ar: "الذهب والمجوهرات", en: "Gold & Jewelry" },
   pos: { ar: "نقاط البيع", en: "POS" },
-  clinic: { ar: "العيادة", en: "Clinic" },
-  realestate: { ar: "العقارات", en: "Real Estate" },
-  delivery: { ar: "التوصيل", en: "Delivery" },
+  clinic: { ar: "إدارة العيادة", en: "Clinic" },
+  realestate: { ar: "إدارة العقارات", en: "Real Estate" },
+  delivery: { ar: "إدارة التوصيل", en: "Delivery" },
   assets: { ar: "الأصول الثابتة", en: "Fixed Assets" },
+  fuelstation: { ar: "محطات الوقود", en: "Fuel Station" },
 };
 
 // ─── Component ────────────────────────────────────────────────────────────
