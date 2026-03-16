@@ -3,6 +3,37 @@
 -- Purpose: Allow team members (company_members) to access company data via RLS
 -- =============================================
 
+-- 0. Create the company_members table (team members of a company)
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.company_members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    role app_role NOT NULL DEFAULT 'client',
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    invited_by UUID REFERENCES auth.users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (company_id, user_id)
+);
+
+ALTER TABLE public.company_members ENABLE ROW LEVEL SECURITY;
+
+-- Company owner can manage members
+CREATE POLICY "Company owner can manage members" ON public.company_members
+    FOR ALL USING (
+        EXISTS (SELECT 1 FROM public.companies WHERE id = company_id AND owner_id = auth.uid())
+    );
+
+-- Members can view their own membership
+CREATE POLICY "Members can view own membership" ON public.company_members
+    FOR SELECT USING (user_id = auth.uid());
+
+CREATE TRIGGER update_company_members_updated_at
+    BEFORE UPDATE ON public.company_members
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- =============================================
 -- 1. Create the new is_company_member() function
 -- Returns TRUE if auth.uid() is either:
 --   (a) the company owner, OR
