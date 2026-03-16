@@ -376,78 +376,28 @@ const ClientLayout = () => {
   };
 
   const menuItems = (() => {
+    // Step 1: Start with base items filtered by RBAC
     let items = filterByPermission([...baseMenuItems]);
 
-    // Always show auto parts module
-    {
-      const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
-      if (reportsIdx !== -1) {
-        items.splice(reportsIdx, 0, autoPartsMenuGroup);
-      } else {
-        items.push(autoPartsMenuGroup);
-      }
+    // Step 2: Insert all specialized module groups before "Reports"
+    const specializedGroups: MenuItem[] = [
+      autoPartsMenuGroup,
+      fixedAssetsMenuGroup,
+      goldMenuGroup,
+      clinicMenuGroup,
+      realEstateMenuGroup,
+      deliveryMenuGroup,
+      fuelStationMenuGroup,
+    ];
+
+    const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
+    if (reportsIdx !== -1) {
+      items.splice(reportsIdx, 0, ...specializedGroups);
+    } else {
+      items.push(...specializedGroups);
     }
 
-    // Fixed Assets module
-    {
-      const reportsIdx2 = items.findIndex(i => i.labelEn === "Reports");
-      if (reportsIdx2 !== -1) {
-        items.splice(reportsIdx2, 0, fixedAssetsMenuGroup);
-      } else {
-        items.push(fixedAssetsMenuGroup);
-      }
-    }
-
-    // Always show gold & jewelry module
-    {
-      const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
-      if (reportsIdx !== -1) {
-        items.splice(reportsIdx, 0, goldMenuGroup);
-      } else {
-        items.push(goldMenuGroup);
-      }
-    }
-
-    // Medical Clinic module
-    {
-      const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
-      if (reportsIdx !== -1) {
-        items.splice(reportsIdx, 0, clinicMenuGroup);
-      } else {
-        items.push(clinicMenuGroup);
-      }
-    }
-
-    // Real Estate module
-    {
-      const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
-      if (reportsIdx !== -1) {
-        items.splice(reportsIdx, 0, realEstateMenuGroup);
-      } else {
-        items.push(realEstateMenuGroup);
-      }
-    }
-
-    // Delivery module
-    {
-      const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
-      if (reportsIdx !== -1) {
-        items.splice(reportsIdx, 0, deliveryMenuGroup);
-      } else {
-        items.push(deliveryMenuGroup);
-      }
-    }
-
-    // Fuel Station module
-    {
-      const reportsIdx = items.findIndex(i => i.labelEn === "Reports");
-      if (reportsIdx !== -1) {
-        items.splice(reportsIdx, 0, fuelStationMenuGroup);
-      } else {
-        items.push(fuelStationMenuGroup);
-      }
-    }
-
+    // Step 3: Test owner extras
     const isTestOwner = user?.id === "87740311-8413-47eb-b936-b4c96daecaa5";
     if (isTestOwner) {
       const settingsGroup = items.find(i => i.labelEn === "Settings");
@@ -462,11 +412,16 @@ const ClientLayout = () => {
       }
     }
 
-    // Filter by allowed modules — items without moduleKey (Dashboard, Settings) always visible
+    // Step 4: Filter by allowed modules.
+    // - Items WITHOUT a moduleKey (Dashboard, Settings) are always visible.
+    // - Items WITH a moduleKey must pass isModuleAllowed.
+    // - During loading (isLoading=true), isModuleAllowed returns false → hides all
+    //   module-gated items until data loads, preventing a flash of wrong UI.
     items = items.filter(item => !item.moduleKey || isModuleAllowed(item.moduleKey));
 
     return items;
   })();
+
 
   // Require authentication for client area
   useEffect(() => {

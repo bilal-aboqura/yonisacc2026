@@ -5,8 +5,14 @@ import { useCompanyId } from "@/hooks/useCompanyId";
 
 /**
  * Returns the allowed_modules list for the current user's company membership.
- * Falls back to the subscription plan's allowed_modules if no custom override exists.
- * If no data at all, all modules are allowed.
+ * Falls back to ANY member record for the company, then to the subscription plan.
+ *
+ * Return values:
+ *   - null   → no restriction config found → ALL modules allowed
+ *   - []     → explicitly set to empty    → NO modules allowed
+ *   - [...]  → specific modules allowed
+ *
+ * During loading, returns undefined (caller should treat as "show nothing" to avoid flash).
  */
 export const useAllowedModules = () => {
   const { user } = useAuth();
@@ -33,15 +39,13 @@ export const useAllowedModules = () => {
 
       console.log("[useAllowedModules] Step 1 - My member record:", { memberData, memberError });
 
-      // If a record exists AND allowed_modules is explicitly set (even empty array),
-      // use it. null means "not configured" = allow all.
+      // explicitly set (even empty array [] = block all). Only null means "not configured".
       if (memberData && memberData.allowed_modules !== null && Array.isArray(memberData.allowed_modules)) {
-        console.log("[useAllowedModules] ✅ Using MY member record allowed_modules:", memberData.allowed_modules);
+        console.log("[useAllowedModules] ✅ Using MY member record:", memberData.allowed_modules);
         return memberData.allowed_modules as string[];
       }
 
-      // 2. Fallback: check ANY company_member record for this company
-      // (platform owner saves to the company owner's member record)
+      // 2. Fallback: check ANY company_member record with allowed_modules set
       const { data: anyMemberData, error: anyMemberError } = await supabase
         .from("company_members")
         .select("allowed_modules, user_id")
@@ -54,7 +58,7 @@ export const useAllowedModules = () => {
       console.log("[useAllowedModules] Step 2 - Any member record:", { anyMemberData, anyMemberError });
 
       if (anyMemberData && anyMemberData.allowed_modules !== null && Array.isArray(anyMemberData.allowed_modules)) {
-        console.log("[useAllowedModules] ✅ Using ANY member record allowed_modules:", anyMemberData.allowed_modules);
+        console.log("[useAllowedModules] ✅ Using ANY member record:", anyMemberData.allowed_modules);
         return anyMemberData.allowed_modules as string[];
       }
 
@@ -86,19 +90,24 @@ export const useAllowedModules = () => {
       }
 
       // No restrictions configured at all → allow everything
-      console.log("[useAllowedModules] ⚠️ No restriction config found → returning null (all modules allowed)");
+      console.log("[useAllowedModules] ⚠️ No restriction config → returning null (all modules allowed)");
       return null;
     },
     enabled: !!user?.id && !!companyId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 1000, // reduced to 30s so changes reflect faster
   });
 
+  /**
+   * While loading: return false to avoid flash of restricted modules.
+   * After load: null = all allowed, [] = none allowed, [...] = specific list.
+   */
   const isModuleAllowed = (moduleKey: string): boolean => {
+    // Still fetching — hide modules to prevent flash (they'll appear once loaded)
+    if (isLoading) return false;
+    // No config found → allow all
     if (allowedModules === null || allowedModules === undefined) return true;
-    const allowed = allowedModules.includes(moduleKey);
-    // Uncomment below to debug per-module checks:
-    // console.log(`[useAllowedModules] isModuleAllowed(${moduleKey}) =`, allowed, "| list:", allowedModules);
-    return allowed;
+    // Check specific list
+    return allowedModules.includes(moduleKey);
   };
 
   return { allowedModules, isLoading, isModuleAllowed };
