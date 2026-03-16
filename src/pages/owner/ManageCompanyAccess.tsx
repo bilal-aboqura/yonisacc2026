@@ -193,29 +193,28 @@ const ManageCompanyAccess = () => {
     if (!id || !company?.owner_id) return;
     setSavingModules(true);
     try {
-      // Update ALL company_members for this company
-      const { data: updated, error } = await supabase
+      // Update ALL existing company_members for this company
+      const { error: updateError } = await supabase
         .from("company_members")
         .update({ allowed_modules: selectedModules })
-        .eq("company_id", id)
-        .select("id");
-      if (error) throw error;
-      const count = updated?.length ?? 0;
-      if (error) throw error;
+        .eq("company_id", id);
+      if (updateError) throw updateError;
 
-      // If no records existed, create one for the owner
-      if (!count || count === 0) {
-        const { error: insertError } = await supabase
-          .from("company_members")
-          .insert({
+      // Always upsert the owner's member record so useAllowedModules
+      // can always find a record — even when allowed_modules is [] (block all).
+      const { error: upsertError } = await supabase
+        .from("company_members")
+        .upsert(
+          {
             company_id: id,
             user_id: company.owner_id,
             role: "owner" as any,
             allowed_modules: selectedModules,
             is_active: true,
-          });
-        if (insertError) throw insertError;
-      }
+          },
+          { onConflict: "company_id,user_id" }
+        );
+      if (upsertError) throw upsertError;
 
       toast({ title: isRTL ? "تم الحفظ" : "Saved", description: isRTL ? "تم تحديث الوحدات المتاحة" : "Available modules updated" });
     } catch (e: any) {
