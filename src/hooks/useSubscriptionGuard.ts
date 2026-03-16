@@ -4,7 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type SubscriptionStatus = "loading" | "allowed" | "blocked" | "no_company";
 
-const ALLOWED_STATUSES = ["active", "trialing"];
+// pending = new company created but subscription not yet activated (treat as allowed)
+// trialing = free trial (added to enum via migration)
+// active = paid and active subscription
+const ALLOWED_STATUSES = ["active", "trialing", "pending"];
 
 export const useSubscriptionGuard = () => {
   const { user, isLoading: authLoading } = useAuth();
