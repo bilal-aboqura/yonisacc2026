@@ -19,7 +19,6 @@ export const useTenantIsolation = () => {
         .from("companies")
         .select("id, name, name_en, owner_id, activity_type")
         .eq("owner_id", user.id)
-        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -41,7 +40,6 @@ export const useTenantIsolation = () => {
           .from("companies")
           .select("id, name, name_en, owner_id, activity_type")
           .eq("id", membership.company_id)
-          .is("deleted_at", null)
           .maybeSingle();
         return memberCompany;
       }
