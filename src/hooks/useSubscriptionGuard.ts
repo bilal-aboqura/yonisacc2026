@@ -26,22 +26,26 @@ export const useSubscriptionGuard = () => {
     }
 
     const checkSubscription = async () => {
+      console.log("[DEBUG] Subscription check starting for user:", user.id);
       let companyId: string | null = null;
 
       // 1. Check as owner
-      const { data: owned } = await supabase
+      const { data: owned, error: ownedError } = await supabase
         .from("companies")
-        .select("id")
+        .select("id, name, owner_id")
         .eq("owner_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
+      console.log("[DEBUG] Owner query result:", { owned, ownedError });
+
       if (owned) {
         companyId = owned.id;
+        console.log("[DEBUG] Found company as owner:", companyId);
       } else {
         // 2. Check as team member
-        const { data: membership } = await supabase
+        const { data: membership, error: membershipError } = await supabase
           .from("company_members")
           .select("company_id")
           .eq("user_id", user.id)
@@ -50,10 +54,12 @@ export const useSubscriptionGuard = () => {
           .limit(1)
           .maybeSingle();
 
+        console.log("[DEBUG] Team member query result:", { membership, membershipError });
         companyId = membership?.company_id ?? null;
       }
 
       if (!companyId) {
+        console.log("[DEBUG] No company found for user, setting status to no_company");
         setStatus("no_company");
         return;
       }

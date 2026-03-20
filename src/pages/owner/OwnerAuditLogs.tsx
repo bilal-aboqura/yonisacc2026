@@ -65,13 +65,19 @@ const OwnerAuditLogs = () => {
   const { data: auditLogs, isLoading, refetch } = useQuery({
     queryKey: ["audit-logs", operationFilter, severityFilter, tableFilter],
     queryFn: async () => {
+      console.log("[DEBUG] Fetching audit logs with filters:", { operationFilter, severityFilter, tableFilter });
       const { data, error } = await (supabase.rpc as any)("get_enriched_audit_logs", {
         p_operation_filter: operationFilter === "all" ? null : operationFilter,
         p_severity_filter: severityFilter === "all" ? null : severityFilter,
         p_table_filter: tableFilter === "all" ? null : tableFilter,
         p_limit: 500,
       });
-      if (error) throw error;
+      console.log("[DEBUG] Audit logs RPC result:", { data, error });
+      if (error) {
+        console.error("[DEBUG] Audit logs RPC error:", error);
+        throw error;
+      }
+      console.log("[DEBUG] Audit logs fetched successfully, count:", data?.length);
       return data as unknown as EnrichedAuditLog[];
     },
   });

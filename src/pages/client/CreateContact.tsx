@@ -96,7 +96,9 @@ const CreateContact = () => {
     setIsSaving(true);
 
     try {
+      console.log("[DEBUG] Creating contact with formData:", formData);
       const companyId = await fetchCompanyId(user.id);
+      console.log("[DEBUG] Company ID fetched:", companyId);
 
       if (!companyId) {
         toast.error(isRTL ? "لم يتم العثور على الشركة" : "Company not found");
@@ -104,7 +106,7 @@ const CreateContact = () => {
       }
 
       // Create contact
-      const { error } = await supabase.from("contacts").insert({
+      const contactData = {
         company_id: companyId,
         name: formData.name.trim(),
         name_en: formData.name_en?.trim() || null,
@@ -119,10 +121,17 @@ const CreateContact = () => {
         country: formData.country || "SA",
         credit_limit: formData.credit_limit || 0,
         notes: formData.notes?.trim() || null,
-      });
+      };
+      console.log("[DEBUG] Contact data to insert:", contactData);
+      const { error, data } = await supabase.from("contacts").insert(contactData).select();
+      console.log("[DEBUG] Insert result:", { error, data });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[DEBUG] Error inserting contact:", error);
+        throw error;
+      }
 
+      console.log("[DEBUG] Contact created successfully, navigating to /client/contacts");
       toast.success(
         formData.type === "customer"
           ? (isRTL ? "تم إضافة العميل بنجاح" : "Customer added successfully")

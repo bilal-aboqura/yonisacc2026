@@ -33,14 +33,21 @@ interface HeroData {
 
 // Helper function to convert YouTube URL to embed URL
 const getYouTubeEmbedUrl = (url: string): string | null => {
-  if (!url) return null;
+  console.log("[DEBUG] getYouTubeEmbedUrl called with:", url);
+  if (!url) {
+    console.log("[DEBUG] URL is empty, returning null");
+    return null;
+  }
   
   // Already an embed URL
   if (url.includes('/embed/')) {
     const videoId = url.split('/embed/')[1]?.split('?')[0];
     if (videoId) {
-      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&rel=0`;
+      const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&rel=0`;
+      console.log("[DEBUG] Already embed URL, returning:", embedUrl);
+      return embedUrl;
     }
+    console.log("[DEBUG] Embed URL format invalid, returning original");
     return url;
   }
   
@@ -48,16 +55,21 @@ const getYouTubeEmbedUrl = (url: string): string | null => {
   const watchMatch = url.match(/[?&]v=([^&]+)/);
   if (watchMatch) {
     const videoId = watchMatch[1];
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&rel=0`;
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&rel=0`;
+    console.log("[DEBUG] Standard YouTube URL, videoId:", videoId, "embedUrl:", embedUrl);
+    return embedUrl;
   }
   
   // Short YouTube URL (youtu.be/...)
   const shortMatch = url.match(/youtu\.be\/([^?]+)/);
   if (shortMatch) {
     const videoId = shortMatch[1];
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&rel=0`;
+    const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=1&rel=0`;
+    console.log("[DEBUG] Short YouTube URL, videoId:", videoId, "embedUrl:", embedUrl);
+    return embedUrl;
   }
   
+  console.log("[DEBUG] URL format not recognized, returning null");
   return null;
 };
 
@@ -234,6 +246,10 @@ export const Hero = () => {
           <div className="relative animate-slide-in-left order-1 lg:order-2">
             {/* Main Content Card */}
             <div className="glass-card rounded-2xl sm:rounded-3xl p-1 shadow-2xl overflow-hidden">
+              {(() => {
+                console.log("[DEBUG] heroData.video_url:", heroData?.video_url);
+                return null;
+              })()}
               {heroData?.video_url && getYouTubeEmbedUrl(heroData.video_url) ? (
                 // YouTube Video
                 <div className="aspect-video">

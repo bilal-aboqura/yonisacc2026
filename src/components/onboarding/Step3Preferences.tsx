@@ -96,6 +96,7 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
     setIsSubmitting(true);
 
     try {
+      console.log("[DEBUG] Starting account creation for email:", data.email);
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -105,7 +106,9 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
         },
       });
 
+      console.log("[DEBUG] SignUp result:", { signUpData, signUpError });
       if (signUpError) {
+        console.error("[DEBUG] SignUp error:", signUpError);
         const errMsg = signUpError.message?.toLowerCase() || "";
         let msg = isRTL ? "حدث خطأ أثناء إنشاء الحساب" : "Failed to create account";
         if (errMsg.includes("already registered") || errMsg.includes("already been registered")) {
@@ -122,6 +125,7 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
 
       // Supabase returns user with empty identities when email already exists (no error thrown)
       const identities = signUpData.user?.identities;
+      console.log("[DEBUG] User identities:", identities);
       if (!identities || identities.length === 0) {
         throw new Error(
           isRTL
@@ -130,13 +134,17 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
         );
       }
 
+      console.log("[DEBUG] Session after signup:", signUpData.session);
       if (!signUpData.session) {
         // Try to sign in immediately (works when email confirmation is disabled)
+        console.log("[DEBUG] No session, attempting sign in...");
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password,
         });
+        console.log("[DEBUG] SignIn result:", { signInData, signInError });
         if (signInError || !signInData.session) {
+          console.error("[DEBUG] SignIn error:", signInError);
           const errMsg = (signInError?.message || "").toLowerCase();
           if (errMsg.includes("email not confirmed") || errMsg.includes("invalid login credentials") || errMsg.includes("invalid_credentials")) {
             toast.success(
@@ -151,6 +159,12 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
         }
       }
 
+      console.log("[DEBUG] Preparing to call provision-tenant with payload:", {
+        full_name: data.full_name.trim(),
+        name: data.company_name.trim(),
+        email: data.email.trim(),
+        phone: data.phone.trim(),
+      });
       const payload: Record<string, unknown> = {
         full_name: data.full_name.trim(),
         name: data.company_name.trim(),
@@ -171,10 +185,12 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
         payload.plan_id = data.plan_id;
       }
 
+      console.log("[DEBUG] Calling provision-tenant function...");
       const response = await supabase.functions.invoke("provision-tenant", { body: payload });
       const result = response.data;
       const fnError = response.error;
 
+      console.log("[DEBUG] provision-tenant response:", { result, fnError });
       let errorBody: any = result && typeof result === "object" ? result : null;
       if ((!errorBody || !errorBody.error) && fnError && typeof (fnError as any).context?.json === "function") {
         try {
@@ -204,7 +220,9 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
 
       if (!result?.company_id) throw new Error(isRTL ? "لم يتم إرجاع معرف الشركة" : "Company ID not returned");
 
+      console.log("[DEBUG] Company created with ID:", result.company_id);
       localStorage.setItem("activeCompany", result.company_id);
+      console.log("[DEBUG] Saved company_id to localStorage:", result.company_id);
       // Sign out so the user logs in fresh with their new account
       await supabase.auth.signOut();
       toast.success(isRTL ? "تم إنشاء حسابك وشركتك بنجاح! سجّل دخولك الآن 🎉" : "Account & company created! Please sign in 🎉");

@@ -433,11 +433,15 @@ const ClientLayout = () => {
 
   // Block access if subscription is not active/trialing
   useEffect(() => {
+    console.log("[DEBUG] ClientLayout - Subscription status:", subStatus);
+    console.log("[DEBUG] ClientLayout - User:", user?.id);
     if (subStatus === "blocked") {
+      console.log("[DEBUG] Subscription blocked, redirecting to /subscription-expired");
       navigate("/subscription-expired", { replace: true });
     }
     // If user has no company, redirect to company registration
     if (subStatus === "no_company") {
+      console.log("[DEBUG] No company found, redirecting to /register-company");
       navigate("/register-company", { replace: true });
     }
   }, [subStatus, navigate]);
