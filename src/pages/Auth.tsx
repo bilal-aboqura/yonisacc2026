@@ -59,8 +59,14 @@ const Auth = () => {
             const fnError = response.error;
             console.log("[DEBUG] provision-tenant response:", { result, fnError });
 
-            if (fnError || result?.error) {
-              console.error("[DEBUG] provision-tenant failed:", fnError || result?.error);
+            // Extract error body for better debugging
+            if (fnError) {
+              let errorBody = result;
+              if (!errorBody && typeof (fnError as any)?.context?.json === "function") {
+                try { errorBody = await (fnError as any).context.json(); } catch {}
+              }
+              console.error("[DEBUG] provision-tenant failed:", fnError);
+              console.error("[DEBUG] provision-tenant error body:", errorBody);
               localStorage.removeItem("pendingOnboarding");
               toast({
                 title: isRTL ? "خطأ" : "Error",

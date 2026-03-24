@@ -121,7 +121,7 @@ serve(async (req) => {
     const { data: existingPhone, error: phoneCheckError } = await admin
       .from('profiles')
       .select('id')
-      .eq('phone_number', normalizedPhone)
+      .eq('phone', normalizedPhone)
       .neq('user_id', userId)
       .maybeSingle();
 
@@ -214,10 +214,10 @@ serve(async (req) => {
 
     const companyId = rpcData as string;
 
-    // ── 8. Update profile: full_name, language, phone_number ─────────────────
+    // ── 8. Update profile: full_name, language, phone ─────────────────────────
     const profileUpdate: Record<string, unknown> = { language };
     if (full_name) profileUpdate.full_name = full_name;
-    profileUpdate.phone_number = normalizedPhone;
+    profileUpdate.phone = normalizedPhone;
 
     await admin
       .from('profiles')
