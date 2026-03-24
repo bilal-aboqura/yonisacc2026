@@ -433,8 +433,12 @@ const ClientLayout = () => {
 
   // Block access if subscription is not active/trialing
   useEffect(() => {
-    console.log("[DEBUG] ClientLayout - Subscription status:", subStatus);
+    console.log("[DEBUG] ClientLayout - Subscription status:", subStatus, "| Auth loading:", isLoading);
     console.log("[DEBUG] ClientLayout - User:", user?.id);
+    // Don't react while auth is still resolving — the subscription check
+    // may have run against a stale/refreshing token and could return a
+    // wrong status, causing a spurious redirect to /register-company.
+    if (isLoading) return;
     if (subStatus === "blocked") {
       console.log("[DEBUG] Subscription blocked, redirecting to /subscription-expired");
       navigate("/subscription-expired", { replace: true });
@@ -444,7 +448,7 @@ const ClientLayout = () => {
       console.log("[DEBUG] No company found, redirecting to /register-company");
       navigate("/register-company", { replace: true });
     }
-  }, [subStatus, navigate]);
+  }, [subStatus, isLoading, navigate]);
 
   // Auto-open group containing current path
   useEffect(() => {

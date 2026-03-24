@@ -40,6 +40,13 @@ export const useSubscriptionGuard = () => {
 
       console.log("[DEBUG] Owner query result:", { owned, ownedError });
 
+      // If the query itself errored (e.g. auth 400 mid-refresh) don't declare
+      // no_company — the session may still be settling. Stay in loading.
+      if (ownedError) {
+        console.warn("[DEBUG] Owner query errored (auth may be refreshing):", ownedError.message);
+        return;
+      }
+
       if (owned) {
         companyId = owned.id;
         console.log("[DEBUG] Found company as owner:", companyId);
@@ -55,6 +62,13 @@ export const useSubscriptionGuard = () => {
           .maybeSingle();
 
         console.log("[DEBUG] Team member query result:", { membership, membershipError });
+
+        // Same guard: if the member query errored, bail out without redirecting.
+        if (membershipError) {
+          console.warn("[DEBUG] Member query errored (auth may be refreshing):", membershipError.message);
+          return;
+        }
+
         companyId = membership?.company_id ?? null;
       }
 
