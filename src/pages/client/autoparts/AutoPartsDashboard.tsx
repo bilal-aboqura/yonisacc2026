@@ -29,11 +29,11 @@ const AutoPartsDashboard = () => {
         .not("min_stock", "is", null)
         .limit(100);
 
-      // Check stock levels
+      // Check stock levels (product_stock has no company_id; join through warehouses)
       const { data: stockData } = await (supabase as any)
-        .from("warehouse_stock")
-        .select("product_id, quantity")
-        .eq("company_id", companyId!);
+        .from("product_stock")
+        .select("product_id, quantity, warehouses!inner(company_id)")
+        .eq("warehouses.company_id", companyId!);
 
       const stockMap: Record<string, number> = {};
       (stockData || []).forEach((s: any) => {
@@ -63,29 +63,29 @@ const AutoPartsDashboard = () => {
       const today = new Date().toISOString().slice(0, 10);
       const { data: todaySales } = await supabase
         .from("invoices")
-        .select("total_amount")
+        .select("total")
         .eq("company_id", companyId!)
         .eq("invoice_date", today)
         .eq("type", "sale");
 
-      const totalSalesToday = (todaySales || []).reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0);
+      const totalSalesToday = (todaySales || []).reduce((s: number, i: any) => s + Number(i.total || 0), 0);
 
       // Today's purchases
       const { data: todayPurchases } = await supabase
         .from("invoices")
-        .select("total_amount")
+        .select("total")
         .eq("company_id", companyId!)
         .eq("invoice_date", today)
         .eq("type", "purchase");
 
-      const totalPurchasesToday = (todayPurchases || []).reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0);
+      const totalPurchasesToday = (todayPurchases || []).reduce((s: number, i: any) => s + Number(i.total || 0), 0);
 
       // Top selling products (recent sales)
       const { data: recentSaleItems } = await (supabase as any)
         .from("invoice_items")
-        .select("product_id, quantity, products(name, name_en, sku)")
-        .eq("company_id", companyId!)
-        .order("created_at", { ascending: false })
+        .select("product_id, quantity, products(name, name_en, sku), invoices!inner(company_id)")
+        .eq("invoices.company_id", companyId!)
+        .order("sort_order", { ascending: false })
         .limit(50);
 
       const productSales: Record<string, { name: string; sku: string; qty: number }> = {};

@@ -27,10 +27,10 @@ const AutoPartsReports = () => {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("invoice_items")
-        .select("product_id, quantity, total, products(name, name_en, sku, oem_number)")
-        .eq("company_id", companyId!)
-        .gte("created_at", dateFrom)
-        .lte("created_at", dateTo + "T23:59:59");
+        .select("product_id, quantity, total, products(name, name_en, sku, oem_number), invoices!inner(company_id, invoice_date)")
+        .eq("invoices.company_id", companyId!)
+        .gte("invoices.invoice_date", dateFrom)
+        .lte("invoices.invoice_date", dateTo);
       
       const grouped: Record<string, { name: string; sku: string; oem: string; qty: number; total: number }> = {};
       (data || []).forEach((item: any) => {
@@ -69,9 +69,9 @@ const AutoPartsReports = () => {
       if (!ids.length) return [];
 
       const { data: stock } = await (supabase as any)
-        .from("warehouse_stock")
-        .select("product_id, quantity")
-        .eq("company_id", companyId!)
+        .from("product_stock")
+        .select("product_id, quantity, warehouses!inner(company_id)")
+        .eq("warehouses.company_id", companyId!)
         .in("product_id", ids);
 
       const stockMap: Record<string, number> = {};
@@ -98,10 +98,10 @@ const AutoPartsReports = () => {
     queryFn: async () => {
       const { data: items } = await (supabase as any)
         .from("invoice_items")
-        .select("product_id, quantity, total")
-        .eq("company_id", companyId!)
-        .gte("created_at", dateFrom)
-        .lte("created_at", dateTo + "T23:59:59");
+        .select("product_id, quantity, total, invoices!inner(company_id, invoice_date)")
+        .eq("invoices.company_id", companyId!)
+        .gte("invoices.invoice_date", dateFrom)
+        .lte("invoices.invoice_date", dateTo);
 
       const productIds = [...new Set((items || []).map((i: any) => i.product_id).filter(Boolean))];
       if (!productIds.length) return [];
