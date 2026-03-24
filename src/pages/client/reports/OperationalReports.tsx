@@ -61,7 +61,7 @@ const OperationalReports = () => {
   const { data: transfers = [] } = useQuery({
     queryKey: ["stock-transfers-report", companyId, dateFrom, dateTo],
     queryFn: async () => {
-      let q = supabase.from("stock_transfers").select("*, stock_transfer_items(*, products(name, name_en)), source:warehouses!stock_transfers_source_warehouse_id_fkey(name, name_en), destination:warehouses!stock_transfers_destination_warehouse_id_fkey(name, name_en)").eq("company_id", companyId!).order("transfer_date", { ascending: false });
+      let q = supabase.from("stock_transfers").select("*, stock_transfer_items(*, products(name, name_en)), source:branches!stock_transfers_from_branch_id_fkey(name, name_en), destination:branches!stock_transfers_to_branch_id_fkey(name, name_en)").eq("company_id", companyId!).order("transfer_date", { ascending: false });
       if (dateFrom) q = q.gte("transfer_date", dateFrom);
       if (dateTo) q = q.lte("transfer_date", dateTo);
       const { data } = await q;
@@ -87,7 +87,7 @@ const OperationalReports = () => {
   const { data: mfgOrders = [] } = useQuery({
     queryKey: ["manufacturing-report", companyId, dateFrom, dateTo],
     queryFn: async () => {
-      let q = supabase.from("manufacturing_orders").select("*, products(name, name_en), manufacturing_order_items(*, products(name, name_en))").eq("company_id", companyId!).order("created_at", { ascending: false });
+      let q = supabase.from("manufacturing_orders").select("*, products(name, name_en)").eq("company_id", companyId!).order("created_at", { ascending: false });
       const { data } = await q;
       return data || [];
     },

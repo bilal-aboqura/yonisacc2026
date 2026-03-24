@@ -61,7 +61,7 @@ const TeamManagement = () => {
       if (!companyId) return [];
       const { data, error } = await (supabase as any)
         .from("company_members")
-        .select("*, profiles:user_id(full_name, phone)")
+        .select("*")
         .eq("company_id", companyId)
         .order("created_at", { ascending: true });
       if (error) throw error;

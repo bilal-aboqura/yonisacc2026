@@ -45,14 +45,13 @@ AS $$
 DECLARE
   result json;
 BEGIN
-  -- Check if user is company owner (gets all permissions)
+  -- Company owners get unrestricted access.
+  -- Returning an empty object '{}' signals the frontend to allow everything
+  -- (the can() function in useRBAC returns true when the map is empty).
   IF EXISTS (
     SELECT 1 FROM public.companies WHERE id = _company_id AND owner_id = _user_id
   ) THEN
-    SELECT json_object_agg(p.code, true)
-    INTO result
-    FROM public.rbac_permissions p;
-    RETURN COALESCE(result, '{}'::json);
+    RETURN '{}'::json;
   END IF;
 
   -- Get permissions via: rbac_user_roles → rbac_role_permissions → rbac_permissions
