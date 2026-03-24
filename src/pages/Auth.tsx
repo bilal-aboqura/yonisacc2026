@@ -10,6 +10,7 @@ import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscriptionGuard } from "@/hooks/useSubscriptionGuard";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, ArrowLeft, ArrowRight, Eye, EyeOff, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ const Auth = () => {
   const { isRTL } = useLanguage();
   const navigate = useNavigate();
   const { signIn, user, isLoading: authLoading } = useAuth();
+  const { status: subStatus } = useSubscriptionGuard();
 
   const [isLoading, setIsLoading] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -35,11 +37,17 @@ const Auth = () => {
 
   const Arrow = isRTL ? ArrowRight : ArrowLeft;
 
+  // Smart redirect: wait for both auth AND subscription status to resolve
+  // before deciding where to send the user. This prevents the login loop where
+  // /client redirects to /register-company and the back button sends back to /auth.
   useEffect(() => {
-    if (user && !authLoading) {
-      navigate("/client");
+    if (!user || authLoading || subStatus === "loading") return;
+    if (subStatus === "no_company") {
+      navigate("/register-company", { replace: true });
+    } else {
+      navigate("/client", { replace: true });
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, subStatus, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +83,7 @@ const Auth = () => {
     }
 
     toast({ title: isRTL ? "مرحباً!" : "Welcome!", description: isRTL ? "تم تسجيل الدخول بنجاح" : "Successfully logged in" });
-    navigate("/client");
+    // Navigation is handled by the useEffect above once subStatus resolves
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
