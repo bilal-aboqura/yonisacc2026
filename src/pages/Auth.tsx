@@ -35,19 +35,73 @@ const Auth = () => {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
+  const [isProvisioning, setIsProvisioning] = useState(false);
+
   const Arrow = isRTL ? ArrowRight : ArrowLeft;
 
-  // Smart redirect: wait for both auth AND subscription status to resolve
-  // before deciding where to send the user. This prevents the login loop where
-  // /client redirects to /register-company and the back button sends back to /auth.
+  // Smart redirect: wait for both auth AND subscription status to resolve.
+  // If the user has no company but has pending onboarding data (from email-confirmation flow),
+  // auto-provision the company before redirecting to dashboard.
   useEffect(() => {
-    if (!user || authLoading || subStatus === "loading") return;
+    if (!user || authLoading || subStatus === "loading" || isProvisioning) return;
+
     if (subStatus === "no_company") {
+      const pendingRaw = localStorage.getItem("pendingOnboarding");
+      if (pendingRaw) {
+        // Auto-provision: the user registered, confirmed email, and is now logging in for the first time
+        setIsProvisioning(true);
+        (async () => {
+          try {
+            const payload = JSON.parse(pendingRaw);
+            console.log("[DEBUG] Found pending onboarding, calling provision-tenant...", payload);
+            const response = await supabase.functions.invoke("provision-tenant", { body: payload });
+            const result = response.data;
+            const fnError = response.error;
+            console.log("[DEBUG] provision-tenant response:", { result, fnError });
+
+            if (fnError || result?.error) {
+              console.error("[DEBUG] provision-tenant failed:", fnError || result?.error);
+              localStorage.removeItem("pendingOnboarding");
+              toast({
+                title: isRTL ? "خطأ" : "Error",
+                description: isRTL ? "حدث خطأ في إنشاء الشركة. يرجى التسجيل مرة أخرى." : "Failed to create company. Please register again.",
+                variant: "destructive",
+              });
+              navigate("/register-company", { replace: true });
+              return;
+            }
+
+            if (result?.company_id) {
+              console.log("[DEBUG] Company auto-provisioned:", result.company_id);
+              localStorage.setItem("activeCompany", result.company_id);
+              localStorage.removeItem("pendingOnboarding");
+              toast({
+                title: isRTL ? "مرحباً! 🎉" : "Welcome! 🎉",
+                description: isRTL ? "تم إنشاء شركتك بنجاح" : "Your company has been created successfully",
+              });
+              // Force reload to re-run subscription guard with fresh data
+              window.location.href = "/client";
+              return;
+            }
+
+            // Unexpected response — clear pending and let user re-register
+            localStorage.removeItem("pendingOnboarding");
+            navigate("/register-company", { replace: true });
+          } catch (err) {
+            console.error("[DEBUG] Auto-provision error:", err);
+            localStorage.removeItem("pendingOnboarding");
+            navigate("/register-company", { replace: true });
+          } finally {
+            setIsProvisioning(false);
+          }
+        })();
+        return;
+      }
       navigate("/register-company", { replace: true });
     } else {
       navigate("/client", { replace: true });
     }
-  }, [user, authLoading, subStatus, navigate]);
+  }, [user, authLoading, subStatus, navigate, isProvisioning]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,10 +164,15 @@ const Auth = () => {
     setForgotEmail("");
   };
 
-  if (authLoading) {
+  if (authLoading || isProvisioning) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-3">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {isProvisioning && (
+          <p className="text-sm text-muted-foreground">
+            {isRTL ? "جاري إعداد شركتك..." : "Setting up your company..."}
+          </p>
+        )}
       </div>
     );
   }

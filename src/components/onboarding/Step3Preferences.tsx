@@ -147,6 +147,27 @@ export const Step3Preferences = ({ isRTL, isFinalStep }: Props) => {
           console.error("[DEBUG] SignIn error:", signInError);
           const errMsg = (signInError?.message || "").toLowerCase();
           if (errMsg.includes("email not confirmed") || errMsg.includes("invalid login credentials") || errMsg.includes("invalid_credentials")) {
+            // Save onboarding data so we can provision the company after
+            // the user confirms their email and logs in for the first time.
+            const pendingPayload: Record<string, unknown> = {
+              full_name: data.full_name.trim(),
+              name: data.company_name.trim(),
+              name_en: data.company_name_en.trim() || null,
+              email: data.email.trim(),
+              phone: data.phone.trim(),
+              commercial_register: data.commercial_register.trim() || null,
+              tax_number: data.tax_number.trim() || null,
+              address: data.address.trim() || null,
+              industry: data.industry || null,
+              country: data.country,
+              timezone: data.timezone,
+              language: data.language,
+              base_currency: data.base_currency,
+              modules: [],
+            };
+            if (data.plan_id) pendingPayload.plan_id = data.plan_id;
+            localStorage.setItem("pendingOnboarding", JSON.stringify(pendingPayload));
+            console.log("[DEBUG] Saved pending onboarding data to localStorage");
             toast.success(
               isRTL
                 ? "تم إنشاء الحساب بنجاح! يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول."
