@@ -169,23 +169,22 @@ const CreateSalesInvoice = () => {
           const prefix = settings?.invoice_prefix || "INV-";
           const settingsNum = settings?.next_invoice_number || 1;
 
-          // Also check the max existing invoice number to prevent duplicates
-          const { data: existingInvoices } = await supabase
+          // Find the highest existing invoice number to prevent duplicates
+          const { data: lastInvoice } = await supabase
             .from("invoices")
             .select("invoice_number")
             .eq("company_id", companyData.id)
             .eq("type", "sale")
             .like("invoice_number", `${prefix}%`)
-            .order("created_at", { ascending: false })
-            .limit(50);
+            .order("invoice_number", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
           let maxExisting = 0;
-          if (existingInvoices) {
-            for (const inv of existingInvoices) {
-              const numStr = inv.invoice_number.replace(prefix, "").replace(/^0+/, "");
-              const num = parseInt(numStr, 10);
-              if (!isNaN(num) && num > maxExisting) maxExisting = num;
-            }
+          if (lastInvoice) {
+            const numStr = lastInvoice.invoice_number.replace(prefix, "").replace(/^0+/, "");
+            const num = parseInt(numStr, 10);
+            if (!isNaN(num)) maxExisting = num;
           }
 
           const nextNum = Math.max(settingsNum, maxExisting + 1);
@@ -532,6 +531,86 @@ const CreateSalesInvoice = () => {
       navigate("/client/sales");
     } catch (error: any) {
       console.error("Error saving invoice:", error);
+      
+      // Handle duplicate invoice number - auto-increment and retry once
+      if (error?.code === "23505" && error?.message?.includes("invoice_number") && !isEditMode) {
+        try {
+          // Extract prefix and number, increment
+          const match = invoiceNumber.match(/^(.*?)(\d+)$/);
+          if (match) {
+            const newNum = parseInt(match[2], 10) + 1;
+            const newInvoiceNumber = `${match[1]}${String(newNum).padStart(match[2].length, "0")}`;
+            setInvoiceNumber(newInvoiceNumber);
+            
+            // Retry with the new number
+            const retryPayload = {
+              company_id: company!.id,
+              contact_id: selectedContact!.id,
+              branch_id: selectedBranchId || null,
+              type: "sale",
+              invoice_number: newInvoiceNumber,
+              invoice_date: invoiceDate,
+              due_date: dueDate || null,
+              subtotal: totals.subtotal,
+              discount_amount: totals.totalDiscount,
+              tax_amount: totals.totalTax,
+              total: totals.total,
+              status: status === "confirmed" ? "draft" : status,
+              notes,
+              created_by: user?.id,
+            };
+            
+            const { data: retryInvoice, error: retryError } = await supabase
+              .from("invoices")
+              .insert(retryPayload)
+              .select()
+              .single();
+              
+            if (retryError) throw retryError;
+            
+            const invoiceId = retryInvoice.id;
+            
+            // Insert items
+            const invoiceItems = items
+              .filter(item => item.description)
+              .map((item, index) => ({
+                invoice_id: invoiceId,
+                product_id: item.product_id,
+                description: item.description,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                discount_percent: item.discount_percent,
+                discount_amount: item.discount_amount,
+                tax_rate: item.tax_rate,
+                tax_amount: item.tax_amount,
+                total: item.total,
+                sort_order: index,
+              }));
+            
+            const { error: itemsErr } = await supabase.from("invoice_items").insert(invoiceItems);
+            if (itemsErr) throw itemsErr;
+            
+            // Post if confirmed
+            if (status === "confirmed") {
+              const { error: postErr } = await supabase.rpc("post_sales_invoice" as any, {
+                p_company_id: company!.id,
+                p_invoice_id: invoiceId,
+              });
+              if (postErr) throw postErr;
+            }
+            
+            await incrementUsage("sales_invoices");
+            toast.success(isRTL ? "تم إنشاء الفاتورة بنجاح" : "Invoice created successfully");
+            navigate("/client/sales");
+            return;
+          }
+        } catch (retryErr: any) {
+          console.error("Retry also failed:", retryErr);
+          toast.error(retryErr.message || (isRTL ? "خطأ في حفظ الفاتورة" : "Error saving invoice"));
+          return;
+        }
+      }
+      
       toast.error(error.message || (isRTL ? "خطأ في حفظ الفاتورة" : "Error saving invoice"));
     } finally {
       setIsSaving(false);
